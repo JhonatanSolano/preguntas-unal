@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Diagnóstico Matemático – UNAL</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-brand">
+        <span class="brand-pill">UNAL · Admisiones</span>
+        <h1>Diagnóstico Matemático</h1>
+        <p class="header-desc">Evalúa tu nivel y prepárate para el examen de admisión de la Universidad Nacional de Colombia.</p>
+      </div>
+
+      <div class="header-stats">
+        <div class="stat-box">
+          <span class="stat-num" id="answeredCount">0</span>
+          <span class="stat-label">respondidas</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-num" id="totalCount">15</span>
+          <span class="stat-label">total</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="progress-wrap">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+    <p class="progress-label" id="progressLabel">0 % completado</p>
+  </header>
+
+  <nav class="section-nav">
+    <button class="nav-btn active" data-section="diagnostico">Diagnóstico</button>
+    <button class="nav-btn disabled" data-section="examen" title="Disponible próximamente">Examen Final <span class="soon-badge">Pronto</span></button>
+  </nav>
+
+  <main class="main-content" id="sectionDiagnostico">
+
+    <form id="diagForm" novalidate>
+      <div id="questionsContainer"></div>
+
+      <div class="form-footer">
+        <p class="warn-msg" id="warnMsg" hidden>⚠ Responde todas las preguntas antes de enviar.</p>
+        <button type="submit" class="btn btn-primary" id="submitBtn">
+          Enviar diagnóstico
+        </button>
+      </div>
+    </form>
+
+    <section id="resultsSection" hidden>
+
+      <div class="score-card" id="scoreCard">
+        <div class="score-ring-wrap">
+          <svg class="score-ring" viewBox="0 0 120 120">
+            <circle class="ring-bg" cx="60" cy="60" r="50"/>
+            <circle class="ring-fill" id="ringFill" cx="60" cy="60" r="50"
+                    stroke-dasharray="314" stroke-dashoffset="314"/>
+          </svg>
+          <div class="score-inner">
+            <span class="score-pct" id="scorePct">0%</span>
+            <span class="score-nota" id="scoreNota">0.0</span>
+          </div>
+        </div>
+        <div class="score-details">
+          <h2 class="score-title" id="scoreBadge">—</h2>
+          <div class="score-pills">
+            <span class="pill correct" id="pillCorrect">0 correctas</span>
+            <span class="pill wrong"   id="pillWrong">0 incorrectas</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-wrap">
+        <h3 class="section-title">Resultados</h3>
+        <div class="bar-chart" id="barChart">
+          <div class="bar-group">
+            <div class="bar bar-correct" id="barCorrect"></div>
+            <span class="bar-label">Correctas</span>
+          </div>
+          <div class="bar-group">
+            <div class="bar bar-wrong" id="barWrong"></div>
+            <span class="bar-label">Incorrectas</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <h3 class="section-title">Resumen por pregunta</h3>
+        <table class="summary-table" id="summaryTable">
+          <thead>
+            <tr><th>Pregunta</th><th>Estado</th><th>Tu respuesta</th><th>Correcta</th></tr>
+          </thead>
+          <tbody id="summaryBody"></tbody>
+        </table>
+      </div>
+
+      <div id="feedbackList">
+        <h3 class="section-title">Retroalimentación detallada</h3>
+        <div id="feedbackItems"></div>
+      </div>
+
+      <div class="result-actions">
+        <button class="btn btn-secondary" id="btnRestart">↺ Reiniciar diagnóstico</button>
+        <button class="btn btn-outline"   id="btnWrong">Ver solo incorrectas</button>
+        <button class="btn btn-outline"   id="btnAll">Ver todas las respuestas</button>
+      </div>
+
+    </section>
+  </main>
+
+  <main class="main-content hidden" id="sectionExamen">
+    <div class="coming-soon">
+      <span class="cs-icon">📐</span>
+      <h2>Examen Final</h2>
+      <p>Esta sección estará disponible próximamente. Completa el diagnóstico para prepararte.</p>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <p>Plataforma de preparación · Jhonatan Solano · 2026</p>
+  </footer>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {
+      delimiters: [
+        {left:'$$',right:'$$',display:true},
+        {left:'$',right:'$',display:false},
+        {left:'\\[',right:'\\]',display:true},
+        {left:'\\(',right:'\\)',display:false}
+      ]
+    });"></script>
+
+  <script src="script.js"></script>
+</body>
+</html>
