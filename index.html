@@ -8,6 +8,7 @@
 </head>
 <body>
 
+  <!-- ══════════════════ ENCABEZADO ══════════════════ -->
   <header class="site-header">
     <div class="header-inner">
       <div class="header-brand">
@@ -17,6 +18,12 @@
       </div>
 
       <div class="header-stats">
+        <!-- Temporizador -->
+        <div class="stat-box timer-box" id="timerBox">
+          <span class="timer-icon">⏱</span>
+          <span class="stat-num" id="timerDisplay">15:00</span>
+          <span class="stat-label">restante</span>
+        </div>
         <div class="stat-box">
           <span class="stat-num" id="answeredCount">0</span>
           <span class="stat-label">respondidas</span>
@@ -28,19 +35,40 @@
       </div>
     </div>
 
+    <!-- Barra de progreso -->
     <div class="progress-wrap">
       <div class="progress-bar" id="progressBar"></div>
     </div>
     <p class="progress-label" id="progressLabel">0 % completado</p>
   </header>
 
+  <!-- ══════════════════ NAVEGACIÓN DE SECCIONES ══════════════════ -->
   <nav class="section-nav">
     <button class="nav-btn active" data-section="diagnostico">Diagnóstico</button>
-    <button class="nav-btn disabled" data-section="examen" title="Disponible próximamente">Examen Final <span class="soon-badge">Pronto</span></button>
+    <button class="nav-btn" data-section="examen">Examen Final</button>
   </nav>
 
+  <!-- ══════════════════ SECCIÓN DIAGNÓSTICO ══════════════════ -->
   <main class="main-content" id="sectionDiagnostico">
 
+    <!-- Pantalla de inicio -->
+    <div class="start-screen" id="startScreen">
+      <span class="cs-icon">📝</span>
+      <h2>Diagnóstico Matemático</h2>
+      <p>Evalúa tu nivel actual antes de comenzar la preparación. Responde con honestidad, no hay penalización por error.</p>
+      <div class="start-rules">
+        <ul>
+          <li>15 preguntas de selección múltiple</li>
+          <li>Tiempo límite: 15 minutos</li>
+          <li>El tiempo inicia al presionar el botón</li>
+          <li>Las preguntas sin responder cuentan como incorrectas</li>
+        </ul>
+      </div>
+      <button class="btn btn-primary" id="btnIniciarDiag">▶ Iniciar diagnóstico</button>
+    </div>
+
+    <!-- Formulario de preguntas — oculto hasta iniciar -->
+    <div id="diagFormWrap" hidden>
     <form id="diagForm" novalidate>
       <div id="questionsContainer"></div>
 
@@ -51,9 +79,12 @@
         </button>
       </div>
     </form>
+    </div> <!-- /diagFormWrap -->
 
+    <!-- ══════ RESULTADOS ══════ -->
     <section id="resultsSection" hidden>
 
+      <!-- Tarjeta de puntuación -->
       <div class="score-card" id="scoreCard">
         <div class="score-ring-wrap">
           <svg class="score-ring" viewBox="0 0 120 120">
@@ -72,9 +103,15 @@
             <span class="pill correct" id="pillCorrect">0 correctas</span>
             <span class="pill wrong"   id="pillWrong">0 incorrectas</span>
           </div>
+          <div class="score-metrics">
+            <p><strong>Tiempo empleado:</strong> <span id="tiempoEmpleado">00:00</span></p>
+            <p><strong>Tiempo restante:</strong> <span id="tiempoRestante">15:00</span></p>
+            <p><strong>Balance:</strong> <span id="balanceResultado">0 de 15 correctas</span></p>
+          </div>
         </div>
       </div>
 
+      <!-- Gráfico de barras -->
       <div class="chart-wrap">
         <h3 class="section-title">Resultados</h3>
         <div class="bar-chart" id="barChart">
@@ -89,6 +126,7 @@
         </div>
       </div>
 
+      <!-- Tabla resumen -->
       <div class="table-wrap">
         <h3 class="section-title">Resumen por pregunta</h3>
         <table class="summary-table" id="summaryTable">
@@ -99,11 +137,13 @@
         </table>
       </div>
 
+      <!-- Retroalimentación detallada -->
       <div id="feedbackList">
         <h3 class="section-title">Retroalimentación detallada</h3>
         <div id="feedbackItems"></div>
       </div>
 
+      <!-- Botones de acción -->
       <div class="result-actions">
         <button class="btn btn-secondary" id="btnRestart">↺ Reiniciar diagnóstico</button>
         <button class="btn btn-outline"   id="btnWrong">Ver solo incorrectas</button>
@@ -113,18 +153,132 @@
     </section>
   </main>
 
+  <!-- ══════════════════ SECCIÓN EXAMEN FINAL ══════════════════ -->
   <main class="main-content hidden" id="sectionExamen">
-    <div class="coming-soon">
-      <span class="cs-icon">📐</span>
-      <h2>Examen Final</h2>
-      <p>Esta sección estará disponible próximamente. Completa el diagnóstico para prepararte.</p>
+
+    <!-- Estado: diagnóstico no completado aún -->
+    <div class="start-screen" id="examenBloqueado">
+      <span class="cs-icon">🔒</span>
+      <h2>Examen Final bloqueado</h2>
+      <p>Debes completar el <strong>Diagnóstico Matemático</strong> antes de acceder al Examen Final.</p>
+      <div class="start-rules">
+        <ul>
+          <li>Regresa a la pestaña <strong>Diagnóstico</strong></li>
+          <li>Completa y envía las 15 preguntas</li>
+          <li>Luego podrás acceder aquí</li>
+        </ul>
+      </div>
+      <button class="btn btn-secondary" id="btnIrDiagnostico">← Ir al Diagnóstico</button>
     </div>
+
+    <!-- Estado: listo para iniciar (solo visible tras completar diagnóstico) -->
+    <div class="start-screen" id="startScreenExamen" hidden>
+      <span class="cs-icon">🎯</span>
+      <h2>Examen Final</h2>
+      <p>Nivel avanzado. Preguntas de alta complejidad similares a las del examen real de admisión UNAL.</p>
+      <div class="start-rules">
+        <ul>
+          <li>10 preguntas de alta dificultad</li>
+          <li>Tiempo límite: 15 minutos</li>
+          <li>El tiempo inicia al presionar el botón</li>
+          <li>Las preguntas sin responder cuentan como incorrectas</li>
+        </ul>
+      </div>
+      <button class="btn btn-primary" id="btnIniciarExamen">▶ Iniciar examen final</button>
+    </div>
+
+    <div id="examenFormWrap" hidden>
+    <form id="examenForm" novalidate>
+      <div id="examenContainer"></div>
+      <div class="form-footer">
+        <p class="warn-msg" id="warnMsgExamen" hidden>⚠ Responde todas las preguntas antes de enviar.</p>
+        <button type="submit" class="btn btn-primary" id="submitBtnExamen">Enviar examen final</button>
+      </div>
+    </form>
+    </div>
+
+    <section id="resultsSectionExamen" hidden>
+      <div class="score-card">
+        <div class="score-ring-wrap">
+          <svg class="score-ring" viewBox="0 0 120 120">
+            <circle class="ring-bg" cx="60" cy="60" r="50"/>
+            <circle class="ring-fill" id="ringFillExamen" cx="60" cy="60" r="50"
+                    stroke-dasharray="314" stroke-dashoffset="314"/>
+          </svg>
+          <div class="score-inner">
+            <span class="score-pct" id="scorePctExamen">0%</span>
+            <span class="score-nota" id="scoreNotaExamen">0.0</span>
+          </div>
+        </div>
+        <div class="score-details">
+          <h2 class="score-title" id="scoreBadgeExamen">—</h2>
+          <div class="score-pills">
+            <span class="pill correct" id="pillCorrectExamen">0 correctas</span>
+            <span class="pill wrong"   id="pillWrongExamen">0 incorrectas</span>
+          </div>
+          <div class="score-metrics">
+            <p><strong>Tiempo empleado:</strong> <span id="tiempoEmpleadoExamen">00:00</span></p>
+            <p><strong>Tiempo restante:</strong> <span id="tiempoRestanteExamen">15:00</span></p>
+            <p><strong>Balance:</strong> <span id="balanceResultadoExamen">0 de 10 correctas</span></p>
+          </div>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <h3 class="section-title">Resultados</h3>
+        <div class="bar-chart">
+          <div class="bar-group">
+            <div class="bar bar-correct" id="barCorrectExamen"></div>
+            <span class="bar-label">Correctas</span>
+          </div>
+          <div class="bar-group">
+            <div class="bar bar-wrong" id="barWrongExamen"></div>
+            <span class="bar-label">Incorrectas</span>
+          </div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <h3 class="section-title">Resumen por pregunta</h3>
+        <table class="summary-table">
+          <thead><tr><th>Pregunta</th><th>Estado</th><th>Tu respuesta</th><th>Correcta</th></tr></thead>
+          <tbody id="summaryBodyExamen"></tbody>
+        </table>
+      </div>
+      <div id="feedbackListExamen">
+        <h3 class="section-title">Retroalimentación detallada</h3>
+        <div id="feedbackItemsExamen"></div>
+      </div>
+      <div class="result-actions">
+        <button class="btn btn-secondary" id="btnRestartExamen">↺ Reiniciar examen</button>
+        <button class="btn btn-outline"   id="btnWrongExamen">Ver solo incorrectas</button>
+        <button class="btn btn-outline"   id="btnAllExamen">Ver todas las respuestas</button>
+      </div>
+    </section>
   </main>
 
+  <!-- ══════════════════ MODALES TIEMPO AGOTADO ══════════════════ -->
+  <div id="timeoutOverlay" class="overlay hidden">
+    <div class="overlay-card">
+      <div class="overlay-icon">⏰</div>
+      <h2>¡Tiempo agotado!</h2>
+      <p>Se acabaron los 15 minutos. Las preguntas sin responder se registran como incorrectas.</p>
+      <button class="btn btn-primary" id="btnVerResultado">Ver mi resultado</button>
+    </div>
+  </div>
+  <div id="timeoutOverlayExamen" class="overlay hidden">
+    <div class="overlay-card">
+      <div class="overlay-icon">⏰</div>
+      <h2>¡Tiempo agotado!</h2>
+      <p>Se acabaron los 15 minutos del examen final. Las preguntas sin responder cuentan como incorrectas.</p>
+      <button class="btn btn-primary" id="btnVerResultadoExamen">Ver mi resultado</button>
+    </div>
+  </div>
+
   <footer class="site-footer">
-    <p>Plataforma de preparación · Jhonatan Solano · 2026</p>
+    <p>Jhonatan Solano · Universidad Nacional de Colombia · 2026</p>
   </footer>
 
+  <!-- KaTeX para renderizar fórmulas matemáticas sin internet (inlined via CDN cache) -->
+  <!-- Se usa CDN pero el sistema funciona sin él (solo sin renderizado LaTeX) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
@@ -137,6 +291,6 @@
       ]
     });"></script>
 
-  <script src="script.js"></script>
+  <script src="script.js?v=20260621-4"></script>
 </body>
 </html>
