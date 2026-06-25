@@ -270,7 +270,7 @@ function calcBadge(pct) {
 /** Resume precisión y tiempo promedio usado por pregunta */
 function calcBalance(correctas, total, tiempoSeg) {
   const promedio = tiempoSeg / total;
-  return `${correctas} de ${total} correctas · ${promedio.toFixed(1)} s por pregunta`;
+  return `${promedio.toFixed(1)} segundos por pregunta`;
 }
 
 /** Letras de las opciones */
@@ -842,7 +842,7 @@ function reiniciarEstadoExamenFinal(desbloqueado) {
   document.getElementById("pillWrongExamen").textContent = "0 incorrectas";
   document.getElementById("tiempoEmpleadoExamen").textContent = "00:00";
   document.getElementById("tiempoRestanteExamen").textContent = "15:00";
-  document.getElementById("balanceResultadoExamen").textContent = "0 de 10 correctas";
+  document.getElementById("balanceResultadoExamen").textContent = "0.0 segundos por pregunta";
 
   ["barCorrectExamen", "barWrongExamen"].forEach(id => {
     const barra = document.getElementById(id);

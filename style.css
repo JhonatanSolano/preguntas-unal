@@ -42,6 +42,7 @@ body {
   color: var(--c-text);
   line-height: 1.6;
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
 /* ══════════════════════════════════
@@ -355,7 +356,7 @@ body {
 .score-pct  { font-size: 1.5rem; font-weight: 800; color: var(--c-navy); line-height:1; }
 .score-nota { font-size: .85rem; color: var(--c-muted); font-weight: 600; }
 
-.score-details {}
+.score-details { flex: 1; min-width: 0; }
 .score-title {
   font-family: var(--font-display);
   font-size: 1.6rem;
@@ -555,16 +556,54 @@ body {
    RESPONSIVE
 ══════════════════════════════════ */
 @media (max-width: 600px) {
+  .site-header { padding: 1.4rem 1rem 1rem; }
   .header-inner { flex-direction: column; gap: 1rem; }
-  .header-stats { align-self: flex-start; }
+  .header-stats {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: .55rem;
+  }
+  .stat-box { min-width: 0; padding: .55rem .35rem; }
+  .stat-num { font-size: 1.25rem; }
+  .timer-box .stat-num { font-size: 1.05rem; letter-spacing: 0; }
+  .section-nav { overflow-x: auto; justify-content: flex-start; }
+  .nav-btn { flex: 1 0 auto; justify-content: center; padding: .45rem .9rem; }
+  .main-content { margin: 1.2rem auto 3rem; padding: 0 .75rem; }
   .score-card { flex-direction: column; align-items: center; text-align: center; gap: 1.4rem; }
   .score-pills { justify-content: center; }
   .bar-chart { gap: 1.5rem; }
   .result-actions { flex-direction: column; align-items: center; }
   .result-actions .btn { width: 100%; max-width: 320px; }
   .question-card { padding: 1.2rem 1.1rem; }
+  .q-header { align-items: flex-start; }
+  .q-text { min-width: 0; overflow-wrap: anywhere; }
+  .option-label { align-items: flex-start; padding: .7rem .8rem; }
+  .q-formula { padding: .7rem .85rem; }
   .table-wrap { padding: 1rem; }
+  .summary-table { min-width: 520px; }
   #feedbackList { padding: 1.2rem 1rem; }
+  .start-screen { padding: 2rem 1rem; }
+  .btn { width: 100%; max-width: 340px; padding-inline: 1rem; }
+  .score-metrics { text-align: left; }
+}
+
+@media (min-width: 601px) and (max-width: 900px) {
+  .site-header { padding-inline: 1.25rem; }
+  .main-content,
+  .header-inner,
+  .progress-wrap,
+  .progress-label {
+    max-width: calc(100vw - 2rem);
+  }
+  .header-stats { gap: .6rem; }
+  .score-card { gap: 1.6rem; padding: 1.8rem; }
+  .question-card,
+  .chart-wrap,
+  .table-wrap,
+  #feedbackList {
+    padding-inline: 1.4rem;
+  }
 }
 
 /* ══════════════════════════════════
