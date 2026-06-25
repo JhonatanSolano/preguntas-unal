@@ -363,7 +363,7 @@ body {
   color: var(--c-navy);
   margin-bottom: .7rem;
 }
-.score-pills { display: flex; gap: .6rem; flex-wrap: wrap; }
+.score-pills { display: none; }
 .pill {
   border-radius: 99px;
   padding: .3rem .9rem;
