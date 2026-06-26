@@ -680,19 +680,19 @@ const PREGUNTAS_EXAMEN = [
   },
   {
     id: 2,
-    pregunta: "La suma de la progresión geométrica infinita \\(1 - \\frac{1}{3} + \\frac{1}{9} - \\cdots\\) es:",
+    pregunta: "Si \\(m^{m^2} = 2\\), entonces ¿cuánto vale \\((m+3)(m-3)\\)?",
     formula: "",
-    opciones: ["\\(\\dfrac{2}{3}\\)", "\\(\\dfrac{3}{4}\\)", "\\(\\dfrac{1}{2}\\)", "\\(\\dfrac{4}{3}\\)"],
+    opciones: ["\\(1\\)", "\\(-7\\)", "\\(4\\)", "\\(-5\\)"],
     correcta: 1,
-    explicacion: "Es una progresión geométrica con \\(a=1\\) y \\(r=-\\frac{1}{3}\\).<br>\\(S = \\dfrac{a}{1-r} = \\dfrac{1}{1+\\frac{1}{3}} = \\dfrac{1}{\\frac{4}{3}} = \\dfrac{3}{4}\\)."
+    explicacion: "Como \\(\\sqrt{2}^{(\\sqrt{2})^2} = \\sqrt{2}^{2} = 2\\), se puede tomar \\(m = \\sqrt{2}\\).<br>Entonces \\((m+3)(m-3) = m^2 - 9 = (\\sqrt{2})^2 - 9 = 2 - 9 = -7\\)."
   },
   {
     id: 3,
-    pregunta: "El número de soluciones enteras de la inecuación",
+    pregunta: "¿Cuál es el conjunto solución de la inecuación?",
     formula: "\\[ \\frac{x^2 - 5x + 6}{x - 1} < 0 \\]",
-    opciones: ["1", "2", "3", "4"],
-    correcta: 1,
-    explicacion: "Factorizando: \\(\\frac{(x-2)(x-3)}{x-1}<0\\).<br>Análisis de signos: la expresión es negativa en \\((-\\infty,1)\\cup(2,3)\\).<br>Enteros en \\((-\\infty,1)\\): \\(\\{\\ldots,-1,0\\}\\) (infinitos). En \\((2,3)\\): ningún entero.<br>Pero si la pregunta pide soluciones positivas acotadas o en cierto rango, hay 2 intervalos de solución. La respuesta esperada es 2 intervalos de solución."
+    opciones: ["\\((-\\infty,1)\\cup(2,3)\\)", "\\((1,2)\\cup(3,\\infty)\\)", "\\((-\\infty,1)\\cup(3,\\infty)\\)", "\\((1,2)\\)"],
+    correcta: 0,
+    explicacion: "Factorizamos el numerador:<br>\\(\\dfrac{x^2-5x+6}{x-1}=\\dfrac{(x-2)(x-3)}{x-1}\\).<br>Los puntos críticos son \\(1\\), \\(2\\) y \\(3\\). Con el método del cementerio se analizan los signos en los intervalos \\((-\\infty,1)\\), \\((1,2)\\), \\((2,3)\\) y \\((3,\\infty)\\).<br>La expresión resulta negativa en \\((-\\infty,1)\\) y en \\((2,3)\\). Como la desigualdad es estricta y \\(x=1\\) no pertenece al dominio, el conjunto solución es \\((-\\infty,1)\\cup(2,3)\\)."
   },
   {
     id: 4,
@@ -712,11 +712,11 @@ const PREGUNTAS_EXAMEN = [
   },
   {
     id: 6,
-    pregunta: "¿Cuántos ceros tiene al final el número \\(100!\\) (factorial de 100)?",
+    pregunta: "Si \\(3^w + 9^w = 90\\), entonces \\(w\\) vale:",
     formula: "",
-    opciones: ["20", "24", "25", "10"],
-    correcta: 1,
-    explicacion: "Los ceros finales provienen de factores 10 = 2×5. Contamos factores de 5 en 100!:<br>\\(\\lfloor 100/5 \\rfloor + \\lfloor 100/25 \\rfloor = 20 + 4 = 24\\)."
+    opciones: ["\\(2\\)", "\\(7\\)", "\\(1\\)", "\\(0\\)"],
+    correcta: 0,
+    explicacion: "Sea \\(p=3^w\\). Entonces \\(9^w=(3^2)^w=3^{2w}=(3^w)^2=p^2\\).<br>La ecuación queda \\(p+p^2=90\\), es decir, \\(p^2+p-90=0\\).<br>Factorizando: \\((p+10)(p-9)=0\\). Como \\(p=3^w>0\\), se toma \\(p=9\\).<br>Así, \\(3^w=9=3^2\\), por tanto \\(w=2\\)."
   },
   {
     id: 7,
@@ -746,16 +746,16 @@ const PREGUNTAS_EXAMEN = [
   },
   {
     id: 9,
-    pregunta: "El área de la región delimitada por \\(y = x^2\\) y \\(y = x + 2\\) es:",
+    pregunta: "Calcular \\(E=\\log(1000!)-\\log(999!)\\):",
     formula: "",
     opciones: [
-      "\\(\\dfrac{9}{2}\\)",
-      "\\(\\dfrac{7}{3}\\)",
-      "\\(4\\)",
-      "\\(\\dfrac{11}{6}\\)"
+      "\\(1\\)",
+      "\\(2\\)",
+      "\\(0\\)",
+      "\\(3\\)"
     ],
-    correcta: 0,
-    explicacion: "Intersecciones: \\(x^2 = x+2 \\Rightarrow x=-1, x=2\\).<br>\\(A = \\int_{-1}^{2}(x+2-x^2)\\,dx = \\left[\\frac{x^2}{2}+2x-\\frac{x^3}{3}\\right]_{-1}^{2} = \\frac{9}{2}\\)."
+    correcta: 3,
+    explicacion: "Usando la propiedad \\(\\log a-\\log b=\\log\\left(\\dfrac{a}{b}\\right)\\), tenemos:<br>\\(E=\\log\\left(\\dfrac{1000!}{999!}\\right)\\).<br>Como \\(1000! = 1000\\cdot 999!\\), entonces \\(\\dfrac{1000!}{999!}=1000\\).<br>Por tanto, \\(E=\\log(1000)=3\\), porque \\(10^3=1000\\)."
   },
   {
     id: 10,
@@ -767,8 +767,8 @@ const PREGUNTAS_EXAMEN = [
       "\\(\\dfrac{2}{7}\\)",
       "\\(-\\dfrac{1}{14}\\)"
     ],
-    correcta: 0,
-    explicacion: "Ley de cosenos: \\(c^2 = a^2+b^2-2ab\\cos C\\).<br>\\(81 = 49+64-112\\cos C \\Rightarrow 112\\cos C = 32 \\Rightarrow \\cos C = \\dfrac{32}{112} = \\dfrac{2}{7}\\).<br><em>Nota: la opción correcta es \\(\\frac{2}{7}\\) — coincide con la opción A del enunciado.</em>"
+    correcta: 2,
+    explicacion: "Ley de cosenos: \\(c^2 = a^2+b^2-2ab\\cos C\\).<br>\\(81 = 49+64-112\\cos C \\Rightarrow 112\\cos C = 32 \\Rightarrow \\cos C = \\dfrac{32}{112} = \\dfrac{2}{7}\\)."
   }
 ];
 
