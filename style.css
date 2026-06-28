@@ -49,14 +49,15 @@ body.group-locked > :not(#groupGate) { display: none !important; }
 body:not(.group-locked) #groupGate { display: none !important; }
 body.admin-mode { padding-bottom: 5.5rem; }
 body.admin-mode .site-header { display: none !important; }
-body.admin-mode .section-nav {
+body.admin-mode .section-nav { display: none !important; }
+
+body.admin-mode .admin-exit-dock {
   position: fixed;
   left: 0;
   right: 0;
   bottom: 0;
   z-index: 40;
-  max-width: none;
-  margin: 0;
+  display: flex;
   justify-content: center;
   padding: .85rem 1rem;
   background: rgba(255,255,255,.96);
@@ -64,16 +65,15 @@ body.admin-mode .section-nav {
   box-shadow: 0 -8px 28px rgba(0,56,101,.12);
   backdrop-filter: blur(10px);
 }
-body.admin-mode .section-nav .nav-btn:not(.exit-nav) { display: none !important; }
-body.admin-mode .exit-nav {
+.admin-exit-dock { display: none; }
+.admin-exit-btn {
   min-width: 190px;
-  justify-content: center;
   border-color: transparent;
   background: var(--c-red);
   color: #fff;
   box-shadow: 0 8px 20px rgba(192,57,43,.22);
 }
-body.admin-mode .exit-nav:hover {
+.admin-exit-btn:hover {
   background: #a93226;
   color: #fff;
   transform: translateY(-1px);

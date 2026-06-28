@@ -1487,6 +1487,7 @@ function salirApp() {
 }
 
 document.getElementById("btnSalirApp").addEventListener("click", salirApp);
+document.getElementById("btnSalirAdmin")?.addEventListener("click", salirApp);
 
 if (grupoActivo === "admin" || (grupoActivo && GRUPOS[grupoActivo])) {
   modoAdmin = grupoActivo === "admin";
