@@ -291,7 +291,7 @@ const answeredEl  = document.getElementById("answeredCount");
  * @returns {HTMLElement}
  */
 function crearTarjetaPregunta(q, tipo = "diag") {
-  const prefijo = tipo === "examen" ? "examen" : "diag";
+  const prefijo = tipo;
   const card = document.createElement("div");
   card.className = "question-card";
   card.id = `${prefijo}-card-${q.id}`;
@@ -324,6 +324,7 @@ function crearTarjetaPregunta(q, tipo = "diag") {
       label.classList.add("selected");
       card.classList.add("answered");
       if (tipo === "examen") actualizarProgresoExamen();
+      else if (tipo === "nivel") actualizarProgresoNivel();
       else actualizarProgreso();
     });
 
@@ -391,6 +392,7 @@ const resultsSection = document.getElementById("resultsSection");
 let diagnosticoCompletado = false;
 let examenIniciado = false;
 let examenCompletado = false;
+const nivelesCompletados = { nivel1: false, nivel2: false, nivel3: false, nivel4: false, nivel5: false };
 
 form.addEventListener("submit", (e) => {
   e.preventDefault();
@@ -560,8 +562,10 @@ function textoPlano(str) {
 document.getElementById("btnRestart").addEventListener("click", () => {
   // El diagnóstico es el requisito del examen final: reiniciarlo invalida ambos intentos.
   detenerTimer();
+  detenerTimerNivel();
   detenerTimerExamen();
   diagnosticoCompletado = false;
+  reiniciarEstadoNiveles();
   reiniciarEstadoExamenFinal(false);
 
   resultsSection.hidden = true;
@@ -606,16 +610,19 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
     document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     const sec = btn.dataset.section;
-    document.getElementById("sectionDiagnostico").classList.toggle("hidden", sec !== "diagnostico");
-    document.getElementById("sectionExamen").classList.toggle("hidden",      sec !== "examen");
+    mostrarSeccion(sec);
 
     if (sec === "diagnostico") {
       actualizarProgreso();
     }
 
+    if (sec.startsWith("nivel")) {
+      abrirNivel(sec);
+    }
+
     // Al entrar al examen final, mostrar estado correcto
     if (sec === "examen") {
-      if (diagnosticoCompletado) {
+      if (puedeAbrirExamenFinal()) {
         document.getElementById("examenBloqueado").hidden   = true;
         document.getElementById("startScreenExamen").hidden = examenIniciado || examenCompletado;
         document.getElementById("examenFormWrap").hidden = !examenIniciado;
@@ -635,12 +642,22 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
   });
 });
 
+function mostrarSeccion(sec) {
+  document.getElementById("sectionDiagnostico").classList.toggle("hidden", sec !== "diagnostico");
+  document.getElementById("sectionNivel").classList.toggle("hidden", !sec.startsWith("nivel"));
+  document.getElementById("sectionExamen").classList.toggle("hidden", sec !== "examen");
+  document.getElementById("sectionAdmin").classList.toggle("hidden", sec !== "admin");
+}
+
+function activarNav(sec) {
+  document.querySelectorAll(".nav-btn").forEach(b => b.classList.toggle("active", b.dataset.section === sec));
+  mostrarSeccion(sec);
+}
+
 // Botón "Ir al Diagnóstico" desde pantalla bloqueada
 document.getElementById("btnIrDiagnostico").addEventListener("click", () => {
-  document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
-  document.querySelector("[data-section='diagnostico']").classList.add("active");
-  document.getElementById("sectionDiagnostico").classList.remove("hidden");
-  document.getElementById("sectionExamen").classList.add("hidden");
+  activarNav("nivel5");
+  abrirNivel("nivel5");
   window.scrollTo({ top: 0, behavior: "smooth" });
 });
 
@@ -772,8 +789,472 @@ const PREGUNTAS_EXAMEN = [
   }
 ];
 
+/* ════════════════════════════════════════════════════════
+   12. NIVELES – DATOS (5 niveles, 10 preguntas cada uno)
+════════════════════════════════════════════════════════ */
+const NIVELES_META = {
+  nivel1: { titulo: "Nivel 1", descripcion: "Fundamentos de aritmética, álgebra básica y ecuaciones lineales.", requisito: "diagnostico", requisitoTexto: "Completa primero el diagnóstico." },
+  nivel2: { titulo: "Nivel 2", descripcion: "Álgebra intermedia, factorización, funciones y proporciones.", requisito: "nivel1", requisitoTexto: "Completa primero el Nivel 1." },
+  nivel3: { titulo: "Nivel 3", descripcion: "Desigualdades, logaritmos, funciones y trigonometría básica.", requisito: "nivel2", requisitoTexto: "Completa primero el Nivel 2." },
+  nivel4: { titulo: "Nivel 4", descripcion: "Precálculo, sucesiones, composición de funciones y conteo.", requisito: "nivel3", requisitoTexto: "Completa primero el Nivel 3." },
+  nivel5: { titulo: "Nivel 5", descripcion: "Reto avanzado antes del examen final.", requisito: "nivel4", requisitoTexto: "Completa primero el Nivel 4." }
+};
+
+const PREGUNTAS_NIVELES = {
+  nivel1: [
+    { id: 1, pregunta: "Calcula", formula: "\\[ 7-3(2-5) \\]", opciones: ["\\(16\\)", "\\(-2\\)", "\\(4\\)", "\\(13\\)"], correcta: 0, explicacion: "Primero el paréntesis: \\(2-5=-3\\). Luego \\(7-3(-3)=7+9=16\\)." },
+    { id: 2, pregunta: "Si \\(2x+5=17\\), entonces \\(x\\) vale:", formula: "", opciones: ["\\(5\\)", "\\(6\\)", "\\(7\\)", "\\(11\\)"], correcta: 1, explicacion: "\\(2x=17-5=12\\). Por tanto, \\(x=6\\)." },
+    { id: 3, pregunta: "Simplifica", formula: "\\[ 4a-2b+7a+5b \\]", opciones: ["\\(11a+3b\\)", "\\(3a+11b\\)", "\\(11a-7b\\)", "\\(a+3b\\)"], correcta: 0, explicacion: "Se agrupan términos semejantes: \\((4+7)a+(-2+5)b=11a+3b\\)." },
+    { id: 4, pregunta: "El \\(25\\%\\) de 80 es:", formula: "", opciones: ["\\(15\\)", "\\(20\\)", "\\(25\\)", "\\(40\\)"], correcta: 1, explicacion: "\\(25\\%=\\frac14\\). Entonces \\(\\frac14\\cdot80=20\\)." },
+    { id: 5, pregunta: "Factoriza", formula: "\\[ x^2+5x \\]", opciones: ["\\(x(x+5)\\)", "\\(5(x+1)\\)", "\\(x(x-5)\\)", "\\((x+5)^2\\)"], correcta: 0, explicacion: "El factor común es \\(x\\): \\(x^2+5x=x(x+5)\\)." },
+    { id: 6, pregunta: "Resuelve", formula: "\\[ \\frac{x}{3}+2=7 \\]", opciones: ["\\(9\\)", "\\(12\\)", "\\(15\\)", "\\(21\\)"], correcta: 2, explicacion: "\\(\\frac{x}{3}=5\\). Multiplicando por 3: \\(x=15\\)." },
+    { id: 7, pregunta: "Si \\(f(x)=2x-1\\), entonces \\(f(4)\\) es:", formula: "", opciones: ["\\(6\\)", "\\(7\\)", "\\(8\\)", "\\(9\\)"], correcta: 1, explicacion: "\\(f(4)=2(4)-1=8-1=7\\)." },
+    { id: 8, pregunta: "El producto notable", formula: "\\[ (x+3)^2 \\]", opciones: ["\\(x^2+9\\)", "\\(x^2+6x+9\\)", "\\(x^2+3x+9\\)", "\\(x^2-6x+9\\)"], correcta: 1, explicacion: "\\((a+b)^2=a^2+2ab+b^2\\). Entonces \\((x+3)^2=x^2+6x+9\\)." },
+    { id: 9, pregunta: "Ordena de menor a mayor:", formula: "\\[ -2,\\; \\frac12,\\; 0,\\; -\\frac32 \\]", opciones: ["\\(-2,-\\frac32,0,\\frac12\\)", "\\(-\\frac32,-2,0,\\frac12\\)", "\\(0,\\frac12,-\\frac32,-2\\)", "\\(-2,0,-\\frac32,\\frac12\\)"], correcta: 0, explicacion: "En la recta numérica: \\(-2<-\\frac32<0<\\frac12\\)." },
+    { id: 10, pregunta: "Si \\(3x-4=2x+9\\), entonces \\(x\\) vale:", formula: "", opciones: ["\\(5\\)", "\\(9\\)", "\\(13\\)", "\\(-13\\)"], correcta: 2, explicacion: "Restando \\(2x\\): \\(x-4=9\\). Sumando 4: \\(x=13\\)." }
+  ],
+  nivel2: [
+    { id: 1, pregunta: "Factoriza", formula: "\\[ x^2-25 \\]", opciones: ["\\((x-5)^2\\)", "\\((x-5)(x+5)\\)", "\\((x+25)(x-1)\\)", "\\(x(x-25)\\)"], correcta: 1, explicacion: "Es diferencia de cuadrados: \\(x^2-25=x^2-5^2=(x-5)(x+5)\\)." },
+    { id: 2, pregunta: "Resuelve", formula: "\\[ 2(x-3)=x+4 \\]", opciones: ["\\(6\\)", "\\(8\\)", "\\(10\\)", "\\(12\\)"], correcta: 2, explicacion: "\\(2x-6=x+4\\). Entonces \\(x=10\\)." },
+    { id: 3, pregunta: "Simplifica", formula: "\\[ \\frac{12x^3}{3x} \\]", opciones: ["\\(4x^2\\)", "\\(4x^3\\)", "\\(9x^2\\)", "\\(15x^2\\)"], correcta: 0, explicacion: "\\(12/3=4\\) y \\(x^3/x=x^2\\). Resultado: \\(4x^2\\)." },
+    { id: 4, pregunta: "La pendiente de la recta que pasa por \\((1,2)\\) y \\((3,8)\\) es:", formula: "", opciones: ["\\(2\\)", "\\(3\\)", "\\(4\\)", "\\(6\\)"], correcta: 1, explicacion: "\\(m=\\frac{8-2}{3-1}=\\frac{6}{2}=3\\)." },
+    { id: 5, pregunta: "Si \\(f(x)=x^2-2x\\), entonces \\(f(-1)\\) vale:", formula: "", opciones: ["\\(-3\\)", "\\(1\\)", "\\(3\\)", "\\(5\\)"], correcta: 2, explicacion: "\\(f(-1)=(-1)^2-2(-1)=1+2=3\\)." },
+    { id: 6, pregunta: "Resuelve", formula: "\\[ x^2-9x+20=0 \\]", opciones: ["\\(4\\) y \\(5\\)", "\\(2\\) y \\(10\\)", "\\(-4\\) y \\(-5\\)", "\\(1\\) y \\(20\\)"], correcta: 0, explicacion: "Buscamos dos números que sumen 9 y multipliquen 20: 4 y 5. Entonces \\((x-4)(x-5)=0\\)." },
+    { id: 7, pregunta: "Si \\(\\frac{a}{3}=\\frac{10}{6}\\), entonces \\(a\\) vale:", formula: "", opciones: ["\\(4\\)", "\\(5\\)", "\\(6\\)", "\\(8\\)"], correcta: 1, explicacion: "Por producto cruzado: \\(6a=30\\). Entonces \\(a=5\\)." },
+    { id: 8, pregunta: "El dominio de", formula: "\\[ \\frac{1}{x-4} \\]", opciones: ["\\(x\\neq 0\\)", "\\(x\\neq 4\\)", "\\(x>4\\)", "\\(x<4\\)"], correcta: 1, explicacion: "El denominador no puede ser cero. \\(x-4\\neq0\\), por tanto \\(x\\neq4\\)." },
+    { id: 9, pregunta: "Calcula", formula: "\\[ 2^3\\cdot2^4 \\]", opciones: ["\\(2^7\\)", "\\(2^{12}\\)", "\\(4^7\\)", "\\(16\\)"], correcta: 0, explicacion: "Con la misma base se suman exponentes: \\(2^3\\cdot2^4=2^{3+4}=2^7\\)." },
+    { id: 10, pregunta: "Si \\(y\\) es directamente proporcional a \\(x\\) y \\(y=12\\) cuando \\(x=3\\), entonces cuando \\(x=5\\), \\(y\\) vale:", formula: "", opciones: ["\\(15\\)", "\\(18\\)", "\\(20\\)", "\\(24\\)"], correcta: 2, explicacion: "La constante es \\(k=12/3=4\\). Entonces \\(y=4x\\). Para \\(x=5\\), \\(y=20\\)." }
+  ],
+  nivel3: [
+    { id: 1, pregunta: "Resuelve la desigualdad", formula: "\\[ 3x-7<11 \\]", opciones: ["\\(x<6\\)", "\\(x>6\\)", "\\(x<\\frac43\\)", "\\(x>\\frac43\\)"], correcta: 0, explicacion: "\\(3x<18\\). Dividiendo entre 3: \\(x<6\\)." },
+    { id: 2, pregunta: "Calcula", formula: "\\[ \\log_{2}(32) \\]", opciones: ["\\(4\\)", "\\(5\\)", "\\(16\\)", "\\(64\\)"], correcta: 1, explicacion: "\\(2^5=32\\), por tanto \\(\\log_2(32)=5\\)." },
+    { id: 3, pregunta: "Si \\(g(x)=\\sqrt{x-1}\\), su dominio es:", formula: "", opciones: ["\\(x>1\\)", "\\(x\\geq1\\)", "\\(x\\leq1\\)", "Todo real"], correcta: 1, explicacion: "Para una raíz cuadrada se exige \\(x-1\\geq0\\). Entonces \\(x\\geq1\\)." },
+    { id: 4, pregunta: "Resuelve", formula: "\\[ |x-2|=5 \\]", opciones: ["\\(7\\)", "\\(-3\\)", "\\(7\\) y \\(-3\\)", "\\(5\\) y \\(-5\\)"], correcta: 2, explicacion: "Dos casos: \\(x-2=5\\Rightarrow x=7\\) y \\(x-2=-5\\Rightarrow x=-3\\)." },
+    { id: 5, pregunta: "Simplifica", formula: "\\[ \\frac{x^2-1}{x-1} \\]", opciones: ["\\(x-1\\)", "\\(x+1\\)", "\\(x^2+1\\)", "\\(1\\)"], correcta: 1, explicacion: "\\(x^2-1=(x-1)(x+1)\\). Al simplificar queda \\(x+1\\), con \\(x\\neq1\\)." },
+    { id: 6, pregunta: "El valor de \\(\\sin 30^\\circ\\) es:", formula: "", opciones: ["\\(\\frac12\\)", "\\(\\frac{\\sqrt2}{2}\\)", "\\(\\frac{\\sqrt3}{2}\\)", "\\(1\\)"], correcta: 0, explicacion: "En los ángulos notables, \\(\\sin 30^\\circ=\\frac12\\)." },
+    { id: 7, pregunta: "Si \\(2^{x+1}=16\\), entonces \\(x\\) vale:", formula: "", opciones: ["\\(2\\)", "\\(3\\)", "\\(4\\)", "\\(5\\)"], correcta: 1, explicacion: "\\(16=2^4\\). Entonces \\(x+1=4\\), por tanto \\(x=3\\)." },
+    { id: 8, pregunta: "El vértice de \\(y=(x-2)^2+3\\) es:", formula: "", opciones: ["\\((2,3)\\)", "\\((-2,3)\\)", "\\((3,2)\\)", "\\((2,-3)\\)"], correcta: 0, explicacion: "La forma \\(y=(x-h)^2+k\\) tiene vértice \\((h,k)\\). Aquí es \\((2,3)\\)." },
+    { id: 9, pregunta: "Si \\(a+b=10\\) y \\(ab=21\\), entonces \\(a^2+b^2\\) es:", formula: "", opciones: ["\\(42\\)", "\\(58\\)", "\\(79\\)", "\\(100\\)"], correcta: 1, explicacion: "\\(a^2+b^2=(a+b)^2-2ab=10^2-2(21)=100-42=58\\)." },
+    { id: 10, pregunta: "La solución de", formula: "\\[ \\frac{x-1}{2}=\\frac{x+3}{4} \\]", opciones: ["\\(1\\)", "\\(3\\)", "\\(5\\)", "\\(7\\)"], correcta: 2, explicacion: "Multiplicando por 4: \\(2(x-1)=x+3\\). Entonces \\(2x-2=x+3\\), así \\(x=5\\)." }
+  ],
+  nivel4: [
+    { id: 1, pregunta: "Calcula", formula: "\\[ \\lim_{x\\to 2}\\frac{x^2-4}{x-2} \\]", opciones: ["\\(0\\)", "\\(2\\)", "\\(4\\)", "No existe"], correcta: 2, explicacion: "Factorizamos \\(x^2-4=(x-2)(x+2)\\). Al simplificar queda \\(x+2\\). Evaluando en 2: \\(4\\)." },
+    { id: 2, pregunta: "La suma de los primeros 20 enteros positivos es:", formula: "", opciones: ["\\(190\\)", "\\(200\\)", "\\(210\\)", "\\(220\\)"], correcta: 2, explicacion: "\\(1+2+\\cdots+n=\\frac{n(n+1)}2\\). Para \\(n=20\\): \\(\\frac{20\\cdot21}{2}=210\\)." },
+    { id: 3, pregunta: "Si \\(f(x)=2x+1\\) y \\(g(x)=x^2\\), entonces \\((f\\circ g)(3)\\) vale:", formula: "", opciones: ["\\(10\\)", "\\(17\\)", "\\(19\\)", "\\(36\\)"], correcta: 2, explicacion: "\\(g(3)=9\\). Luego \\(f(g(3))=f(9)=2(9)+1=19\\)." },
+    { id: 4, pregunta: "Resuelve", formula: "\\[ \\log(x)+\\log(10)=3 \\]", opciones: ["\\(10\\)", "\\(100\\)", "\\(1000\\)", "\\(1\\)"], correcta: 1, explicacion: "\\(\\log(x)+\\log(10)=\\log(10x)=3\\). Entonces \\(10x=10^3=1000\\), así \\(x=100\\)." },
+    { id: 5, pregunta: "El número de formas de ordenar 4 objetos distintos es:", formula: "", opciones: ["\\(8\\)", "\\(12\\)", "\\(16\\)", "\\(24\\)"], correcta: 3, explicacion: "Las permutaciones de 4 objetos son \\(4!=4\\cdot3\\cdot2\\cdot1=24\\)." },
+    { id: 6, pregunta: "Si \\(\\cos\\theta=\\frac35\\) y \\(\\theta\\) está en el primer cuadrante, entonces \\(\\sin\\theta\\) es:", formula: "", opciones: ["\\(\\frac45\\)", "\\(\\frac35\\)", "\\(\\frac{16}{25}\\)", "\\(\\frac12\\)"], correcta: 0, explicacion: "\\(\\sin^2\\theta=1-\\cos^2\\theta=1-\\frac{9}{25}=\\frac{16}{25}\\). En el primer cuadrante, \\(\\sin\\theta=\\frac45\\)." },
+    { id: 7, pregunta: "Resuelve", formula: "\\[ x^2-4x-5>0 \\]", opciones: ["\\((-1,5)\\)", "\\((-\\infty,-1)\\cup(5,\\infty)\\)", "\\((-\\infty,5)\\)", "\\((-1,\\infty)\\)"], correcta: 1, explicacion: "Factorizamos \\((x-5)(x+1)>0\\). El producto es positivo fuera de las raíces: \\((-\\infty,-1)\\cup(5,\\infty)\\)." },
+    { id: 8, pregunta: "La distancia entre \\((1,2)\\) y \\((4,6)\\) es:", formula: "", opciones: ["\\(3\\)", "\\(4\\)", "\\(5\\)", "\\(7\\)"], correcta: 2, explicacion: "\\(d=\\sqrt{(4-1)^2+(6-2)^2}=\\sqrt{9+16}=5\\)." },
+    { id: 9, pregunta: "Si \\(r\\) es raíz doble de \\(x^2-6x+9=0\\), entonces \\(r\\) es:", formula: "", opciones: ["\\(2\\)", "\\(3\\)", "\\(6\\)", "\\(9\\)"], correcta: 1, explicacion: "\\(x^2-6x+9=(x-3)^2\\). La raíz doble es \\(x=3\\)." },
+    { id: 10, pregunta: "La asíntota vertical de", formula: "\\[ y=\\frac{2}{x+1} \\]", opciones: ["\\(x=1\\)", "\\(x=-1\\)", "\\(y=0\\)", "\\(y=2\\)"], correcta: 1, explicacion: "La asíntota vertical ocurre cuando el denominador es cero: \\(x+1=0\\), entonces \\(x=-1\\)." }
+  ],
+  nivel5: [
+    { id: 1, pregunta: "Calcula", formula: "\\[ \\lim_{x\\to 0}\\frac{1-\\cos x}{x^2} \\]", opciones: ["\\(0\\)", "\\(\\frac12\\)", "\\(1\\)", "\\(2\\)"], correcta: 1, explicacion: "Usando el límite notable \\(1-\\cos x\\sim \\frac{x^2}{2}\\), el valor es \\(\\frac12\\)." },
+    { id: 2, pregunta: "Si \\(x+\\frac1x=4\\), entonces \\(x^2+\\frac1{x^2}\\) vale:", formula: "", opciones: ["\\(12\\)", "\\(14\\)", "\\(16\\)", "\\(18\\)"], correcta: 1, explicacion: "Elevando al cuadrado: \\((x+\\frac1x)^2=x^2+2+\\frac1{x^2}=16\\). Entonces \\(x^2+\\frac1{x^2}=14\\)." },
+    { id: 3, pregunta: "La suma infinita", formula: "\\[ 6+3+\\frac32+\\cdots \\]", opciones: ["\\(9\\)", "\\(10\\)", "\\(12\\)", "\\(18\\)"], correcta: 2, explicacion: "Es geométrica con \\(a=6\\) y \\(r=\\frac12\\). Entonces \\(S=\\frac{a}{1-r}=\\frac6{1/2}=12\\)." },
+    { id: 4, pregunta: "Resuelve", formula: "\\[ \\sqrt{x+5}=x-1 \\]", opciones: ["\\(4\\)", "\\(5\\)", "\\(6\\)", "\\(7\\)"], correcta: 0, explicacion: "Debe cumplirse \\(x\\geq1\\). Al cuadrar: \\(x+5=(x-1)^2=x^2-2x+1\\). Entonces \\(x^2-3x-4=0\\), de donde \\(x=4\\) o \\(x=-1\\). Por dominio, \\(x=4\\)." },
+    { id: 5, pregunta: "Si \\(\\log_3(x-1)+\\log_3(x+1)=2\\), entonces \\(x\\) vale:", formula: "", opciones: ["\\(2\\)", "\\(\\sqrt{10}\\)", "\\(3\\)", "\\(4\\)"], correcta: 1, explicacion: "\\(\\log_3[(x-1)(x+1)]=2\\). Entonces \\(x^2-1=9\\), así \\(x^2=10\\). Por dominio \\(x>1\\), luego \\(x=\\sqrt{10}\\)." },
+    { id: 6, pregunta: "El coeficiente de \\(x^2\\) en \\((x+2)^4\\) es:", formula: "", opciones: ["\\(12\\)", "\\(18\\)", "\\(24\\)", "\\(32\\)"], correcta: 2, explicacion: "Término general: \\(\\binom{4}{2}x^2(2)^2=6\\cdot4x^2=24x^2\\). El coeficiente es 24." },
+    { id: 7, pregunta: "Si \\(\\tan\\theta=\\frac34\\) en el primer cuadrante, entonces \\(\\sin\\theta\\) es:", formula: "", opciones: ["\\(\\frac35\\)", "\\(\\frac45\\)", "\\(\\frac34\\)", "\\(\\frac43\\)"], correcta: 0, explicacion: "Con catetos 3 y 4, la hipotenusa es 5. Entonces \\(\\sin\\theta=\\frac{opuesto}{hipotenusa}=\\frac35\\)." },
+    { id: 8, pregunta: "El mínimo de \\(f(x)=x^2-8x+10\\) es:", formula: "", opciones: ["\\(-10\\)", "\\(-6\\)", "\\(4\\)", "\\(10\\)"], correcta: 1, explicacion: "El vértice está en \\(x=\\frac{-b}{2a}=4\\). \\(f(4)=16-32+10=-6\\)." },
+    { id: 9, pregunta: "Si \\(a_n=3n-2\\), la suma de los primeros 15 términos es:", formula: "", opciones: ["\\(315\\)", "\\(330\\)", "\\(345\\)", "\\(360\\)"], correcta: 1, explicacion: "Es aritmética: \\(a_1=1\\), \\(a_{15}=43\\). Entonces \\(S_{15}=\\frac{15(1+43)}2=330\\)." },
+    { id: 10, pregunta: "La ecuación \\(2^x+2^{x+1}=24\\) tiene solución:", formula: "", opciones: ["\\(2\\)", "\\(3\\)", "\\(4\\)", "\\(5\\)"], correcta: 1, explicacion: "\\(2^{x+1}=2\\cdot2^x\\). Entonces \\(2^x+2\\cdot2^x=3\\cdot2^x=24\\). Así \\(2^x=8=2^3\\), por tanto \\(x=3\\)." }
+  ]
+};
+
+const ADMIN_CLAVE = "Barcelona2026";
+const STORAGE_HABILITADOS = "preguntasUnalHabilitados";
+const DEFAULT_HABILITADOS = { nivel1: false, nivel2: false, nivel3: false, nivel4: false, nivel5: false, examen: false };
+let habilitados = cargarHabilitados();
+let nivelActual = "nivel1";
+let nivelIniciado = false;
+let nivelCompletadoVisible = false;
+let timerNivelInterval = null;
+let timerNivelActivo = false;
+let segsNivel = DURACION_SEG;
+
+function cargarHabilitados() {
+  try {
+    return { ...DEFAULT_HABILITADOS, ...JSON.parse(localStorage.getItem(STORAGE_HABILITADOS) || "{}") };
+  } catch {
+    return { ...DEFAULT_HABILITADOS };
+  }
+}
+
+function guardarHabilitados() {
+  localStorage.setItem(STORAGE_HABILITADOS, JSON.stringify(habilitados));
+}
+
+function requisitoCumplido(clave) {
+  const req = NIVELES_META[clave].requisito;
+  if (req === "diagnostico") return diagnosticoCompletado;
+  return !!nivelesCompletados[req];
+}
+
+function puedeAbrirNivel(clave) {
+  return !!habilitados[clave] && requisitoCumplido(clave);
+}
+
+function puedeAbrirExamenFinal() {
+  return !!habilitados.examen && nivelesCompletados.nivel5;
+}
+
+function actualizarProgresoNivel() {
+  const preguntas = PREGUNTAS_NIVELES[nivelActual] || [];
+  let respondidas = 0;
+  preguntas.forEach(q => {
+    const el = document.querySelector(`input[name="nivel-q${q.id}"]:checked`);
+    if (el) respondidas++;
+  });
+  mostrarProgreso(respondidas, preguntas.length || 10);
+}
+
+function iniciarTimerNivel() {
+  if (timerNivelActivo) return;
+  timerNivelActivo = true;
+  segsNivel = DURACION_SEG;
+  const display = document.getElementById("timerDisplay");
+  const timerBox = document.getElementById("timerBox");
+  display.textContent = formatTiempo(segsNivel);
+
+  timerNivelInterval = setInterval(() => {
+    segsNivel--;
+    display.textContent = formatTiempo(segsNivel);
+    if (segsNivel <= 300 && segsNivel > 120) {
+      timerBox.classList.add("warn");
+      timerBox.classList.remove("danger");
+    }
+    if (segsNivel <= 120) {
+      timerBox.classList.remove("warn");
+      timerBox.classList.add("danger");
+    }
+    if (segsNivel <= 0) {
+      detenerTimerNivel();
+      document.getElementById("timeoutOverlayNivel").classList.remove("hidden");
+    }
+  }, 1000);
+}
+
+function detenerTimerNivel() {
+  clearInterval(timerNivelInterval);
+  timerNivelInterval = null;
+  timerNivelActivo = false;
+  document.getElementById("timerBox").classList.remove("warn", "danger");
+}
+
+function resetTimerNivel() {
+  detenerTimerNivel();
+  segsNivel = DURACION_SEG;
+  document.getElementById("timerDisplay").textContent = formatTiempo(DURACION_SEG);
+}
+
+function abrirNivel(clave) {
+  const cambioDeNivel = nivelActual !== clave;
+  nivelActual = clave;
+  if (cambioDeNivel) {
+    nivelIniciado = false;
+    nivelCompletadoVisible = false;
+    document.getElementById("nivelContainer").innerHTML = "";
+    document.getElementById("summaryBodyNivel").innerHTML = "";
+    document.getElementById("feedbackItemsNivel").innerHTML = "";
+    document.getElementById("resultsSectionNivel").hidden = true;
+    document.getElementById("nivelFormWrap").hidden = true;
+    document.getElementById("submitBtnNivel").style.display = "";
+    resetTimerNivel();
+  }
+  const meta = NIVELES_META[clave];
+  document.getElementById("nivelTitulo").textContent = meta.titulo;
+  document.getElementById("nivelDescripcion").textContent = meta.descripcion;
+  document.getElementById("btnIniciarNivel").textContent = `▶ Iniciar ${meta.titulo.toLowerCase()}`;
+  document.getElementById("submitBtnNivel").textContent = `Enviar ${meta.titulo.toLowerCase()}`;
+  document.getElementById("nivelBloqueadoTitulo").textContent = `${meta.titulo} bloqueado`;
+  document.getElementById("nivelBloqueadoTexto").textContent = !habilitados[clave]
+    ? "Este nivel todavía no ha sido habilitado por el administrador."
+    : meta.requisitoTexto;
+  document.getElementById("nivelBloqueadoRegla").textContent = !habilitados[clave]
+    ? "Espera a que el administrador habilite este nivel"
+    : meta.requisitoTexto;
+
+  if (puedeAbrirNivel(clave)) {
+    document.getElementById("nivelBloqueado").hidden = true;
+    document.getElementById("startScreenNivel").hidden = nivelIniciado || nivelCompletadoVisible;
+    document.getElementById("nivelFormWrap").hidden = !nivelIniciado;
+    document.getElementById("resultsSectionNivel").hidden = !nivelCompletadoVisible;
+    if (!nivelIniciado && !nivelCompletadoVisible) resetTimerNivel();
+  } else {
+    document.getElementById("nivelBloqueado").hidden = false;
+    document.getElementById("startScreenNivel").hidden = true;
+    document.getElementById("nivelFormWrap").hidden = true;
+    document.getElementById("resultsSectionNivel").hidden = true;
+  }
+  actualizarProgresoNivel();
+}
+
+function renderizarNivel() {
+  const cont = document.getElementById("nivelContainer");
+  cont.innerHTML = "";
+  PREGUNTAS_NIVELES[nivelActual].forEach(q => cont.appendChild(crearTarjetaPregunta(q, "nivel")));
+  reRenderKatex(cont);
+}
+
+function reiniciarEstadoNivelVisual() {
+  nivelIniciado = false;
+  nivelCompletadoVisible = false;
+  resetTimerNivel();
+  document.getElementById("timeoutOverlayNivel").classList.add("hidden");
+  document.getElementById("resultsSectionNivel").hidden = true;
+  document.getElementById("nivelFormWrap").hidden = true;
+  document.getElementById("startScreenNivel").hidden = !puedeAbrirNivel(nivelActual);
+  document.getElementById("nivelBloqueado").hidden = puedeAbrirNivel(nivelActual);
+  document.getElementById("nivelContainer").innerHTML = "";
+  document.getElementById("summaryBodyNivel").innerHTML = "";
+  document.getElementById("feedbackItemsNivel").innerHTML = "";
+  document.getElementById("warnMsgNivel").hidden = true;
+  document.getElementById("submitBtnNivel").style.display = "";
+  document.getElementById("ringFillNivel").style.strokeDashoffset = "314";
+  document.getElementById("scorePctNivel").textContent = "0%";
+  document.getElementById("scoreNotaNivel").textContent = "0.0";
+  document.getElementById("scoreBadgeNivel").textContent = "—";
+  document.getElementById("tiempoEmpleadoNivel").textContent = "00:00";
+  document.getElementById("tiempoRestanteNivel").textContent = "15:00";
+  document.getElementById("balanceResultadoNivel").textContent = "0.0 segundos por pregunta";
+  ["barCorrectNivel", "barWrongNivel"].forEach(id => {
+    const barra = document.getElementById(id);
+    barra.style.height = "0px";
+    barra.removeAttribute("data-val");
+  });
+}
+
+function reiniciarEstadoNiveles() {
+  Object.keys(nivelesCompletados).forEach(k => nivelesCompletados[k] = false);
+  nivelActual = "nivel1";
+  reiniciarEstadoNivelVisual();
+}
+
+function bloquearPosteriores(clave) {
+  const orden = Object.keys(NIVELES_META);
+  const idx = orden.indexOf(clave);
+  orden.slice(idx + 1).forEach(k => nivelesCompletados[k] = false);
+  reiniciarEstadoExamenFinal(false);
+}
+
+function evaluarYMostrarNivel(respuestas) {
+  nivelIniciado = false;
+  nivelCompletadoVisible = true;
+  nivelesCompletados[nivelActual] = true;
+  bloquearPosteriores(nivelActual);
+  document.getElementById("submitBtnNivel").style.display = "none";
+
+  const preguntas = PREGUNTAS_NIVELES[nivelActual];
+  const tiempoEmpleado = DURACION_SEG - segsNivel;
+  let correctas = 0;
+  preguntas.forEach((q, i) => { if (respuestas[i] === q.correcta) correctas++; });
+  const incorrectas = preguntas.length - correctas;
+  const pct = Math.round((correctas / preguntas.length) * 100);
+  const nota = calcNota(pct);
+  const badge = calcBadge(pct);
+  const sec = document.getElementById("resultsSectionNivel");
+  sec.hidden = false;
+
+  const circ = 2 * Math.PI * 50;
+  document.getElementById("ringFillNivel").style.strokeDashoffset = circ - (pct / 100) * circ;
+  document.getElementById("scorePctNivel").textContent = pct + "%";
+  document.getElementById("scoreNotaNivel").textContent = "Nota: " + nota + " / 5.0";
+  document.getElementById("scoreBadgeNivel").textContent = badge;
+  document.getElementById("pillCorrectNivel").textContent = correctas + " correctas";
+  document.getElementById("pillWrongNivel").textContent = incorrectas + " incorrectas";
+  document.getElementById("tiempoEmpleadoNivel").textContent = formatTiempo(tiempoEmpleado);
+  document.getElementById("tiempoRestanteNivel").textContent = formatTiempo(segsNivel);
+  document.getElementById("balanceResultadoNivel").textContent = calcBalance(correctas, preguntas.length, tiempoEmpleado);
+
+  const ring = document.getElementById("ringFillNivel");
+  if (pct >= 70) ring.style.stroke = "#1a7f5a";
+  else if (pct >= 50) ring.style.stroke = "#c8972b";
+  else ring.style.stroke = "#c0392b";
+
+  const bC = document.getElementById("barCorrectNivel");
+  const bW = document.getElementById("barWrongNivel");
+  bC.setAttribute("data-val", correctas);
+  bW.setAttribute("data-val", incorrectas);
+  setTimeout(() => {
+    bC.style.height = Math.round((correctas / preguntas.length) * 120) + "px";
+    bW.style.height = Math.round((incorrectas / preguntas.length) * 120) + "px";
+  }, 150);
+
+  const tbody = document.getElementById("summaryBodyNivel");
+  tbody.innerHTML = "";
+  preguntas.forEach((q, i) => {
+    const sinR = respuestas[i] === -1;
+    const ok = !sinR && respuestas[i] === q.correcta;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${q.id}</td>
+      <td class="${ok ? "tag-ok" : "tag-bad"}">${ok ? "✔ Correcta" : sinR ? "✘ Sin responder" : "✘ Incorrecta"}</td>
+      <td>${sinR ? "—" : LETRAS[respuestas[i]] + ") " + q.opciones[respuestas[i]]}</td>
+      <td>${LETRAS[q.correcta]}) ${q.opciones[q.correcta]}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  const fbEl = document.getElementById("feedbackItemsNivel");
+  fbEl.innerHTML = "";
+  preguntas.forEach((q, i) => {
+    const sinR = respuestas[i] === -1;
+    const ok = !sinR && respuestas[i] === q.correcta;
+    const item = document.createElement("div");
+    item.className = `feedback-item ${ok ? "fb-correct" : "fb-wrong"}`;
+    item.innerHTML = `
+      <div class="fb-header"><span class="fb-icon">${ok ? "✔" : "✘"}</span> Pregunta ${q.id}${sinR ? " <em style='font-weight:400;font-size:.85rem'>(sin responder)</em>" : ""}</div>
+      <p class="fb-resp"><strong>Tu respuesta:</strong> ${sinR ? "No respondida" : LETRAS[respuestas[i]] + ") " + q.opciones[respuestas[i]]}</p>
+      ${!ok ? `<p class="fb-resp"><strong>Respuesta correcta:</strong> ${LETRAS[q.correcta]}) ${q.opciones[q.correcta]}</p>` : ""}
+      <div class="fb-expl"><strong>Explicación:</strong><br>${q.explicacion}</div>
+    `;
+    fbEl.appendChild(item);
+  });
+
+  reRenderKatex(sec);
+  resetTimerNivel();
+  sec.scrollIntoView({ behavior: "smooth" });
+
+  preguntas.forEach((q, i) => {
+    const card = document.getElementById(`nivel-card-${q.id}`);
+    if (!card) return;
+    const sinR = respuestas[i] === -1;
+    const ok = !sinR && respuestas[i] === q.correcta;
+    card.classList.add(ok ? "result-correct" : "result-wrong");
+    card.querySelectorAll("input[type='radio']").forEach(inp => inp.disabled = true);
+    card.querySelectorAll(".option-label").forEach((lbl, idx) => {
+      if (idx === q.correcta) lbl.classList.add("opt-correct");
+      if (!sinR && !ok && idx === respuestas[i]) lbl.classList.add("opt-wrong");
+    });
+  });
+}
+
+document.getElementById("btnNivelAnterior").addEventListener("click", () => {
+  const req = NIVELES_META[nivelActual].requisito;
+  const destino = req === "diagnostico" ? "diagnostico" : req;
+  activarNav(destino);
+  if (destino.startsWith("nivel")) abrirNivel(destino);
+  window.scrollTo({ top: 0, behavior: "smooth" });
+});
+
+document.getElementById("btnIniciarNivel").addEventListener("click", () => {
+  nivelIniciado = true;
+  nivelCompletadoVisible = false;
+  document.getElementById("startScreenNivel").hidden = true;
+  document.getElementById("nivelFormWrap").hidden = false;
+  renderizarNivel();
+  actualizarProgresoNivel();
+  resetTimerNivel();
+  iniciarTimerNivel();
+  document.getElementById("nivelFormWrap").scrollIntoView({ behavior: "smooth" });
+});
+
+document.getElementById("btnVerResultadoNivel").addEventListener("click", () => {
+  document.getElementById("timeoutOverlayNivel").classList.add("hidden");
+  const respuestas = PREGUNTAS_NIVELES[nivelActual].map(q => {
+    const ch = document.querySelector(`input[name="nivel-q${q.id}"]:checked`);
+    return ch ? parseInt(ch.value, 10) : -1;
+  });
+  evaluarYMostrarNivel(respuestas);
+});
+
+document.getElementById("nivelForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const preguntas = PREGUNTAS_NIVELES[nivelActual];
+  const sinResp = preguntas.some(q => !document.querySelector(`input[name="nivel-q${q.id}"]:checked`));
+  if (sinResp) {
+    document.getElementById("warnMsgNivel").hidden = false;
+    for (const q of preguntas) {
+      if (!document.querySelector(`input[name="nivel-q${q.id}"]:checked`)) {
+        document.getElementById(`nivel-card-${q.id}`).scrollIntoView({ behavior: "smooth", block: "center" });
+        break;
+      }
+    }
+    return;
+  }
+  document.getElementById("warnMsgNivel").hidden = true;
+  detenerTimerNivel();
+  const respuestas = preguntas.map(q => {
+    const ch = document.querySelector(`input[name="nivel-q${q.id}"]:checked`);
+    return parseInt(ch.value, 10);
+  });
+  evaluarYMostrarNivel(respuestas);
+});
+
+document.getElementById("btnRestartNivel").addEventListener("click", () => {
+  nivelesCompletados[nivelActual] = false;
+  bloquearPosteriores(nivelActual);
+  reiniciarEstadoNivelVisual();
+  actualizarProgresoNivel();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+});
+
+document.getElementById("btnWrongNivel").addEventListener("click", () => {
+  document.querySelectorAll("#feedbackItemsNivel .feedback-item").forEach(item => {
+    item.classList.toggle("hidden-item", item.classList.contains("fb-correct"));
+  });
+  document.getElementById("feedbackListNivel").scrollIntoView({ behavior: "smooth" });
+});
+
+document.getElementById("btnAllNivel").addEventListener("click", () => {
+  document.querySelectorAll("#feedbackItemsNivel .feedback-item").forEach(item => item.classList.remove("hidden-item"));
+  document.getElementById("feedbackListNivel").scrollIntoView({ behavior: "smooth" });
+});
+
+function renderAdminList() {
+  const items = [
+    ["nivel1", "Nivel 1", "Requiere diagnóstico completado"],
+    ["nivel2", "Nivel 2", "Requiere Nivel 1 completado"],
+    ["nivel3", "Nivel 3", "Requiere Nivel 2 completado"],
+    ["nivel4", "Nivel 4", "Requiere Nivel 3 completado"],
+    ["nivel5", "Nivel 5", "Requiere Nivel 4 completado"],
+    ["examen", "Examen Final", "Requiere Nivel 5 completado"]
+  ];
+  const list = document.getElementById("adminList");
+  list.innerHTML = "";
+  items.forEach(([clave, titulo, detalle]) => {
+    const row = document.createElement("div");
+    row.className = "admin-row";
+    row.innerHTML = `
+      <div><strong>${titulo}</strong><span>${detalle}</span></div>
+      <label class="switch">
+        <input type="checkbox" data-admin-toggle="${clave}" ${habilitados[clave] ? "checked" : ""}>
+        <span class="slider"></span>
+      </label>
+    `;
+    list.appendChild(row);
+  });
+  list.querySelectorAll("[data-admin-toggle]").forEach(input => {
+    input.addEventListener("change", () => {
+      habilitados[input.dataset.adminToggle] = input.checked;
+      guardarHabilitados();
+      if (nivelActual) abrirNivel(nivelActual);
+    });
+  });
+}
+
+document.getElementById("btnAdminEntrar").addEventListener("click", () => {
+  const clave = document.getElementById("adminClave").value;
+  if (clave !== ADMIN_CLAVE) {
+    document.getElementById("adminWarn").hidden = false;
+    return;
+  }
+  document.getElementById("adminWarn").hidden = true;
+  document.getElementById("adminLogin").hidden = true;
+  document.getElementById("adminControls").hidden = false;
+  renderAdminList();
+});
+
+document.getElementById("btnAdminSalir").addEventListener("click", () => {
+  document.getElementById("adminClave").value = "";
+  document.getElementById("adminLogin").hidden = false;
+  document.getElementById("adminControls").hidden = true;
+});
+
 /* ────────────────────────────────────────────────────
-   12. MOTOR DEL EXAMEN FINAL
+   13. MOTOR DEL EXAMEN FINAL
 ──────────────────────────────────────────────────── */
 let timerExamenInterval = null;
 let timerExamenActivo   = false;

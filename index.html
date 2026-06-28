@@ -45,7 +45,13 @@
   <!-- ══════════════════ NAVEGACIÓN DE SECCIONES ══════════════════ -->
   <nav class="section-nav">
     <button class="nav-btn active" data-section="diagnostico">Diagnóstico</button>
+    <button class="nav-btn" data-section="nivel1">Nivel 1</button>
+    <button class="nav-btn" data-section="nivel2">Nivel 2</button>
+    <button class="nav-btn" data-section="nivel3">Nivel 3</button>
+    <button class="nav-btn" data-section="nivel4">Nivel 4</button>
+    <button class="nav-btn" data-section="nivel5">Nivel 5</button>
     <button class="nav-btn" data-section="examen">Examen Final</button>
+    <button class="nav-btn admin-nav" data-section="admin">Admin</button>
   </nav>
 
   <!-- ══════════════════ SECCIÓN DIAGNÓSTICO ══════════════════ -->
@@ -153,6 +159,109 @@
     </section>
   </main>
 
+  <!-- ══════════════════ SECCIÓN NIVELES ══════════════════ -->
+  <main class="main-content hidden" id="sectionNivel">
+    <div class="start-screen" id="nivelBloqueado">
+      <span class="cs-icon">🔒</span>
+      <h2 id="nivelBloqueadoTitulo">Nivel bloqueado</h2>
+      <p id="nivelBloqueadoTexto">Debes completar el examen anterior antes de acceder a este nivel.</p>
+      <div class="start-rules">
+        <ul>
+          <li id="nivelBloqueadoRegla">Completa el requisito anterior</li>
+          <li>El administrador debe habilitar este nivel</li>
+          <li>Luego podrás iniciar el intento</li>
+        </ul>
+      </div>
+      <button class="btn btn-secondary" id="btnNivelAnterior">← Ir al requisito</button>
+    </div>
+
+    <div class="start-screen" id="startScreenNivel" hidden>
+      <span class="cs-icon">📘</span>
+      <h2 id="nivelTitulo">Nivel</h2>
+      <p id="nivelDescripcion">Práctica progresiva para fortalecer tu preparación matemática.</p>
+      <div class="start-rules">
+        <ul>
+          <li>10 preguntas de selección múltiple</li>
+          <li>Tiempo límite: 15 minutos</li>
+          <li>El tiempo inicia al presionar el botón</li>
+          <li>Las preguntas sin responder cuentan como incorrectas</li>
+        </ul>
+      </div>
+      <button class="btn btn-primary" id="btnIniciarNivel">▶ Iniciar nivel</button>
+    </div>
+
+    <div id="nivelFormWrap" hidden>
+      <form id="nivelForm" novalidate>
+        <div id="nivelContainer"></div>
+        <div class="form-footer">
+          <p class="warn-msg" id="warnMsgNivel" hidden>⚠ Responde todas las preguntas antes de enviar.</p>
+          <button type="submit" class="btn btn-primary" id="submitBtnNivel">Enviar nivel</button>
+        </div>
+      </form>
+    </div>
+
+    <section id="resultsSectionNivel" hidden>
+      <div class="score-card">
+        <div class="score-ring-wrap">
+          <svg class="score-ring" viewBox="0 0 120 120">
+            <circle class="ring-bg" cx="60" cy="60" r="50"/>
+            <circle class="ring-fill" id="ringFillNivel" cx="60" cy="60" r="50"
+                    stroke-dasharray="314" stroke-dashoffset="314"/>
+          </svg>
+          <div class="score-inner">
+            <span class="score-pct" id="scorePctNivel">0%</span>
+            <span class="score-nota" id="scoreNotaNivel">0.0</span>
+          </div>
+        </div>
+        <div class="score-details">
+          <h2 class="score-title" id="scoreBadgeNivel">—</h2>
+          <div class="score-pills">
+            <span class="pill correct" id="pillCorrectNivel">0 correctas</span>
+            <span class="pill wrong" id="pillWrongNivel">0 incorrectas</span>
+          </div>
+          <div class="score-metrics">
+            <p><strong>Tiempo empleado:</strong> <span id="tiempoEmpleadoNivel">00:00</span></p>
+            <p><strong>Tiempo restante:</strong> <span id="tiempoRestanteNivel">15:00</span></p>
+            <p><strong>Balance:</strong> <span id="balanceResultadoNivel">0.0 segundos por pregunta</span></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-wrap">
+        <h3 class="section-title">Resultados</h3>
+        <div class="bar-chart">
+          <div class="bar-group">
+            <div class="bar bar-correct" id="barCorrectNivel"></div>
+            <span class="bar-label">Correctas</span>
+          </div>
+          <div class="bar-group">
+            <div class="bar bar-wrong" id="barWrongNivel"></div>
+            <span class="bar-label">Incorrectas</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <h3 class="section-title">Resumen por pregunta</h3>
+        <table class="summary-table">
+          <thead><tr><th>Pregunta</th><th>Estado</th><th>Tu respuesta</th><th>Correcta</th></tr></thead>
+          <tbody id="summaryBodyNivel"></tbody>
+        </table>
+      </div>
+
+      <div id="feedbackListNivel">
+        <h3 class="section-title">Retroalimentación detallada</h3>
+        <div id="feedbackItemsNivel"></div>
+      </div>
+
+      <div class="result-actions">
+        <button class="btn btn-secondary" id="btnRestartNivel">↺ Reiniciar nivel</button>
+        <button class="btn btn-outline" id="btnWrongNivel">Ver solo incorrectas</button>
+        <button class="btn btn-outline" id="btnAllNivel">Ver todas las respuestas</button>
+      </div>
+    </section>
+  </main>
+
   <!-- ══════════════════ SECCIÓN EXAMEN FINAL ══════════════════ -->
   <main class="main-content hidden" id="sectionExamen">
 
@@ -160,15 +269,15 @@
     <div class="start-screen" id="examenBloqueado">
       <span class="cs-icon">🔒</span>
       <h2>Examen Final bloqueado</h2>
-      <p>Debes completar el <strong>Diagnóstico Matemático</strong> antes de acceder al Examen Final.</p>
+      <p>Debes completar el <strong>Nivel 5</strong> antes de acceder al Examen Final.</p>
       <div class="start-rules">
         <ul>
-          <li>Regresa a la pestaña <strong>Diagnóstico</strong></li>
-          <li>Completa y envía las 15 preguntas</li>
+          <li>Completa los niveles anteriores en orden</li>
+          <li>El administrador debe habilitar el examen final</li>
           <li>Luego podrás acceder aquí</li>
         </ul>
       </div>
-      <button class="btn btn-secondary" id="btnIrDiagnostico">← Ir al Diagnóstico</button>
+      <button class="btn btn-secondary" id="btnIrDiagnostico">← Ir al Nivel 5</button>
     </div>
 
     <!-- Estado: listo para iniciar (solo visible tras completar diagnóstico) -->
@@ -255,6 +364,24 @@
     </section>
   </main>
 
+  <!-- ══════════════════ PANEL ADMINISTRADOR ══════════════════ -->
+  <main class="main-content hidden" id="sectionAdmin">
+    <div class="start-screen admin-panel">
+      <span class="cs-icon">🔐</span>
+      <h2>Administrador</h2>
+      <p>Ingresa la clave para habilitar o bloquear niveles en este navegador.</p>
+      <div class="admin-login" id="adminLogin">
+        <input type="password" id="adminClave" class="admin-input" placeholder="Clave secreta" autocomplete="current-password" />
+        <button class="btn btn-primary" id="btnAdminEntrar">Entrar</button>
+        <p class="warn-msg" id="adminWarn" hidden>Clave incorrecta.</p>
+      </div>
+      <div class="admin-controls" id="adminControls" hidden>
+        <div class="admin-list" id="adminList"></div>
+        <button class="btn btn-outline" id="btnAdminSalir">Cerrar panel</button>
+      </div>
+    </div>
+  </main>
+
   <!-- ══════════════════ MODALES TIEMPO AGOTADO ══════════════════ -->
   <div id="timeoutOverlay" class="overlay hidden">
     <div class="overlay-card">
@@ -270,6 +397,14 @@
       <h2>¡Tiempo agotado!</h2>
       <p>Se acabaron los 15 minutos del examen final. Las preguntas sin responder cuentan como incorrectas.</p>
       <button class="btn btn-primary" id="btnVerResultadoExamen">Ver mi resultado</button>
+    </div>
+  </div>
+  <div id="timeoutOverlayNivel" class="overlay hidden">
+    <div class="overlay-card">
+      <div class="overlay-icon">⏰</div>
+      <h2>¡Tiempo agotado!</h2>
+      <p>Se acabaron los 15 minutos del nivel. Las preguntas sin responder cuentan como incorrectas.</p>
+      <button class="btn btn-primary" id="btnVerResultadoNivel">Ver mi resultado</button>
     </div>
   </div>
 
