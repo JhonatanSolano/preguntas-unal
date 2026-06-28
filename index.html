@@ -12,7 +12,7 @@
     <div class="start-screen group-gate">
       <span class="cs-icon">🔑</span>
       <h2>Clave de acceso</h2>
-      <p>Ingresa la clave de tu grupo para acceder a los exámenes habilitados.</p>
+      <p>Ingresa la clave de tu grupo para acceder a los exámenes. Si eres administrador, usa tu clave de acceso.</p>
       <div class="admin-login">
         <input type="password" id="grupoClave" class="admin-input" placeholder="Clave de acceso" autocomplete="one-time-code" />
         <button class="btn btn-primary" id="btnGrupoEntrar">Entrar</button>
@@ -182,7 +182,7 @@
       <div class="start-rules">
         <ul>
           <li id="nivelBloqueadoRegla">Completa el requisito anterior</li>
-          <li>Tu grupo debe tener habilitado este nivel</li>
+          <li>O solicita permiso directo al administrador</li>
           <li>Luego podrás iniciar el intento</li>
         </ul>
       </div>
@@ -283,11 +283,11 @@
     <div class="start-screen" id="examenBloqueado">
       <span class="cs-icon">🔒</span>
       <h2>Examen Final bloqueado</h2>
-      <p>Debes completar el <strong>Nivel 5</strong> antes de acceder al Examen Final.</p>
+      <p>Debes completar el <strong>Nivel 5</strong> antes de acceder al Examen Final, salvo que el administrador habilite permiso directo para tu grupo.</p>
       <div class="start-rules">
         <ul>
           <li>Completa los niveles anteriores en orden</li>
-          <li>Tu grupo debe tener habilitado este examen</li>
+          <li>O solicita permiso directo al administrador</li>
           <li>Luego podrás acceder aquí</li>
         </ul>
       </div>
@@ -378,6 +378,20 @@
     </section>
   </main>
 
+  <!-- ══════════════════ ADMINISTRADOR ══════════════════ -->
+  <main class="main-content hidden" id="sectionAdmin">
+    <div class="start-screen admin-panel">
+      <span class="cs-icon">🔐</span>
+      <h2>Bienvenido Jhonatan</h2>
+      <p>Activa permisos por grupo. Un permiso permite presentar ese examen aunque no se haya completado el requisito anterior.</p>
+      <div class="admin-group-select">
+        <label for="adminGrupoSelect">Grupo</label>
+        <select id="adminGrupoSelect" class="admin-input"></select>
+      </div>
+      <div class="admin-list" id="adminList"></div>
+    </div>
+  </main>
+
   <!-- ══════════════════ SOPORTE ══════════════════ -->
   <main class="main-content hidden" id="sectionSoporte">
     <div class="start-screen support-panel">
@@ -437,6 +451,6 @@
       ]
     });"></script>
 
-  <script src="script.js?v=20260621-4"></script>
+  <script src="script.js?v=20260628-1"></script>
 </body>
 </html>

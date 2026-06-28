@@ -665,13 +665,8 @@ function textoPlano(str) {
 /* Reiniciar diagnóstico */
 document.getElementById("btnRestart").addEventListener("click", () => {
   limpiarIntentoActivo();
-  // El diagnóstico es el requisito del examen final: reiniciarlo invalida ambos intentos.
   detenerTimer();
-  detenerTimerNivel();
-  detenerTimerExamen();
   diagnosticoCompletado = false;
-  reiniciarEstadoNiveles();
-  reiniciarEstadoExamenFinal(false);
 
   resultsSection.hidden = true;
   document.getElementById("submitBtn").style.display = "";
@@ -777,8 +772,10 @@ function mostrarSeccion(sec) {
   document.getElementById("sectionDiagnostico").classList.toggle("hidden", sec !== "diagnostico");
   document.getElementById("sectionNivel").classList.toggle("hidden", !sec.startsWith("nivel"));
   document.getElementById("sectionExamen").classList.toggle("hidden", sec !== "examen");
+  document.getElementById("sectionAdmin").classList.toggle("hidden", sec !== "admin");
   document.getElementById("sectionSoporte").classList.toggle("hidden", sec !== "soporte");
   if (sec === "diagnostico") actualizarEstadoDiagnostico();
+  if (sec === "admin") renderAdminPanel();
 }
 
 function activarNav(sec) {
@@ -998,16 +995,19 @@ const PREGUNTAS_NIVELES = {
 
 const ADMIN_CLAVE = "Barcelona2026";
 const GRUPOS = {
-  grupo1: { nombre: "Grupo 1", clave: "UNAL-G1-4826", habilitados: { diagnostico: true, nivel1: false, nivel2: false, nivel3: false, nivel4: false, nivel5: false, examen: false } },
-  grupo2: { nombre: "Grupo 2", clave: "UNAL-G2-7391", habilitados: { diagnostico: true, nivel1: true, nivel2: false, nivel3: false, nivel4: false, nivel5: false, examen: false } },
-  grupo3: { nombre: "Grupo 3", clave: "UNAL-G3-1548", habilitados: { diagnostico: true, nivel1: true, nivel2: false, nivel3: false, nivel4: false, nivel5: false, examen: false } },
-  grupo4: { nombre: "Grupo 4", clave: "UNAL-G4-9263", habilitados: { diagnostico: true, nivel1: true, nivel2: true, nivel3: false, nivel4: false, nivel5: false, examen: false } },
-  grupo5: { nombre: "Grupo 5", clave: "UNAL-G5-3174", habilitados: { diagnostico: true, nivel1: true, nivel2: true, nivel3: true, nivel4: true, nivel5: true, examen: true } }
+  grupo1: { nombre: "Grupo 1", clave: "UNAL-G1-4826" },
+  grupo2: { nombre: "Grupo 2", clave: "UNAL-G2-7391" },
+  grupo3: { nombre: "Grupo 3", clave: "UNAL-G3-1548" },
+  grupo4: { nombre: "Grupo 4", clave: "UNAL-G4-9263" },
+  grupo5: { nombre: "Grupo 5", clave: "UNAL-G5-3174" }
 };
 const STORAGE_GRUPO = "preguntasUnalGrupoActivo";
+const STORAGE_PERMISOS = "preguntasUnalPermisosPorGrupo";
 const DEFAULT_HABILITADOS = { diagnostico: false, nivel1: false, nivel2: false, nivel3: false, nivel4: false, nivel5: false, examen: false };
-let grupoActivo = sessionStorage.getItem(STORAGE_GRUPO) || "";
-let modoAdmin = sessionStorage.getItem(STORAGE_GRUPO) === "admin";
+let permisosGrupo = cargarPermisosGrupo();
+let grupoActivo = localStorage.getItem(STORAGE_GRUPO) || "";
+let modoAdmin = grupoActivo === "admin";
+let adminGrupoActual = Object.keys(GRUPOS)[0];
 let nivelActual = "nivel1";
 let nivelIniciado = false;
 let nivelCompletadoVisible = false;
@@ -1015,8 +1015,34 @@ let timerNivelInterval = null;
 let timerNivelActivo = false;
 let segsNivel = DURACION_SEG;
 
+function cargarPermisosGrupo() {
+  const permisos = {};
+  Object.keys(GRUPOS).forEach(clave => {
+    permisos[clave] = { ...DEFAULT_HABILITADOS };
+  });
+  try {
+    const guardado = JSON.parse(localStorage.getItem(STORAGE_PERMISOS) || "{}");
+    Object.keys(GRUPOS).forEach(clave => {
+      permisos[clave] = { ...DEFAULT_HABILITADOS, ...(guardado[clave] || {}) };
+    });
+  } catch {
+    localStorage.removeItem(STORAGE_PERMISOS);
+  }
+  return permisos;
+}
+
+function guardarPermisosGrupo() {
+  localStorage.setItem(STORAGE_PERMISOS, JSON.stringify(permisosGrupo));
+}
+
+function permisoDirecto(clave) {
+  if (modoAdmin) return true;
+  return !!grupoActivo && !!permisosGrupo[grupoActivo]?.[clave];
+}
+
 function requisitoCumplido(clave) {
   if (modoAdmin) return true;
+  if (clave === "diagnostico") return false;
   const req = NIVELES_META[clave].requisito;
   if (req === "diagnostico") return diagnosticoCompletado;
   return !!nivelesCompletados[req];
@@ -1024,16 +1050,18 @@ function requisitoCumplido(clave) {
 
 function examenHabilitado(clave) {
   if (modoAdmin) return true;
-  return !!grupoActivo && !!GRUPOS[grupoActivo]?.habilitados?.[clave];
+  if (!grupoActivo || !GRUPOS[grupoActivo]) return false;
+  if (clave === "diagnostico") return permisoDirecto("diagnostico");
+  if (clave === "examen") return permisoDirecto("examen") || nivelesCompletados.nivel5;
+  return permisoDirecto(clave) || requisitoCumplido(clave);
 }
 
 function puedeAbrirNivel(clave) {
-  return examenHabilitado(clave) && requisitoCumplido(clave);
+  return examenHabilitado(clave);
 }
 
 function puedeAbrirExamenFinal() {
-  if (modoAdmin) return true;
-  return examenHabilitado("examen") && nivelesCompletados.nivel5;
+  return examenHabilitado("examen");
 }
 
 function actualizarProgresoNivel() {
@@ -1106,10 +1134,7 @@ function abrirNivel(clave) {
   document.getElementById("btnIniciarNivel").textContent = `▶ Iniciar ${meta.titulo.toLowerCase()}`;
   document.getElementById("submitBtnNivel").textContent = `Enviar ${meta.titulo.toLowerCase()}`;
   document.getElementById("nivelBloqueadoTitulo").textContent = `${meta.titulo} bloqueado`;
-  const habilitadoGrupo = examenHabilitado(clave);
-  const mensajeBloqueo = habilitadoGrupo
-    ? meta.requisitoTexto
-    : `Este ${meta.titulo.toLowerCase()} no está habilitado para tu grupo.`;
+  const mensajeBloqueo = meta.requisitoTexto;
   document.getElementById("nivelBloqueadoTexto").textContent = mensajeBloqueo;
   document.getElementById("nivelBloqueadoRegla").textContent = mensajeBloqueo;
 
@@ -1169,19 +1194,11 @@ function reiniciarEstadoNiveles() {
   reiniciarEstadoNivelVisual();
 }
 
-function bloquearPosteriores(clave) {
-  const orden = Object.keys(NIVELES_META);
-  const idx = orden.indexOf(clave);
-  orden.slice(idx + 1).forEach(k => nivelesCompletados[k] = false);
-  reiniciarEstadoExamenFinal(false);
-}
-
 function evaluarYMostrarNivel(respuestas) {
   limpiarIntentoActivo();
   nivelIniciado = false;
   nivelCompletadoVisible = true;
   nivelesCompletados[nivelActual] = true;
-  bloquearPosteriores(nivelActual);
   document.getElementById("submitBtnNivel").style.display = "none";
 
   const preguntas = PREGUNTAS_NIVELES[nivelActual];
@@ -1325,7 +1342,6 @@ document.getElementById("nivelForm").addEventListener("submit", (e) => {
 document.getElementById("btnRestartNivel").addEventListener("click", () => {
   limpiarIntentoActivo();
   nivelesCompletados[nivelActual] = false;
-  bloquearPosteriores(nivelActual);
   reiniciarEstadoNivelVisual();
   actualizarProgresoNivel();
   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1348,11 +1364,10 @@ function entrarGrupo() {
   if (valor === ADMIN_CLAVE) {
     grupoActivo = "admin";
     modoAdmin = true;
-    sessionStorage.setItem(STORAGE_GRUPO, grupoActivo);
+    localStorage.setItem(STORAGE_GRUPO, grupoActivo);
     document.getElementById("grupoWarn").hidden = true;
     document.body.classList.remove("group-locked");
-    activarNav("diagnostico");
-    actualizarEstadoDiagnostico();
+    activarNav("admin");
     return;
   }
   const encontrado = Object.entries(GRUPOS).find(([, grupo]) => grupo.clave === valor);
@@ -1362,7 +1377,7 @@ function entrarGrupo() {
   }
   grupoActivo = encontrado[0];
   modoAdmin = false;
-  sessionStorage.setItem(STORAGE_GRUPO, grupoActivo);
+  localStorage.setItem(STORAGE_GRUPO, grupoActivo);
   document.getElementById("grupoWarn").hidden = true;
   document.body.classList.remove("group-locked");
   activarNav("diagnostico");
@@ -1379,7 +1394,7 @@ document.getElementById("grupoClave").addEventListener("keydown", (e) => {
 
 function salirApp() {
   limpiarIntentoActivo();
-  sessionStorage.removeItem(STORAGE_GRUPO);
+  localStorage.removeItem(STORAGE_GRUPO);
   window.location.reload();
 }
 
@@ -1388,11 +1403,73 @@ document.getElementById("btnSalirApp").addEventListener("click", salirApp);
 if (grupoActivo === "admin" || (grupoActivo && GRUPOS[grupoActivo])) {
   modoAdmin = grupoActivo === "admin";
   document.body.classList.remove("group-locked");
-  actualizarEstadoDiagnostico();
+  activarNav(modoAdmin ? "admin" : "diagnostico");
 } else {
   grupoActivo = "";
-  sessionStorage.removeItem(STORAGE_GRUPO);
+  localStorage.removeItem(STORAGE_GRUPO);
 }
+
+function renderAdminPanel() {
+  if (!modoAdmin) return;
+  const select = document.getElementById("adminGrupoSelect");
+  const list = document.getElementById("adminList");
+  if (!select || !list) return;
+
+  if (!select.options.length) {
+    Object.entries(GRUPOS).forEach(([clave, grupo]) => {
+      const option = document.createElement("option");
+      option.value = clave;
+      option.textContent = `${grupo.nombre} (${grupo.clave})`;
+      select.appendChild(option);
+    });
+  }
+
+  select.value = adminGrupoActual;
+  const grupo = GRUPOS[adminGrupoActual];
+  const nombres = [
+    ["diagnostico", "Diagnóstico"],
+    ["nivel1", "Nivel 1"],
+    ["nivel2", "Nivel 2"],
+    ["nivel3", "Nivel 3"],
+    ["nivel4", "Nivel 4"],
+    ["nivel5", "Nivel 5"],
+    ["examen", "Examen Final"]
+  ];
+
+  list.innerHTML = "";
+  const info = document.createElement("p");
+  info.className = "admin-current-group";
+  info.textContent = `${grupo.nombre} · Clave: ${grupo.clave}`;
+  list.appendChild(info);
+
+  nombres.forEach(([clave, nombre]) => {
+    const row = document.createElement("div");
+    row.className = "admin-row";
+    row.innerHTML = `
+      <div>
+        <strong>${nombre}</strong>
+        <span>${clave === "diagnostico" ? "Permitir entrada al diagnóstico" : "Permiso directo sin completar el requisito anterior"}</span>
+      </div>
+      <label class="switch" aria-label="Habilitar ${nombre}">
+        <input type="checkbox" data-admin-exam="${clave}" ${permisosGrupo[adminGrupoActual]?.[clave] ? "checked" : ""}>
+        <span class="slider"></span>
+      </label>
+    `;
+    list.appendChild(row);
+  });
+}
+
+document.getElementById("adminGrupoSelect")?.addEventListener("change", (e) => {
+  adminGrupoActual = e.target.value;
+  renderAdminPanel();
+});
+
+document.getElementById("adminList")?.addEventListener("change", (e) => {
+  const input = e.target.closest("input[data-admin-exam]");
+  if (!input) return;
+  permisosGrupo[adminGrupoActual][input.dataset.adminExam] = input.checked;
+  guardarPermisosGrupo();
+});
 
 /* ────────────────────────────────────────────────────
    13. MOTOR DEL EXAMEN FINAL
