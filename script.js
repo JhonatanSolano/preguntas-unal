@@ -181,17 +181,18 @@ function formatTiempo(seg) {
 }
 
 /** Inicia el countdown */
-function iniciarTimer() {
+function iniciarTimer(continuar = false) {
   if (timerActivo) return;
   timerActivo = true;
-  segundosRestantes = DURACION_SEG;
+  if (!continuar) segundosRestantes = DURACION_SEG;
 
   const displayEl = document.getElementById("timerDisplay");
   const timerBox  = document.getElementById("timerBox");
   displayEl.textContent = formatTiempo(segundosRestantes);
 
   timerInterval = setInterval(() => {
-    segundosRestantes--;
+    const desdeIntento = segundosRestantesIntento("diag", "diagnostico");
+    segundosRestantes = desdeIntento === null ? segundosRestantes - 1 : desdeIntento;
     displayEl.textContent = formatTiempo(segundosRestantes);
 
     // Aviso visual: quedan 5 minutos
@@ -276,6 +277,107 @@ function calcBalance(correctas, total, tiempoSeg) {
 /** Letras de las opciones */
 const LETRAS = ["A", "B", "C", "D"];
 
+const ACTIVE_ATTEMPT_KEY = "preguntasUnalIntentoActivo";
+const INACTIVIDAD_MS = 10 * 60 * 1000;
+let intentoActivo = cargarIntentoActivo();
+
+function cargarIntentoActivo() {
+  try {
+    return JSON.parse(localStorage.getItem(ACTIVE_ATTEMPT_KEY) || "null");
+  } catch {
+    return null;
+  }
+}
+
+function guardarIntentoActivo() {
+  if (!intentoActivo) {
+    localStorage.removeItem(ACTIVE_ATTEMPT_KEY);
+    return;
+  }
+  localStorage.setItem(ACTIVE_ATTEMPT_KEY, JSON.stringify(intentoActivo));
+}
+
+function limpiarIntentoActivo() {
+  intentoActivo = null;
+  guardarIntentoActivo();
+}
+
+function iniciarIntentoActivo(tipo, clave, total) {
+  intentoActivo = {
+    tipo,
+    clave,
+    total,
+    respuestas: {},
+    inicio: Date.now(),
+    vence: Date.now() + DURACION_SEG * 1000,
+    ultimaActividad: Date.now()
+  };
+  guardarIntentoActivo();
+}
+
+function intentoCoincide(tipo, clave) {
+  return intentoActivo && intentoActivo.tipo === tipo && intentoActivo.clave === clave;
+}
+
+function segundosRestantesIntento(tipo, clave) {
+  if (!intentoCoincide(tipo, clave)) return null;
+  return Math.max(0, Math.ceil((intentoActivo.vence - Date.now()) / 1000));
+}
+
+function guardarRespuestaActiva(tipo, clave, id, valor) {
+  if (!intentoCoincide(tipo, clave)) return;
+  intentoActivo.respuestas[id] = valor;
+  intentoActivo.ultimaActividad = Date.now();
+  guardarIntentoActivo();
+}
+
+function aplicarRespuestasGuardadas(tipo, clave, preguntas) {
+  if (!intentoCoincide(tipo, clave)) return;
+  preguntas.forEach(q => {
+    const valor = intentoActivo.respuestas[q.id];
+    if (valor === undefined) return;
+    const input = document.querySelector(`input[name="${tipo}-q${q.id}"][value="${valor}"]`);
+    if (!input) return;
+    input.checked = true;
+    input.closest(".option-label")?.classList.add("selected");
+    document.getElementById(`${tipo}-card-${q.id}`)?.classList.add("answered");
+  });
+}
+
+function respuestasDesdeIntento(preguntas, tipo) {
+  return preguntas.map(q => {
+    const checked = document.querySelector(`input[name="${tipo}-q${q.id}"]:checked`);
+    return checked ? parseInt(checked.value, 10) : -1;
+  });
+}
+
+function tocarActividad() {
+  if (!intentoActivo) return;
+  intentoActivo.ultimaActividad = Date.now();
+  guardarIntentoActivo();
+}
+
+function pruebaActivaActual() {
+  if (timerActivo) return "diagnostico";
+  if (timerNivelActivo) return nivelActual;
+  if (timerExamenActivo) return "examen";
+  return null;
+}
+
+["click", "keydown", "mousemove", "touchstart", "scroll"].forEach(evt => {
+  window.addEventListener(evt, tocarActividad, { passive: true });
+});
+
+setInterval(() => {
+  if (!intentoActivo) return;
+  if (Date.now() - intentoActivo.ultimaActividad <= INACTIVIDAD_MS) return;
+  detenerTimer();
+  detenerTimerNivel();
+  detenerTimerExamen();
+  limpiarIntentoActivo();
+  window.location.reload();
+}, 30000);
+
 /* ────────────────────────────────────────────────────
    4. PRESENTACIÓN – Generación del formulario
 ──────────────────────────────────────────────────── */
@@ -323,6 +425,7 @@ function crearTarjetaPregunta(q, tipo = "diag") {
       optsList.querySelectorAll(".option-label").forEach(l => l.classList.remove("selected"));
       label.classList.add("selected");
       card.classList.add("answered");
+      guardarRespuestaActiva(tipo, tipo === "nivel" ? nivelActual : tipo === "diag" ? "diagnostico" : "examen", q.id, idx);
       if (tipo === "examen") actualizarProgresoExamen();
       else if (tipo === "nivel") actualizarProgresoNivel();
       else actualizarProgreso();
@@ -429,6 +532,7 @@ form.addEventListener("submit", (e) => {
  * Recibe array de respuestas (índice 0-3 o -1 = sin responder).
  */
 function evaluarYMostrar(respuestas) {
+  limpiarIntentoActivo();
   /* Ocultar formulario de envío */
   document.getElementById("submitBtn").style.display = "none";
   // Marcar diagnóstico como completado
@@ -560,6 +664,7 @@ function textoPlano(str) {
 
 /* Reiniciar diagnóstico */
 document.getElementById("btnRestart").addEventListener("click", () => {
+  limpiarIntentoActivo();
   // El diagnóstico es el requisito del examen final: reiniciarlo invalida ambos intentos.
   detenerTimer();
   detenerTimerNivel();
@@ -607,9 +712,15 @@ document.getElementById("btnAll").addEventListener("click", () => {
 ──────────────────────────────────────────────────── */
 document.querySelectorAll(".nav-btn").forEach(btn => {
   btn.addEventListener("click", () => {
+    const sec = btn.dataset.section;
+    const activa = pruebaActivaActual();
+    if (activa && sec !== activa && sec !== "soporte") {
+      activarNav(activa);
+      if (activa.startsWith("nivel")) abrirNivel(activa);
+      return;
+    }
     document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
-    const sec = btn.dataset.section;
     mostrarSeccion(sec);
 
     if (sec === "diagnostico") {
@@ -673,6 +784,7 @@ actualizarProgreso();
    10. BOTÓN INICIAR DIAGNÓSTICO
 ──────────────────────────────────────────────────── */
 document.getElementById("btnIniciarDiag").addEventListener("click", () => {
+  iniciarIntentoActivo("diag", "diagnostico", PREGUNTAS.length);
   // Generar preguntas en el momento de iniciar
   renderizarPreguntas();
   actualizarProgreso();
@@ -804,64 +916,64 @@ const NIVELES_META = {
 
 const PREGUNTAS_NIVELES = {
   nivel1: [
-    { id: 1, pregunta: "Calcula", formula: "\\[ 7-3(2-5) \\]", opciones: ["\\(16\\)", "\\(-2\\)", "\\(4\\)", "\\(13\\)"], correcta: 0, explicacion: "Primero el paréntesis: \\(2-5=-3\\). Luego \\(7-3(-3)=7+9=16\\)." },
-    { id: 2, pregunta: "Si \\(2x+5=17\\), entonces \\(x\\) vale:", formula: "", opciones: ["\\(5\\)", "\\(6\\)", "\\(7\\)", "\\(11\\)"], correcta: 1, explicacion: "\\(2x=17-5=12\\). Por tanto, \\(x=6\\)." },
-    { id: 3, pregunta: "Simplifica", formula: "\\[ 4a-2b+7a+5b \\]", opciones: ["\\(11a+3b\\)", "\\(3a+11b\\)", "\\(11a-7b\\)", "\\(a+3b\\)"], correcta: 0, explicacion: "Se agrupan términos semejantes: \\((4+7)a+(-2+5)b=11a+3b\\)." },
-    { id: 4, pregunta: "El \\(25\\%\\) de 80 es:", formula: "", opciones: ["\\(15\\)", "\\(20\\)", "\\(25\\)", "\\(40\\)"], correcta: 1, explicacion: "\\(25\\%=\\frac14\\). Entonces \\(\\frac14\\cdot80=20\\)." },
-    { id: 5, pregunta: "Factoriza", formula: "\\[ x^2+5x \\]", opciones: ["\\(x(x+5)\\)", "\\(5(x+1)\\)", "\\(x(x-5)\\)", "\\((x+5)^2\\)"], correcta: 0, explicacion: "El factor común es \\(x\\): \\(x^2+5x=x(x+5)\\)." },
-    { id: 6, pregunta: "Resuelve", formula: "\\[ \\frac{x}{3}+2=7 \\]", opciones: ["\\(9\\)", "\\(12\\)", "\\(15\\)", "\\(21\\)"], correcta: 2, explicacion: "\\(\\frac{x}{3}=5\\). Multiplicando por 3: \\(x=15\\)." },
-    { id: 7, pregunta: "Si \\(f(x)=2x-1\\), entonces \\(f(4)\\) es:", formula: "", opciones: ["\\(6\\)", "\\(7\\)", "\\(8\\)", "\\(9\\)"], correcta: 1, explicacion: "\\(f(4)=2(4)-1=8-1=7\\)." },
-    { id: 8, pregunta: "El producto notable", formula: "\\[ (x+3)^2 \\]", opciones: ["\\(x^2+9\\)", "\\(x^2+6x+9\\)", "\\(x^2+3x+9\\)", "\\(x^2-6x+9\\)"], correcta: 1, explicacion: "\\((a+b)^2=a^2+2ab+b^2\\). Entonces \\((x+3)^2=x^2+6x+9\\)." },
-    { id: 9, pregunta: "Ordena de menor a mayor:", formula: "\\[ -2,\\; \\frac12,\\; 0,\\; -\\frac32 \\]", opciones: ["\\(-2,-\\frac32,0,\\frac12\\)", "\\(-\\frac32,-2,0,\\frac12\\)", "\\(0,\\frac12,-\\frac32,-2\\)", "\\(-2,0,-\\frac32,\\frac12\\)"], correcta: 0, explicacion: "En la recta numérica: \\(-2<-\\frac32<0<\\frac12\\)." },
-    { id: 10, pregunta: "Si \\(3x-4=2x+9\\), entonces \\(x\\) vale:", formula: "", opciones: ["\\(5\\)", "\\(9\\)", "\\(13\\)", "\\(-13\\)"], correcta: 2, explicacion: "Restando \\(2x\\): \\(x-4=9\\). Sumando 4: \\(x=13\\)." }
+    { id: 1, pregunta: "El residuo de dividir \\(7^{2026}\\) entre 5 es:", formula: "", opciones: ["\\(1\\)", "\\(2\\)", "\\(3\\)", "\\(4\\)"], correcta: 3, explicacion: "Como \\(7\\equiv2\\pmod 5\\), basta estudiar \\(2^{2026}\\). Las potencias de 2 módulo 5 tienen ciclo \\(2,4,3,1\\). Como \\(2026\\equiv2\\pmod4\\), el residuo es \\(4\\)." },
+    { id: 2, pregunta: "La suma de los primeros \\(n\\) números impares positivos es 361. Entonces \\(n\\) vale:", formula: "", opciones: ["\\(17\\)", "\\(18\\)", "\\(19\\)", "\\(20\\)"], correcta: 2, explicacion: "La suma de los primeros \\(n\\) impares es \\(n^2\\). Entonces \\(n^2=361\\), de donde \\(n=19\\)." },
+    { id: 3, pregunta: "Si \\(x+\\frac1x=5\\), calcula", formula: "\\[x^2+\\frac1{x^2}\\]", opciones: ["\\(21\\)", "\\(23\\)", "\\(25\\)", "\\(27\\)"], correcta: 1, explicacion: "Elevando al cuadrado: \\((x+\\frac1x)^2=x^2+2+\\frac1{x^2}=25\\). Por tanto, \\(x^2+\\frac1{x^2}=23\\)." },
+    { id: 4, pregunta: "En una progresión aritmética \\(a_3=11\\) y \\(a_9=29\\). La suma de los primeros 12 términos es:", formula: "", opciones: ["\\(246\\)", "\\(252\\)", "\\(258\\)", "\\(264\\)"], correcta: 2, explicacion: "De \\(a_9-a_3=6d=18\\), se obtiene \\(d=3\\). Luego \\(a_1=5\\). Así \\(S_{12}=\\frac{12}{2}(2\\cdot5+11\\cdot3)=6(43)=258\\)." },
+    { id: 5, pregunta: "Si \\(a\\) y \\(b\\) son positivos, \\(a+b=12\\) y \\(ab=27\\), entonces \\(a^2+b^2\\) es:", formula: "", opciones: ["\\(72\\)", "\\(84\\)", "\\(90\\)", "\\(108\\)"], correcta: 2, explicacion: "\\(a^2+b^2=(a+b)^2-2ab=144-54=90\\)." },
+    { id: 6, pregunta: "¿Cuántos enteros positivos de dos cifras son múltiplos de 3 pero no de 9?", formula: "", opciones: ["\\(20\\)", "\\(21\\)", "\\(22\\)", "\\(23\\)"], correcta: 0, explicacion: "Múltiplos de 3 entre 10 y 99: \\(12,15,\\ldots,99\\), hay 30. Múltiplos de 9 entre 10 y 99: \\(18,27,\\ldots,99\\), hay 10. Quedan \\(30-10=20\\)." },
+    { id: 7, pregunta: "Si \\(f(x)=x^2-3x+1\\), entonces \\(f(3-t)-f(t)\\) vale:", formula: "", opciones: ["\\(0\\)", "\\(3\\)", "\\(6t-9\\)", "\\(9-6t\\)"], correcta: 0, explicacion: "\\(f(3-t)=(3-t)^2-3(3-t)+1=t^2-3t+1=f(t)\\). La diferencia es 0." },
+    { id: 8, pregunta: "El menor entero positivo \\(n\\) tal que \\(12n\\) es un cuadrado perfecto es:", formula: "", opciones: ["\\(2\\)", "\\(3\\)", "\\(6\\)", "\\(12\\)"], correcta: 1, explicacion: "\\(12=2^2\\cdot3\\). Para que sea cuadrado, falta otro factor 3. Entonces \\(n=3\\)." },
+    { id: 9, pregunta: "Si \\(2^a=8\\) y \\(3^b=81\\), entonces \\(a+b\\) es:", formula: "", opciones: ["\\(6\\)", "\\(7\\)", "\\(8\\)", "\\(9\\)"], correcta: 1, explicacion: "\\(2^a=2^3\\), entonces \\(a=3\\). \\(3^b=3^4\\), entonces \\(b=4\\). Por tanto, \\(a+b=7\\)." },
+    { id: 10, pregunta: "Tres números enteros consecutivos tienen suma 84. El producto del menor y el mayor es:", formula: "", opciones: ["\\(783\\)", "\\(784\\)", "\\(785\\)", "\\(786\\)"], correcta: 0, explicacion: "Sean \\(n-1,n,n+1\\). Su suma es \\(3n=84\\), así \\(n=28\\). El producto pedido es \\(27\\cdot29=783\\)." }
   ],
   nivel2: [
-    { id: 1, pregunta: "Factoriza", formula: "\\[ x^2-25 \\]", opciones: ["\\((x-5)^2\\)", "\\((x-5)(x+5)\\)", "\\((x+25)(x-1)\\)", "\\(x(x-25)\\)"], correcta: 1, explicacion: "Es diferencia de cuadrados: \\(x^2-25=x^2-5^2=(x-5)(x+5)\\)." },
-    { id: 2, pregunta: "Resuelve", formula: "\\[ 2(x-3)=x+4 \\]", opciones: ["\\(6\\)", "\\(8\\)", "\\(10\\)", "\\(12\\)"], correcta: 2, explicacion: "\\(2x-6=x+4\\). Entonces \\(x=10\\)." },
-    { id: 3, pregunta: "Simplifica", formula: "\\[ \\frac{12x^3}{3x} \\]", opciones: ["\\(4x^2\\)", "\\(4x^3\\)", "\\(9x^2\\)", "\\(15x^2\\)"], correcta: 0, explicacion: "\\(12/3=4\\) y \\(x^3/x=x^2\\). Resultado: \\(4x^2\\)." },
-    { id: 4, pregunta: "La pendiente de la recta que pasa por \\((1,2)\\) y \\((3,8)\\) es:", formula: "", opciones: ["\\(2\\)", "\\(3\\)", "\\(4\\)", "\\(6\\)"], correcta: 1, explicacion: "\\(m=\\frac{8-2}{3-1}=\\frac{6}{2}=3\\)." },
-    { id: 5, pregunta: "Si \\(f(x)=x^2-2x\\), entonces \\(f(-1)\\) vale:", formula: "", opciones: ["\\(-3\\)", "\\(1\\)", "\\(3\\)", "\\(5\\)"], correcta: 2, explicacion: "\\(f(-1)=(-1)^2-2(-1)=1+2=3\\)." },
-    { id: 6, pregunta: "Resuelve", formula: "\\[ x^2-9x+20=0 \\]", opciones: ["\\(4\\) y \\(5\\)", "\\(2\\) y \\(10\\)", "\\(-4\\) y \\(-5\\)", "\\(1\\) y \\(20\\)"], correcta: 0, explicacion: "Buscamos dos números que sumen 9 y multipliquen 20: 4 y 5. Entonces \\((x-4)(x-5)=0\\)." },
-    { id: 7, pregunta: "Si \\(\\frac{a}{3}=\\frac{10}{6}\\), entonces \\(a\\) vale:", formula: "", opciones: ["\\(4\\)", "\\(5\\)", "\\(6\\)", "\\(8\\)"], correcta: 1, explicacion: "Por producto cruzado: \\(6a=30\\). Entonces \\(a=5\\)." },
-    { id: 8, pregunta: "El dominio de", formula: "\\[ \\frac{1}{x-4} \\]", opciones: ["\\(x\\neq 0\\)", "\\(x\\neq 4\\)", "\\(x>4\\)", "\\(x<4\\)"], correcta: 1, explicacion: "El denominador no puede ser cero. \\(x-4\\neq0\\), por tanto \\(x\\neq4\\)." },
-    { id: 9, pregunta: "Calcula", formula: "\\[ 2^3\\cdot2^4 \\]", opciones: ["\\(2^7\\)", "\\(2^{12}\\)", "\\(4^7\\)", "\\(16\\)"], correcta: 0, explicacion: "Con la misma base se suman exponentes: \\(2^3\\cdot2^4=2^{3+4}=2^7\\)." },
-    { id: 10, pregunta: "Si \\(y\\) es directamente proporcional a \\(x\\) y \\(y=12\\) cuando \\(x=3\\), entonces cuando \\(x=5\\), \\(y\\) vale:", formula: "", opciones: ["\\(15\\)", "\\(18\\)", "\\(20\\)", "\\(24\\)"], correcta: 2, explicacion: "La constante es \\(k=12/3=4\\). Entonces \\(y=4x\\). Para \\(x=5\\), \\(y=20\\)." }
+    { id: 1, pregunta: "Resuelve", formula: "\\[x^2-6x+5<0\\]", opciones: ["\\((1,5)\\)", "\\((-\\infty,1)\\cup(5,\\infty)\\)", "\\([1,5]\\)", "\\((5,\\infty)\\)"], correcta: 0, explicacion: "Factorizamos \\((x-1)(x-5)<0\\). La parábola es negativa entre sus raíces: \\((1,5)\\)." },
+    { id: 2, pregunta: "Si \\(\\frac{x-1}{x+1}=\\frac23\\), entonces \\(x\\) vale:", formula: "", opciones: ["\\(3\\)", "\\(4\\)", "\\(5\\)", "\\(6\\)"], correcta: 2, explicacion: "Producto cruzado: \\(3(x-1)=2(x+1)\\). Entonces \\(3x-3=2x+2\\), de donde \\(x=5\\)." },
+    { id: 3, pregunta: "La función \\(f(x)=|x-2|+|x+1|\\) tiene valor mínimo:", formula: "", opciones: ["\\(1\\)", "\\(2\\)", "\\(3\\)", "\\(4\\)"], correcta: 2, explicacion: "La suma de distancias de \\(x\\) a 2 y a -1 es mínima cuando \\(x\\in[-1,2]\\), y vale la distancia entre los puntos: \\(3\\)." },
+    { id: 4, pregunta: "Si \\(x^2+y^2=34\\) y \\(xy=15\\), entonces \\((x+y)^2\\) es:", formula: "", opciones: ["\\(49\\)", "\\(54\\)", "\\(64\\)", "\\(68\\)"], correcta: 2, explicacion: "\\((x+y)^2=x^2+y^2+2xy=34+30=64\\)." },
+    { id: 5, pregunta: "El número de soluciones enteras de \\(x^2\\leq 20\\) es:", formula: "", opciones: ["\\(7\\)", "\\(8\\)", "\\(9\\)", "\\(10\\)"], correcta: 2, explicacion: "\\(x^2\\leq20\\) implica \\(-\\sqrt{20}\\leq x\\leq\\sqrt{20}\\). Los enteros son \\(-4,-3,-2,-1,0,1,2,3,4\\): hay 9." },
+    { id: 6, pregunta: "Si \\(a\\neq0\\) y \\(a+\\frac1a=3\\), entonces \\(a^3+\\frac1{a^3}\\) vale:", formula: "", opciones: ["\\(9\\)", "\\(12\\)", "\\(18\\)", "\\(27\\)"], correcta: 2, explicacion: "Usamos \\(u^3+v^3=(u+v)^3-3uv(u+v)\\), con \\(u=a\\), \\(v=1/a\\). Resultado: \\(3^3-3(1)(3)=27-9=18\\)." },
+    { id: 7, pregunta: "¿Cuántos divisores positivos tiene \\(360\\)?", formula: "", opciones: ["\\(18\\)", "\\(20\\)", "\\(24\\)", "\\(30\\)"], correcta: 2, explicacion: "\\(360=2^3\\cdot3^2\\cdot5\\). El número de divisores es \\((3+1)(2+1)(1+1)=24\\)." },
+    { id: 8, pregunta: "Si \\(f(x)=\\frac{2x-1}{x+3}\\), entonces \\(f^{-1}(1)\\) vale:", formula: "", opciones: ["\\(-4\\)", "\\(-2\\)", "\\(2\\)", "\\(4\\)"], correcta: 3, explicacion: "Buscar \\(f^{-1}(1)\\) equivale a resolver \\(f(x)=1\\): \\(\\frac{2x-1}{x+3}=1\\Rightarrow 2x-1=x+3\\Rightarrow x=4\\)." },
+    { id: 9, pregunta: "La suma de las raíces de \\(2x^2-7x+3=0\\) es:", formula: "", opciones: ["\\(\\frac32\\)", "\\(\\frac72\\)", "\\(\\frac73\\)", "\\(7\\)"], correcta: 1, explicacion: "Por Vieta, la suma de raíces es \\(-b/a=7/2\\)." },
+    { id: 10, pregunta: "Si \\(x,y\\) son enteros positivos y \\(xy=36\\), ¿cuántos pares ordenados \\((x,y)\\) existen?", formula: "", opciones: ["\\(6\\)", "\\(8\\)", "\\(9\\)", "\\(12\\)"], correcta: 2, explicacion: "Cada divisor positivo de 36 determina un par \\((d,36/d)\\). Como \\(36=2^2\\cdot3^2\\), tiene \\((2+1)(2+1)=9\\) divisores." }
   ],
   nivel3: [
-    { id: 1, pregunta: "Resuelve la desigualdad", formula: "\\[ 3x-7<11 \\]", opciones: ["\\(x<6\\)", "\\(x>6\\)", "\\(x<\\frac43\\)", "\\(x>\\frac43\\)"], correcta: 0, explicacion: "\\(3x<18\\). Dividiendo entre 3: \\(x<6\\)." },
-    { id: 2, pregunta: "Calcula", formula: "\\[ \\log_{2}(32) \\]", opciones: ["\\(4\\)", "\\(5\\)", "\\(16\\)", "\\(64\\)"], correcta: 1, explicacion: "\\(2^5=32\\), por tanto \\(\\log_2(32)=5\\)." },
-    { id: 3, pregunta: "Si \\(g(x)=\\sqrt{x-1}\\), su dominio es:", formula: "", opciones: ["\\(x>1\\)", "\\(x\\geq1\\)", "\\(x\\leq1\\)", "Todo real"], correcta: 1, explicacion: "Para una raíz cuadrada se exige \\(x-1\\geq0\\). Entonces \\(x\\geq1\\)." },
-    { id: 4, pregunta: "Resuelve", formula: "\\[ |x-2|=5 \\]", opciones: ["\\(7\\)", "\\(-3\\)", "\\(7\\) y \\(-3\\)", "\\(5\\) y \\(-5\\)"], correcta: 2, explicacion: "Dos casos: \\(x-2=5\\Rightarrow x=7\\) y \\(x-2=-5\\Rightarrow x=-3\\)." },
-    { id: 5, pregunta: "Simplifica", formula: "\\[ \\frac{x^2-1}{x-1} \\]", opciones: ["\\(x-1\\)", "\\(x+1\\)", "\\(x^2+1\\)", "\\(1\\)"], correcta: 1, explicacion: "\\(x^2-1=(x-1)(x+1)\\). Al simplificar queda \\(x+1\\), con \\(x\\neq1\\)." },
-    { id: 6, pregunta: "El valor de \\(\\sin 30^\\circ\\) es:", formula: "", opciones: ["\\(\\frac12\\)", "\\(\\frac{\\sqrt2}{2}\\)", "\\(\\frac{\\sqrt3}{2}\\)", "\\(1\\)"], correcta: 0, explicacion: "En los ángulos notables, \\(\\sin 30^\\circ=\\frac12\\)." },
-    { id: 7, pregunta: "Si \\(2^{x+1}=16\\), entonces \\(x\\) vale:", formula: "", opciones: ["\\(2\\)", "\\(3\\)", "\\(4\\)", "\\(5\\)"], correcta: 1, explicacion: "\\(16=2^4\\). Entonces \\(x+1=4\\), por tanto \\(x=3\\)." },
-    { id: 8, pregunta: "El vértice de \\(y=(x-2)^2+3\\) es:", formula: "", opciones: ["\\((2,3)\\)", "\\((-2,3)\\)", "\\((3,2)\\)", "\\((2,-3)\\)"], correcta: 0, explicacion: "La forma \\(y=(x-h)^2+k\\) tiene vértice \\((h,k)\\). Aquí es \\((2,3)\\)." },
-    { id: 9, pregunta: "Si \\(a+b=10\\) y \\(ab=21\\), entonces \\(a^2+b^2\\) es:", formula: "", opciones: ["\\(42\\)", "\\(58\\)", "\\(79\\)", "\\(100\\)"], correcta: 1, explicacion: "\\(a^2+b^2=(a+b)^2-2ab=10^2-2(21)=100-42=58\\)." },
-    { id: 10, pregunta: "La solución de", formula: "\\[ \\frac{x-1}{2}=\\frac{x+3}{4} \\]", opciones: ["\\(1\\)", "\\(3\\)", "\\(5\\)", "\\(7\\)"], correcta: 2, explicacion: "Multiplicando por 4: \\(2(x-1)=x+3\\). Entonces \\(2x-2=x+3\\), así \\(x=5\\)." }
+    { id: 1, pregunta: "El conjunto solución de", formula: "\\[\\frac{x-4}{x+2}\\geq 0\\]", opciones: ["\\((-\\infty,-2)\\cup[4,\\infty)\\)", "\\((-2,4]\\)", "\\((-\\infty,-2]\\cup[4,\\infty)\\)", "\\([4,\\infty)\\)"], correcta: 0, explicacion: "Puntos críticos: \\(-2\\) y \\(4\\). La expresión es positiva o cero en \\((-\\infty,-2)\\cup[4,\\infty)\\). Se excluye \\(-2\\) por anular el denominador." },
+    { id: 2, pregunta: "Si \\(\\log_2 x+\\log_2(x-2)=3\\), entonces \\(x\\) es:", formula: "", opciones: ["\\(2\\)", "\\(3\\)", "\\(4\\)", "\\(6\\)"], correcta: 2, explicacion: "\\(\\log_2[x(x-2)]=3\\Rightarrow x(x-2)=8\\). Entonces \\(x^2-2x-8=0\\), y por dominio \\(x=4\\)." },
+    { id: 3, pregunta: "Si \\(\\sin\\theta+\\cos\\theta=\\frac75\\), entonces \\(\\sin\\theta\\cos\\theta\\) vale:", formula: "", opciones: ["\\(\\frac{6}{25}\\)", "\\(\\frac{12}{25}\\)", "\\(\\frac{24}{25}\\)", "\\(\\frac15\\)"], correcta: 1, explicacion: "Al cuadrar: \\(1+2\\sin\\theta\\cos\\theta=\\frac{49}{25}\\). Entonces \\(2sc=\\frac{24}{25}\\), y \\(sc=\\frac{12}{25}\\)." },
+    { id: 4, pregunta: "El valor de", formula: "\\[\\sqrt{20+8\\sqrt6}\\]", opciones: ["\\(2+2\\sqrt6\\)", "\\(2\\sqrt2+2\\sqrt3\\)", "\\(4+\\sqrt6\\)", "\\(\\sqrt2+3\\sqrt3\\)"], correcta: 1, explicacion: "Buscamos \\(\\sqrt a+\\sqrt b\\). Se requiere \\(a+b=20\\) y \\(2\\sqrt{ab}=8\\sqrt6\\), luego \\(ab=96\\). Sirven \\(a=8\\), \\(b=12\\), así queda \\(2\\sqrt2+2\\sqrt3\\)." },
+    { id: 5, pregunta: "¿Cuántas formas hay de escoger 2 estudiantes de un grupo de 7?", formula: "", opciones: ["\\(14\\)", "\\(21\\)", "\\(28\\)", "\\(42\\)"], correcta: 1, explicacion: "Es combinación: \\(\\binom72=\\frac{7\\cdot6}{2}=21\\)." },
+    { id: 6, pregunta: "Si \\(2^x+2^{x+1}+2^{x+2}=56\\), entonces \\(x\\) vale:", formula: "", opciones: ["\\(2\\)", "\\(3\\)", "\\(4\\)", "\\(5\\)"], correcta: 1, explicacion: "Factorizamos \\(2^x(1+2+4)=7\\cdot2^x=56\\). Entonces \\(2^x=8\\), por tanto \\(x=3\\)." },
+    { id: 7, pregunta: "La recta que pasa por \\((1,5)\\) y es perpendicular a \\(2x-3y=6\\) tiene pendiente:", formula: "", opciones: ["\\(-\\frac32\\)", "\\(-\\frac23\\)", "\\(\\frac23\\)", "\\(\\frac32\\)"], correcta: 0, explicacion: "La recta dada tiene pendiente \\(2/3\\). Una perpendicular tiene pendiente recíproca negativa: \\(-3/2\\)." },
+    { id: 8, pregunta: "Si \\(x^2-4x+y^2+6y=12\\), el radio de la circunferencia es:", formula: "", opciones: ["\\(4\\)", "\\(5\\)", "\\(6\\)", "\\(7\\)"], correcta: 1, explicacion: "Completando cuadrados: \\((x-2)^2+(y+3)^2=25\\). El radio es 5." },
+    { id: 9, pregunta: "La suma de los coeficientes de \\((2x-1)^5\\) es:", formula: "", opciones: ["\\(-1\\)", "\\(0\\)", "\\(1\\)", "\\(32\\)"], correcta: 2, explicacion: "La suma de coeficientes se obtiene evaluando en \\(x=1\\): \\((2(1)-1)^5=1\\)." },
+    { id: 10, pregunta: "Si \\(a,b,c\\) son raíces de \\(x^3-6x^2+11x-6=0\\), entonces \\(ab+ac+bc\\) es:", formula: "", opciones: ["\\(6\\)", "\\(11\\)", "\\(17\\)", "\\(36\\)"], correcta: 1, explicacion: "Por Vieta, en \\(x^3-s_1x^2+s_2x-s_3\\), se tiene \\(ab+ac+bc=s_2=11\\)." }
   ],
   nivel4: [
-    { id: 1, pregunta: "Calcula", formula: "\\[ \\lim_{x\\to 2}\\frac{x^2-4}{x-2} \\]", opciones: ["\\(0\\)", "\\(2\\)", "\\(4\\)", "No existe"], correcta: 2, explicacion: "Factorizamos \\(x^2-4=(x-2)(x+2)\\). Al simplificar queda \\(x+2\\). Evaluando en 2: \\(4\\)." },
-    { id: 2, pregunta: "La suma de los primeros 20 enteros positivos es:", formula: "", opciones: ["\\(190\\)", "\\(200\\)", "\\(210\\)", "\\(220\\)"], correcta: 2, explicacion: "\\(1+2+\\cdots+n=\\frac{n(n+1)}2\\). Para \\(n=20\\): \\(\\frac{20\\cdot21}{2}=210\\)." },
-    { id: 3, pregunta: "Si \\(f(x)=2x+1\\) y \\(g(x)=x^2\\), entonces \\((f\\circ g)(3)\\) vale:", formula: "", opciones: ["\\(10\\)", "\\(17\\)", "\\(19\\)", "\\(36\\)"], correcta: 2, explicacion: "\\(g(3)=9\\). Luego \\(f(g(3))=f(9)=2(9)+1=19\\)." },
-    { id: 4, pregunta: "Resuelve", formula: "\\[ \\log(x)+\\log(10)=3 \\]", opciones: ["\\(10\\)", "\\(100\\)", "\\(1000\\)", "\\(1\\)"], correcta: 1, explicacion: "\\(\\log(x)+\\log(10)=\\log(10x)=3\\). Entonces \\(10x=10^3=1000\\), así \\(x=100\\)." },
-    { id: 5, pregunta: "El número de formas de ordenar 4 objetos distintos es:", formula: "", opciones: ["\\(8\\)", "\\(12\\)", "\\(16\\)", "\\(24\\)"], correcta: 3, explicacion: "Las permutaciones de 4 objetos son \\(4!=4\\cdot3\\cdot2\\cdot1=24\\)." },
-    { id: 6, pregunta: "Si \\(\\cos\\theta=\\frac35\\) y \\(\\theta\\) está en el primer cuadrante, entonces \\(\\sin\\theta\\) es:", formula: "", opciones: ["\\(\\frac45\\)", "\\(\\frac35\\)", "\\(\\frac{16}{25}\\)", "\\(\\frac12\\)"], correcta: 0, explicacion: "\\(\\sin^2\\theta=1-\\cos^2\\theta=1-\\frac{9}{25}=\\frac{16}{25}\\). En el primer cuadrante, \\(\\sin\\theta=\\frac45\\)." },
-    { id: 7, pregunta: "Resuelve", formula: "\\[ x^2-4x-5>0 \\]", opciones: ["\\((-1,5)\\)", "\\((-\\infty,-1)\\cup(5,\\infty)\\)", "\\((-\\infty,5)\\)", "\\((-1,\\infty)\\)"], correcta: 1, explicacion: "Factorizamos \\((x-5)(x+1)>0\\). El producto es positivo fuera de las raíces: \\((-\\infty,-1)\\cup(5,\\infty)\\)." },
-    { id: 8, pregunta: "La distancia entre \\((1,2)\\) y \\((4,6)\\) es:", formula: "", opciones: ["\\(3\\)", "\\(4\\)", "\\(5\\)", "\\(7\\)"], correcta: 2, explicacion: "\\(d=\\sqrt{(4-1)^2+(6-2)^2}=\\sqrt{9+16}=5\\)." },
-    { id: 9, pregunta: "Si \\(r\\) es raíz doble de \\(x^2-6x+9=0\\), entonces \\(r\\) es:", formula: "", opciones: ["\\(2\\)", "\\(3\\)", "\\(6\\)", "\\(9\\)"], correcta: 1, explicacion: "\\(x^2-6x+9=(x-3)^2\\). La raíz doble es \\(x=3\\)." },
-    { id: 10, pregunta: "La asíntota vertical de", formula: "\\[ y=\\frac{2}{x+1} \\]", opciones: ["\\(x=1\\)", "\\(x=-1\\)", "\\(y=0\\)", "\\(y=2\\)"], correcta: 1, explicacion: "La asíntota vertical ocurre cuando el denominador es cero: \\(x+1=0\\), entonces \\(x=-1\\)." }
+    { id: 1, pregunta: "Calcula", formula: "\\[\\lim_{x\\to 1}\\frac{x^5-1}{x-1}\\]", opciones: ["\\(1\\)", "\\(3\\)", "\\(5\\)", "No existe"], correcta: 2, explicacion: "Es el cociente incremental de \\(x^5\\) en 1, o se factoriza. El límite vale \\(5\\cdot1^4=5\\)." },
+    { id: 2, pregunta: "Si \\(f(x)=\\frac{x+1}{x-1}\\), entonces \\(f(f(2))\\) es:", formula: "", opciones: ["\\(-2\\)", "\\(-1\\)", "\\(0\\)", "\\(2\\)"], correcta: 3, explicacion: "\\(f(2)=3\\). Luego \\(f(3)=\\frac{4}{2}=2\\)." },
+    { id: 3, pregunta: "El coeficiente de \\(x^3\\) en \\((x-2)^6\\) es:", formula: "", opciones: ["\\(-160\\)", "\\(-120\\)", "\\(120\\)", "\\(160\\)"], correcta: 0, explicacion: "El término con \\(x^3\\) toma 3 factores \\(x\\) y 3 factores \\(-2\\): \\(\\binom63(-2)^3=20(-8)=-160\\)." },
+    { id: 4, pregunta: "La suma", formula: "\\[1\\cdot2+2\\cdot3+\\cdots+10\\cdot11\\]", opciones: ["\\(430\\)", "\\(440\\)", "\\(450\\)", "\\(460\\)"], correcta: 1, explicacion: "\\(k(k+1)=k^2+k\\). Entonces la suma es \\(\\sum k^2+\\sum k=385+55=440\\)." },
+    { id: 5, pregunta: "Si \\(z\\) satisface \\(z^2+z+1=0\\), entonces \\(z^{2026}\\) es:", formula: "", opciones: ["\\(1\\)", "\\(z\\)", "\\(z^2\\)", "\\(-1\\)"], correcta: 1, explicacion: "De \\(z^2+z+1=0\\), se tiene \\(z^3=1\\) y \\(z\\neq1\\). Como \\(2026\\equiv1\\pmod3\\), \\(z^{2026}=z\\)." },
+    { id: 6, pregunta: "¿Cuántos caminos mínimos hay de \\((0,0)\\) a \\((4,3)\\) moviéndose solo derecha o arriba?", formula: "", opciones: ["\\(21\\)", "\\(28\\)", "\\(35\\)", "\\(42\\)"], correcta: 2, explicacion: "Son 7 movimientos: 4 derechas y 3 arriba. Se eligen las posiciones de las 3 subidas: \\(\\binom73=35\\)." },
+    { id: 7, pregunta: "La ecuación \\(\\lfloor x\\rfloor+x=10.5\\) tiene solución:", formula: "", opciones: ["\\(5.25\\)", "\\(5.5\\)", "\\(5.75\\)", "\\(6.25\\)"], correcta: 1, explicacion: "Si \\(\\lfloor x\\rfloor=n\\), entonces \\(x=10.5-n\\) y debe cumplir \\(n\\le x<n+1\\). Probando \\(n=5\\), \\(x=5.5\\), y \\(\\lfloor5.5\\rfloor+5.5=10.5\\)." },
+    { id: 8, pregunta: "Si \\(\\tan\\theta+\\cot\\theta=\\frac{13}{6}\\), entonces \\(\\tan^2\\theta+\\cot^2\\theta\\) vale:", formula: "", opciones: ["\\(\\frac{25}{36}\\)", "\\(\\frac{97}{36}\\)", "\\(\\frac{133}{36}\\)", "\\(\\frac{169}{36}\\)"], correcta: 1, explicacion: "\\((t+1/t)^2=t^2+2+1/t^2\\). Entonces \\(t^2+1/t^2=\\frac{169}{36}-2=\\frac{97}{36}\\)." },
+    { id: 9, pregunta: "El área encerrada por \\(y=x\\) y \\(y=x^2\\) es:", formula: "", opciones: ["\\(\\frac16\\)", "\\(\\frac13\\)", "\\(\\frac12\\)", "\\(1\\)"], correcta: 0, explicacion: "Intersecan en 0 y 1. Área: \\(\\int_0^1(x-x^2)dx=\\frac12-\\frac13=\\frac16\\)." },
+    { id: 10, pregunta: "Si \\(r+s=4\\) y \\(r^3+s^3=28\\), entonces \\(rs\\) vale:", formula: "", opciones: ["\\(2\\)", "\\(3\\)", "\\(4\\)", "\\(5\\)"], correcta: 1, explicacion: "\\(r^3+s^3=(r+s)^3-3rs(r+s)=64-12rs=28\\). Entonces \\(12rs=36\\), así \\(rs=3\\)." }
   ],
   nivel5: [
-    { id: 1, pregunta: "Calcula", formula: "\\[ \\lim_{x\\to 0}\\frac{1-\\cos x}{x^2} \\]", opciones: ["\\(0\\)", "\\(\\frac12\\)", "\\(1\\)", "\\(2\\)"], correcta: 1, explicacion: "Usando el límite notable \\(1-\\cos x\\sim \\frac{x^2}{2}\\), el valor es \\(\\frac12\\)." },
-    { id: 2, pregunta: "Si \\(x+\\frac1x=4\\), entonces \\(x^2+\\frac1{x^2}\\) vale:", formula: "", opciones: ["\\(12\\)", "\\(14\\)", "\\(16\\)", "\\(18\\)"], correcta: 1, explicacion: "Elevando al cuadrado: \\((x+\\frac1x)^2=x^2+2+\\frac1{x^2}=16\\). Entonces \\(x^2+\\frac1{x^2}=14\\)." },
-    { id: 3, pregunta: "La suma infinita", formula: "\\[ 6+3+\\frac32+\\cdots \\]", opciones: ["\\(9\\)", "\\(10\\)", "\\(12\\)", "\\(18\\)"], correcta: 2, explicacion: "Es geométrica con \\(a=6\\) y \\(r=\\frac12\\). Entonces \\(S=\\frac{a}{1-r}=\\frac6{1/2}=12\\)." },
-    { id: 4, pregunta: "Resuelve", formula: "\\[ \\sqrt{x+5}=x-1 \\]", opciones: ["\\(4\\)", "\\(5\\)", "\\(6\\)", "\\(7\\)"], correcta: 0, explicacion: "Debe cumplirse \\(x\\geq1\\). Al cuadrar: \\(x+5=(x-1)^2=x^2-2x+1\\). Entonces \\(x^2-3x-4=0\\), de donde \\(x=4\\) o \\(x=-1\\). Por dominio, \\(x=4\\)." },
-    { id: 5, pregunta: "Si \\(\\log_3(x-1)+\\log_3(x+1)=2\\), entonces \\(x\\) vale:", formula: "", opciones: ["\\(2\\)", "\\(\\sqrt{10}\\)", "\\(3\\)", "\\(4\\)"], correcta: 1, explicacion: "\\(\\log_3[(x-1)(x+1)]=2\\). Entonces \\(x^2-1=9\\), así \\(x^2=10\\). Por dominio \\(x>1\\), luego \\(x=\\sqrt{10}\\)." },
-    { id: 6, pregunta: "El coeficiente de \\(x^2\\) en \\((x+2)^4\\) es:", formula: "", opciones: ["\\(12\\)", "\\(18\\)", "\\(24\\)", "\\(32\\)"], correcta: 2, explicacion: "Término general: \\(\\binom{4}{2}x^2(2)^2=6\\cdot4x^2=24x^2\\). El coeficiente es 24." },
-    { id: 7, pregunta: "Si \\(\\tan\\theta=\\frac34\\) en el primer cuadrante, entonces \\(\\sin\\theta\\) es:", formula: "", opciones: ["\\(\\frac35\\)", "\\(\\frac45\\)", "\\(\\frac34\\)", "\\(\\frac43\\)"], correcta: 0, explicacion: "Con catetos 3 y 4, la hipotenusa es 5. Entonces \\(\\sin\\theta=\\frac{opuesto}{hipotenusa}=\\frac35\\)." },
-    { id: 8, pregunta: "El mínimo de \\(f(x)=x^2-8x+10\\) es:", formula: "", opciones: ["\\(-10\\)", "\\(-6\\)", "\\(4\\)", "\\(10\\)"], correcta: 1, explicacion: "El vértice está en \\(x=\\frac{-b}{2a}=4\\). \\(f(4)=16-32+10=-6\\)." },
-    { id: 9, pregunta: "Si \\(a_n=3n-2\\), la suma de los primeros 15 términos es:", formula: "", opciones: ["\\(315\\)", "\\(330\\)", "\\(345\\)", "\\(360\\)"], correcta: 1, explicacion: "Es aritmética: \\(a_1=1\\), \\(a_{15}=43\\). Entonces \\(S_{15}=\\frac{15(1+43)}2=330\\)." },
-    { id: 10, pregunta: "La ecuación \\(2^x+2^{x+1}=24\\) tiene solución:", formula: "", opciones: ["\\(2\\)", "\\(3\\)", "\\(4\\)", "\\(5\\)"], correcta: 1, explicacion: "\\(2^{x+1}=2\\cdot2^x\\). Entonces \\(2^x+2\\cdot2^x=3\\cdot2^x=24\\). Así \\(2^x=8=2^3\\), por tanto \\(x=3\\)." }
+    { id: 1, pregunta: "Si \\(x,y>0\\) y \\(x+y=1\\), el mínimo de", formula: "\\[\\frac1x+\\frac1y\\]", opciones: ["\\(2\\)", "\\(3\\)", "\\(4\\)", "\\(5\\)"], correcta: 2, explicacion: "Por AM-HM o Cauchy, \\(\\frac1x+\\frac1y\\geq\\frac{(1+1)^2}{x+y}=4\\). Se alcanza en \\(x=y=1/2\\)." },
+    { id: 2, pregunta: "El número de soluciones enteras de \\(x^2+y^2=25\\) es:", formula: "", opciones: ["\\(8\\)", "\\(10\\)", "\\(12\\)", "\\(16\\)"], correcta: 2, explicacion: "Pares: \\((\\pm5,0),(0,\\pm5)\\) dan 4. Además \\((\\pm3,\\pm4)\\) y \\((\\pm4,\\pm3)\\) dan 8. Total 12." },
+    { id: 3, pregunta: "Si \\(a,b,c\\) son positivos y \\(abc=1\\), entonces el mínimo de \\(a+b+c\\) es:", formula: "", opciones: ["\\(1\\)", "\\(2\\)", "\\(3\\)", "No tiene mínimo"], correcta: 2, explicacion: "Por AM-GM, \\(a+b+c\\geq3\\sqrt[3]{abc}=3\\). Se alcanza cuando \\(a=b=c=1\\)." },
+    { id: 4, pregunta: "La suma de todos los enteros \\(n\\) tales que \\(n^2-10n+21<0\\) es:", formula: "", opciones: ["\\(12\\)", "\\(15\\)", "\\(18\\)", "\\(25\\)"], correcta: 1, explicacion: "Factorizamos \\((n-3)(n-7)<0\\). Los enteros estrictamente entre 3 y 7 son \\(4,5,6\\). Su suma es \\(15\\)." },
+    { id: 5, pregunta: "El residuo de \\(3^{100}+4^{100}\\) al dividir entre 7 es:", formula: "", opciones: ["\\(0\\)", "\\(1\\)", "\\(2\\)", "\\(6\\)"], correcta: 1, explicacion: "Módulo 7, \\(3^6\\equiv1\\) y \\(4^3\\equiv1\\). Como \\(100\\equiv4\\pmod6\\), \\(3^{100}\\equiv3^4=81\\equiv4\\). Como \\(100\\equiv1\\pmod3\\), \\(4^{100}\\equiv4\\). Suma \\(8\\equiv1\\)." },
+    { id: 6, pregunta: "Si \\(p\\) es primo y \\(p\\mid n^2\\), entonces necesariamente:", formula: "", opciones: ["\\(p^2\\mid n\\)", "\\(p\\mid n\\)", "\\(n\\mid p\\)", "\\(p+n\\) es primo"], correcta: 1, explicacion: "Por el lema de Euclides, si un primo divide un producto \\(n\\cdot n\\), entonces divide a uno de los factores; por tanto \\(p\\mid n\\)." },
+    { id: 7, pregunta: "¿Cuántos subconjuntos de \\(\\{1,2,3,4,5,6\\}\\) tienen suma par?", formula: "", opciones: ["\\(16\\)", "\\(24\\)", "\\(32\\)", "\\(36\\)"], correcta: 2, explicacion: "Hay igual cantidad de subconjuntos con suma par e impar porque existe al menos un elemento impar. Total \\(2^6=64\\), por tanto la mitad: 32." },
+    { id: 8, pregunta: "Si \\(x^2-3x+1=0\\), entonces \\(x^4+\\frac1{x^4}\\) vale:", formula: "", opciones: ["\\(47\\)", "\\(49\\)", "\\(51\\)", "\\(53\\)"], correcta: 0, explicacion: "De la ecuación, \\(x+1/x=3\\). Entonces \\(x^2+1/x^2=7\\) y \\(x^4+1/x^4=7^2-2=47\\)." },
+    { id: 9, pregunta: "La cantidad de enteros entre 1 y 1000 que no son múltiplos de 2, 3 ni 5 es:", formula: "", opciones: ["\\(266\\)", "\\(267\\)", "\\(268\\)", "\\(269\\)"], correcta: 0, explicacion: "Usando inclusión-exclusión: múltiplos de 2,3,5 son \\(500+333+200-166-100-66+33=734\\). No divisibles por ninguno: \\(1000-734=266\\)." },
+    { id: 10, pregunta: "Si \\(\\alpha\\) y \\(\\beta\\) son raíces de \\(x^2-x-1=0\\), entonces \\(\\alpha^5+\\beta^5\\) vale:", formula: "", opciones: ["\\(5\\)", "\\(7\\)", "\\(11\\)", "\\(13\\)"], correcta: 2, explicacion: "Sea \\(S_n=\\alpha^n+\\beta^n\\). Como cada raíz cumple \\(x^2=x+1\\), \\(S_n=S_{n-1}+S_{n-2}\\). \\(S_0=2\\), \\(S_1=1\\), luego \\(S_2=3\\), \\(S_3=4\\), \\(S_4=7\\), \\(S_5=11\\)." }
   ]
 };
 
@@ -914,16 +1026,17 @@ function actualizarProgresoNivel() {
   mostrarProgreso(respondidas, preguntas.length || 10);
 }
 
-function iniciarTimerNivel() {
+function iniciarTimerNivel(continuar = false) {
   if (timerNivelActivo) return;
   timerNivelActivo = true;
-  segsNivel = DURACION_SEG;
+  if (!continuar) segsNivel = DURACION_SEG;
   const display = document.getElementById("timerDisplay");
   const timerBox = document.getElementById("timerBox");
   display.textContent = formatTiempo(segsNivel);
 
   timerNivelInterval = setInterval(() => {
-    segsNivel--;
+    const desdeIntento = segundosRestantesIntento("nivel", nivelActual);
+    segsNivel = desdeIntento === null ? segsNivel - 1 : desdeIntento;
     display.textContent = formatTiempo(segsNivel);
     if (segsNivel <= 300 && segsNivel > 120) {
       timerBox.classList.add("warn");
@@ -1040,6 +1153,7 @@ function bloquearPosteriores(clave) {
 }
 
 function evaluarYMostrarNivel(respuestas) {
+  limpiarIntentoActivo();
   nivelIniciado = false;
   nivelCompletadoVisible = true;
   nivelesCompletados[nivelActual] = true;
@@ -1140,6 +1254,7 @@ document.getElementById("btnNivelAnterior").addEventListener("click", () => {
 });
 
 document.getElementById("btnIniciarNivel").addEventListener("click", () => {
+  iniciarIntentoActivo("nivel", nivelActual, PREGUNTAS_NIVELES[nivelActual].length);
   nivelIniciado = true;
   nivelCompletadoVisible = false;
   document.getElementById("startScreenNivel").hidden = true;
@@ -1184,6 +1299,7 @@ document.getElementById("nivelForm").addEventListener("submit", (e) => {
 });
 
 document.getElementById("btnRestartNivel").addEventListener("click", () => {
+  limpiarIntentoActivo();
   nivelesCompletados[nivelActual] = false;
   bloquearPosteriores(nivelActual);
   reiniciarEstadoNivelVisual();
@@ -1281,16 +1397,17 @@ let timerExamenInterval = null;
 let timerExamenActivo   = false;
 let segsExamen          = 15 * 60;
 
-function iniciarTimerExamen() {
+function iniciarTimerExamen(continuar = false) {
   if (timerExamenActivo) return;
   timerExamenActivo = true;
-  segsExamen = 15 * 60;
+  if (!continuar) segsExamen = 15 * 60;
   const display  = document.getElementById("timerDisplay");
   const timerBox = document.getElementById("timerBox");
   display.textContent = formatTiempo(segsExamen);
 
   timerExamenInterval = setInterval(() => {
-    segsExamen--;
+    const desdeIntento = segundosRestantesIntento("examen", "examen");
+    segsExamen = desdeIntento === null ? segsExamen - 1 : desdeIntento;
     display.textContent = formatTiempo(segsExamen);
     if (segsExamen <= 300 && segsExamen > 120) {
       timerBox.classList.add("warn"); timerBox.classList.remove("danger");
@@ -1376,6 +1493,7 @@ function reRenderKatex(el) {
 
 /** Botón iniciar examen final */
 document.getElementById("btnIniciarExamen").addEventListener("click", () => {
+  iniciarIntentoActivo("examen", "examen", PREGUNTAS_EXAMEN.length);
   examenIniciado = true;
   examenCompletado = false;
   document.getElementById("startScreenExamen").hidden = true;
@@ -1420,6 +1538,7 @@ document.getElementById("examenForm").addEventListener("submit", (e) => {
 
 /** Submit manual examen */
 function evaluarYMostrarExamen(respuestas) {
+  limpiarIntentoActivo();
   examenIniciado = false;
   examenCompletado = true;
   document.getElementById("submitBtnExamen").style.display = "none";
@@ -1516,6 +1635,7 @@ function evaluarYMostrarExamen(respuestas) {
 
 /* Botones examen final */
 document.getElementById("btnRestartExamen").addEventListener("click", () => {
+  limpiarIntentoActivo();
   reiniciarEstadoExamenFinal(true);
   actualizarProgresoExamen();
   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1530,3 +1650,61 @@ document.getElementById("btnAllExamen").addEventListener("click", () => {
   document.querySelectorAll("#feedbackItemsExamen .feedback-item").forEach(item => item.classList.remove("hidden-item"));
   document.getElementById("feedbackListExamen").scrollIntoView({ behavior: "smooth" });
 });
+
+function restaurarIntentoActivo() {
+  if (!intentoActivo) return;
+  if (Date.now() - intentoActivo.ultimaActividad > INACTIVIDAD_MS) {
+    limpiarIntentoActivo();
+    return;
+  }
+
+  const restante = Math.max(0, Math.ceil((intentoActivo.vence - Date.now()) / 1000));
+
+  if (intentoActivo.tipo === "diag") {
+    activarNav("diagnostico");
+    renderizarPreguntas();
+    aplicarRespuestasGuardadas("diag", "diagnostico", PREGUNTAS);
+    document.getElementById("startScreen").hidden = true;
+    document.getElementById("diagFormWrap").hidden = false;
+    actualizarProgreso();
+    segundosRestantes = restante;
+    if (restante <= 0) evaluarYMostrar(respuestasDesdeIntento(PREGUNTAS, "diag"));
+    else iniciarTimer(true);
+    return;
+  }
+
+  if (intentoActivo.tipo === "nivel" && PREGUNTAS_NIVELES[intentoActivo.clave]) {
+    nivelActual = intentoActivo.clave;
+    activarNav(nivelActual);
+    abrirNivel(nivelActual);
+    nivelIniciado = true;
+    nivelCompletadoVisible = false;
+    document.getElementById("nivelBloqueado").hidden = true;
+    document.getElementById("startScreenNivel").hidden = true;
+    document.getElementById("nivelFormWrap").hidden = false;
+    renderizarNivel();
+    aplicarRespuestasGuardadas("nivel", nivelActual, PREGUNTAS_NIVELES[nivelActual]);
+    actualizarProgresoNivel();
+    segsNivel = restante;
+    if (restante <= 0) evaluarYMostrarNivel(respuestasDesdeIntento(PREGUNTAS_NIVELES[nivelActual], "nivel"));
+    else iniciarTimerNivel(true);
+    return;
+  }
+
+  if (intentoActivo.tipo === "examen") {
+    activarNav("examen");
+    examenIniciado = true;
+    examenCompletado = false;
+    document.getElementById("examenBloqueado").hidden = true;
+    document.getElementById("startScreenExamen").hidden = true;
+    document.getElementById("examenFormWrap").hidden = false;
+    renderizarExamen();
+    aplicarRespuestasGuardadas("examen", "examen", PREGUNTAS_EXAMEN);
+    actualizarProgresoExamen();
+    segsExamen = restante;
+    if (restante <= 0) evaluarYMostrarExamen(respuestasDesdeIntento(PREGUNTAS_EXAMEN, "examen"));
+    else iniciarTimerExamen(true);
+  }
+}
+
+restaurarIntentoActivo();
