@@ -11,10 +11,10 @@
   <main class="main-content" id="groupGate">
     <div class="start-screen group-gate">
       <span class="cs-icon">🔑</span>
-      <h2>Clave de grupo</h2>
-      <p>Ingresa la clave asignada por el profesor para acceder a los exámenes habilitados.</p>
+      <h2>Clave de acceso</h2>
+      <p>Ingresa la clave de tu grupo para acceder a los exámenes habilitados.</p>
       <div class="admin-login">
-        <input type="password" id="grupoClave" class="admin-input" placeholder="Clave del grupo" autocomplete="one-time-code" />
+        <input type="password" id="grupoClave" class="admin-input" placeholder="Clave de acceso" autocomplete="one-time-code" />
         <button class="btn btn-primary" id="btnGrupoEntrar">Entrar</button>
       </div>
       <p class="warn-msg" id="grupoWarn" hidden>Clave de grupo incorrecta.</p>
@@ -64,8 +64,8 @@
     <button class="nav-btn" data-section="nivel4">Nivel 4</button>
     <button class="nav-btn" data-section="nivel5">Nivel 5</button>
     <button class="nav-btn" data-section="examen">Examen Final</button>
-    <button class="nav-btn admin-nav" data-section="admin">Admin</button>
     <button class="nav-btn support-nav" data-section="soporte">Soporte</button>
+    <button class="nav-btn exit-nav" id="btnSalirApp" type="button">Salir</button>
   </nav>
 
   <!-- ══════════════════ SECCIÓN DIAGNÓSTICO ══════════════════ -->
@@ -182,7 +182,7 @@
       <div class="start-rules">
         <ul>
           <li id="nivelBloqueadoRegla">Completa el requisito anterior</li>
-          <li>El administrador puede dar acceso directo si lo necesita</li>
+          <li>Tu grupo debe tener habilitado este nivel</li>
           <li>Luego podrás iniciar el intento</li>
         </ul>
       </div>
@@ -287,7 +287,7 @@
       <div class="start-rules">
         <ul>
           <li>Completa los niveles anteriores en orden</li>
-          <li>El administrador puede dar acceso directo si lo necesita</li>
+          <li>Tu grupo debe tener habilitado este examen</li>
           <li>Luego podrás acceder aquí</li>
         </ul>
       </div>
@@ -376,28 +376,6 @@
         <button class="btn btn-outline"   id="btnAllExamen">Ver todas las respuestas</button>
       </div>
     </section>
-  </main>
-
-  <!-- ══════════════════ PANEL ADMINISTRADOR ══════════════════ -->
-  <main class="main-content hidden" id="sectionAdmin">
-    <div class="start-screen admin-panel">
-      <span class="cs-icon">🔐</span>
-      <h2 id="adminTitulo">Administrador</h2>
-      <p id="adminDescripcion">Ingresa la clave para activar accesos directos sin completar el requisito anterior.</p>
-      <div class="admin-login" id="adminLogin">
-        <input type="password" id="adminClave" class="admin-input" placeholder="Clave secreta" autocomplete="current-password" />
-        <button class="btn btn-primary" id="btnAdminEntrar">Entrar</button>
-        <p class="warn-msg" id="adminWarn" hidden>Clave incorrecta.</p>
-      </div>
-      <div class="admin-controls" id="adminControls" hidden>
-        <div class="admin-group-select">
-          <label for="adminGrupoSelect">Grupo</label>
-          <select id="adminGrupoSelect" class="admin-input"></select>
-        </div>
-        <div class="admin-list" id="adminList"></div>
-        <button class="btn btn-outline" id="btnAdminSalir">Cerrar sesión</button>
-      </div>
-    </div>
   </main>
 
   <!-- ══════════════════ SOPORTE ══════════════════ -->

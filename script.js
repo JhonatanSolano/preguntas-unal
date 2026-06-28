@@ -777,9 +777,7 @@ function mostrarSeccion(sec) {
   document.getElementById("sectionDiagnostico").classList.toggle("hidden", sec !== "diagnostico");
   document.getElementById("sectionNivel").classList.toggle("hidden", !sec.startsWith("nivel"));
   document.getElementById("sectionExamen").classList.toggle("hidden", sec !== "examen");
-  document.getElementById("sectionAdmin").classList.toggle("hidden", sec !== "admin");
   document.getElementById("sectionSoporte").classList.toggle("hidden", sec !== "soporte");
-  if (sec === "admin") actualizarVistaAdmin();
   if (sec === "diagnostico") actualizarEstadoDiagnostico();
 }
 
@@ -1000,20 +998,16 @@ const PREGUNTAS_NIVELES = {
 
 const ADMIN_CLAVE = "Barcelona2026";
 const GRUPOS = {
-  grupo1: { nombre: "Grupo 1", clave: "UNAL-G1-4826" },
-  grupo2: { nombre: "Grupo 2", clave: "UNAL-G2-7391" },
-  grupo3: { nombre: "Grupo 3", clave: "UNAL-G3-1548" },
-  grupo4: { nombre: "Grupo 4", clave: "UNAL-G4-9263" },
-  grupo5: { nombre: "Grupo 5", clave: "UNAL-G5-3174" }
+  grupo1: { nombre: "Grupo 1", clave: "UNAL-G1-4826", habilitados: { diagnostico: true, nivel1: false, nivel2: false, nivel3: false, nivel4: false, nivel5: false, examen: false } },
+  grupo2: { nombre: "Grupo 2", clave: "UNAL-G2-7391", habilitados: { diagnostico: true, nivel1: true, nivel2: false, nivel3: false, nivel4: false, nivel5: false, examen: false } },
+  grupo3: { nombre: "Grupo 3", clave: "UNAL-G3-1548", habilitados: { diagnostico: true, nivel1: true, nivel2: false, nivel3: false, nivel4: false, nivel5: false, examen: false } },
+  grupo4: { nombre: "Grupo 4", clave: "UNAL-G4-9263", habilitados: { diagnostico: true, nivel1: true, nivel2: true, nivel3: false, nivel4: false, nivel5: false, examen: false } },
+  grupo5: { nombre: "Grupo 5", clave: "UNAL-G5-3174", habilitados: { diagnostico: true, nivel1: true, nivel2: true, nivel3: true, nivel4: true, nivel5: true, examen: true } }
 };
 const STORAGE_GRUPO = "preguntasUnalGrupoActivo";
-const STORAGE_HABILITADOS = "preguntasUnalHabilitadosPorGrupo";
-const STORAGE_ADMIN = "preguntasUnalAdminActivo";
 const DEFAULT_HABILITADOS = { diagnostico: false, nivel1: false, nivel2: false, nivel3: false, nivel4: false, nivel5: false, examen: false };
-let habilitados = cargarHabilitados();
-let adminAutenticado = sessionStorage.getItem(STORAGE_ADMIN) === "1";
 let grupoActivo = sessionStorage.getItem(STORAGE_GRUPO) || "";
-let adminGrupoActual = Object.keys(GRUPOS)[0];
+let modoAdmin = sessionStorage.getItem(STORAGE_GRUPO) === "admin";
 let nivelActual = "nivel1";
 let nivelIniciado = false;
 let nivelCompletadoVisible = false;
@@ -1021,30 +1015,16 @@ let timerNivelInterval = null;
 let timerNivelActivo = false;
 let segsNivel = DURACION_SEG;
 
-function cargarHabilitados() {
-  const base = {};
-  Object.keys(GRUPOS).forEach(k => base[k] = { ...DEFAULT_HABILITADOS });
-  try {
-    const guardado = JSON.parse(localStorage.getItem(STORAGE_HABILITADOS) || "{}");
-    Object.keys(GRUPOS).forEach(k => base[k] = { ...DEFAULT_HABILITADOS, ...(guardado[k] || {}) });
-    return base;
-  } catch {
-    return base;
-  }
-}
-
-function guardarHabilitados() {
-  localStorage.setItem(STORAGE_HABILITADOS, JSON.stringify(habilitados));
-}
-
 function requisitoCumplido(clave) {
+  if (modoAdmin) return true;
   const req = NIVELES_META[clave].requisito;
   if (req === "diagnostico") return diagnosticoCompletado;
   return !!nivelesCompletados[req];
 }
 
 function examenHabilitado(clave) {
-  return !!grupoActivo && !!habilitados[grupoActivo]?.[clave];
+  if (modoAdmin) return true;
+  return !!grupoActivo && !!GRUPOS[grupoActivo]?.habilitados?.[clave];
 }
 
 function puedeAbrirNivel(clave) {
@@ -1052,6 +1032,7 @@ function puedeAbrirNivel(clave) {
 }
 
 function puedeAbrirExamenFinal() {
+  if (modoAdmin) return true;
   return examenHabilitado("examen") && nivelesCompletados.nivel5;
 }
 
@@ -1125,8 +1106,12 @@ function abrirNivel(clave) {
   document.getElementById("btnIniciarNivel").textContent = `▶ Iniciar ${meta.titulo.toLowerCase()}`;
   document.getElementById("submitBtnNivel").textContent = `Enviar ${meta.titulo.toLowerCase()}`;
   document.getElementById("nivelBloqueadoTitulo").textContent = `${meta.titulo} bloqueado`;
-  document.getElementById("nivelBloqueadoTexto").textContent = meta.requisitoTexto;
-  document.getElementById("nivelBloqueadoRegla").textContent = meta.requisitoTexto;
+  const habilitadoGrupo = examenHabilitado(clave);
+  const mensajeBloqueo = habilitadoGrupo
+    ? meta.requisitoTexto
+    : `Este ${meta.titulo.toLowerCase()} no está habilitado para tu grupo.`;
+  document.getElementById("nivelBloqueadoTexto").textContent = mensajeBloqueo;
+  document.getElementById("nivelBloqueadoRegla").textContent = mensajeBloqueo;
 
   if (puedeAbrirNivel(clave)) {
     document.getElementById("nivelBloqueado").hidden = true;
@@ -1358,105 +1343,25 @@ document.getElementById("btnAllNivel").addEventListener("click", () => {
   document.getElementById("feedbackListNivel").scrollIntoView({ behavior: "smooth" });
 });
 
-function renderAdminList() {
-  const items = [
-    ["diagnostico", "Diagnóstico", "Disponible para este grupo"],
-    ["nivel1", "Nivel 1", "Disponible para este grupo"],
-    ["nivel2", "Nivel 2", "Disponible para este grupo"],
-    ["nivel3", "Nivel 3", "Disponible para este grupo"],
-    ["nivel4", "Nivel 4", "Disponible para este grupo"],
-    ["nivel5", "Nivel 5", "Disponible para este grupo"],
-    ["examen", "Examen Final", "Disponible para este grupo"]
-  ];
-  renderAdminGrupoSelect();
-  const list = document.getElementById("adminList");
-  list.innerHTML = "";
-  items.forEach(([clave, titulo, detalle]) => {
-    const row = document.createElement("div");
-    row.className = "admin-row";
-    row.innerHTML = `
-      <div><strong>${titulo}</strong><span>${detalle}</span></div>
-      <label class="switch">
-        <input type="checkbox" data-admin-toggle="${clave}" ${habilitados[adminGrupoActual]?.[clave] ? "checked" : ""}>
-        <span class="slider"></span>
-      </label>
-    `;
-    list.appendChild(row);
-  });
-  list.querySelectorAll("[data-admin-toggle]").forEach(input => {
-    input.addEventListener("change", () => {
-      habilitados[adminGrupoActual][input.dataset.adminToggle] = input.checked;
-      guardarHabilitados();
-      if (nivelActual) abrirNivel(nivelActual);
-      actualizarEstadoDiagnostico();
-    });
-  });
-}
-
-function renderAdminGrupoSelect() {
-  const select = document.getElementById("adminGrupoSelect");
-  if (!select) return;
-  select.innerHTML = "";
-  Object.entries(GRUPOS).forEach(([clave, grupo]) => {
-    const opt = document.createElement("option");
-    opt.value = clave;
-    opt.textContent = `${grupo.nombre} · ${grupo.clave}`;
-    opt.selected = clave === adminGrupoActual;
-    select.appendChild(opt);
-  });
-  select.onchange = () => {
-    adminGrupoActual = select.value;
-    renderAdminList();
-  };
-}
-
-function actualizarVistaAdmin() {
-  document.getElementById("adminLogin").hidden = adminAutenticado;
-  document.getElementById("adminControls").hidden = !adminAutenticado;
-  document.getElementById("adminWarn").hidden = true;
-  document.getElementById("adminTitulo").textContent = adminAutenticado ? "Bienvenido Jhonatan" : "Administrador";
-  document.getElementById("adminDescripcion").textContent = adminAutenticado
-    ? "Puedes activar accesos directos para saltar requisitos cuando lo necesites."
-    : "Ingresa la clave para activar accesos directos sin completar el requisito anterior.";
-  if (adminAutenticado) renderAdminList();
-}
-
-function intentarEntradaAdmin() {
-  const clave = document.getElementById("adminClave").value;
-  if (clave !== ADMIN_CLAVE) {
-    document.getElementById("adminWarn").hidden = false;
-    return;
-  }
-  adminAutenticado = true;
-  sessionStorage.setItem(STORAGE_ADMIN, "1");
-  document.getElementById("adminWarn").hidden = true;
-  actualizarVistaAdmin();
-}
-
-document.getElementById("btnAdminEntrar").addEventListener("click", intentarEntradaAdmin);
-
-document.getElementById("adminClave").addEventListener("keydown", (e) => {
-  if (e.key === "Enter") {
-    e.preventDefault();
-    intentarEntradaAdmin();
-  }
-});
-
-document.getElementById("btnAdminSalir").addEventListener("click", () => {
-  adminAutenticado = false;
-  sessionStorage.removeItem(STORAGE_ADMIN);
-  document.getElementById("adminClave").value = "";
-  actualizarVistaAdmin();
-});
-
 function entrarGrupo() {
   const valor = document.getElementById("grupoClave").value.trim();
+  if (valor === ADMIN_CLAVE) {
+    grupoActivo = "admin";
+    modoAdmin = true;
+    sessionStorage.setItem(STORAGE_GRUPO, grupoActivo);
+    document.getElementById("grupoWarn").hidden = true;
+    document.body.classList.remove("group-locked");
+    activarNav("diagnostico");
+    actualizarEstadoDiagnostico();
+    return;
+  }
   const encontrado = Object.entries(GRUPOS).find(([, grupo]) => grupo.clave === valor);
   if (!encontrado) {
     document.getElementById("grupoWarn").hidden = false;
     return;
   }
   grupoActivo = encontrado[0];
+  modoAdmin = false;
   sessionStorage.setItem(STORAGE_GRUPO, grupoActivo);
   document.getElementById("grupoWarn").hidden = true;
   document.body.classList.remove("group-locked");
@@ -1472,7 +1377,16 @@ document.getElementById("grupoClave").addEventListener("keydown", (e) => {
   }
 });
 
-if (grupoActivo && GRUPOS[grupoActivo]) {
+function salirApp() {
+  limpiarIntentoActivo();
+  sessionStorage.removeItem(STORAGE_GRUPO);
+  window.location.reload();
+}
+
+document.getElementById("btnSalirApp").addEventListener("click", salirApp);
+
+if (grupoActivo === "admin" || (grupoActivo && GRUPOS[grupoActivo])) {
+  modoAdmin = grupoActivo === "admin";
   document.body.classList.remove("group-locked");
   actualizarEstadoDiagnostico();
 } else {
