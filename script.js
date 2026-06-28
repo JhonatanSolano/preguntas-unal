@@ -852,6 +852,19 @@ function activarNav(sec) {
 
 function aplicarModoUsuario() {
   document.body.classList.toggle("admin-mode", modoAdmin);
+  actualizarGrupoActualPanel();
+}
+
+function actualizarGrupoActualPanel() {
+  const panel = document.getElementById("grupoActualPanel");
+  if (!panel) return;
+  if (modoAdmin || !grupoActivo || !GRUPOS[grupoActivo]) {
+    panel.hidden = true;
+    panel.textContent = "";
+    return;
+  }
+  panel.hidden = false;
+  panel.textContent = `Estás en ${GRUPOS[grupoActivo].nombre}`;
 }
 
 // Botón "Ir al Diagnóstico" desde pantalla bloqueada
@@ -1106,7 +1119,12 @@ function guardarPermisosGrupo() {
   localStorage.setItem(STORAGE_PERMISOS, JSON.stringify(permisosGrupo));
 }
 
+function refrescarPermisosGrupo() {
+  permisosGrupo = cargarPermisosGrupo();
+}
+
 function permisoDirecto(clave) {
+  refrescarPermisosGrupo();
   if (modoAdmin) return true;
   return !!grupoActivo && !!permisosGrupo[grupoActivo]?.[clave];
 }

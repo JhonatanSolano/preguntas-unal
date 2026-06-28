@@ -213,6 +213,18 @@ body.admin-mode .admin-exit-dock {
 .exit-nav {
   color: var(--c-red);
 }
+.group-status {
+  max-width: 860px;
+  margin: .75rem auto 0;
+  padding: .65rem 1rem;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--c-navy);
+  font-weight: 800;
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+}
 .soon-badge {
   background: var(--c-gold);
   color: #fff;
