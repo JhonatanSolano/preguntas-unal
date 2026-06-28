@@ -1,3 +1,52 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+import {
+  getAuth,
+  GoogleAuthProvider,
+  RecaptchaVerifier,
+  PhoneAuthProvider,
+  PhoneMultiFactorGenerator,
+  browserLocalPersistence,
+  createUserWithEmailAndPassword,
+  getMultiFactorResolver,
+  multiFactor,
+  onAuthStateChanged,
+  setPersistence,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  signOut
+} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  getFirestore,
+  onSnapshot,
+  serverTimestamp,
+  setDoc
+} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCx2xCjNzfeH_KfQKMuKImuE13X6DnAk7I",
+  authDomain: "preguntas-tipo-examen.firebaseapp.com",
+  projectId: "preguntas-tipo-examen",
+  storageBucket: "preguntas-tipo-examen.firebasestorage.app",
+  messagingSenderId: "235600414785",
+  appId: "1:235600414785:web:780282c2c2379fb39d9ec0"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+setPersistence(auth, browserLocalPersistence);
+
+const ADMIN_EMAIL = "solanojhonatan2000@gmail.com";
+const SIMBOLOS_PERMITIDOS = "!@#$%^&*()_+-=[]{};:,.?";
+let usuarioActual = null;
+let perfilActual = null;
+let unsubscribePermisos = null;
+let mfaVerificationId = "";
+
 /* ════════════════════════════════════════════════════════
    UNAL – Diagnóstico Matemático · script.js
    Separación clara: DATOS → LÓGICA → PRESENTACIÓN
@@ -268,10 +317,46 @@ function calcBadge(pct) {
   return "📚 Necesita reforzar";
 }
 
+function consejoPorNota(nota) {
+  const n = Number(nota);
+  if (n >= 4.3) return "Vas muy fuerte: trabaja velocidad y evita errores de lectura.";
+  if (n >= 3.5) return "Buen nivel: repasa los temas donde perdiste puntos y controla el tiempo.";
+  if (n >= 2.5) return "Nivel medio: refuerza procedimientos base antes de subir dificultad.";
+  return "Necesitas reforzar fundamentos y repetir ejercicios guiados.";
+}
+
 /** Resume precisión y tiempo promedio usado por pregunta */
 function calcBalance(correctas, total, tiempoSeg) {
   const promedio = tiempoSeg / total;
   return `${promedio.toFixed(1)} segundos por pregunta`;
+}
+
+function preguntasPorClave(clave) {
+  if (clave === "diagnostico") return PREGUNTAS;
+  if (clave === "examen") return PREGUNTAS_EXAMEN;
+  return PREGUNTAS_NIVELES.nivel1;
+}
+
+function metricasIntento(clave, intento) {
+  const preguntas = preguntasPorClave(clave);
+  const total = preguntas.length;
+  const correctas = preguntas.reduce((acc, q, i) => acc + (intento.respuestas?.[i] === q.correcta ? 1 : 0), 0);
+  const incorrectas = total - correctas;
+  const tiempoRestante = Math.max(0, intento.restante || 0);
+  const tiempoEmpleado = DURACION_SEG - tiempoRestante;
+  const pct = Math.round((correctas / total) * 100);
+  const nota = calcNota(pct);
+  return {
+    total,
+    correctas,
+    incorrectas,
+    tiempoRestante,
+    tiempoEmpleado,
+    segundosPorPregunta: tiempoEmpleado / total,
+    pct,
+    nota,
+    consejo: consejoPorNota(nota)
+  };
 }
 
 /** Letras de las opciones */
@@ -283,6 +368,53 @@ const INACTIVIDAD_MS = 10 * 60 * 1000;
 let intentoActivo = cargarIntentoActivo();
 let resultadosSesion = cargarResultadosSesion();
 
+function refEstadoUsuario(uid = usuarioActual?.uid) {
+  return uid ? doc(db, "studentState", uid) : null;
+}
+
+function refPerfilUsuario(uid = usuarioActual?.uid) {
+  return uid ? doc(db, "users", uid) : null;
+}
+
+function refPermisosGrupo(grupo) {
+  return doc(db, "groupPermissions", grupo);
+}
+
+function normalizarResultados(raw = {}) {
+  const normalizados = {};
+  Object.entries(raw).forEach(([clave, valor]) => {
+    normalizados[clave] = valor?.intentos ? valor : { intentos: [valor].filter(Boolean) };
+  });
+  return normalizados;
+}
+
+async function guardarEstadoRemoto() {
+  if (!usuarioActual) return;
+  const ref = refEstadoUsuario();
+  if (!ref) return;
+  await setDoc(ref, {
+    uid: usuarioActual.uid,
+    email: usuarioActual.email,
+    grupo: grupoActivo || "",
+    intentoActivo,
+    resultados: resultadosSesion,
+    updatedAt: serverTimestamp()
+  }, { merge: true });
+}
+
+async function cargarEstadoRemoto() {
+  if (!usuarioActual) return;
+  const ref = refEstadoUsuario();
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
+  const data = snap.data();
+  if (data.grupo && GRUPOS[data.grupo]) grupoActivo = data.grupo;
+  intentoActivo = data.intentoActivo || null;
+  resultadosSesion = normalizarResultados(data.resultados || {});
+  guardarIntentoActivo(false);
+  guardarResultadosSesion(false);
+}
+
 function cargarIntentoActivo() {
   try {
     return JSON.parse(localStorage.getItem(ACTIVE_ATTEMPT_KEY) || "null");
@@ -291,12 +423,13 @@ function cargarIntentoActivo() {
   }
 }
 
-function guardarIntentoActivo() {
+function guardarIntentoActivo(syncRemoto = true) {
   if (!intentoActivo) {
     localStorage.removeItem(ACTIVE_ATTEMPT_KEY);
-    return;
+  } else {
+    localStorage.setItem(ACTIVE_ATTEMPT_KEY, JSON.stringify(intentoActivo));
   }
-  localStorage.setItem(ACTIVE_ATTEMPT_KEY, JSON.stringify(intentoActivo));
+  if (syncRemoto) guardarEstadoRemoto();
 }
 
 function limpiarIntentoActivo() {
@@ -312,27 +445,45 @@ function cargarResultadosSesion() {
   }
 }
 
-function guardarResultadosSesion() {
+function guardarResultadosSesion(syncRemoto = true) {
   localStorage.setItem(RESULTADOS_KEY, JSON.stringify(resultadosSesion));
+  if (syncRemoto) guardarEstadoRemoto();
 }
 
 function guardarResultadoSesion(clave, respuestas, restante) {
-  resultadosSesion[clave] = {
+  const intento = {
     respuestas,
     restante: Math.max(0, restante),
     guardado: Date.now()
   };
+  const previos = resultadosSesion[clave]?.intentos || [];
+  resultadosSesion[clave] = { intentos: [...previos, intento].slice(0, 2) };
   guardarResultadosSesion();
 }
 
 function borrarResultadoSesion(clave) {
-  delete resultadosSesion[clave];
+  const previos = resultadosSesion[clave]?.intentos || [];
+  resultadosSesion[clave] = { intentos: previos };
   guardarResultadosSesion();
 }
 
 function limpiarResultadosSesion() {
   resultadosSesion = {};
   localStorage.removeItem(RESULTADOS_KEY);
+  guardarEstadoRemoto();
+}
+
+function resultadoActual(clave) {
+  const intentos = resultadosSesion[clave]?.intentos || [];
+  return intentos[intentos.length - 1] || null;
+}
+
+function intentosUsados(clave) {
+  return (resultadosSesion[clave]?.intentos || []).length;
+}
+
+function puedeIniciarIntento(clave) {
+  return intentosUsados(clave) < 2;
 }
 
 function iniciarIntentoActivo(tipo, clave, total) {
@@ -529,14 +680,14 @@ const resultsSection = document.getElementById("resultsSection");
 let diagnosticoCompletado = false;
 let examenIniciado = false;
 let examenCompletado = false;
-const nivelesCompletados = { nivel1: false, nivel2: false, nivel3: false, nivel4: false, nivel5: false };
+const nivelesCompletados = { nivel1: false };
 
 function sincronizarCompletadosGuardados() {
-  diagnosticoCompletado = !!resultadosSesion.diagnostico;
+  diagnosticoCompletado = intentosUsados("diagnostico") > 0;
   Object.keys(nivelesCompletados).forEach(clave => {
-    nivelesCompletados[clave] = !!resultadosSesion[clave];
+    nivelesCompletados[clave] = intentosUsados(clave) > 0;
   });
-  examenCompletado = !!resultadosSesion.examen;
+  examenCompletado = intentosUsados("examen") > 0;
 }
 
 sincronizarCompletadosGuardados();
@@ -710,6 +861,10 @@ function textoPlano(str) {
 
 /* Reiniciar diagnóstico */
 document.getElementById("btnRestart").addEventListener("click", () => {
+  if (!puedeIniciarIntento("diagnostico")) {
+    alert("Ya usaste los 2 intentos permitidos para el diagnóstico.");
+    return;
+  }
   limpiarIntentoActivo();
   borrarResultadoSesion("diagnostico");
   detenerTimer();
@@ -776,7 +931,7 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
 
     // Al entrar al examen final, mostrar estado correcto
     if (sec === "examen") {
-      const resultadoExamen = resultadosSesion.examen;
+      const resultadoExamen = resultadoActual("examen");
       if (resultadoExamen && !examenIniciado) examenCompletado = true;
       if (puedeAbrirExamenFinal()) {
         document.getElementById("examenBloqueado").hidden   = true;
@@ -823,10 +978,11 @@ function actualizarEstadoDiagnostico() {
   titulo.textContent = "Diagnóstico Matemático";
   texto.textContent = "Evalúa tu nivel actual antes de comenzar la preparación. Responde con honestidad, no hay penalización por error.";
   btn.hidden = false;
-  if (resultadosSesion.diagnostico && !intentoCoincide("diag", "diagnostico")) {
+  const resultadoDiag = resultadoActual("diagnostico");
+  if (resultadoDiag && !intentoCoincide("diag", "diagnostico")) {
     renderizarPreguntas();
-    segundosRestantes = resultadosSesion.diagnostico.restante;
-    evaluarYMostrar(resultadosSesion.diagnostico.respuestas, { restaurando: true });
+    segundosRestantes = resultadoDiag.restante;
+    evaluarYMostrar(resultadoDiag.respuestas, { restaurando: true });
     document.getElementById("startScreen").hidden = true;
     document.getElementById("diagFormWrap").hidden = true;
     resultsSection.hidden = false;
@@ -839,10 +995,12 @@ function mostrarSeccion(sec) {
   document.getElementById("sectionDiagnostico").classList.toggle("hidden", sec !== "diagnostico");
   document.getElementById("sectionNivel").classList.toggle("hidden", !sec.startsWith("nivel"));
   document.getElementById("sectionExamen").classList.toggle("hidden", sec !== "examen");
+  document.getElementById("sectionEstadisticas").classList.toggle("hidden", sec !== "estadisticas");
   document.getElementById("sectionAdmin").classList.toggle("hidden", sec !== "admin");
   document.getElementById("sectionSoporte").classList.toggle("hidden", sec !== "soporte");
   if (sec === "diagnostico") actualizarEstadoDiagnostico();
   if (sec === "admin") renderAdminPanel();
+  if (sec === "estadisticas") renderStudentStats();
 }
 
 function activarNav(sec) {
@@ -867,10 +1025,38 @@ function actualizarGrupoActualPanel() {
   panel.textContent = `Estás en ${GRUPOS[grupoActivo].nombre}`;
 }
 
+function renderStudentStats() {
+  const cont = document.getElementById("studentStats");
+  if (!cont) return;
+  const nombres = { diagnostico: "Diagnóstico", nivel1: "Nivel Medio", examen: "Examen Final" };
+  cont.innerHTML = "";
+  Object.entries(nombres).forEach(([clave, nombre]) => {
+    const intentos = resultadosSesion[clave]?.intentos || [];
+    const card = document.createElement("div");
+    card.className = "stats-card";
+    if (!intentos.length) {
+      card.innerHTML = `<h3>${nombre}</h3><p>Sin intentos registrados.</p>`;
+      cont.appendChild(card);
+      return;
+    }
+    const detalle = intentos.map((intento, idx) => {
+      const m = metricasIntento(clave, intento);
+      return `
+        <p><strong>Intento ${idx + 1}:</strong> Nota ${m.nota} · ${m.correctas} buenas · ${m.incorrectas} malas</p>
+        <p>Tiempo usado: ${formatTiempo(m.tiempoEmpleado)} · Sobró: ${formatTiempo(m.tiempoRestante)} · ${m.segundosPorPregunta.toFixed(1)} seg/pregunta</p>
+      `;
+    }).join("");
+    const notas = intentos.map(i => Number(metricasIntento(clave, i).nota));
+    const promedio = (notas.reduce((a, b) => a + b, 0) / notas.length).toFixed(1);
+    card.innerHTML = `<h3>${nombre}</h3>${detalle}<p><strong>Promedio:</strong> ${promedio}</p><p>${consejoPorNota(promedio)}</p>`;
+    cont.appendChild(card);
+  });
+}
+
 // Botón "Ir al Diagnóstico" desde pantalla bloqueada
 document.getElementById("btnIrDiagnostico").addEventListener("click", () => {
-  activarNav("nivel5");
-  abrirNivel("nivel5");
+  activarNav("nivel1");
+  abrirNivel("nivel1");
   window.scrollTo({ top: 0, behavior: "smooth" });
 });
 
@@ -884,6 +1070,10 @@ actualizarProgreso();
    10. BOTÓN INICIAR DIAGNÓSTICO
 ──────────────────────────────────────────────────── */
 document.getElementById("btnIniciarDiag").addEventListener("click", () => {
+  if (!puedeIniciarIntento("diagnostico")) {
+    alert("Ya usaste los 2 intentos permitidos para el diagnóstico.");
+    return;
+  }
   iniciarIntentoActivo("diag", "diagnostico", PREGUNTAS.length);
   // Generar preguntas en el momento de iniciar
   renderizarPreguntas();
@@ -1007,11 +1197,7 @@ const PREGUNTAS_EXAMEN = [
    12. NIVELES – DATOS (5 niveles, 10 preguntas cada uno)
 ════════════════════════════════════════════════════════ */
 const NIVELES_META = {
-  nivel1: { titulo: "Nivel 1", descripcion: "Fundamentos de operaciones, álgebra básica y ecuaciones lineales.", requisito: "diagnostico", requisitoTexto: "Completa primero el diagnóstico." },
-  nivel2: { titulo: "Nivel 2", descripcion: "Álgebra intermedia, factorización, funciones y proporciones.", requisito: "nivel1", requisitoTexto: "Completa primero el Nivel 1." },
-  nivel3: { titulo: "Nivel 3", descripcion: "Desigualdades, logaritmos, funciones y trigonometría básica.", requisito: "nivel2", requisitoTexto: "Completa primero el Nivel 2." },
-  nivel4: { titulo: "Nivel 4", descripcion: "Precálculo, sucesiones, composición de funciones y conteo.", requisito: "nivel3", requisitoTexto: "Completa primero el Nivel 3." },
-  nivel5: { titulo: "Nivel 5", descripcion: "Reto avanzado antes del examen final.", requisito: "nivel4", requisitoTexto: "Completa primero el Nivel 4." }
+  nivel1: { titulo: "Nivel Medio", descripcion: "Práctica intermedia con preguntas distintas para cada grupo.", requisito: "diagnostico", requisitoTexto: "Completa primero el diagnóstico." }
 };
 
 const PREGUNTAS_NIVELES = {
@@ -1077,7 +1263,18 @@ const PREGUNTAS_NIVELES = {
   ]
 };
 
-const ADMIN_CLAVE = "Barcelona2026";
+const PREGUNTAS_MEDIO_GRUPOS = {
+  grupo1: PREGUNTAS_NIVELES.nivel1,
+  grupo2: PREGUNTAS_NIVELES.nivel2,
+  grupo3: PREGUNTAS_NIVELES.nivel3,
+  grupo4: PREGUNTAS_NIVELES.nivel4,
+  grupo5: PREGUNTAS_NIVELES.nivel5
+};
+
+function aplicarBancoNivelMedio() {
+  PREGUNTAS_NIVELES.nivel1 = PREGUNTAS_MEDIO_GRUPOS[grupoActivo] || PREGUNTAS_MEDIO_GRUPOS.grupo1;
+}
+
 const GRUPOS = {
   grupo1: { nombre: "Grupo 1", clave: "UNAL-G1-4826" },
   grupo2: { nombre: "Grupo 2", clave: "UNAL-G2-7391" },
@@ -1087,7 +1284,7 @@ const GRUPOS = {
 };
 const STORAGE_GRUPO = "preguntasUnalGrupoActivo";
 const STORAGE_PERMISOS = "preguntasUnalPermisosPorGrupo";
-const DEFAULT_HABILITADOS = { diagnostico: false, nivel1: false, nivel2: false, nivel3: false, nivel4: false, nivel5: false, examen: false };
+const DEFAULT_HABILITADOS = { diagnostico: true, nivel1: false, examen: false };
 let permisosGrupo = cargarPermisosGrupo();
 let grupoActivo = localStorage.getItem(STORAGE_GRUPO) || "";
 let modoAdmin = grupoActivo === "admin";
@@ -1119,6 +1316,38 @@ function guardarPermisosGrupo() {
   localStorage.setItem(STORAGE_PERMISOS, JSON.stringify(permisosGrupo));
 }
 
+async function guardarPermisoGrupoRemoto(grupo, examen, valor) {
+  permisosGrupo[grupo] = { ...DEFAULT_HABILITADOS, ...(permisosGrupo[grupo] || {}), [examen]: valor };
+  guardarPermisosGrupo();
+  await setDoc(refPermisosGrupo(grupo), {
+    permisos: permisosGrupo[grupo],
+    updatedAt: serverTimestamp()
+  }, { merge: true });
+}
+
+async function cargarPermisosRemotos() {
+  const permisos = {};
+  await Promise.all(Object.keys(GRUPOS).map(async grupo => {
+    const snap = await getDoc(refPermisosGrupo(grupo));
+    permisos[grupo] = { ...DEFAULT_HABILITADOS, ...(snap.exists() ? snap.data().permisos || {} : {}) };
+    if (!snap.exists()) {
+      await setDoc(refPermisosGrupo(grupo), { permisos: permisos[grupo], updatedAt: serverTimestamp() }, { merge: true });
+    }
+  }));
+  permisosGrupo = permisos;
+  guardarPermisosGrupo();
+}
+
+function escucharPermisosGrupo(grupo) {
+  if (unsubscribePermisos) unsubscribePermisos();
+  unsubscribePermisos = onSnapshot(refPermisosGrupo(grupo), snap => {
+    permisosGrupo[grupo] = { ...DEFAULT_HABILITADOS, ...(snap.exists() ? snap.data().permisos || {} : {}) };
+    guardarPermisosGrupo();
+    actualizarEstadoDiagnostico();
+    if (nivelActual) abrirNivel(nivelActual);
+  });
+}
+
 function refrescarPermisosGrupo() {
   permisosGrupo = cargarPermisosGrupo();
 }
@@ -1141,7 +1370,7 @@ function examenHabilitado(clave) {
   if (modoAdmin) return true;
   if (!grupoActivo || !GRUPOS[grupoActivo]) return false;
   if (clave === "diagnostico") return permisoDirecto("diagnostico");
-  if (clave === "examen") return permisoDirecto("examen") || nivelesCompletados.nivel5;
+  if (clave === "examen") return permisoDirecto("examen") || nivelesCompletados.nivel1;
   return permisoDirecto(clave) || requisitoCumplido(clave);
 }
 
@@ -1206,7 +1435,7 @@ function resetTimerNivel() {
 function abrirNivel(clave) {
   const cambioDeNivel = nivelActual !== clave;
   nivelActual = clave;
-  const resultadoNivel = resultadosSesion[clave];
+  const resultadoNivel = resultadoActual(clave);
   if (cambioDeNivel) {
     nivelIniciado = false;
     nivelCompletadoVisible = !!resultadoNivel;
@@ -1397,6 +1626,10 @@ document.getElementById("btnNivelAnterior").addEventListener("click", () => {
 });
 
 document.getElementById("btnIniciarNivel").addEventListener("click", () => {
+  if (!puedeIniciarIntento(nivelActual)) {
+    alert("Ya usaste los 2 intentos permitidos para este nivel.");
+    return;
+  }
   iniciarIntentoActivo("nivel", nivelActual, PREGUNTAS_NIVELES[nivelActual].length);
   nivelIniciado = true;
   nivelCompletadoVisible = false;
@@ -1442,6 +1675,10 @@ document.getElementById("nivelForm").addEventListener("submit", (e) => {
 });
 
 document.getElementById("btnRestartNivel").addEventListener("click", () => {
+  if (!puedeIniciarIntento(nivelActual)) {
+    alert("Ya usaste los 2 intentos permitidos para este nivel.");
+    return;
+  }
   limpiarIntentoActivo();
   borrarResultadoSesion(nivelActual);
   nivelesCompletados[nivelActual] = false;
@@ -1462,31 +1699,177 @@ document.getElementById("btnAllNivel").addEventListener("click", () => {
   document.getElementById("feedbackListNivel").scrollIntoView({ behavior: "smooth" });
 });
 
-function entrarGrupo() {
-  const valor = document.getElementById("grupoClave").value.trim();
-  if (valor === ADMIN_CLAVE) {
+function validarPassword(password) {
+  const mayus = /[A-Z]/.test(password);
+  const numeros = (password.match(/\d/g) || []).length >= 2;
+  const simbolo = [...password].some(ch => SIMBOLOS_PERMITIDOS.includes(ch));
+  return password.length >= 8 && mayus && numeros && simbolo;
+}
+
+function mostrarWarn(msg) {
+  const warn = document.getElementById("grupoWarn");
+  warn.textContent = msg;
+  warn.hidden = false;
+}
+
+function limpiarWarn() {
+  document.getElementById("grupoWarn").hidden = true;
+}
+
+async function guardarPerfilUsuario(extra = {}) {
+  if (!usuarioActual) return;
+  perfilActual = {
+    uid: usuarioActual.uid,
+    email: usuarioActual.email,
+    displayName: usuarioActual.displayName || "",
+    isAdmin: usuarioActual.email === ADMIN_EMAIL,
+    grupo: grupoActivo || "",
+    ...extra
+  };
+  await setDoc(refPerfilUsuario(), { ...perfilActual, updatedAt: serverTimestamp() }, { merge: true });
+}
+
+async function cargarPerfilUsuario() {
+  if (!usuarioActual) return null;
+  const snap = await getDoc(refPerfilUsuario());
+  perfilActual = snap.exists() ? snap.data() : null;
+  return perfilActual;
+}
+
+async function prepararSesionAutenticada() {
+  await cargarPermisosRemotos();
+  await cargarPerfilUsuario();
+  await cargarEstadoRemoto();
+  modoAdmin = usuarioActual?.email === ADMIN_EMAIL;
+  if (modoAdmin) {
     grupoActivo = "admin";
-    modoAdmin = true;
     localStorage.setItem(STORAGE_GRUPO, grupoActivo);
-    document.getElementById("grupoWarn").hidden = true;
+    await guardarPerfilUsuario({ isAdmin: true, grupo: "admin" });
     document.body.classList.remove("group-locked");
     aplicarModoUsuario();
     activarNav("admin");
     return;
   }
+
+  if (perfilActual?.grupo && GRUPOS[perfilActual.grupo]) {
+    grupoActivo = perfilActual.grupo;
+    localStorage.setItem(STORAGE_GRUPO, grupoActivo);
+    aplicarBancoNivelMedio();
+    escucharPermisosGrupo(grupoActivo);
+    sincronizarCompletadosGuardados();
+    document.body.classList.remove("group-locked");
+    aplicarModoUsuario();
+    activarNav("diagnostico");
+    actualizarEstadoDiagnostico();
+    restaurarIntentoActivo();
+    return;
+  }
+
+  document.getElementById("groupEntry").classList.remove("hidden");
+  document.getElementById("mfaPanel").classList.remove("hidden");
+}
+
+async function entrarGrupo() {
+  if (!usuarioActual) {
+    mostrarWarn("Primero inicia sesión o regístrate.");
+    return;
+  }
+  const valor = document.getElementById("grupoClave").value.trim();
   const encontrado = Object.entries(GRUPOS).find(([, grupo]) => grupo.clave === valor);
   if (!encontrado) {
-    document.getElementById("grupoWarn").hidden = false;
+    mostrarWarn("Clave de grupo incorrecta.");
     return;
   }
   grupoActivo = encontrado[0];
   modoAdmin = false;
   localStorage.setItem(STORAGE_GRUPO, grupoActivo);
-  document.getElementById("grupoWarn").hidden = true;
+  await guardarPerfilUsuario({ grupo: grupoActivo, isAdmin: false });
+  await guardarEstadoRemoto();
+  aplicarBancoNivelMedio();
+  escucharPermisosGrupo(grupoActivo);
+  limpiarWarn();
   document.body.classList.remove("group-locked");
   aplicarModoUsuario();
   activarNav("diagnostico");
   actualizarEstadoDiagnostico();
+}
+
+async function loginEmail() {
+  const email = document.getElementById("authEmail").value.trim().toLowerCase();
+  const password = document.getElementById("authPassword").value;
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+  } catch (err) {
+    if (err.code === "auth/multi-factor-auth-required") {
+      iniciarResolucionMfa(err);
+      return;
+    }
+    mostrarWarn("No se pudo ingresar. Revisa correo y contraseña.");
+  }
+}
+
+async function registrarEmail() {
+  const email = document.getElementById("authEmail").value.trim().toLowerCase();
+  const password = document.getElementById("authPassword").value;
+  if (!email.endsWith("@gmail.com")) {
+    mostrarWarn("Solo se permiten correos @gmail.com.");
+    return;
+  }
+  if (!validarPassword(password)) {
+    mostrarWarn("La contraseña debe tener mínimo 8 caracteres, una mayúscula, dos números y un símbolo permitido.");
+    return;
+  }
+  try {
+    await createUserWithEmailAndPassword(auth, email, password);
+  } catch {
+    mostrarWarn("No se pudo registrar ese correo.");
+  }
+}
+
+async function loginGoogle() {
+  try {
+    await signInWithPopup(auth, new GoogleAuthProvider());
+  } catch (err) {
+    if (err.code === "auth/multi-factor-auth-required") iniciarResolucionMfa(err);
+    else mostrarWarn("No se pudo ingresar con Google.");
+  }
+}
+
+function asegurarRecaptcha() {
+  if (window.recaptchaVerifier) return window.recaptchaVerifier;
+  window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", { size: "invisible" });
+  return window.recaptchaVerifier;
+}
+
+async function iniciarMfa() {
+  if (!usuarioActual) {
+    mostrarWarn("Primero inicia sesión.");
+    return;
+  }
+  const phoneNumber = document.getElementById("mfaPhone").value.trim();
+  if (!phoneNumber.startsWith("+")) {
+    mostrarWarn("Escribe el número con indicativo, por ejemplo +573112454282.");
+    return;
+  }
+  const session = await multiFactor(usuarioActual).getSession();
+  const provider = new PhoneAuthProvider(auth);
+  mfaVerificationId = await provider.verifyPhoneNumber({ phoneNumber, session }, asegurarRecaptcha());
+  document.getElementById("mfaCodeWrap").classList.remove("hidden");
+  mostrarWarn("Código enviado por SMS.");
+}
+
+async function confirmarMfa() {
+  const code = document.getElementById("mfaCode").value.trim();
+  const cred = PhoneAuthProvider.credential(mfaVerificationId, code);
+  const assertion = PhoneMultiFactorGenerator.assertion(cred);
+  await multiFactor(usuarioActual).enroll(assertion, "Teléfono principal");
+  limpiarWarn();
+  document.getElementById("mfaPanel").classList.add("hidden");
+}
+
+function iniciarResolucionMfa(error) {
+  window.mfaResolver = getMultiFactorResolver(auth, error);
+  mostrarWarn("Esta cuenta pide segundo factor por SMS. Usa el flujo de verificación telefónica.");
 }
 
 document.getElementById("btnGrupoEntrar").addEventListener("click", entrarGrupo);
@@ -1497,26 +1880,33 @@ document.getElementById("grupoClave").addEventListener("keydown", (e) => {
   }
 });
 
-function salirApp() {
-  limpiarIntentoActivo();
-  limpiarResultadosSesion();
+async function salirApp() {
   localStorage.removeItem(STORAGE_GRUPO);
+  if (unsubscribePermisos) unsubscribePermisos();
+  await signOut(auth);
   window.location.reload();
 }
 
 document.getElementById("btnSalirApp").addEventListener("click", salirApp);
 document.getElementById("btnSalirAdmin")?.addEventListener("click", salirApp);
+document.getElementById("btnEmailLogin")?.addEventListener("click", loginEmail);
+document.getElementById("btnEmailRegister")?.addEventListener("click", registrarEmail);
+document.getElementById("btnGoogleLogin")?.addEventListener("click", loginGoogle);
+document.getElementById("btnMfaStart")?.addEventListener("click", iniciarMfa);
+document.getElementById("btnMfaConfirm")?.addEventListener("click", confirmarMfa);
 
-if (grupoActivo === "admin" || (grupoActivo && GRUPOS[grupoActivo])) {
-  modoAdmin = grupoActivo === "admin";
-  document.body.classList.remove("group-locked");
-  aplicarModoUsuario();
-  activarNav(modoAdmin ? "admin" : "diagnostico");
-} else {
-  grupoActivo = "";
-  localStorage.removeItem(STORAGE_GRUPO);
-  aplicarModoUsuario();
-}
+onAuthStateChanged(auth, async user => {
+  usuarioActual = user;
+  if (!user) {
+    document.body.classList.add("group-locked");
+    document.getElementById("groupEntry").classList.add("hidden");
+    document.getElementById("mfaPanel").classList.add("hidden");
+    return;
+  }
+  limpiarWarn();
+  document.getElementById("mfaPanel").classList.remove("hidden");
+  await prepararSesionAutenticada();
+});
 
 function renderAdminPanel() {
   if (!modoAdmin) return;
@@ -1537,11 +1927,7 @@ function renderAdminPanel() {
   const grupo = GRUPOS[adminGrupoActual];
   const nombres = [
     ["diagnostico", "Diagnóstico"],
-    ["nivel1", "Nivel 1"],
-    ["nivel2", "Nivel 2"],
-    ["nivel3", "Nivel 3"],
-    ["nivel4", "Nivel 4"],
-    ["nivel5", "Nivel 5"],
+    ["nivel1", "Nivel Medio"],
     ["examen", "Examen Final"]
   ];
 
@@ -1566,6 +1952,49 @@ function renderAdminPanel() {
     `;
     list.appendChild(row);
   });
+  renderAdminStats();
+}
+
+async function renderAdminStats() {
+  const cont = document.getElementById("adminStats");
+  if (!cont || !modoAdmin) return;
+  cont.innerHTML = `<div class="stats-card"><h3>Métricas</h3><p>Cargando datos...</p></div>`;
+  const snaps = await getDocs(collection(db, "studentState"));
+  const acumulado = {};
+  Object.keys(GRUPOS).forEach(g => acumulado[g] = { estudiantes: new Set(), intentos: 0, correctas: 0, incorrectas: 0, nota: 0, tiempo: 0 });
+  snaps.forEach(snap => {
+    const data = snap.data();
+    const grupo = data.grupo;
+    if (!GRUPOS[grupo]) return;
+    const bucket = acumulado[grupo];
+    bucket.estudiantes.add(data.uid || snap.id);
+    Object.entries(data.resultados || {}).forEach(([clave, value]) => {
+      (value.intentos || []).forEach(intento => {
+        const m = metricasIntento(clave, intento);
+        bucket.intentos++;
+        bucket.correctas += m.correctas;
+        bucket.incorrectas += m.incorrectas;
+        bucket.nota += Number(m.nota);
+        bucket.tiempo += m.tiempoEmpleado;
+      });
+    });
+  });
+  cont.innerHTML = "";
+  Object.entries(acumulado).forEach(([grupo, data]) => {
+    const card = document.createElement("div");
+    card.className = "stats-card";
+    const n = data.intentos || 1;
+    card.innerHTML = `
+      <h3>${GRUPOS[grupo].nombre}</h3>
+      <p><strong>Estudiantes:</strong> ${data.estudiantes.size}</p>
+      <p><strong>Intentos:</strong> ${data.intentos}</p>
+      <p><strong>Promedio nota:</strong> ${(data.nota / n).toFixed(1)}</p>
+      <p><strong>Promedio correctas:</strong> ${(data.correctas / n).toFixed(1)}</p>
+      <p><strong>Promedio incorrectas:</strong> ${(data.incorrectas / n).toFixed(1)}</p>
+      <p><strong>Promedio tiempo:</strong> ${formatTiempo(Math.round(data.tiempo / n))}</p>
+    `;
+    cont.appendChild(card);
+  });
 }
 
 document.getElementById("adminGrupoSelect")?.addEventListener("change", (e) => {
@@ -1576,8 +2005,7 @@ document.getElementById("adminGrupoSelect")?.addEventListener("change", (e) => {
 document.getElementById("adminList")?.addEventListener("change", (e) => {
   const input = e.target.closest("input[data-admin-exam]");
   if (!input) return;
-  permisosGrupo[adminGrupoActual][input.dataset.adminExam] = input.checked;
-  guardarPermisosGrupo();
+  guardarPermisoGrupoRemoto(adminGrupoActual, input.dataset.adminExam, input.checked);
 });
 
 /* ────────────────────────────────────────────────────
@@ -1683,6 +2111,10 @@ function reRenderKatex(el) {
 
 /** Botón iniciar examen final */
 document.getElementById("btnIniciarExamen").addEventListener("click", () => {
+  if (!puedeIniciarIntento("examen")) {
+    alert("Ya usaste los 2 intentos permitidos para el examen final.");
+    return;
+  }
   iniciarIntentoActivo("examen", "examen", PREGUNTAS_EXAMEN.length);
   examenIniciado = true;
   examenCompletado = false;
@@ -1827,6 +2259,10 @@ function evaluarYMostrarExamen(respuestas, opciones = {}) {
 
 /* Botones examen final */
 document.getElementById("btnRestartExamen").addEventListener("click", () => {
+  if (!puedeIniciarIntento("examen")) {
+    alert("Ya usaste los 2 intentos permitidos para el examen final.");
+    return;
+  }
   limpiarIntentoActivo();
   borrarResultadoSesion("examen");
   reiniciarEstadoExamenFinal(true);
@@ -1899,5 +2335,3 @@ function restaurarIntentoActivo() {
     else iniciarTimerExamen(true);
   }
 }
-
-restaurarIntentoActivo();

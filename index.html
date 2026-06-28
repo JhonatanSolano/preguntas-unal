@@ -9,15 +9,49 @@
 <body class="group-locked">
 
   <main class="main-content" id="groupGate">
-    <div class="start-screen group-gate">
-      <span class="cs-icon">🔑</span>
-      <h2>Clave de acceso</h2>
-      <p>Ingresa la clave de tu grupo para acceder a los exámenes. Si eres administrador, usa tu clave de acceso.</p>
-      <div class="admin-login">
-        <input type="password" id="grupoClave" class="admin-input" placeholder="Clave de acceso" autocomplete="one-time-code" />
-        <button class="btn btn-primary" id="btnGrupoEntrar">Entrar</button>
+    <div class="start-screen group-gate auth-gate">
+      <span class="cs-icon">🔐</span>
+      <h2>Ingreso Preguntas UNAL</h2>
+      <p>Accede con Google o con correo Gmail y contraseña. Los estudiantes ingresan luego la clave de su grupo.</p>
+
+      <div class="auth-actions">
+        <button class="btn btn-primary" id="btnGoogleLogin" type="button">Entrar con Google</button>
       </div>
-      <p class="warn-msg" id="grupoWarn" hidden>Clave de grupo incorrecta.</p>
+
+      <div class="auth-divider"><span>o</span></div>
+
+      <div class="auth-form">
+        <input type="email" id="authEmail" class="admin-input" placeholder="Correo @gmail.com" autocomplete="email" />
+        <input type="password" id="authPassword" class="admin-input" placeholder="Contraseña" autocomplete="current-password" />
+        <div class="auth-actions auth-actions-duo">
+          <button class="btn btn-primary" id="btnEmailLogin" type="button">Ingresar</button>
+          <button class="btn btn-outline" id="btnEmailRegister" type="button">Registrarme</button>
+        </div>
+      </div>
+
+      <div class="group-entry hidden" id="groupEntry">
+        <p>Cuenta validada. Ingresa la clave de tu grupo para continuar.</p>
+        <div class="admin-login">
+          <input type="password" id="grupoClave" class="admin-input" placeholder="Clave de grupo" autocomplete="one-time-code" />
+          <button class="btn btn-primary" id="btnGrupoEntrar">Entrar</button>
+        </div>
+      </div>
+
+      <div class="mfa-panel hidden" id="mfaPanel">
+        <h3>Verificación por teléfono</h3>
+        <p>Agrega tu número para activar autenticación de dos pasos por SMS.</p>
+        <div class="admin-login">
+          <input type="tel" id="mfaPhone" class="admin-input" placeholder="+57 3000000000" autocomplete="tel" />
+          <button class="btn btn-outline" id="btnMfaStart" type="button">Enviar SMS</button>
+        </div>
+        <div class="admin-login hidden" id="mfaCodeWrap">
+          <input type="text" id="mfaCode" class="admin-input" placeholder="Código SMS" inputmode="numeric" />
+          <button class="btn btn-primary" id="btnMfaConfirm" type="button">Verificar</button>
+        </div>
+        <div id="recaptcha-container"></div>
+      </div>
+
+      <p class="warn-msg" id="grupoWarn" hidden>Revisa los datos ingresados.</p>
     </div>
   </main>
 
@@ -58,12 +92,9 @@
   <!-- ══════════════════ NAVEGACIÓN DE SECCIONES ══════════════════ -->
   <nav class="section-nav">
     <button class="nav-btn active" data-section="diagnostico">Diagnóstico</button>
-    <button class="nav-btn" data-section="nivel1">Nivel 1</button>
-    <button class="nav-btn" data-section="nivel2">Nivel 2</button>
-    <button class="nav-btn" data-section="nivel3">Nivel 3</button>
-    <button class="nav-btn" data-section="nivel4">Nivel 4</button>
-    <button class="nav-btn" data-section="nivel5">Nivel 5</button>
+    <button class="nav-btn" data-section="nivel1">Nivel Medio</button>
     <button class="nav-btn" data-section="examen">Examen Final</button>
+    <button class="nav-btn" data-section="estadisticas">Estadísticas</button>
     <button class="nav-btn support-nav" data-section="soporte">Soporte</button>
     <button class="nav-btn exit-nav" id="btnSalirApp" type="button">Salir</button>
   </nav>
@@ -284,15 +315,15 @@
     <div class="start-screen" id="examenBloqueado">
       <span class="cs-icon">🔒</span>
       <h2>Examen Final bloqueado</h2>
-      <p>Debes completar el <strong>Nivel 5</strong> antes de acceder al Examen Final, salvo que el administrador habilite permiso directo para tu grupo.</p>
+      <p>Debes completar el <strong>Nivel Medio</strong> antes de acceder al Examen Final, salvo que el administrador habilite permiso directo para tu grupo.</p>
       <div class="start-rules">
         <ul>
-          <li>Completa los niveles anteriores en orden</li>
+          <li>Completa el Nivel Medio</li>
           <li>O solicita permiso directo al administrador</li>
           <li>Luego podrás acceder aquí</li>
         </ul>
       </div>
-      <button class="btn btn-secondary" id="btnIrDiagnostico">← Ir al Nivel 5</button>
+      <button class="btn btn-secondary" id="btnIrDiagnostico">← Ir al Nivel Medio</button>
     </div>
 
     <!-- Estado: listo para iniciar (solo visible tras completar diagnóstico) -->
@@ -379,6 +410,16 @@
     </section>
   </main>
 
+  <!-- ══════════════════ ESTADÍSTICAS ══════════════════ -->
+  <main class="main-content hidden" id="sectionEstadisticas">
+    <div class="start-screen stats-panel">
+      <span class="cs-icon">📊</span>
+      <h2>Estadísticas</h2>
+      <p>Compara tus intentos y revisa tus métricas por examen.</p>
+      <div class="stats-grid" id="studentStats"></div>
+    </div>
+  </main>
+
   <!-- ══════════════════ ADMINISTRADOR ══════════════════ -->
   <main class="main-content hidden" id="sectionAdmin">
     <div class="start-screen admin-panel">
@@ -390,6 +431,7 @@
         <select id="adminGrupoSelect" class="admin-input"></select>
       </div>
       <div class="admin-list" id="adminList"></div>
+      <div class="stats-grid" id="adminStats"></div>
       <div class="admin-exit-dock">
         <button class="btn admin-exit-btn" id="btnSalirAdmin" type="button">Cerrar sesión</button>
       </div>
@@ -455,6 +497,6 @@
       ]
     });"></script>
 
-  <script src="script.js?v=20260628-1"></script>
+  <script type="module" src="script.js?v=20260628-2"></script>
 </body>
 </html>
