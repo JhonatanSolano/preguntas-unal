@@ -724,7 +724,7 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
     mostrarSeccion(sec);
 
     if (sec === "diagnostico") {
-      actualizarProgreso();
+      actualizarEstadoDiagnostico();
     }
 
     if (sec.startsWith("nivel")) {
@@ -753,6 +753,26 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
   });
 });
 
+function actualizarEstadoDiagnostico() {
+  const titulo = document.querySelector("#startScreen h2");
+  const texto = document.querySelector("#startScreen p");
+  const btn = document.getElementById("btnIniciarDiag");
+  if (!examenHabilitado("diagnostico")) {
+    document.getElementById("diagFormWrap").hidden = true;
+    document.getElementById("resultsSection").hidden = true;
+    document.getElementById("startScreen").hidden = false;
+    titulo.textContent = "Diagnóstico bloqueado";
+    texto.textContent = "Este diagnóstico todavía no está habilitado para tu grupo.";
+    btn.hidden = true;
+    mostrarProgreso(0, PREGUNTAS.length);
+    return;
+  }
+  titulo.textContent = "Diagnóstico Matemático";
+  texto.textContent = "Evalúa tu nivel actual antes de comenzar la preparación. Responde con honestidad, no hay penalización por error.";
+  btn.hidden = false;
+  actualizarProgreso();
+}
+
 function mostrarSeccion(sec) {
   document.getElementById("sectionDiagnostico").classList.toggle("hidden", sec !== "diagnostico");
   document.getElementById("sectionNivel").classList.toggle("hidden", !sec.startsWith("nivel"));
@@ -760,6 +780,7 @@ function mostrarSeccion(sec) {
   document.getElementById("sectionAdmin").classList.toggle("hidden", sec !== "admin");
   document.getElementById("sectionSoporte").classList.toggle("hidden", sec !== "soporte");
   if (sec === "admin") actualizarVistaAdmin();
+  if (sec === "diagnostico") actualizarEstadoDiagnostico();
 }
 
 function activarNav(sec) {
@@ -835,11 +856,11 @@ const PREGUNTAS_EXAMEN = [
   },
   {
     id: 5,
-    pregunta: "El valor de",
-    formula: "\\[ \\lim_{x \\to 0} \\frac{\\sin(3x)}{\\tan(5x)} \\]",
-    opciones: ["\\(\\dfrac{5}{3}\\)", "\\(0\\)", "\\(\\dfrac{3}{5}\\)", "\\(1\\)"],
-    correcta: 2,
-    explicacion: "Usando \\(\\lim_{u\\to 0}\\frac{\\sin u}{u}=1\\) y \\(\\lim_{u\\to 0}\\frac{\\tan u}{u}=1\\):<br>\\(\\lim_{x\\to 0}\\frac{\\sin 3x}{\\tan 5x} = \\lim_{x\\to 0}\\frac{\\sin 3x}{3x}\\cdot\\frac{5x}{\\tan 5x}\\cdot\\frac{3}{5} = 1\\cdot1\\cdot\\frac{3}{5} = \\dfrac{3}{5}\\)."
+    pregunta: "Si \\(\\sin\\theta=\\frac{3}{5}\\) y \\(\\theta\\) está en el primer cuadrante, entonces \\(\\tan\\theta\\) vale:",
+    formula: "",
+    opciones: ["\\(\\dfrac{3}{4}\\)", "\\(\\dfrac{4}{3}\\)", "\\(\\dfrac{3}{5}\\)", "\\(\\dfrac{5}{4}\\)"],
+    correcta: 0,
+    explicacion: "Si \\(\\sin\\theta=\\frac35\\), en un triángulo rectángulo el cateto opuesto es 3 y la hipotenusa 5. Por Pitágoras, el cateto adyacente es 4. Entonces \\(\\tan\\theta=\\frac{3}{4}\\)."
   },
   {
     id: 6,
@@ -907,7 +928,7 @@ const PREGUNTAS_EXAMEN = [
    12. NIVELES – DATOS (5 niveles, 10 preguntas cada uno)
 ════════════════════════════════════════════════════════ */
 const NIVELES_META = {
-  nivel1: { titulo: "Nivel 1", descripcion: "Fundamentos de aritmética, álgebra básica y ecuaciones lineales.", requisito: "diagnostico", requisitoTexto: "Completa primero el diagnóstico." },
+  nivel1: { titulo: "Nivel 1", descripcion: "Fundamentos de operaciones, álgebra básica y ecuaciones lineales.", requisito: "diagnostico", requisitoTexto: "Completa primero el diagnóstico." },
   nivel2: { titulo: "Nivel 2", descripcion: "Álgebra intermedia, factorización, funciones y proporciones.", requisito: "nivel1", requisitoTexto: "Completa primero el Nivel 1." },
   nivel3: { titulo: "Nivel 3", descripcion: "Desigualdades, logaritmos, funciones y trigonometría básica.", requisito: "nivel2", requisitoTexto: "Completa primero el Nivel 2." },
   nivel4: { titulo: "Nivel 4", descripcion: "Precálculo, sucesiones, composición de funciones y conteo.", requisito: "nivel3", requisitoTexto: "Completa primero el Nivel 3." },
@@ -919,7 +940,7 @@ const PREGUNTAS_NIVELES = {
     { id: 1, pregunta: "El residuo de dividir \\(7^{2026}\\) entre 5 es:", formula: "", opciones: ["\\(1\\)", "\\(2\\)", "\\(3\\)", "\\(4\\)"], correcta: 3, explicacion: "Como \\(7\\equiv2\\pmod 5\\), basta estudiar \\(2^{2026}\\). Las potencias de 2 módulo 5 tienen ciclo \\(2,4,3,1\\). Como \\(2026\\equiv2\\pmod4\\), el residuo es \\(4\\)." },
     { id: 2, pregunta: "La suma de los primeros \\(n\\) números impares positivos es 361. Entonces \\(n\\) vale:", formula: "", opciones: ["\\(17\\)", "\\(18\\)", "\\(19\\)", "\\(20\\)"], correcta: 2, explicacion: "La suma de los primeros \\(n\\) impares es \\(n^2\\). Entonces \\(n^2=361\\), de donde \\(n=19\\)." },
     { id: 3, pregunta: "Si \\(x+\\frac1x=5\\), calcula", formula: "\\[x^2+\\frac1{x^2}\\]", opciones: ["\\(21\\)", "\\(23\\)", "\\(25\\)", "\\(27\\)"], correcta: 1, explicacion: "Elevando al cuadrado: \\((x+\\frac1x)^2=x^2+2+\\frac1{x^2}=25\\). Por tanto, \\(x^2+\\frac1{x^2}=23\\)." },
-    { id: 4, pregunta: "En una progresión aritmética \\(a_3=11\\) y \\(a_9=29\\). La suma de los primeros 12 términos es:", formula: "", opciones: ["\\(246\\)", "\\(252\\)", "\\(258\\)", "\\(264\\)"], correcta: 2, explicacion: "De \\(a_9-a_3=6d=18\\), se obtiene \\(d=3\\). Luego \\(a_1=5\\). Así \\(S_{12}=\\frac{12}{2}(2\\cdot5+11\\cdot3)=6(43)=258\\)." },
+    { id: 4, pregunta: "En un triángulo rectángulo, los catetos miden 9 y 12. El radio de la circunferencia inscrita es:", formula: "", opciones: ["\\(2\\)", "\\(3\\)", "\\(4\\)", "\\(6\\)"], correcta: 1, explicacion: "La hipotenusa es \\(15\\). En un triángulo rectángulo, el inradio es \\(r=\\frac{a+b-c}{2}\\). Entonces \\(r=\\frac{9+12-15}{2}=3\\)." },
     { id: 5, pregunta: "Si \\(a\\) y \\(b\\) son positivos, \\(a+b=12\\) y \\(ab=27\\), entonces \\(a^2+b^2\\) es:", formula: "", opciones: ["\\(72\\)", "\\(84\\)", "\\(90\\)", "\\(108\\)"], correcta: 2, explicacion: "\\(a^2+b^2=(a+b)^2-2ab=144-54=90\\)." },
     { id: 6, pregunta: "¿Cuántos enteros positivos de dos cifras son múltiplos de 3 pero no de 9?", formula: "", opciones: ["\\(20\\)", "\\(21\\)", "\\(22\\)", "\\(23\\)"], correcta: 0, explicacion: "Múltiplos de 3 entre 10 y 99: \\(12,15,\\ldots,99\\), hay 30. Múltiplos de 9 entre 10 y 99: \\(18,27,\\ldots,99\\), hay 10. Quedan \\(30-10=20\\)." },
     { id: 7, pregunta: "Si \\(f(x)=x^2-3x+1\\), entonces \\(f(3-t)-f(t)\\) vale:", formula: "", opciones: ["\\(0\\)", "\\(3\\)", "\\(6t-9\\)", "\\(9-6t\\)"], correcta: 0, explicacion: "\\(f(3-t)=(3-t)^2-3(3-t)+1=t^2-3t+1=f(t)\\). La diferencia es 0." },
@@ -952,7 +973,7 @@ const PREGUNTAS_NIVELES = {
     { id: 10, pregunta: "Si \\(a,b,c\\) son raíces de \\(x^3-6x^2+11x-6=0\\), entonces \\(ab+ac+bc\\) es:", formula: "", opciones: ["\\(6\\)", "\\(11\\)", "\\(17\\)", "\\(36\\)"], correcta: 1, explicacion: "Por Vieta, en \\(x^3-s_1x^2+s_2x-s_3\\), se tiene \\(ab+ac+bc=s_2=11\\)." }
   ],
   nivel4: [
-    { id: 1, pregunta: "Calcula", formula: "\\[\\lim_{x\\to 1}\\frac{x^5-1}{x-1}\\]", opciones: ["\\(1\\)", "\\(3\\)", "\\(5\\)", "No existe"], correcta: 2, explicacion: "Es el cociente incremental de \\(x^5\\) en 1, o se factoriza. El límite vale \\(5\\cdot1^4=5\\)." },
+    { id: 1, pregunta: "Si \\(x^4-1=0\\), ¿cuántas soluciones reales tiene la ecuación?", formula: "", opciones: ["\\(0\\)", "\\(1\\)", "\\(2\\)", "\\(4\\)"], correcta: 2, explicacion: "\\(x^4-1=(x^2-1)(x^2+1)=(x-1)(x+1)(x^2+1)\\). Las soluciones reales son \\(x=1\\) y \\(x=-1\\), porque \\(x^2+1=0\\) no tiene soluciones reales." },
     { id: 2, pregunta: "Si \\(f(x)=\\frac{x+1}{x-1}\\), entonces \\(f(f(2))\\) es:", formula: "", opciones: ["\\(-2\\)", "\\(-1\\)", "\\(0\\)", "\\(2\\)"], correcta: 3, explicacion: "\\(f(2)=3\\). Luego \\(f(3)=\\frac{4}{2}=2\\)." },
     { id: 3, pregunta: "El coeficiente de \\(x^3\\) en \\((x-2)^6\\) es:", formula: "", opciones: ["\\(-160\\)", "\\(-120\\)", "\\(120\\)", "\\(160\\)"], correcta: 0, explicacion: "El término con \\(x^3\\) toma 3 factores \\(x\\) y 3 factores \\(-2\\): \\(\\binom63(-2)^3=20(-8)=-160\\)." },
     { id: 4, pregunta: "La suma", formula: "\\[1\\cdot2+2\\cdot3+\\cdots+10\\cdot11\\]", opciones: ["\\(430\\)", "\\(440\\)", "\\(450\\)", "\\(460\\)"], correcta: 1, explicacion: "\\(k(k+1)=k^2+k\\). Entonces la suma es \\(\\sum k^2+\\sum k=385+55=440\\)." },
@@ -960,7 +981,7 @@ const PREGUNTAS_NIVELES = {
     { id: 6, pregunta: "¿Cuántos caminos mínimos hay de \\((0,0)\\) a \\((4,3)\\) moviéndose solo derecha o arriba?", formula: "", opciones: ["\\(21\\)", "\\(28\\)", "\\(35\\)", "\\(42\\)"], correcta: 2, explicacion: "Son 7 movimientos: 4 derechas y 3 arriba. Se eligen las posiciones de las 3 subidas: \\(\\binom73=35\\)." },
     { id: 7, pregunta: "La ecuación \\(\\lfloor x\\rfloor+x=10.5\\) tiene solución:", formula: "", opciones: ["\\(5.25\\)", "\\(5.5\\)", "\\(5.75\\)", "\\(6.25\\)"], correcta: 1, explicacion: "Si \\(\\lfloor x\\rfloor=n\\), entonces \\(x=10.5-n\\) y debe cumplir \\(n\\le x<n+1\\). Probando \\(n=5\\), \\(x=5.5\\), y \\(\\lfloor5.5\\rfloor+5.5=10.5\\)." },
     { id: 8, pregunta: "Si \\(\\tan\\theta+\\cot\\theta=\\frac{13}{6}\\), entonces \\(\\tan^2\\theta+\\cot^2\\theta\\) vale:", formula: "", opciones: ["\\(\\frac{25}{36}\\)", "\\(\\frac{97}{36}\\)", "\\(\\frac{133}{36}\\)", "\\(\\frac{169}{36}\\)"], correcta: 1, explicacion: "\\((t+1/t)^2=t^2+2+1/t^2\\). Entonces \\(t^2+1/t^2=\\frac{169}{36}-2=\\frac{97}{36}\\)." },
-    { id: 9, pregunta: "El área encerrada por \\(y=x\\) y \\(y=x^2\\) es:", formula: "", opciones: ["\\(\\frac16\\)", "\\(\\frac13\\)", "\\(\\frac12\\)", "\\(1\\)"], correcta: 0, explicacion: "Intersecan en 0 y 1. Área: \\(\\int_0^1(x-x^2)dx=\\frac12-\\frac13=\\frac16\\)." },
+    { id: 9, pregunta: "En un cuadrado de lado 10 se inscribe un círculo. El área de la región del cuadrado que queda fuera del círculo es:", formula: "", opciones: ["\\(100-25\\pi\\)", "\\(100-50\\pi\\)", "\\(25\\pi\\)", "\\(75\\pi\\)"], correcta: 0, explicacion: "El cuadrado tiene área \\(10^2=100\\). El círculo inscrito tiene radio 5, así que su área es \\(25\\pi\\). La región exterior al círculo dentro del cuadrado mide \\(100-25\\pi\\)." },
     { id: 10, pregunta: "Si \\(r+s=4\\) y \\(r^3+s^3=28\\), entonces \\(rs\\) vale:", formula: "", opciones: ["\\(2\\)", "\\(3\\)", "\\(4\\)", "\\(5\\)"], correcta: 1, explicacion: "\\(r^3+s^3=(r+s)^3-3rs(r+s)=64-12rs=28\\). Entonces \\(12rs=36\\), así \\(rs=3\\)." }
   ],
   nivel5: [
@@ -978,11 +999,21 @@ const PREGUNTAS_NIVELES = {
 };
 
 const ADMIN_CLAVE = "Barcelona2026";
-const STORAGE_HABILITADOS = "preguntasUnalHabilitados";
+const GRUPOS = {
+  grupo1: { nombre: "Grupo 1", clave: "UNAL-G1-4826" },
+  grupo2: { nombre: "Grupo 2", clave: "UNAL-G2-7391" },
+  grupo3: { nombre: "Grupo 3", clave: "UNAL-G3-1548" },
+  grupo4: { nombre: "Grupo 4", clave: "UNAL-G4-9263" },
+  grupo5: { nombre: "Grupo 5", clave: "UNAL-G5-3174" }
+};
+const STORAGE_GRUPO = "preguntasUnalGrupoActivo";
+const STORAGE_HABILITADOS = "preguntasUnalHabilitadosPorGrupo";
 const STORAGE_ADMIN = "preguntasUnalAdminActivo";
-const DEFAULT_HABILITADOS = { nivel1: false, nivel2: false, nivel3: false, nivel4: false, nivel5: false, examen: false };
+const DEFAULT_HABILITADOS = { diagnostico: false, nivel1: false, nivel2: false, nivel3: false, nivel4: false, nivel5: false, examen: false };
 let habilitados = cargarHabilitados();
 let adminAutenticado = sessionStorage.getItem(STORAGE_ADMIN) === "1";
+let grupoActivo = sessionStorage.getItem(STORAGE_GRUPO) || "";
+let adminGrupoActual = Object.keys(GRUPOS)[0];
 let nivelActual = "nivel1";
 let nivelIniciado = false;
 let nivelCompletadoVisible = false;
@@ -991,10 +1022,14 @@ let timerNivelActivo = false;
 let segsNivel = DURACION_SEG;
 
 function cargarHabilitados() {
+  const base = {};
+  Object.keys(GRUPOS).forEach(k => base[k] = { ...DEFAULT_HABILITADOS });
   try {
-    return { ...DEFAULT_HABILITADOS, ...JSON.parse(localStorage.getItem(STORAGE_HABILITADOS) || "{}") };
+    const guardado = JSON.parse(localStorage.getItem(STORAGE_HABILITADOS) || "{}");
+    Object.keys(GRUPOS).forEach(k => base[k] = { ...DEFAULT_HABILITADOS, ...(guardado[k] || {}) });
+    return base;
   } catch {
-    return { ...DEFAULT_HABILITADOS };
+    return base;
   }
 }
 
@@ -1008,12 +1043,16 @@ function requisitoCumplido(clave) {
   return !!nivelesCompletados[req];
 }
 
+function examenHabilitado(clave) {
+  return !!grupoActivo && !!habilitados[grupoActivo]?.[clave];
+}
+
 function puedeAbrirNivel(clave) {
-  return requisitoCumplido(clave) || !!habilitados[clave];
+  return examenHabilitado(clave) && requisitoCumplido(clave);
 }
 
 function puedeAbrirExamenFinal() {
-  return nivelesCompletados.nivel5 || !!habilitados.examen;
+  return examenHabilitado("examen") && nivelesCompletados.nivel5;
 }
 
 function actualizarProgresoNivel() {
@@ -1321,13 +1360,15 @@ document.getElementById("btnAllNivel").addEventListener("click", () => {
 
 function renderAdminList() {
   const items = [
-    ["nivel1", "Nivel 1", "Acceso directo sin diagnóstico"],
-    ["nivel2", "Nivel 2", "Acceso directo sin Nivel 1"],
-    ["nivel3", "Nivel 3", "Acceso directo sin Nivel 2"],
-    ["nivel4", "Nivel 4", "Acceso directo sin Nivel 3"],
-    ["nivel5", "Nivel 5", "Acceso directo sin Nivel 4"],
-    ["examen", "Examen Final", "Acceso directo sin Nivel 5"]
+    ["diagnostico", "Diagnóstico", "Disponible para este grupo"],
+    ["nivel1", "Nivel 1", "Disponible para este grupo"],
+    ["nivel2", "Nivel 2", "Disponible para este grupo"],
+    ["nivel3", "Nivel 3", "Disponible para este grupo"],
+    ["nivel4", "Nivel 4", "Disponible para este grupo"],
+    ["nivel5", "Nivel 5", "Disponible para este grupo"],
+    ["examen", "Examen Final", "Disponible para este grupo"]
   ];
+  renderAdminGrupoSelect();
   const list = document.getElementById("adminList");
   list.innerHTML = "";
   items.forEach(([clave, titulo, detalle]) => {
@@ -1336,7 +1377,7 @@ function renderAdminList() {
     row.innerHTML = `
       <div><strong>${titulo}</strong><span>${detalle}</span></div>
       <label class="switch">
-        <input type="checkbox" data-admin-toggle="${clave}" ${habilitados[clave] ? "checked" : ""}>
+        <input type="checkbox" data-admin-toggle="${clave}" ${habilitados[adminGrupoActual]?.[clave] ? "checked" : ""}>
         <span class="slider"></span>
       </label>
     `;
@@ -1344,11 +1385,29 @@ function renderAdminList() {
   });
   list.querySelectorAll("[data-admin-toggle]").forEach(input => {
     input.addEventListener("change", () => {
-      habilitados[input.dataset.adminToggle] = input.checked;
+      habilitados[adminGrupoActual][input.dataset.adminToggle] = input.checked;
       guardarHabilitados();
       if (nivelActual) abrirNivel(nivelActual);
+      actualizarEstadoDiagnostico();
     });
   });
+}
+
+function renderAdminGrupoSelect() {
+  const select = document.getElementById("adminGrupoSelect");
+  if (!select) return;
+  select.innerHTML = "";
+  Object.entries(GRUPOS).forEach(([clave, grupo]) => {
+    const opt = document.createElement("option");
+    opt.value = clave;
+    opt.textContent = `${grupo.nombre} · ${grupo.clave}`;
+    opt.selected = clave === adminGrupoActual;
+    select.appendChild(opt);
+  });
+  select.onchange = () => {
+    adminGrupoActual = select.value;
+    renderAdminList();
+  };
 }
 
 function actualizarVistaAdmin() {
@@ -1389,6 +1448,37 @@ document.getElementById("btnAdminSalir").addEventListener("click", () => {
   document.getElementById("adminClave").value = "";
   actualizarVistaAdmin();
 });
+
+function entrarGrupo() {
+  const valor = document.getElementById("grupoClave").value.trim();
+  const encontrado = Object.entries(GRUPOS).find(([, grupo]) => grupo.clave === valor);
+  if (!encontrado) {
+    document.getElementById("grupoWarn").hidden = false;
+    return;
+  }
+  grupoActivo = encontrado[0];
+  sessionStorage.setItem(STORAGE_GRUPO, grupoActivo);
+  document.getElementById("grupoWarn").hidden = true;
+  document.body.classList.remove("group-locked");
+  activarNav("diagnostico");
+  actualizarEstadoDiagnostico();
+}
+
+document.getElementById("btnGrupoEntrar").addEventListener("click", entrarGrupo);
+document.getElementById("grupoClave").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    entrarGrupo();
+  }
+});
+
+if (grupoActivo && GRUPOS[grupoActivo]) {
+  document.body.classList.remove("group-locked");
+  actualizarEstadoDiagnostico();
+} else {
+  grupoActivo = "";
+  sessionStorage.removeItem(STORAGE_GRUPO);
+}
 
 /* ────────────────────────────────────────────────────
    13. MOTOR DEL EXAMEN FINAL

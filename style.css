@@ -45,6 +45,8 @@ body {
   min-height: 100vh;
   overflow-x: hidden;
 }
+body.group-locked > :not(#groupGate) { display: none !important; }
+body:not(.group-locked) #groupGate { display: none !important; }
 
 /* ══════════════════════════════════
    HEADER
@@ -692,6 +694,17 @@ body {
   box-shadow: 0 0 0 3px rgba(0,87,168,.12);
 }
 .admin-controls { margin-top: 1.2rem; }
+.admin-group-select {
+  display: grid;
+  gap: .35rem;
+  margin-bottom: 1rem;
+  text-align: left;
+}
+.admin-group-select label {
+  color: var(--c-navy);
+  font-weight: 700;
+  font-size: .9rem;
+}
 .admin-list {
   display: grid;
   gap: .75rem;

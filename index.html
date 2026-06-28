@@ -6,7 +6,20 @@
   <title>Diagnóstico Matemático – UNAL</title>
   <link rel="stylesheet" href="style.css" />
 </head>
-<body>
+<body class="group-locked">
+
+  <main class="main-content" id="groupGate">
+    <div class="start-screen group-gate">
+      <span class="cs-icon">🔑</span>
+      <h2>Clave de grupo</h2>
+      <p>Ingresa la clave asignada por el profesor para acceder a los exámenes habilitados.</p>
+      <div class="admin-login">
+        <input type="password" id="grupoClave" class="admin-input" placeholder="Clave del grupo" autocomplete="one-time-code" />
+        <button class="btn btn-primary" id="btnGrupoEntrar">Entrar</button>
+      </div>
+      <p class="warn-msg" id="grupoWarn" hidden>Clave de grupo incorrecta.</p>
+    </div>
+  </main>
 
   <!-- ══════════════════ ENCABEZADO ══════════════════ -->
   <header class="site-header">
@@ -377,6 +390,10 @@
         <p class="warn-msg" id="adminWarn" hidden>Clave incorrecta.</p>
       </div>
       <div class="admin-controls" id="adminControls" hidden>
+        <div class="admin-group-select">
+          <label for="adminGrupoSelect">Grupo</label>
+          <select id="adminGrupoSelect" class="admin-input"></select>
+        </div>
         <div class="admin-list" id="adminList"></div>
         <button class="btn btn-outline" id="btnAdminSalir">Cerrar sesión</button>
       </div>
