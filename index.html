@@ -12,7 +12,7 @@
     <div class="start-screen group-gate auth-gate">
       <span class="cs-icon">🔐</span>
       <h2>Ingreso Preguntas UNAL</h2>
-      <p>Accede con Google o con correo Gmail y contraseña. Los estudiantes ingresan luego la clave de su grupo.</p>
+      <p>Accede con Google o con correo Gmail y contraseña. Después ingresarás la clave de tu grupo.</p>
 
       <div class="auth-actions">
         <button class="btn btn-primary" id="btnGoogleLogin" type="button">Entrar con Google</button>
@@ -20,13 +20,37 @@
 
       <div class="auth-divider"><span>o</span></div>
 
-      <div class="auth-form">
-        <input type="email" id="authEmail" class="admin-input" placeholder="Correo @gmail.com" autocomplete="email" />
-        <input type="password" id="authPassword" class="admin-input" placeholder="Contraseña" autocomplete="current-password" />
-        <div class="auth-actions auth-actions-duo">
-          <button class="btn btn-primary" id="btnEmailLogin" type="button">Ingresar</button>
-          <button class="btn btn-outline" id="btnEmailRegister" type="button">Registrarme</button>
+      <div class="auth-tabs" role="tablist" aria-label="Acceso">
+        <button class="auth-tab active" id="tabLogin" type="button">Iniciar sesión</button>
+        <button class="auth-tab" id="tabRegister" type="button">Registrarse</button>
+      </div>
+
+      <div class="auth-form" id="loginPanel">
+        <input type="email" id="loginEmail" class="admin-input" placeholder="Correo @gmail.com" autocomplete="email" />
+        <div class="password-wrap">
+          <input type="password" id="loginPassword" class="admin-input" placeholder="Contraseña" autocomplete="current-password" />
+          <button class="password-toggle" type="button" data-toggle-password="loginPassword" aria-label="Ver contraseña">👁</button>
         </div>
+        <button class="btn btn-primary" id="btnEmailLogin" type="button">Ingresar</button>
+        <div class="auth-links">
+          <button type="button" id="btnForgotPassword">¿Olvidó su contraseña?</button>
+          <a href="https://wa.me/573112454282?text=Hola%20Jhonatan%2C%20olvid%C3%A9%20mi%20correo%20de%20acceso%20a%20Preguntas%20UNAL.%20" target="_blank" rel="noopener">¿Olvidó su correo?</a>
+        </div>
+      </div>
+
+      <div class="auth-form hidden" id="registerPanel">
+        <input type="email" id="registerEmail" class="admin-input" placeholder="Correo @gmail.com" autocomplete="email" />
+        <div class="password-wrap">
+          <input type="password" id="registerPassword" class="admin-input" placeholder="Contraseña" autocomplete="new-password" />
+          <button class="password-toggle" type="button" data-toggle-password="registerPassword" aria-label="Ver contraseña">👁</button>
+        </div>
+        <div class="password-rules" id="passwordRules">
+          <p data-rule="length">Mínimo 8 caracteres</p>
+          <p data-rule="upper">Mínimo una mayúscula</p>
+          <p data-rule="numbers">Mínimo dos números</p>
+          <p data-rule="symbol">Mínimo un símbolo permitido: ! @ # $ % ^ & * ( ) _ + - = [ ] { } ; : , . ?</p>
+        </div>
+        <button class="btn btn-primary" id="btnEmailRegister" type="button" disabled>Crear cuenta</button>
       </div>
 
       <div class="group-entry hidden" id="groupEntry">
@@ -35,20 +59,6 @@
           <input type="password" id="grupoClave" class="admin-input" placeholder="Clave de grupo" autocomplete="one-time-code" />
           <button class="btn btn-primary" id="btnGrupoEntrar">Entrar</button>
         </div>
-      </div>
-
-      <div class="mfa-panel hidden" id="mfaPanel">
-        <h3>Verificación por teléfono</h3>
-        <p>Agrega tu número para activar autenticación de dos pasos por SMS.</p>
-        <div class="admin-login">
-          <input type="tel" id="mfaPhone" class="admin-input" placeholder="+57 3000000000" autocomplete="tel" />
-          <button class="btn btn-outline" id="btnMfaStart" type="button">Enviar SMS</button>
-        </div>
-        <div class="admin-login hidden" id="mfaCodeWrap">
-          <input type="text" id="mfaCode" class="admin-input" placeholder="Código SMS" inputmode="numeric" />
-          <button class="btn btn-primary" id="btnMfaConfirm" type="button">Verificar</button>
-        </div>
-        <div id="recaptcha-container"></div>
       </div>
 
       <p class="warn-msg" id="grupoWarn" hidden>Revisa los datos ingresados.</p>
@@ -197,7 +207,7 @@
 
       <!-- Botones de acción -->
       <div class="result-actions">
-        <button class="btn btn-secondary" id="btnRestart">↺ Reiniciar diagnóstico</button>
+        <button class="btn btn-secondary" id="btnRestart">↺ Hacer otro intento</button>
         <button class="btn btn-outline"   id="btnWrong">Ver solo incorrectas</button>
         <button class="btn btn-outline"   id="btnAll">Ver todas las respuestas</button>
       </div>
@@ -301,7 +311,7 @@
       </div>
 
       <div class="result-actions">
-        <button class="btn btn-secondary" id="btnRestartNivel">↺ Reiniciar nivel</button>
+        <button class="btn btn-secondary" id="btnRestartNivel">↺ Hacer otro intento</button>
         <button class="btn btn-outline" id="btnWrongNivel">Ver solo incorrectas</button>
         <button class="btn btn-outline" id="btnAllNivel">Ver todas las respuestas</button>
       </div>
@@ -403,7 +413,7 @@
         <div id="feedbackItemsExamen"></div>
       </div>
       <div class="result-actions">
-        <button class="btn btn-secondary" id="btnRestartExamen">↺ Reiniciar examen</button>
+        <button class="btn btn-secondary" id="btnRestartExamen">↺ Hacer otro intento</button>
         <button class="btn btn-outline"   id="btnWrongExamen">Ver solo incorrectas</button>
         <button class="btn btn-outline"   id="btnAllExamen">Ver todas las respuestas</button>
       </div>

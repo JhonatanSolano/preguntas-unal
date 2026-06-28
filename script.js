@@ -2,14 +2,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/fireba
 import {
   getAuth,
   GoogleAuthProvider,
-  RecaptchaVerifier,
-  PhoneAuthProvider,
-  PhoneMultiFactorGenerator,
   browserLocalPersistence,
   createUserWithEmailAndPassword,
-  getMultiFactorResolver,
-  multiFactor,
   onAuthStateChanged,
+  sendPasswordResetEmail,
   setPersistence,
   signInWithEmailAndPassword,
   signInWithPopup,
@@ -45,7 +41,6 @@ const SIMBOLOS_PERMITIDOS = "!@#$%^&*()_+-=[]{};:,.?";
 let usuarioActual = null;
 let perfilActual = null;
 let unsubscribePermisos = null;
-let mfaVerificationId = "";
 
 /* ════════════════════════════════════════════════════════
    UNAL – Diagnóstico Matemático · script.js
@@ -1706,6 +1701,47 @@ function validarPassword(password) {
   return password.length >= 8 && mayus && numeros && simbolo;
 }
 
+function detallePassword(password) {
+  return {
+    length: password.length >= 8,
+    upper: /[A-Z]/.test(password),
+    numbers: (password.match(/\d/g) || []).length >= 2,
+    symbol: [...password].some(ch => SIMBOLOS_PERMITIDOS.includes(ch))
+  };
+}
+
+function actualizarReglasPassword() {
+  const password = document.getElementById("registerPassword")?.value || "";
+  const detalle = detallePassword(password);
+  Object.entries(detalle).forEach(([regla, ok]) => {
+    document.querySelector(`#passwordRules [data-rule="${regla}"]`)?.classList.toggle("valid", ok);
+  });
+  const valido = Object.values(detalle).every(Boolean);
+  const btn = document.getElementById("btnEmailRegister");
+  if (btn) btn.disabled = !valido;
+  return valido;
+}
+
+function mostrarAuthInicial() {
+  document.querySelector(".auth-tabs")?.classList.remove("hidden");
+  document.querySelector(".auth-divider")?.classList.remove("hidden");
+  document.getElementById("loginPanel")?.classList.remove("hidden");
+  document.getElementById("registerPanel")?.classList.add("hidden");
+  document.getElementById("tabLogin")?.classList.add("active");
+  document.getElementById("tabRegister")?.classList.remove("active");
+  document.getElementById("btnGoogleLogin")?.closest(".auth-actions")?.classList.remove("hidden");
+  document.getElementById("groupEntry")?.classList.add("hidden");
+}
+
+function mostrarEntradaGrupo() {
+  document.querySelector(".auth-tabs")?.classList.add("hidden");
+  document.querySelector(".auth-divider")?.classList.add("hidden");
+  document.getElementById("loginPanel")?.classList.add("hidden");
+  document.getElementById("registerPanel")?.classList.add("hidden");
+  document.getElementById("btnGoogleLogin")?.closest(".auth-actions")?.classList.add("hidden");
+  document.getElementById("groupEntry")?.classList.remove("hidden");
+}
+
 function mostrarWarn(msg) {
   const warn = document.getElementById("grupoWarn");
   warn.textContent = msg;
@@ -1765,8 +1801,7 @@ async function prepararSesionAutenticada() {
     return;
   }
 
-  document.getElementById("groupEntry").classList.remove("hidden");
-  document.getElementById("mfaPanel").classList.remove("hidden");
+  mostrarEntradaGrupo();
 }
 
 async function entrarGrupo() {
@@ -1795,27 +1830,23 @@ async function entrarGrupo() {
 }
 
 async function loginEmail() {
-  const email = document.getElementById("authEmail").value.trim().toLowerCase();
-  const password = document.getElementById("authPassword").value;
+  const email = document.getElementById("loginEmail").value.trim().toLowerCase();
+  const password = document.getElementById("loginPassword").value;
   try {
     await signInWithEmailAndPassword(auth, email, password);
   } catch (err) {
-    if (err.code === "auth/multi-factor-auth-required") {
-      iniciarResolucionMfa(err);
-      return;
-    }
     mostrarWarn("No se pudo ingresar. Revisa correo y contraseña.");
   }
 }
 
 async function registrarEmail() {
-  const email = document.getElementById("authEmail").value.trim().toLowerCase();
-  const password = document.getElementById("authPassword").value;
+  const email = document.getElementById("registerEmail").value.trim().toLowerCase();
+  const password = document.getElementById("registerPassword").value;
   if (!email.endsWith("@gmail.com")) {
     mostrarWarn("Solo se permiten correos @gmail.com.");
     return;
   }
-  if (!validarPassword(password)) {
+  if (!actualizarReglasPassword() || !validarPassword(password)) {
     mostrarWarn("La contraseña debe tener mínimo 8 caracteres, una mayúscula, dos números y un símbolo permitido.");
     return;
   }
@@ -1830,46 +1861,37 @@ async function loginGoogle() {
   try {
     await signInWithPopup(auth, new GoogleAuthProvider());
   } catch (err) {
-    if (err.code === "auth/multi-factor-auth-required") iniciarResolucionMfa(err);
-    else mostrarWarn("No se pudo ingresar con Google.");
+    mostrarWarn("No se pudo ingresar con Google.");
   }
 }
 
-function asegurarRecaptcha() {
-  if (window.recaptchaVerifier) return window.recaptchaVerifier;
-  window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", { size: "invisible" });
-  return window.recaptchaVerifier;
-}
-
-async function iniciarMfa() {
-  if (!usuarioActual) {
-    mostrarWarn("Primero inicia sesión.");
+async function recuperarPassword() {
+  const email = document.getElementById("loginEmail").value.trim().toLowerCase();
+  if (!email.endsWith("@gmail.com")) {
+    mostrarWarn("Escribe tu correo Gmail en el campo de inicio de sesión.");
     return;
   }
-  const phoneNumber = document.getElementById("mfaPhone").value.trim();
-  if (!phoneNumber.startsWith("+")) {
-    mostrarWarn("Escribe el número con indicativo, por ejemplo +573112454282.");
-    return;
+  try {
+    await sendPasswordResetEmail(auth, email);
+    mostrarWarn("Te enviamos un correo para restablecer la contraseña.");
+  } catch {
+    mostrarWarn("No se pudo enviar la recuperación. Revisa el correo.");
   }
-  const session = await multiFactor(usuarioActual).getSession();
-  const provider = new PhoneAuthProvider(auth);
-  mfaVerificationId = await provider.verifyPhoneNumber({ phoneNumber, session }, asegurarRecaptcha());
-  document.getElementById("mfaCodeWrap").classList.remove("hidden");
-  mostrarWarn("Código enviado por SMS.");
 }
 
-async function confirmarMfa() {
-  const code = document.getElementById("mfaCode").value.trim();
-  const cred = PhoneAuthProvider.credential(mfaVerificationId, code);
-  const assertion = PhoneMultiFactorGenerator.assertion(cred);
-  await multiFactor(usuarioActual).enroll(assertion, "Teléfono principal");
+function cambiarAuthMode(modo) {
+  const login = modo === "login";
+  document.getElementById("loginPanel").classList.toggle("hidden", !login);
+  document.getElementById("registerPanel").classList.toggle("hidden", login);
+  document.getElementById("tabLogin").classList.toggle("active", login);
+  document.getElementById("tabRegister").classList.toggle("active", !login);
   limpiarWarn();
-  document.getElementById("mfaPanel").classList.add("hidden");
 }
 
-function iniciarResolucionMfa(error) {
-  window.mfaResolver = getMultiFactorResolver(auth, error);
-  mostrarWarn("Esta cuenta pide segundo factor por SMS. Usa el flujo de verificación telefónica.");
+function alternarPassword(id) {
+  const input = document.getElementById(id);
+  if (!input) return;
+  input.type = input.type === "password" ? "text" : "password";
 }
 
 document.getElementById("btnGrupoEntrar").addEventListener("click", entrarGrupo);
@@ -1892,19 +1914,22 @@ document.getElementById("btnSalirAdmin")?.addEventListener("click", salirApp);
 document.getElementById("btnEmailLogin")?.addEventListener("click", loginEmail);
 document.getElementById("btnEmailRegister")?.addEventListener("click", registrarEmail);
 document.getElementById("btnGoogleLogin")?.addEventListener("click", loginGoogle);
-document.getElementById("btnMfaStart")?.addEventListener("click", iniciarMfa);
-document.getElementById("btnMfaConfirm")?.addEventListener("click", confirmarMfa);
+document.getElementById("btnForgotPassword")?.addEventListener("click", recuperarPassword);
+document.getElementById("tabLogin")?.addEventListener("click", () => cambiarAuthMode("login"));
+document.getElementById("tabRegister")?.addEventListener("click", () => cambiarAuthMode("register"));
+document.getElementById("registerPassword")?.addEventListener("input", actualizarReglasPassword);
+document.querySelectorAll("[data-toggle-password]").forEach(btn => {
+  btn.addEventListener("click", () => alternarPassword(btn.dataset.togglePassword));
+});
 
 onAuthStateChanged(auth, async user => {
   usuarioActual = user;
   if (!user) {
     document.body.classList.add("group-locked");
-    document.getElementById("groupEntry").classList.add("hidden");
-    document.getElementById("mfaPanel").classList.add("hidden");
+    mostrarAuthInicial();
     return;
   }
   limpiarWarn();
-  document.getElementById("mfaPanel").classList.remove("hidden");
   await prepararSesionAutenticada();
 });
 

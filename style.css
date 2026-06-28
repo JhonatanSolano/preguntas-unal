@@ -229,11 +229,90 @@ body.admin-mode .admin-exit-dock {
   max-width: 720px;
 }
 .auth-form,
-.group-entry,
-.mfa-panel {
+.group-entry {
   display: grid;
   gap: .85rem;
   margin-top: 1rem;
+}
+.auth-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .35rem;
+  padding: .35rem;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-md);
+  background: var(--c-blue-lt);
+}
+.auth-tab {
+  border: 0;
+  border-radius: var(--radius-sm);
+  padding: .7rem .9rem;
+  background: transparent;
+  color: var(--c-blue);
+  font-weight: 800;
+  cursor: pointer;
+}
+.auth-tab.active {
+  background: #fff;
+  color: var(--c-navy);
+  box-shadow: var(--shadow-sm);
+}
+.password-wrap {
+  position: relative;
+}
+.password-wrap .admin-input {
+  padding-right: 3.1rem;
+}
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: .55rem;
+  transform: translateY(-50%);
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  cursor: pointer;
+  font-size: 1rem;
+}
+.password-toggle:hover {
+  background: var(--c-blue-lt);
+}
+.auth-links {
+  display: flex;
+  justify-content: center;
+  gap: .9rem;
+  flex-wrap: wrap;
+  font-size: .9rem;
+}
+.auth-links button,
+.auth-links a {
+  border: 0;
+  background: transparent;
+  color: var(--c-blue);
+  font: inherit;
+  font-weight: 800;
+  text-decoration: none;
+  cursor: pointer;
+}
+.password-rules {
+  display: grid;
+  gap: .25rem;
+  text-align: left;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  padding: .75rem .9rem;
+  background: #fff;
+}
+.password-rules p {
+  margin: 0;
+  color: var(--c-red);
+  font-size: .86rem;
+  font-weight: 700;
+}
+.password-rules p.valid {
+  color: var(--c-green);
 }
 .auth-actions {
   display: flex;
@@ -258,18 +337,6 @@ body.admin-mode .admin-exit-dock {
   height: 1px;
   flex: 1;
   background: var(--c-border);
-}
-.mfa-panel {
-  margin-top: 1.3rem;
-  padding: 1rem;
-  border: 1.5px solid var(--c-border);
-  border-radius: var(--radius-md);
-  background: var(--c-blue-lt);
-  text-align: left;
-}
-.mfa-panel h3 {
-  color: var(--c-blue);
-  margin-bottom: .25rem;
 }
 .stats-panel {
   max-width: 920px;
