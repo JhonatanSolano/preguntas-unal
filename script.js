@@ -5,11 +5,13 @@ import {
   browserLocalPersistence,
   createUserWithEmailAndPassword,
   onAuthStateChanged,
+  sendEmailVerification,
   sendPasswordResetEmail,
   setPersistence,
   signInWithEmailAndPassword,
   signInWithPopup,
-  signOut
+  signOut,
+  updateProfile
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 import {
   collection,
@@ -41,6 +43,7 @@ const SIMBOLOS_PERMITIDOS = "!@#$%^&*()_+-=[]{};:,.?";
 let usuarioActual = null;
 let perfilActual = null;
 let unsubscribePermisos = null;
+let registroEnCurso = false;
 
 /* ════════════════════════════════════════════════════════
    UNAL – Diagnóstico Matemático · script.js
@@ -1753,16 +1756,18 @@ function limpiarWarn() {
 }
 
 async function guardarPerfilUsuario(extra = {}) {
-  if (!usuarioActual) return;
+  const uid = usuarioActual?.uid || extra.uid;
+  if (!uid) return;
+  const email = usuarioActual?.email || extra.email || "";
   perfilActual = {
-    uid: usuarioActual.uid,
-    email: usuarioActual.email,
-    displayName: usuarioActual.displayName || "",
-    isAdmin: usuarioActual.email === ADMIN_EMAIL,
+    uid,
+    email,
+    displayName: usuarioActual?.displayName || extra.displayName || "",
+    isAdmin: email === ADMIN_EMAIL,
     grupo: grupoActivo || "",
     ...extra
   };
-  await setDoc(refPerfilUsuario(), { ...perfilActual, updatedAt: serverTimestamp() }, { merge: true });
+  await setDoc(doc(db, "users", uid), { ...perfilActual, updatedAt: serverTimestamp() }, { merge: true });
 }
 
 async function cargarPerfilUsuario() {
@@ -1833,15 +1838,25 @@ async function loginEmail() {
   const email = document.getElementById("loginEmail").value.trim().toLowerCase();
   const password = document.getElementById("loginPassword").value;
   try {
-    await signInWithEmailAndPassword(auth, email, password);
+    const cred = await signInWithEmailAndPassword(auth, email, password);
+    if (requiereVerificacionEmail(cred.user)) {
+      await signOut(auth);
+      mostrarWarn("Debes verificar tu correo. Revisa Gmail y abre el enlace de verificación antes de iniciar sesión.");
+      return;
+    }
   } catch (err) {
     mostrarWarn("No se pudo ingresar. Revisa correo y contraseña.");
   }
 }
 
 async function registrarEmail() {
+  const nombre = document.getElementById("registerName").value.trim();
   const email = document.getElementById("registerEmail").value.trim().toLowerCase();
   const password = document.getElementById("registerPassword").value;
+  if (nombre.length < 3) {
+    mostrarWarn("Escribe un nombre de usuario de mínimo 3 caracteres.");
+    return;
+  }
   if (!email.endsWith("@gmail.com")) {
     mostrarWarn("Solo se permiten correos @gmail.com.");
     return;
@@ -1851,8 +1866,19 @@ async function registrarEmail() {
     return;
   }
   try {
-    await createUserWithEmailAndPassword(auth, email, password);
+    registroEnCurso = true;
+    const cred = await createUserWithEmailAndPassword(auth, email, password);
+    await updateProfile(cred.user, { displayName: nombre });
+    await guardarPerfilUsuario({ uid: cred.user.uid, email, displayName: nombre, isAdmin: email === ADMIN_EMAIL });
+    await sendEmailVerification(cred.user, {
+      url: `${window.location.origin}${window.location.pathname.replace(/\/[^/]*$/, "/")}verificado.html`
+    });
+    await signOut(auth);
+    registroEnCurso = false;
+    cambiarAuthMode("login");
+    mostrarWarn("Cuenta creada. Te enviamos un correo de verificación; abre el enlace y luego inicia sesión.");
   } catch {
+    registroEnCurso = false;
     mostrarWarn("No se pudo registrar ese correo.");
   }
 }
@@ -1894,6 +1920,10 @@ function alternarPassword(id) {
   input.type = input.type === "password" ? "text" : "password";
 }
 
+function requiereVerificacionEmail(user) {
+  return user?.providerData?.some(provider => provider.providerId === "password") && !user.emailVerified;
+}
+
 document.getElementById("btnGrupoEntrar").addEventListener("click", entrarGrupo);
 document.getElementById("grupoClave").addEventListener("keydown", (e) => {
   if (e.key === "Enter") {
@@ -1927,6 +1957,14 @@ onAuthStateChanged(auth, async user => {
   if (!user) {
     document.body.classList.add("group-locked");
     mostrarAuthInicial();
+    return;
+  }
+  if (registroEnCurso) return;
+  if (requiereVerificacionEmail(user)) {
+    await signOut(auth);
+    document.body.classList.add("group-locked");
+    mostrarAuthInicial();
+    mostrarWarn("Tu correo aún no está verificado. Abre el enlace que llegó a Gmail.");
     return;
   }
   limpiarWarn();
