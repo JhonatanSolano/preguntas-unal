@@ -369,8 +369,8 @@
   <main class="main-content hidden" id="sectionAdmin">
     <div class="start-screen admin-panel">
       <span class="cs-icon">🔐</span>
-      <h2>Administrador</h2>
-      <p>Ingresa la clave para activar accesos directos sin completar el requisito anterior.</p>
+      <h2 id="adminTitulo">Administrador</h2>
+      <p id="adminDescripcion">Ingresa la clave para activar accesos directos sin completar el requisito anterior.</p>
       <div class="admin-login" id="adminLogin">
         <input type="password" id="adminClave" class="admin-input" placeholder="Clave secreta" autocomplete="current-password" />
         <button class="btn btn-primary" id="btnAdminEntrar">Entrar</button>
@@ -378,7 +378,7 @@
       </div>
       <div class="admin-controls" id="adminControls" hidden>
         <div class="admin-list" id="adminList"></div>
-        <button class="btn btn-outline" id="btnAdminSalir">Cerrar panel</button>
+        <button class="btn btn-outline" id="btnAdminSalir">Cerrar sesión</button>
       </div>
     </div>
   </main>

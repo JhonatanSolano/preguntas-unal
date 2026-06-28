@@ -1239,10 +1239,14 @@ function actualizarVistaAdmin() {
   document.getElementById("adminLogin").hidden = adminAutenticado;
   document.getElementById("adminControls").hidden = !adminAutenticado;
   document.getElementById("adminWarn").hidden = true;
+  document.getElementById("adminTitulo").textContent = adminAutenticado ? "Bienvenido Jhonatan" : "Administrador";
+  document.getElementById("adminDescripcion").textContent = adminAutenticado
+    ? "Puedes activar accesos directos para saltar requisitos cuando lo necesites."
+    : "Ingresa la clave para activar accesos directos sin completar el requisito anterior.";
   if (adminAutenticado) renderAdminList();
 }
 
-document.getElementById("btnAdminEntrar").addEventListener("click", () => {
+function intentarEntradaAdmin() {
   const clave = document.getElementById("adminClave").value;
   if (clave !== ADMIN_CLAVE) {
     document.getElementById("adminWarn").hidden = false;
@@ -1252,6 +1256,15 @@ document.getElementById("btnAdminEntrar").addEventListener("click", () => {
   sessionStorage.setItem(STORAGE_ADMIN, "1");
   document.getElementById("adminWarn").hidden = true;
   actualizarVistaAdmin();
+}
+
+document.getElementById("btnAdminEntrar").addEventListener("click", intentarEntradaAdmin);
+
+document.getElementById("adminClave").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    intentarEntradaAdmin();
+  }
 });
 
 document.getElementById("btnAdminSalir").addEventListener("click", () => {
