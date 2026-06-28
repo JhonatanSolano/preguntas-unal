@@ -52,6 +52,7 @@
     <button class="nav-btn" data-section="nivel5">Nivel 5</button>
     <button class="nav-btn" data-section="examen">Examen Final</button>
     <button class="nav-btn admin-nav" data-section="admin">Admin</button>
+    <button class="nav-btn support-nav" data-section="soporte">Soporte</button>
   </nav>
 
   <!-- ══════════════════ SECCIÓN DIAGNÓSTICO ══════════════════ -->
@@ -168,7 +169,7 @@
       <div class="start-rules">
         <ul>
           <li id="nivelBloqueadoRegla">Completa el requisito anterior</li>
-          <li>El administrador debe habilitar este nivel</li>
+          <li>El administrador puede dar acceso directo si lo necesita</li>
           <li>Luego podrás iniciar el intento</li>
         </ul>
       </div>
@@ -273,7 +274,7 @@
       <div class="start-rules">
         <ul>
           <li>Completa los niveles anteriores en orden</li>
-          <li>El administrador debe habilitar el examen final</li>
+          <li>El administrador puede dar acceso directo si lo necesita</li>
           <li>Luego podrás acceder aquí</li>
         </ul>
       </div>
@@ -369,7 +370,7 @@
     <div class="start-screen admin-panel">
       <span class="cs-icon">🔐</span>
       <h2>Administrador</h2>
-      <p>Ingresa la clave para habilitar o bloquear niveles en este navegador.</p>
+      <p>Ingresa la clave para activar accesos directos sin completar el requisito anterior.</p>
       <div class="admin-login" id="adminLogin">
         <input type="password" id="adminClave" class="admin-input" placeholder="Clave secreta" autocomplete="current-password" />
         <button class="btn btn-primary" id="btnAdminEntrar">Entrar</button>
@@ -379,6 +380,20 @@
         <div class="admin-list" id="adminList"></div>
         <button class="btn btn-outline" id="btnAdminSalir">Cerrar panel</button>
       </div>
+    </div>
+  </main>
+
+  <!-- ══════════════════ SOPORTE ══════════════════ -->
+  <main class="main-content hidden" id="sectionSoporte">
+    <div class="start-screen support-panel">
+      <span class="cs-icon">💬</span>
+      <h2>Soporte</h2>
+      <p>Comunícate por WhatsApp para reportar dudas, errores o solicitar ayuda con la app.</p>
+      <a class="btn btn-primary support-link" id="whatsappSupport"
+         href="https://wa.me/573112454282?text=Hola%20Jhonatan%2C%20necesito%20soporte%20con%20la%20app%20Preguntas%20UNAL.%20"
+         target="_blank" rel="noopener">
+        Abrir WhatsApp
+      </a>
     </div>
   </main>
 
@@ -410,6 +425,7 @@
 
   <footer class="site-footer">
     <p>Jhonatan Solano · Universidad Nacional de Colombia · 2026</p>
+    <p><a href="https://wa.me/573112454282?text=Hola%20Jhonatan%2C%20necesito%20soporte%20con%20la%20app%20Preguntas%20UNAL.%20" target="_blank" rel="noopener">Soporte por WhatsApp</a></p>
   </footer>
 
   <!-- KaTeX para renderizar fórmulas matemáticas sin internet (inlined via CDN cache) -->

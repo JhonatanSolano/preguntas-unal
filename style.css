@@ -177,6 +177,9 @@ body {
   border-color: var(--c-gold-lt);
   color: var(--c-gold);
 }
+.support-nav {
+  color: var(--c-green);
+}
 .soon-badge {
   background: var(--c-gold);
   color: #fff;
@@ -556,6 +559,12 @@ body {
   color: var(--c-muted);
   border-top: 1px solid var(--c-border);
 }
+.site-footer a {
+  color: var(--c-blue);
+  font-weight: 600;
+  text-decoration: none;
+}
+.site-footer a:hover { text-decoration: underline; }
 
 /* ══════════════════════════════════
    RESPONSIVE
@@ -729,6 +738,9 @@ body {
 }
 .switch input:checked + .slider { background: var(--c-green); }
 .switch input:checked + .slider::before { transform: translateX(22px); }
+
+.support-panel { max-width: 620px; margin-inline: auto; }
+.support-link { text-decoration: none; }
 
 /* Formulario bloqueado visualmente */
 .form-locked {

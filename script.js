@@ -647,6 +647,8 @@ function mostrarSeccion(sec) {
   document.getElementById("sectionNivel").classList.toggle("hidden", !sec.startsWith("nivel"));
   document.getElementById("sectionExamen").classList.toggle("hidden", sec !== "examen");
   document.getElementById("sectionAdmin").classList.toggle("hidden", sec !== "admin");
+  document.getElementById("sectionSoporte").classList.toggle("hidden", sec !== "soporte");
+  if (sec === "admin") actualizarVistaAdmin();
 }
 
 function activarNav(sec) {
@@ -865,8 +867,10 @@ const PREGUNTAS_NIVELES = {
 
 const ADMIN_CLAVE = "Barcelona2026";
 const STORAGE_HABILITADOS = "preguntasUnalHabilitados";
+const STORAGE_ADMIN = "preguntasUnalAdminActivo";
 const DEFAULT_HABILITADOS = { nivel1: false, nivel2: false, nivel3: false, nivel4: false, nivel5: false, examen: false };
 let habilitados = cargarHabilitados();
+let adminAutenticado = sessionStorage.getItem(STORAGE_ADMIN) === "1";
 let nivelActual = "nivel1";
 let nivelIniciado = false;
 let nivelCompletadoVisible = false;
@@ -893,11 +897,11 @@ function requisitoCumplido(clave) {
 }
 
 function puedeAbrirNivel(clave) {
-  return !!habilitados[clave] && requisitoCumplido(clave);
+  return requisitoCumplido(clave) || !!habilitados[clave];
 }
 
 function puedeAbrirExamenFinal() {
-  return !!habilitados.examen && nivelesCompletados.nivel5;
+  return nivelesCompletados.nivel5 || !!habilitados.examen;
 }
 
 function actualizarProgresoNivel() {
@@ -969,12 +973,8 @@ function abrirNivel(clave) {
   document.getElementById("btnIniciarNivel").textContent = `▶ Iniciar ${meta.titulo.toLowerCase()}`;
   document.getElementById("submitBtnNivel").textContent = `Enviar ${meta.titulo.toLowerCase()}`;
   document.getElementById("nivelBloqueadoTitulo").textContent = `${meta.titulo} bloqueado`;
-  document.getElementById("nivelBloqueadoTexto").textContent = !habilitados[clave]
-    ? "Este nivel todavía no ha sido habilitado por el administrador."
-    : meta.requisitoTexto;
-  document.getElementById("nivelBloqueadoRegla").textContent = !habilitados[clave]
-    ? "Espera a que el administrador habilite este nivel"
-    : meta.requisitoTexto;
+  document.getElementById("nivelBloqueadoTexto").textContent = meta.requisitoTexto;
+  document.getElementById("nivelBloqueadoRegla").textContent = meta.requisitoTexto;
 
   if (puedeAbrirNivel(clave)) {
     document.getElementById("nivelBloqueado").hidden = true;
@@ -1205,12 +1205,12 @@ document.getElementById("btnAllNivel").addEventListener("click", () => {
 
 function renderAdminList() {
   const items = [
-    ["nivel1", "Nivel 1", "Requiere diagnóstico completado"],
-    ["nivel2", "Nivel 2", "Requiere Nivel 1 completado"],
-    ["nivel3", "Nivel 3", "Requiere Nivel 2 completado"],
-    ["nivel4", "Nivel 4", "Requiere Nivel 3 completado"],
-    ["nivel5", "Nivel 5", "Requiere Nivel 4 completado"],
-    ["examen", "Examen Final", "Requiere Nivel 5 completado"]
+    ["nivel1", "Nivel 1", "Acceso directo sin diagnóstico"],
+    ["nivel2", "Nivel 2", "Acceso directo sin Nivel 1"],
+    ["nivel3", "Nivel 3", "Acceso directo sin Nivel 2"],
+    ["nivel4", "Nivel 4", "Acceso directo sin Nivel 3"],
+    ["nivel5", "Nivel 5", "Acceso directo sin Nivel 4"],
+    ["examen", "Examen Final", "Acceso directo sin Nivel 5"]
   ];
   const list = document.getElementById("adminList");
   list.innerHTML = "";
@@ -1235,22 +1235,30 @@ function renderAdminList() {
   });
 }
 
+function actualizarVistaAdmin() {
+  document.getElementById("adminLogin").hidden = adminAutenticado;
+  document.getElementById("adminControls").hidden = !adminAutenticado;
+  document.getElementById("adminWarn").hidden = true;
+  if (adminAutenticado) renderAdminList();
+}
+
 document.getElementById("btnAdminEntrar").addEventListener("click", () => {
   const clave = document.getElementById("adminClave").value;
   if (clave !== ADMIN_CLAVE) {
     document.getElementById("adminWarn").hidden = false;
     return;
   }
+  adminAutenticado = true;
+  sessionStorage.setItem(STORAGE_ADMIN, "1");
   document.getElementById("adminWarn").hidden = true;
-  document.getElementById("adminLogin").hidden = true;
-  document.getElementById("adminControls").hidden = false;
-  renderAdminList();
+  actualizarVistaAdmin();
 });
 
 document.getElementById("btnAdminSalir").addEventListener("click", () => {
+  adminAutenticado = false;
+  sessionStorage.removeItem(STORAGE_ADMIN);
   document.getElementById("adminClave").value = "";
-  document.getElementById("adminLogin").hidden = false;
-  document.getElementById("adminControls").hidden = true;
+  actualizarVistaAdmin();
 });
 
 /* ────────────────────────────────────────────────────
