@@ -36,6 +36,7 @@
 /* ── Reset ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
+[hidden] { display: none !important; }
 body {
   font-family: var(--font-body);
   background: var(--c-bg);
