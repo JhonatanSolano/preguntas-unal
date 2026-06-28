@@ -47,13 +47,37 @@ body {
 }
 body.group-locked > :not(#groupGate) { display: none !important; }
 body:not(.group-locked) #groupGate { display: none !important; }
+body.admin-mode { padding-bottom: 5.5rem; }
 body.admin-mode .site-header { display: none !important; }
 body.admin-mode .section-nav {
-  justify-content: flex-end;
-  max-width: 680px;
-  margin-top: 1.25rem;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  max-width: none;
+  margin: 0;
+  justify-content: center;
+  padding: .85rem 1rem;
+  background: rgba(255,255,255,.96);
+  border-top: 1px solid var(--c-border);
+  box-shadow: 0 -8px 28px rgba(0,56,101,.12);
+  backdrop-filter: blur(10px);
 }
 body.admin-mode .section-nav .nav-btn:not(.exit-nav) { display: none !important; }
+body.admin-mode .exit-nav {
+  min-width: 190px;
+  justify-content: center;
+  border-color: transparent;
+  background: var(--c-red);
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(192,57,43,.22);
+}
+body.admin-mode .exit-nav:hover {
+  background: #a93226;
+  color: #fff;
+  transform: translateY(-1px);
+}
 
 /* ══════════════════════════════════
    HEADER

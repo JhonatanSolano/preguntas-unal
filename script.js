@@ -104,11 +104,11 @@ const PREGUNTAS = [
   },
   {
     id: 10,
-    pregunta: "Resuelve la ecuación con valor absoluto",
-    formula: "\\[ |x - 3| = 5 \\]",
-    opciones: ["8", "−2", "8 y −2", "5 y −5"],
+    pregunta: "Si la recta \\(y=2x+b\\) pasa por el punto \\((3,11)\\), entonces \\(b\\) vale:",
+    formula: "",
+    opciones: ["\\(3\\)", "\\(4\\)", "\\(5\\)", "\\(6\\)"],
     correcta: 2,
-    explicacion: "\\(|x-3| = 5\\) da dos casos:<br>• \\(x - 3 = 5 \\Rightarrow x = 8\\)<br>• \\(x - 3 = -5 \\Rightarrow x = -2\\)"
+    explicacion: "Sustituimos el punto en la ecuación: \\(11=2(3)+b\\). Entonces \\(11=6+b\\), de donde \\(b=5\\)."
   },
   {
     id: 11,
@@ -278,8 +278,10 @@ function calcBalance(correctas, total, tiempoSeg) {
 const LETRAS = ["A", "B", "C", "D"];
 
 const ACTIVE_ATTEMPT_KEY = "preguntasUnalIntentoActivo";
+const RESULTADOS_KEY = "preguntasUnalResultadosSesion";
 const INACTIVIDAD_MS = 10 * 60 * 1000;
 let intentoActivo = cargarIntentoActivo();
+let resultadosSesion = cargarResultadosSesion();
 
 function cargarIntentoActivo() {
   try {
@@ -300,6 +302,37 @@ function guardarIntentoActivo() {
 function limpiarIntentoActivo() {
   intentoActivo = null;
   guardarIntentoActivo();
+}
+
+function cargarResultadosSesion() {
+  try {
+    return JSON.parse(localStorage.getItem(RESULTADOS_KEY) || "{}");
+  } catch {
+    return {};
+  }
+}
+
+function guardarResultadosSesion() {
+  localStorage.setItem(RESULTADOS_KEY, JSON.stringify(resultadosSesion));
+}
+
+function guardarResultadoSesion(clave, respuestas, restante) {
+  resultadosSesion[clave] = {
+    respuestas,
+    restante: Math.max(0, restante),
+    guardado: Date.now()
+  };
+  guardarResultadosSesion();
+}
+
+function borrarResultadoSesion(clave) {
+  delete resultadosSesion[clave];
+  guardarResultadosSesion();
+}
+
+function limpiarResultadosSesion() {
+  resultadosSesion = {};
+  localStorage.removeItem(RESULTADOS_KEY);
 }
 
 function iniciarIntentoActivo(tipo, clave, total) {
@@ -375,6 +408,7 @@ setInterval(() => {
   detenerTimerNivel();
   detenerTimerExamen();
   limpiarIntentoActivo();
+  limpiarResultadosSesion();
   window.location.reload();
 }, 30000);
 
@@ -497,6 +531,16 @@ let examenIniciado = false;
 let examenCompletado = false;
 const nivelesCompletados = { nivel1: false, nivel2: false, nivel3: false, nivel4: false, nivel5: false };
 
+function sincronizarCompletadosGuardados() {
+  diagnosticoCompletado = !!resultadosSesion.diagnostico;
+  Object.keys(nivelesCompletados).forEach(clave => {
+    nivelesCompletados[clave] = !!resultadosSesion[clave];
+  });
+  examenCompletado = !!resultadosSesion.examen;
+}
+
+sincronizarCompletadosGuardados();
+
 form.addEventListener("submit", (e) => {
   e.preventDefault();
 
@@ -531,8 +575,8 @@ form.addEventListener("submit", (e) => {
  * Función central compartida por envío manual y tiempo agotado.
  * Recibe array de respuestas (índice 0-3 o -1 = sin responder).
  */
-function evaluarYMostrar(respuestas) {
-  limpiarIntentoActivo();
+function evaluarYMostrar(respuestas, opciones = {}) {
+  if (!opciones.restaurando) limpiarIntentoActivo();
   /* Ocultar formulario de envío */
   document.getElementById("submitBtn").style.display = "none";
   // Marcar diagnóstico como completado
@@ -546,9 +590,11 @@ function evaluarYMostrar(respuestas) {
   const nota        = calcNota(porcentaje);
   const badge       = calcBadge(porcentaje);
 
+  if (!opciones.restaurando) guardarResultadoSesion("diagnostico", respuestas, segundosRestantes);
   mostrarResultados(respuestas, correctas, incorrectas, porcentaje, nota, badge);
+  mostrarProgreso(PREGUNTAS.length, PREGUNTAS.length);
   resetTimer();
-  resultsSection.scrollIntoView({ behavior: "smooth" });
+  if (!opciones.restaurando) resultsSection.scrollIntoView({ behavior: "smooth" });
 }
 
 /* ────────────────────────────────────────────────────
@@ -665,6 +711,7 @@ function textoPlano(str) {
 /* Reiniciar diagnóstico */
 document.getElementById("btnRestart").addEventListener("click", () => {
   limpiarIntentoActivo();
+  borrarResultadoSesion("diagnostico");
   detenerTimer();
   diagnosticoCompletado = false;
 
@@ -708,6 +755,7 @@ document.getElementById("btnAll").addEventListener("click", () => {
 document.querySelectorAll(".nav-btn").forEach(btn => {
   btn.addEventListener("click", () => {
     const sec = btn.dataset.section;
+    if (!sec) return;
     const activa = pruebaActivaActual();
     if (activa && sec !== activa && sec !== "soporte") {
       activarNav(activa);
@@ -728,6 +776,8 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
 
     // Al entrar al examen final, mostrar estado correcto
     if (sec === "examen") {
+      const resultadoExamen = resultadosSesion.examen;
+      if (resultadoExamen && !examenIniciado) examenCompletado = true;
       if (puedeAbrirExamenFinal()) {
         document.getElementById("examenBloqueado").hidden   = true;
         document.getElementById("startScreenExamen").hidden = examenIniciado || examenCompletado;
@@ -742,6 +792,14 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
         // Asegurarse que el formulario no sea visible
         document.getElementById("examenFormWrap").hidden       = true;
         document.getElementById("resultsSectionExamen").hidden = true;
+      }
+      if (resultadoExamen && !examenIniciado) {
+        renderizarExamen();
+        segsExamen = resultadoExamen.restante;
+        evaluarYMostrarExamen(resultadoExamen.respuestas, { restaurando: true });
+        document.getElementById("examenFormWrap").hidden = true;
+        document.getElementById("startScreenExamen").hidden = true;
+        document.getElementById("resultsSectionExamen").hidden = false;
       }
       actualizarProgresoExamen();
     }
@@ -765,6 +823,15 @@ function actualizarEstadoDiagnostico() {
   titulo.textContent = "Diagnóstico Matemático";
   texto.textContent = "Evalúa tu nivel actual antes de comenzar la preparación. Responde con honestidad, no hay penalización por error.";
   btn.hidden = false;
+  if (resultadosSesion.diagnostico && !intentoCoincide("diag", "diagnostico")) {
+    renderizarPreguntas();
+    segundosRestantes = resultadosSesion.diagnostico.restante;
+    evaluarYMostrar(resultadosSesion.diagnostico.respuestas, { restaurando: true });
+    document.getElementById("startScreen").hidden = true;
+    document.getElementById("diagFormWrap").hidden = true;
+    resultsSection.hidden = false;
+    return;
+  }
   actualizarProgreso();
 }
 
@@ -936,12 +1003,12 @@ const NIVELES_META = {
 
 const PREGUNTAS_NIVELES = {
   nivel1: [
-    { id: 1, pregunta: "El residuo de dividir \\(7^{2026}\\) entre 5 es:", formula: "", opciones: ["\\(1\\)", "\\(2\\)", "\\(3\\)", "\\(4\\)"], correcta: 3, explicacion: "Como \\(7\\equiv2\\pmod 5\\), basta estudiar \\(2^{2026}\\). Las potencias de 2 módulo 5 tienen ciclo \\(2,4,3,1\\). Como \\(2026\\equiv2\\pmod4\\), el residuo es \\(4\\)." },
+    { id: 1, pregunta: "Si \\(f(x)=3x-5\\), entonces el valor de \\(x\\) para el cual \\(f(x)=16\\) es:", formula: "", opciones: ["\\(5\\)", "\\(6\\)", "\\(7\\)", "\\(8\\)"], correcta: 2, explicacion: "Resolvemos \\(3x-5=16\\). Entonces \\(3x=21\\), por tanto \\(x=7\\)." },
     { id: 2, pregunta: "La suma de los primeros \\(n\\) números impares positivos es 361. Entonces \\(n\\) vale:", formula: "", opciones: ["\\(17\\)", "\\(18\\)", "\\(19\\)", "\\(20\\)"], correcta: 2, explicacion: "La suma de los primeros \\(n\\) impares es \\(n^2\\). Entonces \\(n^2=361\\), de donde \\(n=19\\)." },
     { id: 3, pregunta: "Si \\(x+\\frac1x=5\\), calcula", formula: "\\[x^2+\\frac1{x^2}\\]", opciones: ["\\(21\\)", "\\(23\\)", "\\(25\\)", "\\(27\\)"], correcta: 1, explicacion: "Elevando al cuadrado: \\((x+\\frac1x)^2=x^2+2+\\frac1{x^2}=25\\). Por tanto, \\(x^2+\\frac1{x^2}=23\\)." },
     { id: 4, pregunta: "En un triángulo rectángulo, los catetos miden 9 y 12. El radio de la circunferencia inscrita es:", formula: "", opciones: ["\\(2\\)", "\\(3\\)", "\\(4\\)", "\\(6\\)"], correcta: 1, explicacion: "La hipotenusa es \\(15\\). En un triángulo rectángulo, el inradio es \\(r=\\frac{a+b-c}{2}\\). Entonces \\(r=\\frac{9+12-15}{2}=3\\)." },
     { id: 5, pregunta: "Si \\(a\\) y \\(b\\) son positivos, \\(a+b=12\\) y \\(ab=27\\), entonces \\(a^2+b^2\\) es:", formula: "", opciones: ["\\(72\\)", "\\(84\\)", "\\(90\\)", "\\(108\\)"], correcta: 2, explicacion: "\\(a^2+b^2=(a+b)^2-2ab=144-54=90\\)." },
-    { id: 6, pregunta: "¿Cuántos enteros positivos de dos cifras son múltiplos de 3 pero no de 9?", formula: "", opciones: ["\\(20\\)", "\\(21\\)", "\\(22\\)", "\\(23\\)"], correcta: 0, explicacion: "Múltiplos de 3 entre 10 y 99: \\(12,15,\\ldots,99\\), hay 30. Múltiplos de 9 entre 10 y 99: \\(18,27,\\ldots,99\\), hay 10. Quedan \\(30-10=20\\)." },
+    { id: 6, pregunta: "Si \\(\\cos\\theta=\\frac{4}{5}\\) y \\(\\theta\\) está en el primer cuadrante, entonces \\(\\sin\\theta\\) vale:", formula: "", opciones: ["\\(\\frac15\\)", "\\(\\frac35\\)", "\\(\\frac45\\)", "\\(\\frac53\\)"], correcta: 1, explicacion: "En un triángulo rectángulo, el cateto adyacente es 4 y la hipotenusa 5. El cateto opuesto es \\(3\\) por Pitágoras. Así, \\(\\sin\\theta=\\frac35\\)." },
     { id: 7, pregunta: "Si \\(f(x)=x^2-3x+1\\), entonces \\(f(3-t)-f(t)\\) vale:", formula: "", opciones: ["\\(0\\)", "\\(3\\)", "\\(6t-9\\)", "\\(9-6t\\)"], correcta: 0, explicacion: "\\(f(3-t)=(3-t)^2-3(3-t)+1=t^2-3t+1=f(t)\\). La diferencia es 0." },
     { id: 8, pregunta: "El menor entero positivo \\(n\\) tal que \\(12n\\) es un cuadrado perfecto es:", formula: "", opciones: ["\\(2\\)", "\\(3\\)", "\\(6\\)", "\\(12\\)"], correcta: 1, explicacion: "\\(12=2^2\\cdot3\\). Para que sea cuadrado, falta otro factor 3. Entonces \\(n=3\\)." },
     { id: 9, pregunta: "Si \\(2^a=8\\) y \\(3^b=81\\), entonces \\(a+b\\) es:", formula: "", opciones: ["\\(6\\)", "\\(7\\)", "\\(8\\)", "\\(9\\)"], correcta: 1, explicacion: "\\(2^a=2^3\\), entonces \\(a=3\\). \\(3^b=3^4\\), entonces \\(b=4\\). Por tanto, \\(a+b=7\\)." },
@@ -950,9 +1017,9 @@ const PREGUNTAS_NIVELES = {
   nivel2: [
     { id: 1, pregunta: "Resuelve", formula: "\\[x^2-6x+5<0\\]", opciones: ["\\((1,5)\\)", "\\((-\\infty,1)\\cup(5,\\infty)\\)", "\\([1,5]\\)", "\\((5,\\infty)\\)"], correcta: 0, explicacion: "Factorizamos \\((x-1)(x-5)<0\\). La parábola es negativa entre sus raíces: \\((1,5)\\)." },
     { id: 2, pregunta: "Si \\(\\frac{x-1}{x+1}=\\frac23\\), entonces \\(x\\) vale:", formula: "", opciones: ["\\(3\\)", "\\(4\\)", "\\(5\\)", "\\(6\\)"], correcta: 2, explicacion: "Producto cruzado: \\(3(x-1)=2(x+1)\\). Entonces \\(3x-3=2x+2\\), de donde \\(x=5\\)." },
-    { id: 3, pregunta: "La función \\(f(x)=|x-2|+|x+1|\\) tiene valor mínimo:", formula: "", opciones: ["\\(1\\)", "\\(2\\)", "\\(3\\)", "\\(4\\)"], correcta: 2, explicacion: "La suma de distancias de \\(x\\) a 2 y a -1 es mínima cuando \\(x\\in[-1,2]\\), y vale la distancia entre los puntos: \\(3\\)." },
+    { id: 3, pregunta: "La parábola \\(y=x^2-6x+11\\) tiene vértice en:", formula: "", opciones: ["\\((3,2)\\)", "\\((3,-2)\\)", "\\((-3,2)\\)", "\\((6,11)\\)"], correcta: 0, explicacion: "Completamos cuadrado: \\(x^2-6x+11=(x-3)^2+2\\). Por tanto, el vértice es \\((3,2)\\)." },
     { id: 4, pregunta: "Si \\(x^2+y^2=34\\) y \\(xy=15\\), entonces \\((x+y)^2\\) es:", formula: "", opciones: ["\\(49\\)", "\\(54\\)", "\\(64\\)", "\\(68\\)"], correcta: 2, explicacion: "\\((x+y)^2=x^2+y^2+2xy=34+30=64\\)." },
-    { id: 5, pregunta: "El número de soluciones enteras de \\(x^2\\leq 20\\) es:", formula: "", opciones: ["\\(7\\)", "\\(8\\)", "\\(9\\)", "\\(10\\)"], correcta: 2, explicacion: "\\(x^2\\leq20\\) implica \\(-\\sqrt{20}\\leq x\\leq\\sqrt{20}\\). Los enteros son \\(-4,-3,-2,-1,0,1,2,3,4\\): hay 9." },
+    { id: 5, pregunta: "Si \\(g(x)=-2x+9\\), entonces el punto donde la gráfica corta al eje \\(x\\) es:", formula: "", opciones: ["\\((0,9)\\)", "\\((\\frac92,0)\\)", "\\((2,5)\\)", "\\((9,0)\\)"], correcta: 1, explicacion: "Para cortar el eje \\(x\\), se toma \\(y=0\\). Entonces \\(-2x+9=0\\), de donde \\(2x=9\\) y \\(x=\\frac92\\). El punto es \\((\\frac92,0)\\)." },
     { id: 6, pregunta: "Si \\(a\\neq0\\) y \\(a+\\frac1a=3\\), entonces \\(a^3+\\frac1{a^3}\\) vale:", formula: "", opciones: ["\\(9\\)", "\\(12\\)", "\\(18\\)", "\\(27\\)"], correcta: 2, explicacion: "Usamos \\(u^3+v^3=(u+v)^3-3uv(u+v)\\), con \\(u=a\\), \\(v=1/a\\). Resultado: \\(3^3-3(1)(3)=27-9=18\\)." },
     { id: 7, pregunta: "¿Cuántos divisores positivos tiene \\(360\\)?", formula: "", opciones: ["\\(18\\)", "\\(20\\)", "\\(24\\)", "\\(30\\)"], correcta: 2, explicacion: "\\(360=2^3\\cdot3^2\\cdot5\\). El número de divisores es \\((3+1)(2+1)(1+1)=24\\)." },
     { id: 8, pregunta: "Si \\(f(x)=\\frac{2x-1}{x+3}\\), entonces \\(f^{-1}(1)\\) vale:", formula: "", opciones: ["\\(-4\\)", "\\(-2\\)", "\\(2\\)", "\\(4\\)"], correcta: 3, explicacion: "Buscar \\(f^{-1}(1)\\) equivale a resolver \\(f(x)=1\\): \\(\\frac{2x-1}{x+3}=1\\Rightarrow 2x-1=x+3\\Rightarrow x=4\\)." },
@@ -978,21 +1045,21 @@ const PREGUNTAS_NIVELES = {
     { id: 4, pregunta: "La suma", formula: "\\[1\\cdot2+2\\cdot3+\\cdots+10\\cdot11\\]", opciones: ["\\(430\\)", "\\(440\\)", "\\(450\\)", "\\(460\\)"], correcta: 1, explicacion: "\\(k(k+1)=k^2+k\\). Entonces la suma es \\(\\sum k^2+\\sum k=385+55=440\\)." },
     { id: 5, pregunta: "Si \\(z\\) satisface \\(z^2+z+1=0\\), entonces \\(z^{2026}\\) es:", formula: "", opciones: ["\\(1\\)", "\\(z\\)", "\\(z^2\\)", "\\(-1\\)"], correcta: 1, explicacion: "De \\(z^2+z+1=0\\), se tiene \\(z^3=1\\) y \\(z\\neq1\\). Como \\(2026\\equiv1\\pmod3\\), \\(z^{2026}=z\\)." },
     { id: 6, pregunta: "¿Cuántos caminos mínimos hay de \\((0,0)\\) a \\((4,3)\\) moviéndose solo derecha o arriba?", formula: "", opciones: ["\\(21\\)", "\\(28\\)", "\\(35\\)", "\\(42\\)"], correcta: 2, explicacion: "Son 7 movimientos: 4 derechas y 3 arriba. Se eligen las posiciones de las 3 subidas: \\(\\binom73=35\\)." },
-    { id: 7, pregunta: "La ecuación \\(\\lfloor x\\rfloor+x=10.5\\) tiene solución:", formula: "", opciones: ["\\(5.25\\)", "\\(5.5\\)", "\\(5.75\\)", "\\(6.25\\)"], correcta: 1, explicacion: "Si \\(\\lfloor x\\rfloor=n\\), entonces \\(x=10.5-n\\) y debe cumplir \\(n\\le x<n+1\\). Probando \\(n=5\\), \\(x=5.5\\), y \\(\\lfloor5.5\\rfloor+5.5=10.5\\)." },
+    { id: 7, pregunta: "Si \\(\\log_3(x+6)-\\log_3 x=1\\), entonces \\(x\\) vale:", formula: "", opciones: ["\\(2\\)", "\\(3\\)", "\\(4\\)", "\\(6\\)"], correcta: 1, explicacion: "Usamos \\(\\log_3\\left(\\frac{x+6}{x}\\right)=1\\). Entonces \\(\\frac{x+6}{x}=3\\), de modo que \\(x+6=3x\\), y \\(x=3\\)." },
     { id: 8, pregunta: "Si \\(\\tan\\theta+\\cot\\theta=\\frac{13}{6}\\), entonces \\(\\tan^2\\theta+\\cot^2\\theta\\) vale:", formula: "", opciones: ["\\(\\frac{25}{36}\\)", "\\(\\frac{97}{36}\\)", "\\(\\frac{133}{36}\\)", "\\(\\frac{169}{36}\\)"], correcta: 1, explicacion: "\\((t+1/t)^2=t^2+2+1/t^2\\). Entonces \\(t^2+1/t^2=\\frac{169}{36}-2=\\frac{97}{36}\\)." },
     { id: 9, pregunta: "En un cuadrado de lado 10 se inscribe un círculo. El área de la región del cuadrado que queda fuera del círculo es:", formula: "", opciones: ["\\(100-25\\pi\\)", "\\(100-50\\pi\\)", "\\(25\\pi\\)", "\\(75\\pi\\)"], correcta: 0, explicacion: "El cuadrado tiene área \\(10^2=100\\). El círculo inscrito tiene radio 5, así que su área es \\(25\\pi\\). La región exterior al círculo dentro del cuadrado mide \\(100-25\\pi\\)." },
     { id: 10, pregunta: "Si \\(r+s=4\\) y \\(r^3+s^3=28\\), entonces \\(rs\\) vale:", formula: "", opciones: ["\\(2\\)", "\\(3\\)", "\\(4\\)", "\\(5\\)"], correcta: 1, explicacion: "\\(r^3+s^3=(r+s)^3-3rs(r+s)=64-12rs=28\\). Entonces \\(12rs=36\\), así \\(rs=3\\)." }
   ],
   nivel5: [
     { id: 1, pregunta: "Si \\(x,y>0\\) y \\(x+y=1\\), el mínimo de", formula: "\\[\\frac1x+\\frac1y\\]", opciones: ["\\(2\\)", "\\(3\\)", "\\(4\\)", "\\(5\\)"], correcta: 2, explicacion: "Por AM-HM o Cauchy, \\(\\frac1x+\\frac1y\\geq\\frac{(1+1)^2}{x+y}=4\\). Se alcanza en \\(x=y=1/2\\)." },
-    { id: 2, pregunta: "El número de soluciones enteras de \\(x^2+y^2=25\\) es:", formula: "", opciones: ["\\(8\\)", "\\(10\\)", "\\(12\\)", "\\(16\\)"], correcta: 2, explicacion: "Pares: \\((\\pm5,0),(0,\\pm5)\\) dan 4. Además \\((\\pm3,\\pm4)\\) y \\((\\pm4,\\pm3)\\) dan 8. Total 12." },
+    { id: 2, pregunta: "Si \\(\\tan\\theta=\\frac{3}{4}\\) y \\(\\theta\\) está en el primer cuadrante, entonces \\(\\sin\\theta+\\cos\\theta\\) vale:", formula: "", opciones: ["\\(\\frac75\\)", "\\(\\frac65\\)", "\\(\\frac54\\)", "\\(\\frac43\\)"], correcta: 0, explicacion: "Con \\(\\tan\\theta=\\frac34\\), tomamos catetos 3 y 4, hipotenusa 5. Entonces \\(\\sin\\theta=\\frac35\\) y \\(\\cos\\theta=\\frac45\\). La suma es \\(\\frac75\\)." },
     { id: 3, pregunta: "Si \\(a,b,c\\) son positivos y \\(abc=1\\), entonces el mínimo de \\(a+b+c\\) es:", formula: "", opciones: ["\\(1\\)", "\\(2\\)", "\\(3\\)", "No tiene mínimo"], correcta: 2, explicacion: "Por AM-GM, \\(a+b+c\\geq3\\sqrt[3]{abc}=3\\). Se alcanza cuando \\(a=b=c=1\\)." },
     { id: 4, pregunta: "La suma de todos los enteros \\(n\\) tales que \\(n^2-10n+21<0\\) es:", formula: "", opciones: ["\\(12\\)", "\\(15\\)", "\\(18\\)", "\\(25\\)"], correcta: 1, explicacion: "Factorizamos \\((n-3)(n-7)<0\\). Los enteros estrictamente entre 3 y 7 son \\(4,5,6\\). Su suma es \\(15\\)." },
-    { id: 5, pregunta: "El residuo de \\(3^{100}+4^{100}\\) al dividir entre 7 es:", formula: "", opciones: ["\\(0\\)", "\\(1\\)", "\\(2\\)", "\\(6\\)"], correcta: 1, explicacion: "Módulo 7, \\(3^6\\equiv1\\) y \\(4^3\\equiv1\\). Como \\(100\\equiv4\\pmod6\\), \\(3^{100}\\equiv3^4=81\\equiv4\\). Como \\(100\\equiv1\\pmod3\\), \\(4^{100}\\equiv4\\). Suma \\(8\\equiv1\\)." },
-    { id: 6, pregunta: "Si \\(p\\) es primo y \\(p\\mid n^2\\), entonces necesariamente:", formula: "", opciones: ["\\(p^2\\mid n\\)", "\\(p\\mid n\\)", "\\(n\\mid p\\)", "\\(p+n\\) es primo"], correcta: 1, explicacion: "Por el lema de Euclides, si un primo divide un producto \\(n\\cdot n\\), entonces divide a uno de los factores; por tanto \\(p\\mid n\\)." },
+    { id: 5, pregunta: "Si \\(2^{x+1}+2^x=48\\), entonces \\(x\\) vale:", formula: "", opciones: ["\\(3\\)", "\\(4\\)", "\\(5\\)", "\\(6\\)"], correcta: 1, explicacion: "Factorizamos \\(2^x\\): \\(2^{x+1}+2^x=2\\cdot2^x+2^x=3\\cdot2^x=48\\). Entonces \\(2^x=16\\), por tanto \\(x=4\\)." },
+    { id: 6, pregunta: "Si \\(\\sin\\theta=\\frac{5}{13}\\) y \\(\\theta\\) está en el segundo cuadrante, entonces \\(\\cos\\theta\\) vale:", formula: "", opciones: ["\\(\\frac{12}{13}\\)", "\\(-\\frac{12}{13}\\)", "\\(\\frac{5}{12}\\)", "\\(-\\frac{5}{12}\\)"], correcta: 1, explicacion: "Con hipotenusa 13 y cateto opuesto 5, el cateto adyacente mide 12. En el segundo cuadrante el coseno es negativo, así que \\(\\cos\\theta=-\\frac{12}{13}\\)." },
     { id: 7, pregunta: "¿Cuántos subconjuntos de \\(\\{1,2,3,4,5,6\\}\\) tienen suma par?", formula: "", opciones: ["\\(16\\)", "\\(24\\)", "\\(32\\)", "\\(36\\)"], correcta: 2, explicacion: "Hay igual cantidad de subconjuntos con suma par e impar porque existe al menos un elemento impar. Total \\(2^6=64\\), por tanto la mitad: 32." },
     { id: 8, pregunta: "Si \\(x^2-3x+1=0\\), entonces \\(x^4+\\frac1{x^4}\\) vale:", formula: "", opciones: ["\\(47\\)", "\\(49\\)", "\\(51\\)", "\\(53\\)"], correcta: 0, explicacion: "De la ecuación, \\(x+1/x=3\\). Entonces \\(x^2+1/x^2=7\\) y \\(x^4+1/x^4=7^2-2=47\\)." },
-    { id: 9, pregunta: "La cantidad de enteros entre 1 y 1000 que no son múltiplos de 2, 3 ni 5 es:", formula: "", opciones: ["\\(266\\)", "\\(267\\)", "\\(268\\)", "\\(269\\)"], correcta: 0, explicacion: "Usando inclusión-exclusión: múltiplos de 2,3,5 son \\(500+333+200-166-100-66+33=734\\). No divisibles por ninguno: \\(1000-734=266\\)." },
+    { id: 9, pregunta: "Si \\(\\log_2(x-1)+\\log_2(x+1)=3\\), entonces \\(x\\) vale:", formula: "", opciones: ["\\(2\\)", "\\(3\\)", "\\(4\\)", "\\(5\\)"], correcta: 1, explicacion: "Se juntan los logaritmos: \\(\\log_2((x-1)(x+1))=3\\). Entonces \\(x^2-1=8\\), de donde \\(x^2=9\\). Por dominio, \\(x>1\\), así que \\(x=3\\)." },
     { id: 10, pregunta: "Si \\(\\alpha\\) y \\(\\beta\\) son raíces de \\(x^2-x-1=0\\), entonces \\(\\alpha^5+\\beta^5\\) vale:", formula: "", opciones: ["\\(5\\)", "\\(7\\)", "\\(11\\)", "\\(13\\)"], correcta: 2, explicacion: "Sea \\(S_n=\\alpha^n+\\beta^n\\). Como cada raíz cumple \\(x^2=x+1\\), \\(S_n=S_{n-1}+S_{n-2}\\). \\(S_0=2\\), \\(S_1=1\\), luego \\(S_2=3\\), \\(S_3=4\\), \\(S_4=7\\), \\(S_5=11\\)." }
   ]
 };
@@ -1121,9 +1188,10 @@ function resetTimerNivel() {
 function abrirNivel(clave) {
   const cambioDeNivel = nivelActual !== clave;
   nivelActual = clave;
+  const resultadoNivel = resultadosSesion[clave];
   if (cambioDeNivel) {
     nivelIniciado = false;
-    nivelCompletadoVisible = false;
+    nivelCompletadoVisible = !!resultadoNivel;
     document.getElementById("nivelContainer").innerHTML = "";
     document.getElementById("summaryBodyNivel").innerHTML = "";
     document.getElementById("feedbackItemsNivel").innerHTML = "";
@@ -1131,6 +1199,8 @@ function abrirNivel(clave) {
     document.getElementById("nivelFormWrap").hidden = true;
     document.getElementById("submitBtnNivel").style.display = "";
     resetTimerNivel();
+  } else if (resultadoNivel && !nivelIniciado) {
+    nivelCompletadoVisible = true;
   }
   const meta = NIVELES_META[clave];
   document.getElementById("nivelTitulo").textContent = meta.titulo;
@@ -1148,6 +1218,14 @@ function abrirNivel(clave) {
     document.getElementById("nivelFormWrap").hidden = !nivelIniciado;
     document.getElementById("resultsSectionNivel").hidden = !nivelCompletadoVisible;
     if (!nivelIniciado && !nivelCompletadoVisible) resetTimerNivel();
+    if (resultadoNivel && !nivelIniciado) {
+      renderizarNivel();
+      segsNivel = resultadoNivel.restante;
+      evaluarYMostrarNivel(resultadoNivel.respuestas, { restaurando: true });
+      document.getElementById("nivelFormWrap").hidden = true;
+      document.getElementById("startScreenNivel").hidden = true;
+      document.getElementById("resultsSectionNivel").hidden = false;
+    }
   } else {
     document.getElementById("nivelBloqueado").hidden = false;
     document.getElementById("startScreenNivel").hidden = true;
@@ -1198,8 +1276,8 @@ function reiniciarEstadoNiveles() {
   reiniciarEstadoNivelVisual();
 }
 
-function evaluarYMostrarNivel(respuestas) {
-  limpiarIntentoActivo();
+function evaluarYMostrarNivel(respuestas, opciones = {}) {
+  if (!opciones.restaurando) limpiarIntentoActivo();
   nivelIniciado = false;
   nivelCompletadoVisible = true;
   nivelesCompletados[nivelActual] = true;
@@ -1207,6 +1285,7 @@ function evaluarYMostrarNivel(respuestas) {
 
   const preguntas = PREGUNTAS_NIVELES[nivelActual];
   const tiempoEmpleado = DURACION_SEG - segsNivel;
+  if (!opciones.restaurando) guardarResultadoSesion(nivelActual, respuestas, segsNivel);
   let correctas = 0;
   preguntas.forEach((q, i) => { if (respuestas[i] === q.correcta) correctas++; });
   const incorrectas = preguntas.length - correctas;
@@ -1226,6 +1305,7 @@ function evaluarYMostrarNivel(respuestas) {
   document.getElementById("tiempoEmpleadoNivel").textContent = formatTiempo(tiempoEmpleado);
   document.getElementById("tiempoRestanteNivel").textContent = formatTiempo(segsNivel);
   document.getElementById("balanceResultadoNivel").textContent = calcBalance(correctas, preguntas.length, tiempoEmpleado);
+  mostrarProgreso(preguntas.length, preguntas.length);
 
   const ring = document.getElementById("ringFillNivel");
   if (pct >= 70) ring.style.stroke = "#1a7f5a";
@@ -1274,7 +1354,7 @@ function evaluarYMostrarNivel(respuestas) {
 
   reRenderKatex(sec);
   resetTimerNivel();
-  sec.scrollIntoView({ behavior: "smooth" });
+  if (!opciones.restaurando) sec.scrollIntoView({ behavior: "smooth" });
 
   preguntas.forEach((q, i) => {
     const card = document.getElementById(`nivel-card-${q.id}`);
@@ -1345,6 +1425,7 @@ document.getElementById("nivelForm").addEventListener("submit", (e) => {
 
 document.getElementById("btnRestartNivel").addEventListener("click", () => {
   limpiarIntentoActivo();
+  borrarResultadoSesion(nivelActual);
   nivelesCompletados[nivelActual] = false;
   reiniciarEstadoNivelVisual();
   actualizarProgresoNivel();
@@ -1400,6 +1481,7 @@ document.getElementById("grupoClave").addEventListener("keydown", (e) => {
 
 function salirApp() {
   limpiarIntentoActivo();
+  limpiarResultadosSesion();
   localStorage.removeItem(STORAGE_GRUPO);
   window.location.reload();
 }
@@ -1626,12 +1708,13 @@ document.getElementById("examenForm").addEventListener("submit", (e) => {
 });
 
 /** Submit manual examen */
-function evaluarYMostrarExamen(respuestas) {
-  limpiarIntentoActivo();
+function evaluarYMostrarExamen(respuestas, opciones = {}) {
+  if (!opciones.restaurando) limpiarIntentoActivo();
   examenIniciado = false;
   examenCompletado = true;
   document.getElementById("submitBtnExamen").style.display = "none";
   const tiempoEmpleado = (15 * 60) - segsExamen;
+  if (!opciones.restaurando) guardarResultadoSesion("examen", respuestas, segsExamen);
   let correctas = 0;
   PREGUNTAS_EXAMEN.forEach((q, i) => { if (respuestas[i] === q.correcta) correctas++; });
   const incorrectas = PREGUNTAS_EXAMEN.length - correctas;
@@ -1654,6 +1737,7 @@ function evaluarYMostrarExamen(respuestas) {
   document.getElementById("tiempoRestanteExamen").textContent = formatTiempo(segsExamen);
   document.getElementById("balanceResultadoExamen").textContent =
     calcBalance(correctas, PREGUNTAS_EXAMEN.length, tiempoEmpleado);
+  mostrarProgreso(PREGUNTAS_EXAMEN.length, PREGUNTAS_EXAMEN.length);
   const ringE = document.getElementById("ringFillExamen");
   if (pct >= 70) ringE.style.stroke = "#1a7f5a";
   else if (pct >= 50) ringE.style.stroke = "#c8972b";
@@ -1705,7 +1789,7 @@ function evaluarYMostrarExamen(respuestas) {
 
   reRenderKatex(sec);
   resetTimerExamen();
-  sec.scrollIntoView({ behavior: "smooth" });
+  if (!opciones.restaurando) sec.scrollIntoView({ behavior: "smooth" });
 
   // Marcar tarjetas
   PREGUNTAS_EXAMEN.forEach((q, i) => {
@@ -1725,6 +1809,7 @@ function evaluarYMostrarExamen(respuestas) {
 /* Botones examen final */
 document.getElementById("btnRestartExamen").addEventListener("click", () => {
   limpiarIntentoActivo();
+  borrarResultadoSesion("examen");
   reiniciarEstadoExamenFinal(true);
   actualizarProgresoExamen();
   window.scrollTo({ top: 0, behavior: "smooth" });
