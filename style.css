@@ -47,6 +47,13 @@ body {
 }
 body.group-locked > :not(#groupGate) { display: none !important; }
 body:not(.group-locked) #groupGate { display: none !important; }
+body.admin-mode .site-header { display: none !important; }
+body.admin-mode .section-nav {
+  justify-content: flex-end;
+  max-width: 680px;
+  margin-top: 1.25rem;
+}
+body.admin-mode .section-nav .nav-btn:not(.exit-nav) { display: none !important; }
 
 /* ══════════════════════════════════
    HEADER

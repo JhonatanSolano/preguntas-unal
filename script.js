@@ -783,6 +783,10 @@ function activarNav(sec) {
   mostrarSeccion(sec);
 }
 
+function aplicarModoUsuario() {
+  document.body.classList.toggle("admin-mode", modoAdmin);
+}
+
 // Botón "Ir al Diagnóstico" desde pantalla bloqueada
 document.getElementById("btnIrDiagnostico").addEventListener("click", () => {
   activarNav("nivel5");
@@ -1367,6 +1371,7 @@ function entrarGrupo() {
     localStorage.setItem(STORAGE_GRUPO, grupoActivo);
     document.getElementById("grupoWarn").hidden = true;
     document.body.classList.remove("group-locked");
+    aplicarModoUsuario();
     activarNav("admin");
     return;
   }
@@ -1380,6 +1385,7 @@ function entrarGrupo() {
   localStorage.setItem(STORAGE_GRUPO, grupoActivo);
   document.getElementById("grupoWarn").hidden = true;
   document.body.classList.remove("group-locked");
+  aplicarModoUsuario();
   activarNav("diagnostico");
   actualizarEstadoDiagnostico();
 }
@@ -1403,10 +1409,12 @@ document.getElementById("btnSalirApp").addEventListener("click", salirApp);
 if (grupoActivo === "admin" || (grupoActivo && GRUPOS[grupoActivo])) {
   modoAdmin = grupoActivo === "admin";
   document.body.classList.remove("group-locked");
+  aplicarModoUsuario();
   activarNav(modoAdmin ? "admin" : "diagnostico");
 } else {
   grupoActivo = "";
   localStorage.removeItem(STORAGE_GRUPO);
+  aplicarModoUsuario();
 }
 
 function renderAdminPanel() {
