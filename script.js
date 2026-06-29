@@ -2,6 +2,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/fireba
 import {
   getAuth,
   GoogleAuthProvider,
+  PhoneAuthProvider,
+  RecaptchaVerifier,
   browserLocalPersistence,
   createUserWithEmailAndPassword,
   onAuthStateChanged,
@@ -11,6 +13,7 @@ import {
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
+  updatePhoneNumber,
   updateProfile
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 import {
@@ -20,8 +23,11 @@ import {
   getDocs,
   getFirestore,
   onSnapshot,
+  query,
   serverTimestamp,
-  setDoc
+  setDoc,
+  updateDoc,
+  where
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -44,6 +50,53 @@ let usuarioActual = null;
 let perfilActual = null;
 let unsubscribePermisos = null;
 let registroEnCurso = false;
+let phoneVerificationId = "";
+let phoneVerificationExpiresAt = 0;
+let recaptchaVerifier = null;
+
+const PHONE_CODES = [
+  { code: "+57", label: "Colombia (+57)" },
+  { code: "+52", label: "México (+52)" },
+  { code: "+51", label: "Perú (+51)" },
+  { code: "+593", label: "Ecuador (+593)" },
+  { code: "+1", label: "Estados Unidos (+1)" },
+  { code: "+34", label: "España (+34)" }
+];
+
+const LOCATION_DATA = {
+  "Colombia": {
+    "Bogotá D.C.": ["Bogotá"],
+    "Antioquia": ["Medellín", "Bello", "Envigado"],
+    "Atlántico": ["Barranquilla", "Soledad"],
+    "Valle del Cauca": ["Cali", "Palmira", "Buenaventura"],
+    "Santander": ["Bucaramanga", "Floridablanca"]
+  },
+  "México": {
+    "Ciudad de México": ["Ciudad de México"],
+    "Jalisco": ["Guadalajara", "Zapopan"],
+    "Nuevo León": ["Monterrey", "San Pedro Garza García"]
+  },
+  "Perú": {
+    "Lima": ["Lima", "Callao"],
+    "Arequipa": ["Arequipa"],
+    "Cusco": ["Cusco"]
+  },
+  "Ecuador": {
+    "Pichincha": ["Quito"],
+    "Guayas": ["Guayaquil", "Durán"],
+    "Azuay": ["Cuenca"]
+  },
+  "Estados Unidos": {
+    "Florida": ["Miami", "Orlando"],
+    "California": ["Los Ángeles", "San Francisco"],
+    "New York": ["New York"]
+  },
+  "España": {
+    "Madrid": ["Madrid"],
+    "Cataluña": ["Barcelona"],
+    "Andalucía": ["Sevilla", "Málaga"]
+  }
+};
 
 /* ════════════════════════════════════════════════════════
    UNAL – Diagnóstico Matemático · script.js
@@ -1091,12 +1144,14 @@ function mostrarSeccion(sec) {
   document.getElementById("sectionNivel").classList.toggle("hidden", !sec.startsWith("nivel"));
   document.getElementById("sectionExamen").classList.toggle("hidden", sec !== "examen");
   document.getElementById("sectionEstadisticas").classList.toggle("hidden", sec !== "estadisticas");
+  document.getElementById("sectionPerfil").classList.toggle("hidden", sec !== "perfil");
   document.getElementById("sectionAdmin").classList.toggle("hidden", sec !== "admin");
   document.getElementById("sectionSoporte").classList.toggle("hidden", sec !== "soporte");
   if (sec === "diagnostico") actualizarEstadoDiagnostico();
   if (sec === "admin") renderAdminPanel();
   if (sec === "estadisticas") renderStudentStats();
   if (sec === "inicio") actualizarBienvenida();
+  if (sec === "perfil") renderProfile();
 }
 
 function activarNav(sec) {
@@ -1941,16 +1996,101 @@ function limpiarWarn() {
   document.getElementById("grupoWarn").hidden = true;
 }
 
+function poblarPhoneCodes(selectId, value = "+57") {
+  const select = document.getElementById(selectId);
+  if (!select) return;
+  select.innerHTML = PHONE_CODES.map(item => `<option value="${item.code}">${item.label}</option>`).join("");
+  select.value = value;
+}
+
+function poblarUbicacion(prefix, valores = {}) {
+  const country = document.getElementById(`${prefix}Country`);
+  const region = document.getElementById(`${prefix}Region`);
+  const city = document.getElementById(`${prefix}City`);
+  if (!country || !region || !city) return;
+
+  const paises = Object.keys(LOCATION_DATA);
+  country.innerHTML = `<option value="">País</option>${paises.map(p => `<option value="${p}">${p}</option>`).join("")}`;
+  country.value = valores.country || "";
+
+  const renderRegions = () => {
+    const regiones = Object.keys(LOCATION_DATA[country.value] || {});
+    region.innerHTML = `<option value="">Departamento / estado</option>${regiones.map(r => `<option value="${r}">${r}</option>`).join("")}`;
+    region.value = valores.region && regiones.includes(valores.region) ? valores.region : "";
+    renderCities();
+  };
+
+  const renderCities = () => {
+    const ciudades = LOCATION_DATA[country.value]?.[region.value] || [];
+    city.innerHTML = `<option value="">Ciudad</option>${ciudades.map(c => `<option value="${c}">${c}</option>`).join("")}`;
+    city.value = valores.city && ciudades.includes(valores.city) ? valores.city : "";
+  };
+
+  country.onchange = () => {
+    valores.region = "";
+    valores.city = "";
+    renderRegions();
+  };
+  region.onchange = () => {
+    valores.city = "";
+    renderCities();
+  };
+  renderRegions();
+}
+
+function calcularEdad(fecha) {
+  if (!fecha) return "—";
+  const nacimiento = new Date(`${fecha}T00:00:00`);
+  if (Number.isNaN(nacimiento.getTime())) return "—";
+  const hoy = new Date();
+  let edad = hoy.getFullYear() - nacimiento.getFullYear();
+  const mes = hoy.getMonth() - nacimiento.getMonth();
+  if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) edad--;
+  return edad >= 0 ? edad : "—";
+}
+
+function perfilBasicoDesdeFormulario(prefix) {
+  return {
+    phoneCode: document.getElementById(`${prefix}PhoneCode`)?.value || "+57",
+    phone: document.getElementById(`${prefix}Phone`)?.value.trim() || "",
+    birthDate: document.getElementById(`${prefix}Birth`)?.value || "",
+    gender: document.getElementById(`${prefix}Gender`)?.value || "",
+    country: document.getElementById(`${prefix}Country`)?.value || "",
+    region: document.getElementById(`${prefix}Region`)?.value || "",
+    city: document.getElementById(`${prefix}City`)?.value || ""
+  };
+}
+
+function renderProfile() {
+  if (!usuarioActual) return;
+  const profile = perfilActual || {};
+  const displayName = profile.displayName || usuarioActual.displayName || "";
+  const photo = profile.photoData || usuarioActual.photoURL || "";
+  document.getElementById("profileNameTitle").textContent = displayName || "Perfil";
+  document.getElementById("profileEmailText").textContent = usuarioActual.email || "";
+  document.getElementById("profileAgeChip").textContent = `Edad: ${calcularEdad(profile.birthDate)}`;
+  document.getElementById("profileGroupChip").textContent = `Grupo: ${GRUPOS[grupoActivo]?.nombre || "sin grupo"}`;
+  document.getElementById("profilePhoneChip").textContent = profile.phoneVerified ? "Teléfono verificado" : "Teléfono sin verificar";
+  document.getElementById("profilePhotoPreview").src = photo || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Crect width='120' height='120' rx='60' fill='%23e8f0fb'/%3E%3Ctext x='60' y='68' text-anchor='middle' font-size='44' fill='%23003865'%3E%F0%9F%91%A4%3C/text%3E%3C/svg%3E";
+  document.getElementById("profileName").value = displayName;
+  document.getElementById("profileBirth").value = profile.birthDate || "";
+  document.getElementById("profileGender").value = profile.gender || "";
+  poblarPhoneCodes("profilePhoneCode", profile.phoneCode || "+57");
+  document.getElementById("profilePhone").value = profile.phone || "";
+  poblarUbicacion("profile", profile);
+}
+
 async function guardarPerfilUsuario(extra = {}) {
   const uid = usuarioActual?.uid || extra.uid;
   if (!uid) return;
   const email = usuarioActual?.email || extra.email || "";
   perfilActual = {
+    ...(perfilActual || {}),
     uid,
     email,
-    displayName: usuarioActual?.displayName || extra.displayName || "",
+    displayName: extra.displayName || perfilActual?.displayName || usuarioActual?.displayName || "",
     isAdmin: email === ADMIN_EMAIL,
-    grupo: grupoActivo || "",
+    grupo: extra.grupo || grupoActivo || perfilActual?.grupo || "",
     ...extra
   };
   await setDoc(doc(db, "users", uid), { ...perfilActual, updatedAt: serverTimestamp() }, { merge: true });
@@ -2039,6 +2179,7 @@ async function registrarEmail() {
   const nombre = document.getElementById("registerName").value.trim();
   const email = document.getElementById("registerEmail").value.trim().toLowerCase();
   const password = document.getElementById("registerPassword").value;
+  const perfilRegistro = perfilBasicoDesdeFormulario("register");
   if (nombre.length < 3) {
     mostrarWarn("Escribe un nombre de usuario de mínimo 3 caracteres.");
     return;
@@ -2051,11 +2192,22 @@ async function registrarEmail() {
     mostrarWarn("La contraseña debe tener mínimo 8 caracteres, una mayúscula, dos números y un símbolo permitido.");
     return;
   }
+  if (!perfilRegistro.birthDate || !perfilRegistro.gender || !perfilRegistro.country || !perfilRegistro.region || !perfilRegistro.city) {
+    mostrarWarn("Completa fecha de nacimiento, sexo o género, país, departamento y ciudad.");
+    return;
+  }
   try {
     registroEnCurso = true;
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(cred.user, { displayName: nombre });
-    await guardarPerfilUsuario({ uid: cred.user.uid, email, displayName: nombre, isAdmin: email === ADMIN_EMAIL });
+    await guardarPerfilUsuario({
+      uid: cred.user.uid,
+      email,
+      displayName: nombre,
+      isAdmin: email === ADMIN_EMAIL,
+      phoneVerified: false,
+      ...perfilRegistro
+    });
     await sendEmailVerification(cred.user, {
       url: `${window.location.origin}${window.location.pathname.replace(/\/[^/]*$/, "/")}verificado.html`
     });
@@ -2097,7 +2249,141 @@ function cambiarAuthMode(modo) {
   document.getElementById("registerPanel").classList.toggle("hidden", login);
   document.getElementById("tabLogin").classList.toggle("active", login);
   document.getElementById("tabRegister").classList.toggle("active", !login);
+  if (!login) inicializarRegistroPerfil();
   limpiarWarn();
+}
+
+function inicializarRegistroPerfil() {
+  poblarPhoneCodes("registerPhoneCode", document.getElementById("registerPhoneCode")?.value || "+57");
+  poblarUbicacion("register", {
+    country: document.getElementById("registerCountry")?.value || "",
+    region: document.getElementById("registerRegion")?.value || "",
+    city: document.getElementById("registerCity")?.value || ""
+  });
+}
+
+async function guardarPerfilDesdeFormulario() {
+  if (!usuarioActual) return;
+  const nombre = document.getElementById("profileName").value.trim();
+  if (nombre.length < 3) {
+    document.getElementById("profileStatus").textContent = "El nombre debe tener mínimo 3 caracteres.";
+    return;
+  }
+  const datos = {
+    ...perfilBasicoDesdeFormulario("profile"),
+    displayName: nombre
+  };
+  await updateProfile(usuarioActual, { displayName: nombre });
+  await guardarPerfilUsuario(datos);
+  renderProfile();
+  actualizarBienvenida();
+  document.getElementById("profileStatus").textContent = "Perfil actualizado.";
+}
+
+function cargarFotoPerfil(file) {
+  if (!file || !file.type.startsWith("image/")) return;
+  if (file.size > 700 * 1024) {
+    document.getElementById("profileStatus").textContent = "Usa una imagen menor a 700 KB.";
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = async () => {
+    await guardarPerfilUsuario({ photoData: reader.result });
+    renderProfile();
+    document.getElementById("profileStatus").textContent = "Foto actualizada.";
+  };
+  reader.readAsDataURL(file);
+}
+
+function telefonoCompletoDesdePerfil() {
+  const code = document.getElementById("profilePhoneCode")?.value || "+57";
+  const raw = document.getElementById("profilePhone")?.value.trim().replace(/[^\d]/g, "") || "";
+  return raw ? `${code}${raw}` : "";
+}
+
+async function enviarCodigoTelefono() {
+  const status = document.getElementById("phoneStatus");
+  const phoneNumber = telefonoCompletoDesdePerfil();
+  if (!usuarioActual || !phoneNumber || phoneNumber.length < 8) {
+    status.textContent = "Escribe un teléfono válido con indicador de país.";
+    return;
+  }
+  try {
+    if (!recaptchaVerifier) {
+      recaptchaVerifier = new RecaptchaVerifier(auth, "phoneRecaptcha", { size: "invisible" });
+    }
+    const provider = new PhoneAuthProvider(auth);
+    phoneVerificationId = await provider.verifyPhoneNumber(phoneNumber, recaptchaVerifier);
+    phoneVerificationExpiresAt = Date.now() + 2 * 60 * 1000;
+    status.textContent = "Código enviado. Tienes 2 minutos para verificarlo.";
+  } catch (err) {
+    status.textContent = "No se pudo enviar el SMS. Revisa el número o intenta de nuevo.";
+  }
+}
+
+async function verificarCodigoTelefono() {
+  const status = document.getElementById("phoneStatus");
+  const code = document.getElementById("profilePhoneCodeInput").value.trim();
+  if (!phoneVerificationId || Date.now() > phoneVerificationExpiresAt) {
+    status.textContent = "El código venció. Solicita uno nuevo.";
+    return;
+  }
+  if (!code) {
+    status.textContent = "Escribe el código recibido por SMS.";
+    return;
+  }
+  try {
+    const credential = PhoneAuthProvider.credential(phoneVerificationId, code);
+    await updatePhoneNumber(usuarioActual, credential);
+    await guardarPerfilUsuario({
+      phoneCode: document.getElementById("profilePhoneCode").value,
+      phone: document.getElementById("profilePhone").value.trim(),
+      phoneVerified: true
+    });
+    phoneVerificationId = "";
+    renderProfile();
+    status.textContent = "Teléfono verificado correctamente.";
+  } catch {
+    status.textContent = "Código inválido o verificación no aceptada por Firebase.";
+  }
+}
+
+async function estudianteCambiarGrupo() {
+  const status = document.getElementById("studentGroupStatus");
+  const valor = document.getElementById("profileGroupKey").value.trim();
+  const encontrado = Object.entries(GRUPOS).find(([, grupo]) => grupo.clave === valor);
+  if (!encontrado) {
+    status.textContent = "Clave de grupo incorrecta.";
+    return;
+  }
+  grupoActivo = encontrado[0];
+  localStorage.setItem(STORAGE_GRUPO, grupoActivo);
+  await guardarPerfilUsuario({ grupo: grupoActivo, isAdmin: false });
+  await guardarEstadoRemoto();
+  aplicarBancoNivelMedio();
+  escucharPermisosGrupo(grupoActivo);
+  actualizarGrupoActualPanel();
+  renderProfile();
+  status.textContent = `Ahora estás en ${GRUPOS[grupoActivo].nombre}.`;
+}
+
+async function adminCambiarGrupoEstudiante() {
+  const email = document.getElementById("adminStudentEmail").value.trim().toLowerCase();
+  const grupo = document.getElementById("adminStudentGroupSelect").value;
+  const status = document.getElementById("adminStudentStatus");
+  if (!email.endsWith("@gmail.com") || !GRUPOS[grupo]) {
+    status.textContent = "Escribe un correo Gmail válido y selecciona grupo.";
+    return;
+  }
+  const usersSnap = await getDocs(query(collection(db, "users"), where("email", "==", email)));
+  if (usersSnap.empty) {
+    status.textContent = "No encontré un estudiante con ese correo.";
+    return;
+  }
+  const userDoc = usersSnap.docs[0];
+  await updateDoc(userDoc.ref, { grupo, updatedAt: serverTimestamp() });
+  await setDoc(doc(db, "studentState", userDoc.id), { grupo, updatedAt: serverTimestamp() }, { merge: true });
+  status.textContent = `Estudiante asignado a ${GRUPOS[grupo].nombre}.`;
 }
 
 function alternarPassword(id) {
@@ -2135,9 +2421,18 @@ document.getElementById("btnForgotPassword")?.addEventListener("click", recupera
 document.getElementById("tabLogin")?.addEventListener("click", () => cambiarAuthMode("login"));
 document.getElementById("tabRegister")?.addEventListener("click", () => cambiarAuthMode("register"));
 document.getElementById("registerPassword")?.addEventListener("input", actualizarReglasPassword);
+document.getElementById("btnSaveProfile")?.addEventListener("click", guardarPerfilDesdeFormulario);
+document.getElementById("btnChoosePhoto")?.addEventListener("click", () => document.getElementById("profilePhotoInput")?.click());
+document.getElementById("profilePhotoInput")?.addEventListener("change", e => cargarFotoPerfil(e.target.files?.[0]));
+document.getElementById("btnSendPhoneCode")?.addEventListener("click", enviarCodigoTelefono);
+document.getElementById("btnVerifyPhoneCode")?.addEventListener("click", verificarCodigoTelefono);
+document.getElementById("btnStudentChangeGroup")?.addEventListener("click", estudianteCambiarGrupo);
+document.getElementById("btnAdminChangeStudentGroup")?.addEventListener("click", adminCambiarGrupoEstudiante);
 document.querySelectorAll("[data-toggle-password]").forEach(btn => {
   btn.addEventListener("click", () => alternarPassword(btn.dataset.togglePassword));
 });
+
+inicializarRegistroPerfil();
 
 onAuthStateChanged(auth, async user => {
   usuarioActual = user;
@@ -2162,6 +2457,7 @@ function renderAdminPanel() {
   if (!modoAdmin) return;
   const select = document.getElementById("adminGrupoSelect");
   const list = document.getElementById("adminList");
+  const studentGroupSelect = document.getElementById("adminStudentGroupSelect");
   if (!select || !list) return;
 
   if (!select.options.length) {
@@ -2170,6 +2466,14 @@ function renderAdminPanel() {
       option.value = clave;
       option.textContent = `${grupo.nombre} (${grupo.clave})`;
       select.appendChild(option);
+    });
+  }
+  if (studentGroupSelect && !studentGroupSelect.options.length) {
+    Object.entries(GRUPOS).forEach(([clave, grupo]) => {
+      const option = document.createElement("option");
+      option.value = clave;
+      option.textContent = `${grupo.nombre} (${grupo.clave})`;
+      studentGroupSelect.appendChild(option);
     });
   }
 

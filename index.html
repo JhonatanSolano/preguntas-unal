@@ -41,6 +41,25 @@
       <div class="auth-form hidden" id="registerPanel">
         <input type="text" id="registerName" class="admin-input" placeholder="Nombre de usuario" autocomplete="name" />
         <input type="email" id="registerEmail" class="admin-input" placeholder="Correo @gmail.com" autocomplete="email" />
+        <div class="profile-form-grid">
+          <select id="registerPhoneCode" class="admin-input" aria-label="Indicador del país"></select>
+          <input type="tel" id="registerPhone" class="admin-input" placeholder="Número de teléfono" autocomplete="tel" />
+        </div>
+        <div class="profile-form-grid">
+          <input type="date" id="registerBirth" class="admin-input" aria-label="Fecha de nacimiento" />
+          <select id="registerGender" class="admin-input" aria-label="Sexo o género">
+            <option value="">Sexo o género</option>
+            <option value="Femenino">Femenino</option>
+            <option value="Masculino">Masculino</option>
+            <option value="No binario">No binario</option>
+            <option value="Prefiero no decirlo">Prefiero no decirlo</option>
+          </select>
+        </div>
+        <div class="profile-form-grid three">
+          <select id="registerCountry" class="admin-input" aria-label="País"></select>
+          <select id="registerRegion" class="admin-input" aria-label="Departamento o estado"></select>
+          <select id="registerCity" class="admin-input" aria-label="Ciudad"></select>
+        </div>
         <div class="password-wrap">
           <input type="password" id="registerPassword" class="admin-input" placeholder="Contraseña" autocomplete="new-password" />
           <button class="password-toggle" type="button" data-toggle-password="registerPassword" aria-label="Ver contraseña">👁</button>
@@ -107,6 +126,7 @@
     <button class="nav-btn" data-section="nivel1">Nivel Medio</button>
     <button class="nav-btn" data-section="examen">Examen Final</button>
     <button class="nav-btn" data-section="estadisticas">Estadísticas</button>
+    <button class="nav-btn" data-section="perfil">Perfil</button>
     <button class="nav-btn support-nav" data-section="soporte">Soporte</button>
     <button class="nav-btn exit-nav" id="btnSalirApp" type="button">Salir</button>
   </nav>
@@ -464,6 +484,80 @@
     </div>
   </main>
 
+  <!-- ══════════════════ PERFIL ══════════════════ -->
+  <main class="main-content hidden" id="sectionPerfil">
+    <div class="profile-shell">
+      <section class="profile-card">
+        <div class="profile-photo-box">
+          <img id="profilePhotoPreview" alt="Foto de perfil" />
+          <input type="file" id="profilePhotoInput" accept="image/*" hidden />
+          <button class="btn btn-outline" id="btnChoosePhoto" type="button">Cambiar foto</button>
+        </div>
+        <div class="profile-summary">
+          <h2 id="profileNameTitle">Perfil</h2>
+          <p id="profileEmailText">Correo</p>
+          <div class="profile-chips">
+            <span id="profileAgeChip">Edad: —</span>
+            <span id="profileGroupChip">Grupo: —</span>
+            <span id="profilePhoneChip">Teléfono sin verificar</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="profile-panel">
+        <h3>Datos personales</h3>
+        <div class="profile-form-grid">
+          <label>Nombre de usuario<input type="text" id="profileName" class="admin-input" /></label>
+          <label>Fecha de nacimiento<input type="date" id="profileBirth" class="admin-input" /></label>
+        </div>
+        <div class="profile-form-grid">
+          <label>Sexo o género
+            <select id="profileGender" class="admin-input">
+              <option value="">Selecciona</option>
+              <option value="Femenino">Femenino</option>
+              <option value="Masculino">Masculino</option>
+              <option value="No binario">No binario</option>
+              <option value="Prefiero no decirlo">Prefiero no decirlo</option>
+            </select>
+          </label>
+          <label>País<select id="profileCountry" class="admin-input"></select></label>
+        </div>
+        <div class="profile-form-grid">
+          <label>Departamento / estado<select id="profileRegion" class="admin-input"></select></label>
+          <label>Ciudad<select id="profileCity" class="admin-input"></select></label>
+        </div>
+        <button class="btn btn-primary" id="btnSaveProfile" type="button">Guardar perfil</button>
+        <p class="bank-status" id="profileStatus"></p>
+      </section>
+
+      <section class="profile-panel">
+        <h3>Teléfono verificado</h3>
+        <p>Ingresa el indicador del país y tu número. El código enviado por SMS vence en 2 minutos.</p>
+        <div class="profile-form-grid">
+          <select id="profilePhoneCode" class="admin-input" aria-label="Indicador del país"></select>
+          <input type="tel" id="profilePhone" class="admin-input" placeholder="Número de teléfono" />
+        </div>
+        <div class="profile-form-grid">
+          <button class="btn btn-secondary" id="btnSendPhoneCode" type="button">Enviar código</button>
+          <input type="text" id="profilePhoneCodeInput" class="admin-input" placeholder="Código SMS" inputmode="numeric" />
+        </div>
+        <button class="btn btn-primary" id="btnVerifyPhoneCode" type="button">Verificar teléfono</button>
+        <div id="phoneRecaptcha"></div>
+        <p class="bank-status" id="phoneStatus"></p>
+      </section>
+
+      <section class="profile-panel">
+        <h3>Cambiar de grupo</h3>
+        <p>Escribe la clave del nuevo grupo. Al cambiar, conservarás tus datos y resultados guardados.</p>
+        <div class="admin-login">
+          <input type="password" id="profileGroupKey" class="admin-input" placeholder="Clave del nuevo grupo" />
+          <button class="btn btn-secondary" id="btnStudentChangeGroup" type="button">Cambiar grupo</button>
+        </div>
+        <p class="bank-status" id="studentGroupStatus"></p>
+      </section>
+    </div>
+  </main>
+
   <!-- ══════════════════ ADMINISTRADOR ══════════════════ -->
   <main class="main-content hidden" id="sectionAdmin">
     <div class="start-screen admin-panel">
@@ -475,6 +569,22 @@
         <select id="adminGrupoSelect" class="admin-input"></select>
       </div>
       <div class="admin-list" id="adminList"></div>
+      <div class="admin-bank-panel">
+        <h3>Cambiar estudiante de grupo</h3>
+        <p>Busca al estudiante por el correo con el que se registró y asígnale un grupo sin pedirle clave.</p>
+        <div class="bank-grid">
+          <label>
+            Correo del estudiante
+            <input type="email" id="adminStudentEmail" class="admin-input" placeholder="correo@gmail.com" />
+          </label>
+          <label>
+            Nuevo grupo
+            <select id="adminStudentGroupSelect" class="admin-input"></select>
+          </label>
+        </div>
+        <button class="btn btn-secondary" id="btnAdminChangeStudentGroup" type="button">Cambiar grupo del estudiante</button>
+        <p class="bank-status" id="adminStudentStatus"></p>
+      </div>
       <div class="admin-bank-panel">
         <h3>Banco de preguntas</h3>
         <p>Escoge el banco que trabajará cada grupo en cada nivel. Las reservas quedan listas para activarlas cuando tengas nuevas preguntas.</p>
@@ -581,6 +691,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260628-2"></script>
+  <script type="module" src="script.js?v=20260629-1"></script>
 </body>
 </html>
