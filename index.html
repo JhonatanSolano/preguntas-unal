@@ -102,7 +102,8 @@
 
   <!-- ══════════════════ NAVEGACIÓN DE SECCIONES ══════════════════ -->
   <nav class="section-nav">
-    <button class="nav-btn active" data-section="diagnostico">Diagnóstico</button>
+    <button class="nav-btn active" data-section="inicio">Inicio</button>
+    <button class="nav-btn" data-section="diagnostico">Diagnóstico</button>
     <button class="nav-btn" data-section="nivel1">Nivel Medio</button>
     <button class="nav-btn" data-section="examen">Examen Final</button>
     <button class="nav-btn" data-section="estadisticas">Estadísticas</button>
@@ -110,19 +111,32 @@
     <button class="nav-btn exit-nav" id="btnSalirApp" type="button">Salir</button>
   </nav>
   <div class="group-status" id="grupoActualPanel" hidden></div>
-  <section class="welcome-panel" id="welcomePanel" hidden>
-    <h2 id="welcomeTitle">Bienvenido</h2>
-    <p>Esta app te acompaña en una ruta de práctica para admisión UNAL: diagnóstico, nivel medio y examen final. Cada prueba mide precisión, manejo del tiempo y temas por reforzar.</p>
-    <div class="welcome-grid">
-      <span>Presenta los exámenes habilitados para tu grupo.</span>
-      <span>Cada examen tiene máximo dos intentos.</span>
-      <span>El primer intento muestra solo métricas generales.</span>
-      <span>El segundo intento muestra respuestas y explicaciones completas.</span>
-    </div>
-  </section>
+
+  <!-- ══════════════════ INICIO ══════════════════ -->
+  <main class="main-content" id="sectionInicio">
+    <section class="welcome-panel" id="welcomePanel">
+      <h2 id="welcomeTitle">Bienvenido</h2>
+      <p>Esta app te acompaña en una ruta de práctica para admisión UNAL: diagnóstico, nivel medio y examen final. Cada prueba mide precisión, manejo del tiempo y temas por reforzar.</p>
+      <div class="welcome-grid">
+        <span>Presenta los exámenes habilitados para tu grupo.</span>
+        <span>Cada examen tiene máximo dos intentos.</span>
+        <span>El primer intento muestra solo métricas generales.</span>
+        <span>El segundo intento muestra respuestas y explicaciones completas.</span>
+      </div>
+      <div class="bank-progress-panel">
+        <h3 id="studentBankTitle">Banco 1</h3>
+        <p id="studentBankText">Completa diagnóstico, nivel medio y examen final para avanzar al siguiente banco.</p>
+        <div class="bank-progress-grid" id="studentBankProgress"></div>
+        <div class="result-actions">
+          <button class="btn btn-outline" id="btnBancoAnterior" type="button">← Ver banco anterior</button>
+          <button class="btn btn-primary" id="btnBancoSiguiente" type="button">Pasar al siguiente banco</button>
+        </div>
+      </div>
+    </section>
+  </main>
 
   <!-- ══════════════════ SECCIÓN DIAGNÓSTICO ══════════════════ -->
-  <main class="main-content" id="sectionDiagnostico">
+  <main class="main-content hidden" id="sectionDiagnostico">
 
     <!-- Pantalla de inicio -->
     <div class="start-screen" id="startScreen">
@@ -481,15 +495,27 @@
             Banco
             <select id="bankBancoSelect" class="admin-input">
               <option value="principal">Banco principal</option>
-              <option value="reserva1" disabled>Reserva 1 (pendiente)</option>
-              <option value="reserva2" disabled>Reserva 2 (pendiente)</option>
+              <option value="reserva1">Reserva 1</option>
+              <option value="reserva2">Reserva 2</option>
+              <option value="reserva3">Reserva 3</option>
+              <option value="reserva4">Reserva 4</option>
+              <option value="reserva5">Reserva 5</option>
+              <option value="reserva6">Reserva 6</option>
+              <option value="reserva7">Reserva 7</option>
+              <option value="reserva8">Reserva 8</option>
+              <option value="reserva9">Reserva 9</option>
+              <option value="reserva10">Reserva 10</option>
             </select>
           </label>
         </div>
         <button class="btn btn-secondary" id="btnGuardarBanco" type="button">Guardar banco</button>
         <p class="bank-status" id="bankStatus"></p>
       </div>
-      <div class="stats-grid" id="adminStats"></div>
+      <button class="btn btn-outline admin-metrics-toggle" id="btnAdminMetricas" type="button">Ver métricas y estadísticas</button>
+      <section class="admin-metrics-panel" id="adminMetricsPanel" hidden>
+        <h3>Métricas</h3>
+        <div class="stats-grid" id="adminStats"></div>
+      </section>
       <div class="admin-exit-dock">
         <button class="btn admin-exit-btn" id="btnSalirAdmin" type="button">Cerrar sesión</button>
       </div>

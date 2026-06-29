@@ -227,10 +227,15 @@ function formatTiempo(seg) {
   return `${m}:${s}`;
 }
 
+function setExamHeaderActivo(activo) {
+  document.body.classList.toggle("exam-active", activo);
+}
+
 /** Inicia el countdown */
 function iniciarTimer(continuar = false) {
   if (timerActivo) return;
   timerActivo = true;
+  setExamHeaderActivo(true);
   if (!continuar) segundosRestantes = DURACION_SEG;
 
   const displayEl = document.getElementById("timerDisplay");
@@ -266,6 +271,7 @@ function detenerTimer() {
   clearInterval(timerInterval);
   timerInterval = null;
   timerActivo   = false;
+  if (!timerNivelActivo && !timerExamenActivo) setExamHeaderActivo(false);
   const timerBox = document.getElementById("timerBox");
   timerBox.classList.remove("warn", "danger");
 }
@@ -330,9 +336,19 @@ function calcBalance(correctas, total, tiempoSeg) {
 }
 
 function preguntasPorClave(clave) {
-  if (clave === "diagnostico") return PREGUNTAS;
-  if (clave === "examen") return PREGUNTAS_EXAMEN;
+  const base = claveBaseResultado(clave);
+  if (base === "diagnostico") return PREGUNTAS;
+  if (base === "examen") return PREGUNTAS_EXAMEN;
   return PREGUNTAS_NIVELES.nivel1;
+}
+
+function claveBaseResultado(clave) {
+  return String(clave).includes("::") ? String(clave).split("::").pop() : clave;
+}
+
+function claveResultado(clave, banco = bancoActivo) {
+  if (String(clave).includes("::")) return clave;
+  return `${banco}::${clave}`;
 }
 
 function metricasIntento(clave, intento) {
@@ -362,9 +378,16 @@ const LETRAS = ["A", "B", "C", "D"];
 
 const ACTIVE_ATTEMPT_KEY = "preguntasUnalIntentoActivo";
 const RESULTADOS_KEY = "preguntasUnalResultadosSesion";
+const STORAGE_BANCO_ACTIVO = "preguntasUnalBancoActivo";
 const INACTIVIDAD_MS = 10 * 60 * 1000;
+const BANCOS_DISPONIBLES = ["principal", ...Array.from({ length: 10 }, (_, i) => `reserva${i + 1}`)];
+const NOMBRES_BANCOS = Object.fromEntries(BANCOS_DISPONIBLES.map((banco, idx) => [
+  banco,
+  idx === 0 ? "Banco principal" : `Reserva ${idx}`
+]));
 let intentoActivo = cargarIntentoActivo();
 let resultadosSesion = cargarResultadosSesion();
+let bancoActivo = localStorage.getItem(STORAGE_BANCO_ACTIVO) || "principal";
 
 function refEstadoUsuario(uid = usuarioActual?.uid) {
   return uid ? doc(db, "studentState", uid) : null;
@@ -381,7 +404,11 @@ function refPermisosGrupo(grupo) {
 function normalizarResultados(raw = {}) {
   const normalizados = {};
   Object.entries(raw).forEach(([clave, valor]) => {
-    normalizados[clave] = valor?.intentos ? valor : { intentos: [valor].filter(Boolean) };
+    const value = valor?.intentos ? valor : { intentos: [valor].filter(Boolean) };
+    normalizados[clave] = value;
+    if (!String(clave).includes("::") && ["diagnostico", "nivel1", "examen"].includes(clave)) {
+      normalizados[`principal::${clave}`] = value;
+    }
   });
   return normalizados;
 }
@@ -394,6 +421,7 @@ async function guardarEstadoRemoto() {
     uid: usuarioActual.uid,
     email: usuarioActual.email,
     grupo: grupoActivo || "",
+    bancoActivo,
     intentoActivo,
     resultados: resultadosSesion,
     updatedAt: serverTimestamp()
@@ -407,6 +435,10 @@ async function cargarEstadoRemoto() {
   if (!snap.exists()) return;
   const data = snap.data();
   if (data.grupo && GRUPOS[data.grupo]) grupoActivo = data.grupo;
+  if (data.bancoActivo && BANCOS_DISPONIBLES.includes(data.bancoActivo)) {
+    bancoActivo = data.bancoActivo;
+    localStorage.setItem(STORAGE_BANCO_ACTIVO, bancoActivo);
+  }
   intentoActivo = data.intentoActivo || null;
   resultadosSesion = normalizarResultados(data.resultados || {});
   guardarIntentoActivo(false);
@@ -437,7 +469,7 @@ function limpiarIntentoActivo() {
 
 function cargarResultadosSesion() {
   try {
-    return JSON.parse(localStorage.getItem(RESULTADOS_KEY) || "{}");
+    return normalizarResultados(JSON.parse(localStorage.getItem(RESULTADOS_KEY) || "{}"));
   } catch {
     return {};
   }
@@ -445,23 +477,26 @@ function cargarResultadosSesion() {
 
 function guardarResultadosSesion(syncRemoto = true) {
   localStorage.setItem(RESULTADOS_KEY, JSON.stringify(resultadosSesion));
+  actualizarBancoEstudiante();
   if (syncRemoto) guardarEstadoRemoto();
 }
 
 function guardarResultadoSesion(clave, respuestas, restante) {
+  const key = claveResultado(clave);
   const intento = {
     respuestas,
     restante: Math.max(0, restante),
     guardado: Date.now()
   };
-  const previos = resultadosSesion[clave]?.intentos || [];
-  resultadosSesion[clave] = { intentos: [...previos, intento].slice(0, 2) };
+  const previos = resultadosSesion[key]?.intentos || [];
+  resultadosSesion[key] = { intentos: [...previos, intento].slice(0, 2) };
   guardarResultadosSesion();
 }
 
 function borrarResultadoSesion(clave) {
-  const previos = resultadosSesion[clave]?.intentos || [];
-  resultadosSesion[clave] = { intentos: previos };
+  const key = claveResultado(clave);
+  const previos = resultadosSesion[key]?.intentos || [];
+  resultadosSesion[key] = { intentos: previos };
   guardarResultadosSesion();
 }
 
@@ -472,16 +507,61 @@ function limpiarResultadosSesion() {
 }
 
 function resultadoActual(clave) {
-  const intentos = resultadosSesion[clave]?.intentos || [];
+  const intentos = resultadosSesion[claveResultado(clave)]?.intentos || [];
   return intentos[intentos.length - 1] || null;
 }
 
 function intentosUsados(clave) {
-  return (resultadosSesion[clave]?.intentos || []).length;
+  return (resultadosSesion[claveResultado(clave)]?.intentos || []).length;
 }
 
 function puedeIniciarIntento(clave) {
   return intentosUsados(clave) < 2;
+}
+
+function indiceBancoActivo() {
+  return Math.max(0, BANCOS_DISPONIBLES.indexOf(bancoActivo));
+}
+
+function bancoCompletado(banco = bancoActivo) {
+  return ["diagnostico", "nivel1", "examen"].every(clave => {
+    const intentos = resultadosSesion[claveResultado(clave, banco)]?.intentos || [];
+    return intentos.length > 0;
+  });
+}
+
+function guardarBancoActivo() {
+  localStorage.setItem(STORAGE_BANCO_ACTIVO, bancoActivo);
+  guardarEstadoRemoto();
+}
+
+function cambiarBanco(delta) {
+  const idx = indiceBancoActivo();
+  const nuevoIdx = idx + delta;
+  if (nuevoIdx < 0 || nuevoIdx >= BANCOS_DISPONIBLES.length) return;
+  if (delta > 0 && !bancoCompletado()) {
+    alert("Para pasar al siguiente banco debes completar diagnóstico, nivel medio y examen final.");
+    return;
+  }
+  limpiarIntentoActivo();
+  bancoActivo = BANCOS_DISPONIBLES[nuevoIdx];
+  guardarBancoActivo();
+  sincronizarCompletadosGuardados();
+  reiniciarVistasBancoActual();
+  actualizarBancoEstudiante();
+  actualizarGrupoActualPanel();
+  activarNav("inicio");
+}
+
+function reiniciarVistasBancoActual() {
+  document.getElementById("diagFormWrap").hidden = true;
+  document.getElementById("resultsSection").hidden = true;
+  document.getElementById("startScreen").hidden = false;
+  document.getElementById("questionsContainer").innerHTML = "";
+  reiniciarEstadoNivelVisual();
+  reiniciarEstadoExamenFinal(false);
+  resetTimer();
+  mostrarProgreso(0, PREGUNTAS.length);
 }
 
 function aplicarVisibilidadResultadoIntento(clave, sectionId, retryButtonId) {
@@ -502,6 +582,7 @@ function iniciarIntentoActivo(tipo, clave, total) {
   intentoActivo = {
     tipo,
     clave,
+    banco: bancoActivo,
     total,
     respuestas: {},
     inicio: Date.now(),
@@ -512,7 +593,7 @@ function iniciarIntentoActivo(tipo, clave, total) {
 }
 
 function intentoCoincide(tipo, clave) {
-  return intentoActivo && intentoActivo.tipo === tipo && intentoActivo.clave === clave;
+  return intentoActivo && intentoActivo.tipo === tipo && intentoActivo.clave === clave && (intentoActivo.banco || "principal") === bancoActivo;
 }
 
 function segundosRestantesIntento(tipo, clave) {
@@ -1005,6 +1086,7 @@ function actualizarEstadoDiagnostico() {
 }
 
 function mostrarSeccion(sec) {
+  document.getElementById("sectionInicio").classList.toggle("hidden", sec !== "inicio");
   document.getElementById("sectionDiagnostico").classList.toggle("hidden", sec !== "diagnostico");
   document.getElementById("sectionNivel").classList.toggle("hidden", !sec.startsWith("nivel"));
   document.getElementById("sectionExamen").classList.toggle("hidden", sec !== "examen");
@@ -1014,6 +1096,7 @@ function mostrarSeccion(sec) {
   if (sec === "diagnostico") actualizarEstadoDiagnostico();
   if (sec === "admin") renderAdminPanel();
   if (sec === "estadisticas") renderStudentStats();
+  if (sec === "inicio") actualizarBienvenida();
 }
 
 function activarNav(sec) {
@@ -1036,7 +1119,7 @@ function actualizarGrupoActualPanel() {
     return;
   }
   panel.hidden = false;
-  panel.textContent = `Estás en ${GRUPOS[grupoActivo].nombre}`;
+  panel.textContent = `Estás en ${GRUPOS[grupoActivo].nombre} · ${NOMBRES_BANCOS[bancoActivo]}`;
 }
 
 function actualizarBienvenida() {
@@ -1051,6 +1134,33 @@ function actualizarBienvenida() {
   const primerNombre = nombreBase.trim().split(/\s+/)[0] || "estudiante";
   titulo.textContent = `Bienvenido ${primerNombre}`;
   panel.hidden = false;
+  actualizarBancoEstudiante();
+}
+
+function actualizarBancoEstudiante() {
+  const title = document.getElementById("studentBankTitle");
+  const text = document.getElementById("studentBankText");
+  const progress = document.getElementById("studentBankProgress");
+  const prev = document.getElementById("btnBancoAnterior");
+  const next = document.getElementById("btnBancoSiguiente");
+  if (!title || !text || !progress || !prev || !next) return;
+  const idx = indiceBancoActivo();
+  const completado = bancoCompletado();
+  title.textContent = `${NOMBRES_BANCOS[bancoActivo]} (${idx + 1} de ${BANCOS_DISPONIBLES.length})`;
+  text.textContent = completado
+    ? "Este banco ya está completo. Puedes revisar sus resultados o avanzar al siguiente banco."
+    : "Completa diagnóstico, nivel medio y examen final para avanzar al siguiente banco.";
+  const items = [
+    ["diagnostico", "Diagnóstico"],
+    ["nivel1", "Nivel Medio"],
+    ["examen", "Examen Final"]
+  ];
+  progress.innerHTML = items.map(([clave, nombre]) => {
+    const hecho = (resultadosSesion[claveResultado(clave)]?.intentos || []).length > 0;
+    return `<div class="bank-progress-item ${hecho ? "done" : ""}">${hecho ? "✓" : "○"} ${nombre}</div>`;
+  }).join("");
+  prev.disabled = idx === 0;
+  next.disabled = !completado || idx === BANCOS_DISPONIBLES.length - 1;
 }
 
 function renderStudentStats() {
@@ -1059,11 +1169,11 @@ function renderStudentStats() {
   const nombres = { diagnostico: "Diagnóstico", nivel1: "Nivel Medio", examen: "Examen Final" };
   cont.innerHTML = "";
   Object.entries(nombres).forEach(([clave, nombre]) => {
-    const intentos = resultadosSesion[clave]?.intentos || [];
+    const intentos = resultadosSesion[claveResultado(clave)]?.intentos || [];
     const card = document.createElement("div");
     card.className = "stats-card";
     if (!intentos.length) {
-      card.innerHTML = `<h3>${nombre}</h3><p>Sin intentos registrados.</p>`;
+      card.innerHTML = `<h3>${nombre}</h3><p>Sin intentos registrados en ${NOMBRES_BANCOS[bancoActivo]}.</p>`;
       cont.appendChild(card);
       return;
     }
@@ -1080,6 +1190,9 @@ function renderStudentStats() {
     cont.appendChild(card);
   });
 }
+
+document.getElementById("btnBancoAnterior")?.addEventListener("click", () => cambiarBanco(-1));
+document.getElementById("btnBancoSiguiente")?.addEventListener("click", () => cambiarBanco(1));
 
 // Botón "Ir al Diagnóstico" desde pantalla bloqueada
 document.getElementById("btnIrDiagnostico").addEventListener("click", () => {
@@ -1463,6 +1576,7 @@ function actualizarProgresoNivel() {
 function iniciarTimerNivel(continuar = false) {
   if (timerNivelActivo) return;
   timerNivelActivo = true;
+  setExamHeaderActivo(true);
   if (!continuar) segsNivel = DURACION_SEG;
   const display = document.getElementById("timerDisplay");
   const timerBox = document.getElementById("timerBox");
@@ -1491,6 +1605,7 @@ function detenerTimerNivel() {
   clearInterval(timerNivelInterval);
   timerNivelInterval = null;
   timerNivelActivo = false;
+  if (!timerActivo && !timerExamenActivo) setExamHeaderActivo(false);
   document.getElementById("timerBox").classList.remove("warn", "danger");
 }
 
@@ -1871,7 +1986,7 @@ async function prepararSesionAutenticada() {
     sincronizarCompletadosGuardados();
     document.body.classList.remove("group-locked");
     aplicarModoUsuario();
-    activarNav("diagnostico");
+    activarNav("inicio");
     actualizarEstadoDiagnostico();
     restaurarIntentoActivo();
     return;
@@ -1901,7 +2016,7 @@ async function entrarGrupo() {
   limpiarWarn();
   document.body.classList.remove("group-locked");
   aplicarModoUsuario();
-  activarNav("diagnostico");
+  activarNav("inicio");
   actualizarEstadoDiagnostico();
 }
 
@@ -2005,6 +2120,7 @@ document.getElementById("grupoClave").addEventListener("keydown", (e) => {
 
 async function salirApp() {
   localStorage.removeItem(STORAGE_GRUPO);
+  localStorage.removeItem(STORAGE_BANCO_ACTIVO);
   if (unsubscribePermisos) unsubscribePermisos();
   await signOut(auth);
   window.location.reload();
@@ -2087,7 +2203,7 @@ function renderAdminPanel() {
     list.appendChild(row);
   });
   renderBankPanel();
-  renderAdminStats();
+  if (!document.getElementById("adminMetricsPanel")?.hidden) renderAdminStats();
 }
 
 function renderBankPanel() {
@@ -2123,7 +2239,9 @@ async function renderAdminStats() {
     if (!GRUPOS[grupo]) return;
     const bucket = acumulado[grupo];
     bucket.estudiantes.add(data.uid || snap.id);
-    Object.entries(data.resultados || {}).forEach(([clave, value]) => {
+    const resultados = data.resultados || {};
+    Object.entries(resultados).forEach(([clave, value]) => {
+      if (!String(clave).includes("::") && resultados[`principal::${clave}`]) return;
       (value.intentos || []).forEach(intento => {
         const m = metricasIntento(clave, intento);
         bucket.intentos++;
@@ -2135,6 +2253,34 @@ async function renderAdminStats() {
     });
   });
   cont.innerHTML = "";
+  const ranking = Object.entries(acumulado)
+    .filter(([, data]) => data.intentos > 0)
+    .map(([grupo, data]) => ({
+      grupo,
+      data,
+      promedioNota: data.nota / data.intentos,
+      promedioCorrectas: data.correctas / data.intentos,
+      promedioIncorrectas: data.incorrectas / data.intentos,
+      promedioTiempo: data.tiempo / data.intentos
+    }))
+    .sort((a, b) => b.promedioNota - a.promedioNota || b.promedioCorrectas - a.promedioCorrectas || a.promedioTiempo - b.promedioTiempo);
+
+  if (ranking.length) {
+    const mejor = ranking[0];
+    const bestCard = document.createElement("div");
+    bestCard.className = "stats-card";
+    bestCard.innerHTML = `
+      <h3>Mejor grupo: ${GRUPOS[mejor.grupo].nombre}</h3>
+      <p><strong>Estudiantes:</strong> ${mejor.data.estudiantes.size}</p>
+      <p><strong>Intentos:</strong> ${mejor.data.intentos}</p>
+      <p><strong>Promedio nota:</strong> ${mejor.promedioNota.toFixed(1)}</p>
+      <p><strong>Promedio correctas:</strong> ${mejor.promedioCorrectas.toFixed(1)}</p>
+      <p><strong>Promedio incorrectas:</strong> ${mejor.promedioIncorrectas.toFixed(1)}</p>
+      <p><strong>Promedio tiempo:</strong> ${formatTiempo(Math.round(mejor.promedioTiempo))}</p>
+    `;
+    cont.appendChild(bestCard);
+  }
+
   Object.entries(acumulado).forEach(([grupo, data]) => {
     const card = document.createElement("div");
     card.className = "stats-card";
@@ -2180,6 +2326,15 @@ document.getElementById("btnGuardarBanco")?.addEventListener("click", async () =
   renderBankPanel();
 });
 
+document.getElementById("btnAdminMetricas")?.addEventListener("click", () => {
+  const panel = document.getElementById("adminMetricsPanel");
+  const btn = document.getElementById("btnAdminMetricas");
+  if (!panel || !btn) return;
+  panel.hidden = !panel.hidden;
+  btn.textContent = panel.hidden ? "Ver métricas y estadísticas" : "Ocultar métricas y estadísticas";
+  if (!panel.hidden) renderAdminStats();
+});
+
 /* ────────────────────────────────────────────────────
    13. MOTOR DEL EXAMEN FINAL
 ──────────────────────────────────────────────────── */
@@ -2190,6 +2345,7 @@ let segsExamen          = 15 * 60;
 function iniciarTimerExamen(continuar = false) {
   if (timerExamenActivo) return;
   timerExamenActivo = true;
+  setExamHeaderActivo(true);
   if (!continuar) segsExamen = 15 * 60;
   const display  = document.getElementById("timerDisplay");
   const timerBox = document.getElementById("timerBox");
@@ -2216,6 +2372,7 @@ function detenerTimerExamen() {
   clearInterval(timerExamenInterval);
   timerExamenInterval = null;
   timerExamenActivo   = false;
+  if (!timerActivo && !timerNivelActivo) setExamHeaderActivo(false);
   const timerBox = document.getElementById("timerBox");
   timerBox.classList.remove("warn", "danger");
 }

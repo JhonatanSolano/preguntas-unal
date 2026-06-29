@@ -48,6 +48,7 @@ body {
 }
 body.group-locked > :not(#groupGate) { display: none !important; }
 body:not(.group-locked) #groupGate { display: none !important; }
+body:not(.exam-active) .site-header { display: none !important; }
 body.admin-mode { padding-bottom: 5.5rem; }
 body.admin-mode .site-header { display: none !important; }
 body.admin-mode .section-nav { display: none !important; }
@@ -789,6 +790,7 @@ body.admin-mode .admin-exit-dock {
   .admin-row { align-items: flex-start; }
   .welcome-panel { margin-inline: .75rem; padding: 1.1rem; }
   .welcome-grid,
+  .bank-progress-grid,
   .bank-grid { grid-template-columns: 1fr; }
 }
 
@@ -802,6 +804,7 @@ body.admin-mode .admin-exit-dock {
   }
   .header-stats { gap: .6rem; }
   .score-card { gap: 1.6rem; padding: 1.8rem; }
+  .bank-progress-grid,
   .bank-grid { grid-template-columns: 1fr; }
   .question-card,
   .chart-wrap,
@@ -888,6 +891,36 @@ body.admin-mode .admin-exit-dock {
   color: var(--c-navy);
   font-size: .9rem;
   font-weight: 700;
+}
+.bank-progress-panel {
+  margin-top: 1.2rem;
+  padding-top: 1.2rem;
+  border-top: 1.5px solid var(--c-border);
+}
+.bank-progress-panel h3,
+.admin-metrics-panel h3 {
+  color: var(--c-blue);
+  font-size: 1.1rem;
+  margin-bottom: .35rem;
+}
+.bank-progress-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .7rem;
+  margin: 1rem 0;
+}
+.bank-progress-item {
+  padding: .8rem;
+  border: 1.5px solid var(--c-border);
+  border-radius: var(--radius-md);
+  background: #fff;
+  color: var(--c-muted);
+  font-weight: 800;
+}
+.bank-progress-item.done {
+  color: var(--c-green);
+  background: var(--c-green-lt);
+  border-color: rgba(26,127,90,.35);
 }
 
 .admin-login {
@@ -988,6 +1021,17 @@ body.admin-mode .admin-exit-dock {
   color: var(--c-green);
   font-weight: 800;
   margin: .7rem 0 0;
+}
+.admin-metrics-toggle {
+  margin-top: .5rem;
+}
+.admin-metrics-panel {
+  margin-top: 1rem;
+  padding: 1.2rem;
+  border: 1.5px solid var(--c-border);
+  border-radius: var(--radius-md);
+  background: #fff;
+  text-align: left;
 }
 .first-attempt-result .score-ring-wrap,
 .first-attempt-result .score-title,
