@@ -787,6 +787,9 @@ body.admin-mode .admin-exit-dock {
   .score-metrics { text-align: left; }
   .admin-login { grid-template-columns: 1fr; }
   .admin-row { align-items: flex-start; }
+  .welcome-panel { margin-inline: .75rem; padding: 1.1rem; }
+  .welcome-grid,
+  .bank-grid { grid-template-columns: 1fr; }
 }
 
 @media (min-width: 601px) and (max-width: 900px) {
@@ -799,6 +802,7 @@ body.admin-mode .admin-exit-dock {
   }
   .header-stats { gap: .6rem; }
   .score-card { gap: 1.6rem; padding: 1.8rem; }
+  .bank-grid { grid-template-columns: 1fr; }
   .question-card,
   .chart-wrap,
   .table-wrap,
@@ -851,6 +855,40 @@ body.admin-mode .admin-exit-dock {
 }
 .start-rules li { font-size: .9rem; color: var(--c-navy); margin-bottom: .4rem; list-style: none; }
 .start-rules li::before { content: "✔ "; color: var(--c-green); font-weight: 700; }
+.welcome-panel {
+  max-width: 900px;
+  margin: 0 auto 1.5rem;
+  padding: 1.4rem 1.6rem;
+  background: #fff;
+  border: 1.5px solid var(--c-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+.welcome-panel h2 {
+  font-family: var(--font-display);
+  color: var(--c-navy);
+  font-size: 1.45rem;
+  margin-bottom: .45rem;
+}
+.welcome-panel p {
+  color: var(--c-muted);
+  line-height: 1.65;
+  margin-bottom: 1rem;
+}
+.welcome-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .65rem;
+}
+.welcome-grid span {
+  display: block;
+  padding: .75rem .85rem;
+  background: var(--c-blue-lt);
+  border-radius: var(--radius-md);
+  color: var(--c-navy);
+  font-size: .9rem;
+  font-weight: 700;
+}
 
 .admin-login {
   display: grid;
@@ -915,6 +953,53 @@ body.admin-mode .admin-exit-dock {
   color: var(--c-muted);
   font-size: .9rem;
   margin-top: .2rem;
+}
+.admin-bank-panel {
+  margin: 1.5rem 0;
+  padding: 1.2rem;
+  border: 1.5px solid var(--c-border);
+  border-radius: var(--radius-md);
+  background: #f8fbff;
+  text-align: left;
+}
+.admin-bank-panel h3 {
+  color: var(--c-blue);
+  font-size: 1.1rem;
+  margin-bottom: .3rem;
+}
+.admin-bank-panel p {
+  margin-bottom: .9rem;
+}
+.bank-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .8rem;
+  margin-bottom: 1rem;
+}
+.bank-grid label {
+  display: grid;
+  gap: .35rem;
+  color: var(--c-blue);
+  font-weight: 800;
+  font-size: .9rem;
+}
+.bank-status {
+  min-height: 1.2rem;
+  color: var(--c-green);
+  font-weight: 800;
+  margin: .7rem 0 0;
+}
+.first-attempt-result .score-ring-wrap,
+.first-attempt-result .score-title,
+.first-attempt-result .score-pills,
+.first-attempt-result .table-wrap,
+.first-attempt-result [id^="feedbackList"],
+.first-attempt-result [id^="btnWrong"],
+.first-attempt-result [id^="btnAll"] {
+  display: none !important;
+}
+.first-attempt-result .score-card {
+  grid-template-columns: 1fr;
 }
 .switch {
   position: relative;
@@ -1050,4 +1135,11 @@ body.admin-mode .admin-exit-dock {
   font-size: .95rem;
   margin-bottom: 1.5rem;
   line-height: 1.6;
+}
+
+@media (max-width: 900px) {
+  .welcome-grid,
+  .bank-grid {
+    grid-template-columns: 1fr;
+  }
 }

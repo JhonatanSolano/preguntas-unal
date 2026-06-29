@@ -484,6 +484,20 @@ function puedeIniciarIntento(clave) {
   return intentosUsados(clave) < 2;
 }
 
+function aplicarVisibilidadResultadoIntento(clave, sectionId, retryButtonId) {
+  const section = document.getElementById(sectionId);
+  if (!section) return;
+  const usados = intentosUsados(clave);
+  const esPrimerIntento = usados === 1;
+  const intentosAgotados = usados >= 2;
+  section.classList.toggle("first-attempt-result", esPrimerIntento);
+
+  const retryButton = document.getElementById(retryButtonId);
+  if (!retryButton) return;
+  retryButton.hidden = intentosAgotados;
+  retryButton.textContent = esPrimerIntento ? "↺ Hacer último intento (2 de 2)" : "↺ Hacer intento";
+}
+
 function iniciarIntentoActivo(tipo, clave, total) {
   intentoActivo = {
     tipo,
@@ -846,6 +860,7 @@ function mostrarResultados(respuestas, correctas, incorrectas, pct, nota, badge)
       if (!sinResp && !ok && idx === respuestas[i]) lbl.classList.add("opt-wrong");
     });
   });
+  aplicarVisibilidadResultadoIntento("diagnostico", "resultsSection", "btnRestart");
 }
 
 /* Quita tags LaTeX simples para mostrar texto sin formato en la tabla */
@@ -1009,6 +1024,7 @@ function activarNav(sec) {
 function aplicarModoUsuario() {
   document.body.classList.toggle("admin-mode", modoAdmin);
   actualizarGrupoActualPanel();
+  actualizarBienvenida();
 }
 
 function actualizarGrupoActualPanel() {
@@ -1021,6 +1037,20 @@ function actualizarGrupoActualPanel() {
   }
   panel.hidden = false;
   panel.textContent = `Estás en ${GRUPOS[grupoActivo].nombre}`;
+}
+
+function actualizarBienvenida() {
+  const panel = document.getElementById("welcomePanel");
+  const titulo = document.getElementById("welcomeTitle");
+  if (!panel || !titulo) return;
+  if (modoAdmin || !grupoActivo || !GRUPOS[grupoActivo]) {
+    panel.hidden = true;
+    return;
+  }
+  const nombreBase = perfilActual?.displayName || usuarioActual?.displayName || "estudiante";
+  const primerNombre = nombreBase.trim().split(/\s+/)[0] || "estudiante";
+  titulo.textContent = `Bienvenido ${primerNombre}`;
+  panel.hidden = false;
 }
 
 function renderStudentStats() {
@@ -1282,8 +1312,11 @@ const GRUPOS = {
 };
 const STORAGE_GRUPO = "preguntasUnalGrupoActivo";
 const STORAGE_PERMISOS = "preguntasUnalPermisosPorGrupo";
+const STORAGE_BANCOS = "preguntasUnalBancosPorGrupo";
 const DEFAULT_HABILITADOS = { diagnostico: true, nivel1: false, examen: false };
+const DEFAULT_BANCOS = { diagnostico: "principal", nivel1: "principal", examen: "principal" };
 let permisosGrupo = cargarPermisosGrupo();
+let bancosGrupo = cargarBancosGrupo();
 let grupoActivo = localStorage.getItem(STORAGE_GRUPO) || "";
 let modoAdmin = grupoActivo === "admin";
 let adminGrupoActual = Object.keys(GRUPOS)[0];
@@ -1314,6 +1347,26 @@ function guardarPermisosGrupo() {
   localStorage.setItem(STORAGE_PERMISOS, JSON.stringify(permisosGrupo));
 }
 
+function cargarBancosGrupo() {
+  const bancos = {};
+  Object.keys(GRUPOS).forEach(clave => {
+    bancos[clave] = { ...DEFAULT_BANCOS };
+  });
+  try {
+    const guardado = JSON.parse(localStorage.getItem(STORAGE_BANCOS) || "{}");
+    Object.keys(GRUPOS).forEach(clave => {
+      bancos[clave] = { ...DEFAULT_BANCOS, ...(guardado[clave] || {}) };
+    });
+  } catch {
+    localStorage.removeItem(STORAGE_BANCOS);
+  }
+  return bancos;
+}
+
+function guardarBancosGrupo() {
+  localStorage.setItem(STORAGE_BANCOS, JSON.stringify(bancosGrupo));
+}
+
 async function guardarPermisoGrupoRemoto(grupo, examen, valor) {
   permisosGrupo[grupo] = { ...DEFAULT_HABILITADOS, ...(permisosGrupo[grupo] || {}), [examen]: valor };
   guardarPermisosGrupo();
@@ -1323,24 +1376,41 @@ async function guardarPermisoGrupoRemoto(grupo, examen, valor) {
   }, { merge: true });
 }
 
+async function guardarBancoGrupoRemoto(grupo, nivel, banco) {
+  bancosGrupo[grupo] = { ...DEFAULT_BANCOS, ...(bancosGrupo[grupo] || {}), [nivel]: banco };
+  guardarBancosGrupo();
+  await setDoc(refPermisosGrupo(grupo), {
+    bancos: bancosGrupo[grupo],
+    updatedAt: serverTimestamp()
+  }, { merge: true });
+}
+
 async function cargarPermisosRemotos() {
   const permisos = {};
+  const bancos = {};
   await Promise.all(Object.keys(GRUPOS).map(async grupo => {
     const snap = await getDoc(refPermisosGrupo(grupo));
-    permisos[grupo] = { ...DEFAULT_HABILITADOS, ...(snap.exists() ? snap.data().permisos || {} : {}) };
+    const data = snap.exists() ? snap.data() : {};
+    permisos[grupo] = { ...DEFAULT_HABILITADOS, ...(data.permisos || {}) };
+    bancos[grupo] = { ...DEFAULT_BANCOS, ...(data.bancos || {}) };
     if (!snap.exists()) {
-      await setDoc(refPermisosGrupo(grupo), { permisos: permisos[grupo], updatedAt: serverTimestamp() }, { merge: true });
+      await setDoc(refPermisosGrupo(grupo), { permisos: permisos[grupo], bancos: bancos[grupo], updatedAt: serverTimestamp() }, { merge: true });
     }
   }));
   permisosGrupo = permisos;
+  bancosGrupo = bancos;
   guardarPermisosGrupo();
+  guardarBancosGrupo();
 }
 
 function escucharPermisosGrupo(grupo) {
   if (unsubscribePermisos) unsubscribePermisos();
   unsubscribePermisos = onSnapshot(refPermisosGrupo(grupo), snap => {
-    permisosGrupo[grupo] = { ...DEFAULT_HABILITADOS, ...(snap.exists() ? snap.data().permisos || {} : {}) };
+    const data = snap.exists() ? snap.data() : {};
+    permisosGrupo[grupo] = { ...DEFAULT_HABILITADOS, ...(data.permisos || {}) };
+    bancosGrupo[grupo] = { ...DEFAULT_BANCOS, ...(data.bancos || {}) };
     guardarPermisosGrupo();
+    guardarBancosGrupo();
     actualizarEstadoDiagnostico();
     if (nivelActual) abrirNivel(nivelActual);
   });
@@ -1613,6 +1683,7 @@ function evaluarYMostrarNivel(respuestas, opciones = {}) {
       if (!sinR && !ok && idx === respuestas[i]) lbl.classList.add("opt-wrong");
     });
   });
+  aplicarVisibilidadResultadoIntento(nivelActual, "resultsSectionNivel", "btnRestartNivel");
 }
 
 document.getElementById("btnNivelAnterior").addEventListener("click", () => {
@@ -2015,7 +2086,28 @@ function renderAdminPanel() {
     `;
     list.appendChild(row);
   });
+  renderBankPanel();
   renderAdminStats();
+}
+
+function renderBankPanel() {
+  const grupoSelect = document.getElementById("bankGrupoSelect");
+  const nivelSelect = document.getElementById("bankNivelSelect");
+  const bancoSelect = document.getElementById("bankBancoSelect");
+  if (!grupoSelect || !nivelSelect || !bancoSelect) return;
+
+  if (!grupoSelect.options.length) {
+    Object.entries(GRUPOS).forEach(([clave, grupo]) => {
+      const option = document.createElement("option");
+      option.value = clave;
+      option.textContent = grupo.nombre;
+      grupoSelect.appendChild(option);
+    });
+  }
+
+  grupoSelect.value = adminGrupoActual;
+  const nivel = nivelSelect.value || "diagnostico";
+  bancoSelect.value = bancosGrupo[adminGrupoActual]?.[nivel] || "principal";
 }
 
 async function renderAdminStats() {
@@ -2069,6 +2161,23 @@ document.getElementById("adminList")?.addEventListener("change", (e) => {
   const input = e.target.closest("input[data-admin-exam]");
   if (!input) return;
   guardarPermisoGrupoRemoto(adminGrupoActual, input.dataset.adminExam, input.checked);
+});
+
+document.getElementById("bankGrupoSelect")?.addEventListener("change", (e) => {
+  adminGrupoActual = e.target.value;
+  renderAdminPanel();
+});
+
+document.getElementById("bankNivelSelect")?.addEventListener("change", renderBankPanel);
+
+document.getElementById("btnGuardarBanco")?.addEventListener("click", async () => {
+  const grupo = document.getElementById("bankGrupoSelect")?.value || adminGrupoActual;
+  const nivel = document.getElementById("bankNivelSelect")?.value || "diagnostico";
+  const banco = document.getElementById("bankBancoSelect")?.value || "principal";
+  const status = document.getElementById("bankStatus");
+  await guardarBancoGrupoRemoto(grupo, nivel, banco);
+  if (status) status.textContent = `Banco guardado para ${GRUPOS[grupo].nombre}.`;
+  renderBankPanel();
 });
 
 /* ────────────────────────────────────────────────────
@@ -2318,6 +2427,7 @@ function evaluarYMostrarExamen(respuestas, opciones = {}) {
       if (!sinR && !ok && idx === respuestas[i]) lbl.classList.add("opt-wrong");
     });
   });
+  aplicarVisibilidadResultadoIntento("examen", "resultsSectionExamen", "btnRestartExamen");
 }
 
 /* Botones examen final */
