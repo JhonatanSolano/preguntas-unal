@@ -51,7 +51,10 @@ body:not(.group-locked) #groupGate { display: none !important; }
 body:not(.exam-active) .site-header { display: none !important; }
 body.admin-mode { padding-bottom: 5.5rem; }
 body.admin-mode .site-header { display: none !important; }
-body.admin-mode .section-nav { display: none !important; }
+body.admin-mode .section-nav .nav-btn { display: none !important; }
+body.admin-mode .section-nav {
+  justify-content: flex-start;
+}
 
 body.admin-mode .admin-exit-dock {
   position: fixed;
@@ -188,6 +191,76 @@ body.admin-mode .admin-exit-dock {
   box-shadow: var(--shadow-sm);
   overflow-x: auto;
 }
+.drawer-toggle {
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--c-navy);
+  color: #fff;
+  width: 2.6rem;
+  height: 2.6rem;
+  font-size: 1.25rem;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  flex: 0 0 auto;
+}
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(0, 20, 50, .28);
+  animation: fadeIn .18s ease;
+}
+.side-drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: min(320px, 86vw);
+  z-index: 70;
+  background: #fff;
+  border-right: 1px solid var(--c-border);
+  box-shadow: 18px 0 50px rgba(0,56,101,.18);
+  padding: 1rem;
+  display: grid;
+  align-content: start;
+  gap: .65rem;
+  animation: drawerIn .22s ease;
+}
+@keyframes drawerIn {
+  from { transform: translateX(-100%); opacity: .5; }
+  to { transform: translateX(0); opacity: 1; }
+}
+.drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--c-navy);
+  padding-bottom: .8rem;
+  border-bottom: 1px solid var(--c-border);
+}
+.drawer-close {
+  border: 0;
+  background: var(--c-blue-lt);
+  color: var(--c-navy);
+  border-radius: 999px;
+  width: 2rem;
+  height: 2rem;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+.drawer-link {
+  border: 0;
+  border-radius: var(--radius-md);
+  background: #fff;
+  color: var(--c-navy);
+  text-align: left;
+  padding: .9rem 1rem;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+.drawer-link:hover { background: var(--c-blue-lt); }
+.drawer-link.danger { color: var(--c-red); }
 .nav-btn {
   background: none;
   border: 1.5px solid transparent;
@@ -931,6 +1004,17 @@ body.admin-mode .admin-exit-dock {
   gap: .75rem;
   justify-items: center;
 }
+.profile-photo-actions {
+  display: flex;
+  gap: .45rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.profile-photo-actions .btn {
+  width: auto;
+  min-width: 86px;
+  padding: .55rem .75rem;
+}
 .profile-photo-box img {
   width: 112px;
   height: 112px;
@@ -938,6 +1022,7 @@ body.admin-mode .admin-exit-dock {
   object-fit: cover;
   border: 4px solid var(--c-blue-lt);
   background: linear-gradient(135deg, var(--c-blue-lt), #fff);
+  cursor: zoom-in;
 }
 .profile-summary h2,
 .profile-panel h3 {
@@ -968,6 +1053,62 @@ body.admin-mode .admin-exit-dock {
 }
 .profile-panel .btn {
   margin-top: .85rem;
+}
+.settings-shell {
+  display: grid;
+  gap: 1rem;
+}
+.accordion-card {
+  border: 1.5px solid var(--c-border);
+  border-radius: var(--radius-md);
+  background: #fff;
+  margin: .85rem 0;
+  overflow: hidden;
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+.accordion-card[open] {
+  border-color: rgba(0,87,168,.35);
+  box-shadow: var(--shadow-sm);
+  animation: accordionOpen .22s ease;
+}
+@keyframes accordionOpen {
+  from { transform: translateY(-2px); opacity: .82; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.accordion-card summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 1rem;
+  color: var(--c-navy);
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.accordion-card summary::-webkit-details-marker { display: none; }
+.accordion-card summary::after {
+  content: "+";
+  color: var(--c-blue);
+  font-size: 1.2rem;
+}
+.accordion-card[open] summary::after { content: "−"; }
+.accordion-card > :not(summary) {
+  margin-inline: 1rem;
+}
+.accordion-card > :last-child {
+  margin-bottom: 1rem;
+}
+.danger-zone {
+  border-color: rgba(192,57,43,.35);
+  background: #fffafa;
+}
+.confirm-row {
+  display: flex;
+  gap: .55rem;
+  align-items: center;
+  margin-top: .85rem;
+  color: var(--c-muted);
+  font-weight: 800;
 }
 .bank-progress-panel {
   margin-top: 1.2rem;
@@ -1256,6 +1397,16 @@ body.admin-mode .admin-exit-dock {
   font-size: .95rem;
   margin-bottom: 1.5rem;
   line-height: 1.6;
+}
+.photo-full-card {
+  max-width: min(92vw, 560px);
+}
+.photo-full-card img {
+  width: min(78vw, 420px);
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: var(--radius-lg);
+  margin-bottom: 1rem;
 }
 
 @media (max-width: 900px) {

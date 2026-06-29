@@ -74,8 +74,9 @@
       </div>
 
       <div class="group-entry hidden" id="groupEntry">
-        <p>Cuenta validada. Ingresa la clave de tu grupo para continuar.</p>
+        <p>Cuenta validada. Ingresa el código de clase y la clave de tu grupo para continuar.</p>
         <div class="admin-login">
+          <input type="text" id="claseCodigo" class="admin-input" placeholder="Código de clase" autocomplete="one-time-code" />
           <input type="password" id="grupoClave" class="admin-input" placeholder="Clave de grupo" autocomplete="one-time-code" />
           <button class="btn btn-primary" id="btnGrupoEntrar">Entrar</button>
         </div>
@@ -121,15 +122,25 @@
 
   <!-- ══════════════════ NAVEGACIÓN DE SECCIONES ══════════════════ -->
   <nav class="section-nav">
+    <button class="drawer-toggle" id="btnDrawerToggle" type="button" aria-label="Abrir menú">☰</button>
     <button class="nav-btn active" data-section="inicio">Inicio</button>
     <button class="nav-btn" data-section="diagnostico">Diagnóstico</button>
     <button class="nav-btn" data-section="nivel1">Nivel Medio</button>
     <button class="nav-btn" data-section="examen">Examen Final</button>
     <button class="nav-btn" data-section="estadisticas">Estadísticas</button>
-    <button class="nav-btn" data-section="perfil">Perfil</button>
     <button class="nav-btn support-nav" data-section="soporte">Soporte</button>
-    <button class="nav-btn exit-nav" id="btnSalirApp" type="button">Salir</button>
   </nav>
+  <div class="drawer-backdrop hidden" id="drawerBackdrop"></div>
+  <aside class="side-drawer hidden" id="sideDrawer" aria-label="Menú lateral">
+    <div class="drawer-head">
+      <strong id="drawerUserName">Preguntas UNAL</strong>
+      <button class="drawer-close" id="btnDrawerClose" type="button" aria-label="Cerrar menú">×</button>
+    </div>
+    <button class="drawer-link" id="btnDrawerHome" type="button">Inicio</button>
+    <button class="drawer-link" data-section="perfil" type="button">Perfil</button>
+    <button class="drawer-link" data-section="configuracion" type="button">Configuración</button>
+    <button class="drawer-link danger" id="btnSalirApp" type="button">Cerrar sesión</button>
+  </aside>
   <div class="group-status" id="grupoActualPanel" hidden></div>
 
   <!-- ══════════════════ INICIO ══════════════════ -->
@@ -491,7 +502,12 @@
         <div class="profile-photo-box">
           <img id="profilePhotoPreview" alt="Foto de perfil" />
           <input type="file" id="profilePhotoInput" accept="image/*" hidden />
-          <button class="btn btn-outline" id="btnChoosePhoto" type="button">Cambiar foto</button>
+          <input type="file" id="profileCameraInput" accept="image/*" capture="user" hidden />
+          <div class="profile-photo-actions">
+            <button class="btn btn-outline" id="btnChoosePhoto" type="button">Galería</button>
+            <button class="btn btn-outline" id="btnTakePhoto" type="button">Cámara</button>
+            <button class="btn btn-secondary" id="btnRemovePhoto" type="button">Eliminar</button>
+          </div>
         </div>
         <div class="profile-summary">
           <h2 id="profileNameTitle">Perfil</h2>
@@ -499,6 +515,8 @@
           <div class="profile-chips">
             <span id="profileAgeChip">Edad: —</span>
             <span id="profileGroupChip">Grupo: —</span>
+            <span id="profileClassChip">Clase: —</span>
+            <span id="profileCreatedChip">Registro: —</span>
             <span id="profilePhoneChip">Teléfono sin verificar</span>
           </div>
         </div>
@@ -546,14 +564,100 @@
         <p class="bank-status" id="phoneStatus"></p>
       </section>
 
-      <section class="profile-panel">
-        <h3>Cambiar de grupo</h3>
-        <p>Escribe la clave del nuevo grupo. Al cambiar, conservarás tus datos y resultados guardados.</p>
-        <div class="admin-login">
-          <input type="password" id="profileGroupKey" class="admin-input" placeholder="Clave del nuevo grupo" />
-          <button class="btn btn-secondary" id="btnStudentChangeGroup" type="button">Cambiar grupo</button>
-        </div>
-        <p class="bank-status" id="studentGroupStatus"></p>
+    </div>
+  </main>
+
+  <!-- ══════════════════ CONFIGURACIÓN ══════════════════ -->
+  <main class="main-content hidden" id="sectionConfiguracion">
+    <div class="settings-shell">
+      <section class="profile-panel student-settings">
+        <h2>Configuración</h2>
+        <details class="accordion-card" open>
+          <summary>Grupo</summary>
+          <p>Cambia de grupo escribiendo la clave. No podrás hacerlo si estás presentando un examen.</p>
+          <div class="admin-login">
+            <input type="password" id="settingsGroupKey" class="admin-input" placeholder="Clave del nuevo grupo" />
+            <button class="btn btn-secondary" id="btnSettingsChangeGroup" type="button">Cambiar grupo</button>
+          </div>
+          <p class="bank-status" id="settingsGroupStatus"></p>
+        </details>
+        <details class="accordion-card">
+          <summary>Banco de preguntas</summary>
+          <p>Cambia entre bancos. El siguiente banco se habilita cuando terminas diagnóstico, nivel medio y final.</p>
+          <div class="result-actions">
+            <button class="btn btn-outline" id="btnSettingsBancoAnterior" type="button">← Banco anterior</button>
+            <button class="btn btn-primary" id="btnSettingsBancoSiguiente" type="button">Banco siguiente</button>
+          </div>
+        </details>
+        <details class="accordion-card">
+          <summary>Clase</summary>
+          <p>Escribe un código de clase válido. Al cambiar de clase deberás seleccionar nuevamente tu grupo.</p>
+          <div class="admin-login">
+            <input type="text" id="settingsClassCode" class="admin-input" placeholder="Código de clase" />
+            <button class="btn btn-secondary" id="btnSettingsChangeClass" type="button">Cambiar clase</button>
+          </div>
+          <p class="bank-status" id="settingsClassStatus"></p>
+        </details>
+        <details class="accordion-card danger-zone">
+          <summary>Cuenta</summary>
+          <p>Eliminar la cuenta es irreversible. Se solicitará contraseña y confirmación antes de borrar datos.</p>
+          <input type="password" id="deleteAccountPassword" class="admin-input" placeholder="Contraseña" />
+          <label class="confirm-row"><input type="checkbox" id="deleteAccountConfirm" /> Entiendo que esta acción es irreversible.</label>
+          <button class="btn btn-secondary" id="btnDeleteAccount" type="button">Eliminar cuenta permanentemente</button>
+          <p class="bank-status" id="deleteAccountStatus"></p>
+        </details>
+      </section>
+
+      <section class="profile-panel admin-settings hidden" id="adminSettingsPanel">
+        <h2>Configuración del administrador</h2>
+        <details class="accordion-card" open>
+          <summary>Clase</summary>
+          <p>Crea clases independientes. Cada código es único y se comparte con estudiantes.</p>
+          <div class="bank-grid">
+            <label>Nombre de la clase<input type="text" id="adminClassName" class="admin-input" placeholder="Matemáticas 10A" /></label>
+            <label>Clase activa<select id="adminClassSelect" class="admin-input"></select></label>
+          </div>
+          <button class="btn btn-secondary" id="btnCreateClass" type="button">Crear clase</button>
+          <p class="bank-status" id="adminClassStatus"></p>
+        </details>
+        <details class="accordion-card">
+          <summary>Cambiar estudiante de grupo</summary>
+          <p>Busca al estudiante por el correo con el que se registró y asígnale un grupo sin pedirle clave.</p>
+          <div class="bank-grid">
+            <label>Correo del estudiante<input type="email" id="adminStudentEmail" class="admin-input" placeholder="correo@gmail.com" /></label>
+            <label>Nuevo grupo<select id="adminStudentGroupSelect" class="admin-input"></select></label>
+          </div>
+          <button class="btn btn-secondary" id="btnAdminChangeStudentGroup" type="button">Cambiar grupo del estudiante</button>
+          <p class="bank-status" id="adminStudentStatus"></p>
+        </details>
+        <details class="accordion-card">
+          <summary>Permisos por grupo</summary>
+          <p>Activa permisos por grupo. Un permiso permite presentar ese examen aunque no se haya completado el requisito anterior.</p>
+          <div class="admin-group-select">
+            <label for="adminGrupoSelect">Grupo</label>
+            <select id="adminGrupoSelect" class="admin-input"></select>
+          </div>
+          <div class="admin-list" id="adminList"></div>
+        </details>
+        <details class="accordion-card">
+          <summary>Banco de preguntas</summary>
+          <p>Escoge el banco que trabajará cada grupo en cada nivel.</p>
+          <div class="bank-grid">
+            <label>Grupo<select id="bankGrupoSelect" class="admin-input"></select></label>
+            <label>Nivel<select id="bankNivelSelect" class="admin-input"><option value="diagnostico">Diagnóstico</option><option value="nivel1">Nivel Medio</option><option value="examen">Examen Final</option></select></label>
+            <label>Banco<select id="bankBancoSelect" class="admin-input"></select></label>
+          </div>
+          <button class="btn btn-secondary" id="btnGuardarBanco" type="button">Guardar banco</button>
+          <p class="bank-status" id="bankStatus"></p>
+        </details>
+        <details class="accordion-card">
+          <summary>Registrar estudiantes</summary>
+          <p>Ingresa correos separados por coma, espacio o salto de línea. Cada correo quedará asociado al grupo elegido.</p>
+          <textarea id="bulkStudentEmails" class="admin-input" rows="5" placeholder="correo1@gmail.com&#10;correo2@gmail.com"></textarea>
+          <label>Grupo para los estudiantes<select id="bulkStudentGroup" class="admin-input"></select></label>
+          <button class="btn btn-primary" id="btnBulkStudents" type="button">Agregar estudiantes</button>
+          <p class="bank-status" id="bulkStudentStatus"></p>
+        </details>
       </section>
     </div>
   </main>
@@ -563,72 +667,12 @@
     <div class="start-screen admin-panel">
       <span class="cs-icon">🔐</span>
       <h2>Bienvenido Jhonatan</h2>
-      <p>Activa permisos por grupo. Un permiso permite presentar ese examen aunque no se haya completado el requisito anterior.</p>
-      <div class="admin-group-select">
-        <label for="adminGrupoSelect">Grupo</label>
-        <select id="adminGrupoSelect" class="admin-input"></select>
-      </div>
-      <div class="admin-list" id="adminList"></div>
-      <div class="admin-bank-panel">
-        <h3>Cambiar estudiante de grupo</h3>
-        <p>Busca al estudiante por el correo con el que se registró y asígnale un grupo sin pedirle clave.</p>
-        <div class="bank-grid">
-          <label>
-            Correo del estudiante
-            <input type="email" id="adminStudentEmail" class="admin-input" placeholder="correo@gmail.com" />
-          </label>
-          <label>
-            Nuevo grupo
-            <select id="adminStudentGroupSelect" class="admin-input"></select>
-          </label>
-        </div>
-        <button class="btn btn-secondary" id="btnAdminChangeStudentGroup" type="button">Cambiar grupo del estudiante</button>
-        <p class="bank-status" id="adminStudentStatus"></p>
-      </div>
-      <div class="admin-bank-panel">
-        <h3>Banco de preguntas</h3>
-        <p>Escoge el banco que trabajará cada grupo en cada nivel. Las reservas quedan listas para activarlas cuando tengas nuevas preguntas.</p>
-        <div class="bank-grid">
-          <label>
-            Grupo
-            <select id="bankGrupoSelect" class="admin-input"></select>
-          </label>
-          <label>
-            Nivel
-            <select id="bankNivelSelect" class="admin-input">
-              <option value="diagnostico">Diagnóstico</option>
-              <option value="nivel1">Nivel Medio</option>
-              <option value="examen">Examen Final</option>
-            </select>
-          </label>
-          <label>
-            Banco
-            <select id="bankBancoSelect" class="admin-input">
-              <option value="principal">Banco principal</option>
-              <option value="reserva1">Reserva 1</option>
-              <option value="reserva2">Reserva 2</option>
-              <option value="reserva3">Reserva 3</option>
-              <option value="reserva4">Reserva 4</option>
-              <option value="reserva5">Reserva 5</option>
-              <option value="reserva6">Reserva 6</option>
-              <option value="reserva7">Reserva 7</option>
-              <option value="reserva8">Reserva 8</option>
-              <option value="reserva9">Reserva 9</option>
-              <option value="reserva10">Reserva 10</option>
-            </select>
-          </label>
-        </div>
-        <button class="btn btn-secondary" id="btnGuardarBanco" type="button">Guardar banco</button>
-        <p class="bank-status" id="bankStatus"></p>
-      </div>
+      <p>Desde este panel podrás administrar clases, estudiantes, exámenes, estadísticas, bancos de preguntas y permisos por grupo.</p>
       <button class="btn btn-outline admin-metrics-toggle" id="btnAdminMetricas" type="button">Ver métricas y estadísticas</button>
       <section class="admin-metrics-panel" id="adminMetricsPanel" hidden>
         <h3>Métricas</h3>
         <div class="stats-grid" id="adminStats"></div>
       </section>
-      <div class="admin-exit-dock">
-        <button class="btn admin-exit-btn" id="btnSalirAdmin" type="button">Cerrar sesión</button>
-      </div>
     </div>
   </main>
 
@@ -671,6 +715,12 @@
       <button class="btn btn-primary" id="btnVerResultadoNivel">Ver mi resultado</button>
     </div>
   </div>
+  <div id="photoOverlay" class="overlay hidden">
+    <div class="overlay-card photo-full-card">
+      <img id="photoFullImage" alt="Foto de perfil ampliada" />
+      <button class="btn btn-primary" id="btnClosePhotoOverlay" type="button">Cerrar</button>
+    </div>
+  </div>
 
   <footer class="site-footer">
     <p>Jhonatan Solano · Universidad Nacional de Colombia · 2026</p>
@@ -691,6 +741,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260629-1"></script>
+  <script type="module" src="script.js?v=20260629-2"></script>
 </body>
 </html>

@@ -6,7 +6,10 @@ import {
   RecaptchaVerifier,
   browserLocalPersistence,
   createUserWithEmailAndPassword,
+  deleteUser,
+  EmailAuthProvider,
   onAuthStateChanged,
+  reauthenticateWithCredential,
   sendEmailVerification,
   sendPasswordResetEmail,
   setPersistence,
@@ -432,6 +435,8 @@ const LETRAS = ["A", "B", "C", "D"];
 const ACTIVE_ATTEMPT_KEY = "preguntasUnalIntentoActivo";
 const RESULTADOS_KEY = "preguntasUnalResultadosSesion";
 const STORAGE_BANCO_ACTIVO = "preguntasUnalBancoActivo";
+const STORAGE_CLASE_ACTIVA = "preguntasUnalClaseActiva";
+const STORAGE_ADMIN_CLASE = "preguntasUnalAdminClaseActiva";
 const INACTIVIDAD_MS = 10 * 60 * 1000;
 const BANCOS_DISPONIBLES = ["principal", ...Array.from({ length: 10 }, (_, i) => `reserva${i + 1}`)];
 const NOMBRES_BANCOS = Object.fromEntries(BANCOS_DISPONIBLES.map((banco, idx) => [
@@ -441,6 +446,10 @@ const NOMBRES_BANCOS = Object.fromEntries(BANCOS_DISPONIBLES.map((banco, idx) =>
 let intentoActivo = cargarIntentoActivo();
 let resultadosSesion = cargarResultadosSesion();
 let bancoActivo = localStorage.getItem(STORAGE_BANCO_ACTIVO) || "principal";
+let claseActiva = localStorage.getItem(STORAGE_CLASE_ACTIVA) || "";
+let claseActualInfo = null;
+let adminClaseActiva = localStorage.getItem(STORAGE_ADMIN_CLASE) || "";
+let adminClases = [];
 
 function refEstadoUsuario(uid = usuarioActual?.uid) {
   return uid ? doc(db, "studentState", uid) : null;
@@ -452,6 +461,14 @@ function refPerfilUsuario(uid = usuarioActual?.uid) {
 
 function refPermisosGrupo(grupo) {
   return doc(db, "groupPermissions", grupo);
+}
+
+function refClase(id) {
+  return doc(db, "classes", id);
+}
+
+function safeEmailId(email) {
+  return email.toLowerCase().replace(/[^a-z0-9]/g, "_");
 }
 
 function normalizarResultados(raw = {}) {
@@ -474,6 +491,7 @@ async function guardarEstadoRemoto() {
     uid: usuarioActual.uid,
     email: usuarioActual.email,
     grupo: grupoActivo || "",
+    claseId: claseActiva || "",
     bancoActivo,
     intentoActivo,
     resultados: resultadosSesion,
@@ -488,6 +506,10 @@ async function cargarEstadoRemoto() {
   if (!snap.exists()) return;
   const data = snap.data();
   if (data.grupo && GRUPOS[data.grupo]) grupoActivo = data.grupo;
+  if (data.claseId) {
+    claseActiva = data.claseId;
+    localStorage.setItem(STORAGE_CLASE_ACTIVA, claseActiva);
+  }
   if (data.bancoActivo && BANCOS_DISPONIBLES.includes(data.bancoActivo)) {
     bancoActivo = data.bancoActivo;
     localStorage.setItem(STORAGE_BANCO_ACTIVO, bancoActivo);
@@ -1145,6 +1167,7 @@ function mostrarSeccion(sec) {
   document.getElementById("sectionExamen").classList.toggle("hidden", sec !== "examen");
   document.getElementById("sectionEstadisticas").classList.toggle("hidden", sec !== "estadisticas");
   document.getElementById("sectionPerfil").classList.toggle("hidden", sec !== "perfil");
+  document.getElementById("sectionConfiguracion").classList.toggle("hidden", sec !== "configuracion");
   document.getElementById("sectionAdmin").classList.toggle("hidden", sec !== "admin");
   document.getElementById("sectionSoporte").classList.toggle("hidden", sec !== "soporte");
   if (sec === "diagnostico") actualizarEstadoDiagnostico();
@@ -1152,6 +1175,7 @@ function mostrarSeccion(sec) {
   if (sec === "estadisticas") renderStudentStats();
   if (sec === "inicio") actualizarBienvenida();
   if (sec === "perfil") renderProfile();
+  if (sec === "configuracion") renderConfiguracion();
 }
 
 function activarNav(sec) {
@@ -1163,6 +1187,7 @@ function aplicarModoUsuario() {
   document.body.classList.toggle("admin-mode", modoAdmin);
   actualizarGrupoActualPanel();
   actualizarBienvenida();
+  actualizarDrawer();
 }
 
 function actualizarGrupoActualPanel() {
@@ -1174,7 +1199,8 @@ function actualizarGrupoActualPanel() {
     return;
   }
   panel.hidden = false;
-  panel.textContent = `Estás en ${GRUPOS[grupoActivo].nombre} · ${NOMBRES_BANCOS[bancoActivo]}`;
+  const claseTxt = claseActualInfo?.name || perfilActual?.className || "Clase";
+  panel.textContent = `${claseTxt} · ${GRUPOS[grupoActivo].nombre} · ${NOMBRES_BANCOS[bancoActivo]}`;
 }
 
 function actualizarBienvenida() {
@@ -1216,6 +1242,28 @@ function actualizarBancoEstudiante() {
   }).join("");
   prev.disabled = idx === 0;
   next.disabled = !completado || idx === BANCOS_DISPONIBLES.length - 1;
+}
+
+function abrirDrawer() {
+  document.getElementById("sideDrawer")?.classList.remove("hidden");
+  document.getElementById("drawerBackdrop")?.classList.remove("hidden");
+}
+
+function cerrarDrawer() {
+  document.getElementById("sideDrawer")?.classList.add("hidden");
+  document.getElementById("drawerBackdrop")?.classList.add("hidden");
+}
+
+function actualizarDrawer() {
+  const name = document.getElementById("drawerUserName");
+  if (name) name.textContent = perfilActual?.displayName || usuarioActual?.displayName || "Preguntas UNAL";
+}
+
+function renderConfiguracion() {
+  document.querySelector(".student-settings")?.classList.toggle("hidden", modoAdmin);
+  document.getElementById("adminSettingsPanel")?.classList.toggle("hidden", !modoAdmin);
+  if (modoAdmin) renderAdminPanel();
+  else actualizarBancoEstudiante();
 }
 
 function renderStudentStats() {
@@ -2070,6 +2118,8 @@ function renderProfile() {
   document.getElementById("profileEmailText").textContent = usuarioActual.email || "";
   document.getElementById("profileAgeChip").textContent = `Edad: ${calcularEdad(profile.birthDate)}`;
   document.getElementById("profileGroupChip").textContent = `Grupo: ${GRUPOS[grupoActivo]?.nombre || "sin grupo"}`;
+  document.getElementById("profileClassChip").textContent = `Clase: ${profile.className || claseActualInfo?.name || "sin clase"}`;
+  document.getElementById("profileCreatedChip").textContent = `Registro: ${profile.createdLabel || "—"}`;
   document.getElementById("profilePhoneChip").textContent = profile.phoneVerified ? "Teléfono verificado" : "Teléfono sin verificar";
   document.getElementById("profilePhotoPreview").src = photo || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Crect width='120' height='120' rx='60' fill='%23e8f0fb'/%3E%3Ctext x='60' y='68' text-anchor='middle' font-size='44' fill='%23003865'%3E%F0%9F%91%A4%3C/text%3E%3C/svg%3E";
   document.getElementById("profileName").value = displayName;
@@ -2078,6 +2128,75 @@ function renderProfile() {
   poblarPhoneCodes("profilePhoneCode", profile.phoneCode || "+57");
   document.getElementById("profilePhone").value = profile.phone || "";
   poblarUbicacion("profile", profile);
+}
+
+function codigoClaseAleatorio() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+}
+
+async function buscarClasePorCodigo(code) {
+  const codigo = code.trim().toUpperCase();
+  if (!codigo) return null;
+  const snap = await getDocs(query(collection(db, "classes"), where("code", "==", codigo)));
+  if (snap.empty) return null;
+  const docSnap = snap.docs[0];
+  return { id: docSnap.id, ...docSnap.data() };
+}
+
+async function crearClaseAdmin() {
+  const status = document.getElementById("adminClassStatus");
+  const name = document.getElementById("adminClassName")?.value.trim();
+  if (!name) {
+    status.textContent = "Escribe el nombre de la clase.";
+    return;
+  }
+  let code = "";
+  for (let i = 0; i < 10; i++) {
+    const candidate = codigoClaseAleatorio();
+    const exists = await buscarClasePorCodigo(candidate);
+    if (!exists) {
+      code = candidate;
+      break;
+    }
+  }
+  if (!code) {
+    status.textContent = "No se pudo generar un código único. Intenta de nuevo.";
+    return;
+  }
+  const ref = doc(collection(db, "classes"));
+  await setDoc(ref, {
+    name,
+    code,
+    ownerEmail: usuarioActual.email,
+    ownerUid: usuarioActual.uid,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
+  });
+  adminClaseActiva = ref.id;
+  localStorage.setItem(STORAGE_ADMIN_CLASE, adminClaseActiva);
+  await cargarClasesAdmin();
+  status.textContent = `Clase creada. Código: ${code}`;
+}
+
+async function cargarClasesAdmin() {
+  if (!modoAdmin || !usuarioActual) return;
+  const snap = await getDocs(query(collection(db, "classes"), where("ownerUid", "==", usuarioActual.uid)));
+  adminClases = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  if (!adminClaseActiva && adminClases.length) {
+    adminClaseActiva = adminClases[0].id;
+    localStorage.setItem(STORAGE_ADMIN_CLASE, adminClaseActiva);
+  }
+  renderClassSelectors();
+}
+
+function renderClassSelectors() {
+  const select = document.getElementById("adminClassSelect");
+  if (!select) return;
+  select.innerHTML = adminClases.length
+    ? adminClases.map(c => `<option value="${c.id}">${c.name} (${c.code})</option>`).join("")
+    : `<option value="">Sin clases creadas</option>`;
+  select.value = adminClaseActiva || "";
 }
 
 async function guardarPerfilUsuario(extra = {}) {
@@ -2090,7 +2209,10 @@ async function guardarPerfilUsuario(extra = {}) {
     email,
     displayName: extra.displayName || perfilActual?.displayName || usuarioActual?.displayName || "",
     isAdmin: email === ADMIN_EMAIL,
-    grupo: extra.grupo || grupoActivo || perfilActual?.grupo || "",
+    grupo: Object.prototype.hasOwnProperty.call(extra, "grupo") ? extra.grupo : (grupoActivo || perfilActual?.grupo || ""),
+    classId: Object.prototype.hasOwnProperty.call(extra, "classId") ? extra.classId : (claseActiva || perfilActual?.classId || ""),
+    className: extra.className || perfilActual?.className || claseActualInfo?.name || "",
+    createdLabel: perfilActual?.createdLabel || new Date().toLocaleDateString("es-CO"),
     ...extra
   };
   await setDoc(doc(db, "users", uid), { ...perfilActual, updatedAt: serverTimestamp() }, { merge: true });
@@ -2112,15 +2234,19 @@ async function prepararSesionAutenticada() {
     grupoActivo = "admin";
     localStorage.setItem(STORAGE_GRUPO, grupoActivo);
     await guardarPerfilUsuario({ isAdmin: true, grupo: "admin" });
+    await cargarClasesAdmin();
     document.body.classList.remove("group-locked");
     aplicarModoUsuario();
     activarNav("admin");
     return;
   }
 
-  if (perfilActual?.grupo && GRUPOS[perfilActual.grupo]) {
+  if (perfilActual?.grupo && GRUPOS[perfilActual.grupo] && perfilActual?.classId) {
     grupoActivo = perfilActual.grupo;
+    claseActiva = perfilActual.classId;
+    claseActualInfo = { id: perfilActual.classId, name: perfilActual.className || "", code: perfilActual.classCode || "" };
     localStorage.setItem(STORAGE_GRUPO, grupoActivo);
+    localStorage.setItem(STORAGE_CLASE_ACTIVA, claseActiva);
     aplicarBancoNivelMedio();
     escucharPermisosGrupo(grupoActivo);
     sincronizarCompletadosGuardados();
@@ -2140,16 +2266,25 @@ async function entrarGrupo() {
     mostrarWarn("Primero inicia sesión o regístrate.");
     return;
   }
+  const codigoClase = document.getElementById("claseCodigo").value.trim();
   const valor = document.getElementById("grupoClave").value.trim();
+  const clase = await buscarClasePorCodigo(codigoClase);
+  if (!clase) {
+    mostrarWarn("Código de clase incorrecto o inexistente.");
+    return;
+  }
   const encontrado = Object.entries(GRUPOS).find(([, grupo]) => grupo.clave === valor);
   if (!encontrado) {
     mostrarWarn("Clave de grupo incorrecta.");
     return;
   }
   grupoActivo = encontrado[0];
+  claseActiva = clase.id;
+  claseActualInfo = clase;
   modoAdmin = false;
   localStorage.setItem(STORAGE_GRUPO, grupoActivo);
-  await guardarPerfilUsuario({ grupo: grupoActivo, isAdmin: false });
+  localStorage.setItem(STORAGE_CLASE_ACTIVA, claseActiva);
+  await guardarPerfilUsuario({ grupo: grupoActivo, isAdmin: false, classId: clase.id, className: clase.name, classCode: clase.code });
   await guardarEstadoRemoto();
   aplicarBancoNivelMedio();
   escucharPermisosGrupo(grupoActivo);
@@ -2348,9 +2483,13 @@ async function verificarCodigoTelefono() {
   }
 }
 
-async function estudianteCambiarGrupo() {
-  const status = document.getElementById("studentGroupStatus");
-  const valor = document.getElementById("profileGroupKey").value.trim();
+async function estudianteCambiarGrupo(inputId = "settingsGroupKey", statusId = "settingsGroupStatus") {
+  const status = document.getElementById(statusId);
+  if (pruebaActivaActual()) {
+    status.textContent = "No es posible cambiar el grupo porque el estudiante se encuentra realizando un examen.";
+    return;
+  }
+  const valor = document.getElementById(inputId).value.trim();
   const encontrado = Object.entries(GRUPOS).find(([, grupo]) => grupo.clave === valor);
   if (!encontrado) {
     status.textContent = "Clave de grupo incorrecta.";
@@ -2367,6 +2506,28 @@ async function estudianteCambiarGrupo() {
   status.textContent = `Ahora estás en ${GRUPOS[grupoActivo].nombre}.`;
 }
 
+async function estudianteCambiarClase() {
+  const status = document.getElementById("settingsClassStatus");
+  if (pruebaActivaActual()) {
+    status.textContent = "No es posible cambiar de clase porque el estudiante se encuentra realizando un examen.";
+    return;
+  }
+  const clase = await buscarClasePorCodigo(document.getElementById("settingsClassCode").value);
+  if (!clase) {
+    status.textContent = "El código de clase no existe.";
+    return;
+  }
+  claseActiva = clase.id;
+  claseActualInfo = clase;
+  grupoActivo = "";
+  localStorage.setItem(STORAGE_CLASE_ACTIVA, claseActiva);
+  localStorage.removeItem(STORAGE_GRUPO);
+  await guardarPerfilUsuario({ classId: clase.id, className: clase.name, classCode: clase.code, grupo: "" });
+  await guardarEstadoRemoto();
+  status.textContent = "Clase cambiada. Cierra sesión e ingresa la clave del grupo para continuar.";
+  renderProfile();
+}
+
 async function adminCambiarGrupoEstudiante() {
   const email = document.getElementById("adminStudentEmail").value.trim().toLowerCase();
   const grupo = document.getElementById("adminStudentGroupSelect").value;
@@ -2381,9 +2542,65 @@ async function adminCambiarGrupoEstudiante() {
     return;
   }
   const userDoc = usersSnap.docs[0];
+  const stateSnap = await getDoc(doc(db, "studentState", userDoc.id));
+  const active = stateSnap.exists() ? stateSnap.data().intentoActivo : null;
+  if (active && active.vence > Date.now() && Date.now() - (active.ultimaActividad || 0) <= INACTIVIDAD_MS) {
+    status.textContent = "No es posible cambiar el grupo porque el estudiante se encuentra realizando un examen.";
+    return;
+  }
   await updateDoc(userDoc.ref, { grupo, updatedAt: serverTimestamp() });
   await setDoc(doc(db, "studentState", userDoc.id), { grupo, updatedAt: serverTimestamp() }, { merge: true });
   status.textContent = `Estudiante asignado a ${GRUPOS[grupo].nombre}.`;
+}
+
+async function registrarEstudiantesBulk() {
+  const status = document.getElementById("bulkStudentStatus");
+  const raw = document.getElementById("bulkStudentEmails").value;
+  const grupo = document.getElementById("bulkStudentGroup").value;
+  const claseId = adminClaseActiva;
+  if (!claseId) {
+    status.textContent = "Primero crea o selecciona una clase.";
+    return;
+  }
+  const emails = [...new Set(raw.split(/[\s,;]+/).map(e => e.trim().toLowerCase()).filter(e => e.endsWith("@gmail.com")))];
+  if (!emails.length || !GRUPOS[grupo]) {
+    status.textContent = "Agrega correos Gmail válidos y selecciona grupo.";
+    return;
+  }
+  await Promise.all(emails.map(email => setDoc(doc(db, "classStudents", `${claseId}_${safeEmailId(email)}`), {
+    classId: claseId,
+    email,
+    grupo,
+    status: "pendiente",
+    ownerUid: usuarioActual.uid,
+    updatedAt: serverTimestamp()
+  }, { merge: true })));
+  status.textContent = `${emails.length} estudiante(s) registrado(s) en la clase.`;
+}
+
+async function eliminarCuentaActual() {
+  const status = document.getElementById("deleteAccountStatus");
+  const password = document.getElementById("deleteAccountPassword").value;
+  const confirmed = document.getElementById("deleteAccountConfirm").checked;
+  if (!confirmed) {
+    status.textContent = "Debes confirmar que entiendes que la acción es irreversible.";
+    return;
+  }
+  if (!password || !usuarioActual?.email) {
+    status.textContent = "Escribe tu contraseña para confirmar.";
+    return;
+  }
+  try {
+    const credential = EmailAuthProvider.credential(usuarioActual.email, password);
+    await reauthenticateWithCredential(usuarioActual, credential);
+    await setDoc(refPerfilUsuario(), { deleted: true, deletedAt: serverTimestamp() }, { merge: true });
+    await setDoc(refEstadoUsuario(), { deleted: true, deletedAt: serverTimestamp(), resultados: {}, intentoActivo: null }, { merge: true });
+    await deleteUser(usuarioActual);
+    localStorage.clear();
+    window.location.reload();
+  } catch {
+    status.textContent = "No se pudo eliminar la cuenta. Revisa la contraseña o vuelve a iniciar sesión.";
+  }
 }
 
 function alternarPassword(id) {
@@ -2403,10 +2620,18 @@ document.getElementById("grupoClave").addEventListener("keydown", (e) => {
     entrarGrupo();
   }
 });
+document.getElementById("claseCodigo")?.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    entrarGrupo();
+  }
+});
 
 async function salirApp() {
   localStorage.removeItem(STORAGE_GRUPO);
   localStorage.removeItem(STORAGE_BANCO_ACTIVO);
+  localStorage.removeItem(STORAGE_CLASE_ACTIVA);
+  localStorage.removeItem(STORAGE_ADMIN_CLASE);
   if (unsubscribePermisos) unsubscribePermisos();
   await signOut(auth);
   window.location.reload();
@@ -2423,11 +2648,58 @@ document.getElementById("tabRegister")?.addEventListener("click", () => cambiarA
 document.getElementById("registerPassword")?.addEventListener("input", actualizarReglasPassword);
 document.getElementById("btnSaveProfile")?.addEventListener("click", guardarPerfilDesdeFormulario);
 document.getElementById("btnChoosePhoto")?.addEventListener("click", () => document.getElementById("profilePhotoInput")?.click());
+document.getElementById("btnTakePhoto")?.addEventListener("click", () => document.getElementById("profileCameraInput")?.click());
 document.getElementById("profilePhotoInput")?.addEventListener("change", e => cargarFotoPerfil(e.target.files?.[0]));
+document.getElementById("profileCameraInput")?.addEventListener("change", e => cargarFotoPerfil(e.target.files?.[0]));
+document.getElementById("btnRemovePhoto")?.addEventListener("click", async () => {
+  await guardarPerfilUsuario({ photoData: "" });
+  renderProfile();
+  document.getElementById("profileStatus").textContent = "Foto eliminada.";
+});
+document.getElementById("profilePhotoPreview")?.addEventListener("click", () => {
+  document.getElementById("photoFullImage").src = document.getElementById("profilePhotoPreview").src;
+  document.getElementById("photoOverlay").classList.remove("hidden");
+});
+document.getElementById("btnClosePhotoOverlay")?.addEventListener("click", () => document.getElementById("photoOverlay").classList.add("hidden"));
 document.getElementById("btnSendPhoneCode")?.addEventListener("click", enviarCodigoTelefono);
 document.getElementById("btnVerifyPhoneCode")?.addEventListener("click", verificarCodigoTelefono);
-document.getElementById("btnStudentChangeGroup")?.addEventListener("click", estudianteCambiarGrupo);
+document.getElementById("btnSettingsChangeGroup")?.addEventListener("click", () => estudianteCambiarGrupo("settingsGroupKey", "settingsGroupStatus"));
+document.getElementById("btnSettingsBancoAnterior")?.addEventListener("click", () => cambiarBanco(-1));
+document.getElementById("btnSettingsBancoSiguiente")?.addEventListener("click", () => cambiarBanco(1));
+document.getElementById("btnSettingsChangeClass")?.addEventListener("click", estudianteCambiarClase);
+document.getElementById("btnCreateClass")?.addEventListener("click", crearClaseAdmin);
+document.getElementById("adminClassSelect")?.addEventListener("change", e => {
+  adminClaseActiva = e.target.value;
+  localStorage.setItem(STORAGE_ADMIN_CLASE, adminClaseActiva);
+  if (!document.getElementById("adminMetricsPanel")?.hidden) renderAdminStats();
+});
+document.getElementById("btnBulkStudents")?.addEventListener("click", registrarEstudiantesBulk);
+document.getElementById("btnDeleteAccount")?.addEventListener("click", eliminarCuentaActual);
 document.getElementById("btnAdminChangeStudentGroup")?.addEventListener("click", adminCambiarGrupoEstudiante);
+document.getElementById("btnDrawerToggle")?.addEventListener("click", () => {
+  if (document.getElementById("sideDrawer").classList.contains("hidden")) abrirDrawer();
+  else cerrarDrawer();
+});
+document.getElementById("btnDrawerClose")?.addEventListener("click", cerrarDrawer);
+document.getElementById("drawerBackdrop")?.addEventListener("click", cerrarDrawer);
+document.getElementById("btnDrawerHome")?.addEventListener("click", () => {
+  cerrarDrawer();
+  activarNav(modoAdmin ? "admin" : "inicio");
+});
+document.querySelectorAll(".drawer-link[data-section]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    cerrarDrawer();
+    activarNav(btn.dataset.section);
+  });
+});
+document.querySelectorAll(".accordion-card").forEach(details => {
+  details.addEventListener("toggle", () => {
+    if (!details.open) return;
+    details.parentElement?.querySelectorAll(".accordion-card").forEach(other => {
+      if (other !== details) other.open = false;
+    });
+  });
+});
 document.querySelectorAll("[data-toggle-password]").forEach(btn => {
   btn.addEventListener("click", () => alternarPassword(btn.dataset.togglePassword));
 });
@@ -2458,6 +2730,7 @@ function renderAdminPanel() {
   const select = document.getElementById("adminGrupoSelect");
   const list = document.getElementById("adminList");
   const studentGroupSelect = document.getElementById("adminStudentGroupSelect");
+  const bulkGroupSelect = document.getElementById("bulkStudentGroup");
   if (!select || !list) return;
 
   if (!select.options.length) {
@@ -2476,6 +2749,15 @@ function renderAdminPanel() {
       studentGroupSelect.appendChild(option);
     });
   }
+  if (bulkGroupSelect && !bulkGroupSelect.options.length) {
+    Object.entries(GRUPOS).forEach(([clave, grupo]) => {
+      const option = document.createElement("option");
+      option.value = clave;
+      option.textContent = `${grupo.nombre} (${grupo.clave})`;
+      bulkGroupSelect.appendChild(option);
+    });
+  }
+  renderClassSelectors();
 
   select.value = adminGrupoActual;
   const grupo = GRUPOS[adminGrupoActual];
@@ -2525,6 +2807,9 @@ function renderBankPanel() {
     });
   }
 
+  if (!bancoSelect.options.length) {
+    bancoSelect.innerHTML = BANCOS_DISPONIBLES.map(banco => `<option value="${banco}">${NOMBRES_BANCOS[banco]}</option>`).join("");
+  }
   grupoSelect.value = adminGrupoActual;
   const nivel = nivelSelect.value || "diagnostico";
   bancoSelect.value = bancosGrupo[adminGrupoActual]?.[nivel] || "principal";
@@ -2541,6 +2826,7 @@ async function renderAdminStats() {
     const data = snap.data();
     const grupo = data.grupo;
     if (!GRUPOS[grupo]) return;
+    if (adminClaseActiva && data.claseId && data.claseId !== adminClaseActiva) return;
     const bucket = acumulado[grupo];
     bucket.estudiantes.add(data.uid || snap.id);
     const resultados = data.resultados || {};
