@@ -2226,20 +2226,26 @@ async function cargarPerfilUsuario() {
 }
 
 async function prepararSesionAutenticada() {
-  await cargarPermisosRemotos();
-  await cargarPerfilUsuario();
-  await cargarEstadoRemoto();
-  modoAdmin = usuarioActual?.email === ADMIN_EMAIL;
+  modoAdmin = usuarioActual?.email?.toLowerCase() === ADMIN_EMAIL;
   if (modoAdmin) {
+    try {
+      await cargarPerfilUsuario();
+    } catch (err) {
+      console.warn("No se pudo cargar el perfil admin.", err);
+    }
     grupoActivo = "admin";
     localStorage.setItem(STORAGE_GRUPO, grupoActivo);
-    await guardarPerfilUsuario({ isAdmin: true, grupo: "admin" });
-    await cargarClasesAdmin();
     document.body.classList.remove("group-locked");
     aplicarModoUsuario();
     activarNav("admin");
+    guardarPerfilUsuario({ isAdmin: true, grupo: "admin" }).catch(err => console.warn("No se pudo guardar perfil admin.", err));
+    cargarClasesAdmin().catch(err => console.warn("No se pudieron cargar clases admin.", err));
     return;
   }
+
+  await cargarPermisosRemotos();
+  await cargarPerfilUsuario();
+  await cargarEstadoRemoto();
 
   if (perfilActual?.grupo && GRUPOS[perfilActual.grupo] && perfilActual?.classId) {
     grupoActivo = perfilActual.grupo;
@@ -2300,7 +2306,7 @@ async function loginEmail() {
   const password = document.getElementById("loginPassword").value;
   try {
     const cred = await signInWithEmailAndPassword(auth, email, password);
-    if (requiereVerificacionEmail(cred.user)) {
+    if (requiereVerificacionEmail(cred.user) && cred.user.email?.toLowerCase() !== ADMIN_EMAIL) {
       await signOut(auth);
       mostrarWarn("Debes verificar tu correo. Revisa Gmail y abre el enlace de verificación antes de iniciar sesión.");
       return;
@@ -2714,7 +2720,7 @@ onAuthStateChanged(auth, async user => {
     return;
   }
   if (registroEnCurso) return;
-  if (requiereVerificacionEmail(user)) {
+  if (requiereVerificacionEmail(user) && user.email?.toLowerCase() !== ADMIN_EMAIL) {
     await signOut(auth);
     document.body.classList.add("group-locked");
     mostrarAuthInicial();
