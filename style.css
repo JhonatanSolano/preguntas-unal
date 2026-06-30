@@ -41,6 +41,8 @@
 html { scroll-behavior: smooth; }
 [hidden] { display: none !important; }
 .hidden { display: none !important; }
+img, svg, video, canvas { max-width: 100%; }
+input, select, textarea, button { max-width: 100%; }
 body {
   font-family: var(--font-body);
   background: var(--c-bg);
@@ -893,6 +895,7 @@ body.admin-mode .admin-exit-dock {
 .profile-form-grid label {
   display: grid;
   gap: .35rem;
+  min-width: 0;
   color: var(--c-blue);
   font-size: .88rem;
   font-weight: 800;
@@ -1036,6 +1039,30 @@ body.admin-mode .admin-exit-dock {
   border: 1px solid var(--c-border);
   border-radius: var(--radius-sm);
   background: var(--c-blue-lt);
+}
+.class-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .9rem;
+  margin: .8rem 0;
+  padding: .85rem;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  background: #fff;
+}
+.class-toolbar div {
+  display: grid;
+  min-width: 0;
+}
+.class-toolbar span {
+  color: var(--c-muted);
+  font-size: .85rem;
+  overflow-wrap: anywhere;
+}
+.class-actions-panel .result-actions {
+  justify-content: flex-start;
+  margin-bottom: 0;
 }
 .soon-badge {
   background: var(--c-gold);
@@ -1802,6 +1829,7 @@ body.admin-mode .admin-exit-dock {
 .student-row span,
 .student-row small {
   color: var(--c-muted);
+  overflow-wrap: anywhere;
 }
 .bank-progress-panel {
   margin-top: 1.2rem;
@@ -1842,6 +1870,7 @@ body.admin-mode .admin-exit-dock {
 }
 .admin-input {
   width: 100%;
+  min-width: 0;
   border: 1.5px solid var(--c-border);
   border-radius: var(--radius-md);
   padding: .8rem 1rem;
@@ -2137,5 +2166,61 @@ body.admin-mode .admin-exit-dock {
   }
   .student-row {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  body {
+    width: 100%;
+  }
+  .auth-shell {
+    align-items: start;
+    padding: .75rem;
+    overflow-y: auto;
+  }
+  .auth-shell .auth-gate,
+  .start-screen {
+    width: 100%;
+    max-width: calc(100vw - 1.5rem);
+    border-radius: 18px;
+  }
+  .profile-form-grid,
+  .profile-form-grid.three,
+  .admin-login,
+  .bank-grid,
+  .auth-tabs {
+    min-width: 0;
+  }
+  .profile-form-grid,
+  .profile-form-grid.three {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .admin-input,
+  textarea.admin-input,
+  select.admin-input {
+    width: 100%;
+    min-width: 0;
+    font-size: 16px;
+  }
+  .q-formula,
+  mjx-container {
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+  .math-showcase,
+  .formula-card,
+  .mini-dashboard {
+    max-width: 100%;
+  }
+  .class-toolbar,
+  .student-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .class-toolbar .btn,
+  .student-row .btn,
+  .student-row select {
+    width: 100%;
   }
 }

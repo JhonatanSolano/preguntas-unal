@@ -189,14 +189,6 @@
           </div>
         </div>
 
-        <div class="auth-form hidden" id="forgotPasswordPanel">
-          <p class="mini-help">Escribe tu correo Gmail registrado. Te enviaremos un enlace seguro para restablecer tu contraseña.</p>
-          <input type="email" id="forgotPasswordEmail" class="admin-input" placeholder="Correo @gmail.com" autocomplete="email" />
-          <button class="btn btn-primary" id="btnSendPasswordRecovery" type="button">Enviar recuperación</button>
-          <p class="bank-status" id="forgotPasswordStatus"></p>
-          <button class="btn btn-outline" id="btnForgotPasswordBack" type="button">Volver al inicio de sesión</button>
-        </div>
-
         <div class="auth-form hidden" id="registerPanel">
         <input type="text" id="registerName" class="admin-input" placeholder="Nombre de usuario" autocomplete="name" />
         <input type="email" id="registerEmail" class="admin-input" placeholder="Correo @gmail.com" autocomplete="email" />
@@ -241,6 +233,21 @@
         </div>
 
         <p class="warn-msg" id="grupoWarn" hidden>Revisa los datos ingresados.</p>
+      </div>
+    </div>
+
+    <div class="auth-shell hidden" id="forgotPasswordCard" role="dialog" aria-modal="true" aria-labelledby="recoverPasswordTitle">
+      <div class="start-screen group-gate auth-gate">
+        <button class="auth-close" id="btnRecoverPasswordClose" type="button" aria-label="Cerrar">×</button>
+        <img class="auth-logo" src="assets/logo.png" alt="Matemáticas En Tu Bolsillo" />
+        <h2 id="recoverPasswordTitle">Restablecer contraseña</h2>
+        <p>Escribe tu correo Gmail registrado. Te enviaremos un enlace seguro para cambiar tu contraseña.</p>
+        <div class="auth-form" id="forgotPasswordPanel">
+          <input type="email" id="forgotPasswordEmail" class="admin-input" placeholder="Correo @gmail.com" autocomplete="email" />
+          <button class="btn btn-primary" id="btnSendPasswordRecovery" type="button">Enviar recuperación</button>
+          <p class="bank-status" id="forgotPasswordStatus"></p>
+          <button class="btn btn-outline" id="btnForgotPasswordBack" type="button">Volver al inicio de sesión</button>
+        </div>
       </div>
     </div>
 

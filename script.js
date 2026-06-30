@@ -468,6 +468,7 @@ const RESULTADOS_KEY = "preguntasUnalResultadosSesion";
 const STORAGE_BANCO_ACTIVO = "preguntasUnalBancoActivo";
 const STORAGE_CLASE_ACTIVA = "preguntasUnalClaseActiva";
 const STORAGE_ADMIN_CLASE = "preguntasUnalAdminClaseActiva";
+const STORAGE_SECCION_ACTIVA = "matematicasBolsilloSeccionActiva";
 const INACTIVIDAD_MS = 10 * 60 * 1000;
 const BANCOS_DISPONIBLES = ["principal", ...Array.from({ length: 10 }, (_, i) => `reserva${i + 1}`)];
 const NOMBRES_BANCOS = Object.fromEntries(BANCOS_DISPONIBLES.map((banco, idx) => [
@@ -1274,8 +1275,18 @@ function mostrarSeccion(sec) {
 }
 
 function activarNav(sec) {
+  if (sec) localStorage.setItem(STORAGE_SECCION_ACTIVA, sec);
   document.querySelectorAll(".nav-btn").forEach(b => b.classList.toggle("active", b.dataset.section === sec));
   mostrarSeccion(sec);
+}
+
+function seccionRestaurable() {
+  if (!modoAdmin && intentoActivo?.clave) return intentoActivo.clave;
+  const saved = localStorage.getItem(STORAGE_SECCION_ACTIVA) || "inicio";
+  const permitidas = modoAdmin
+    ? new Set(["admin", "adminMetricas", "perfil", "configuracion", "soporte"])
+    : new Set(["inicio", "diagnostico", "nivel1", "examen", "estadisticas", "perfil", "configuracion", "soporte"]);
+  return permitidas.has(saved) ? saved : (modoAdmin ? "admin" : "inicio");
 }
 
 function aplicarModoUsuario() {
@@ -2104,6 +2115,8 @@ function actualizarReglasPassword() {
 
 function mostrarAuthInicial() {
   document.getElementById("loginCard")?.classList.add("hidden");
+  document.getElementById("forgotUserCard")?.classList.add("hidden");
+  document.getElementById("forgotPasswordCard")?.classList.add("hidden");
   document.querySelector(".auth-tabs")?.classList.remove("hidden");
   document.querySelector(".auth-divider")?.classList.remove("hidden");
   document.getElementById("loginPanel")?.classList.remove("hidden");
@@ -2437,11 +2450,17 @@ async function renderAdminStudentsByClass() {
   cont.innerHTML = groups.map(({ clase, estudiantes }) => `
     <details class="accordion-card class-students-card">
       <summary>${clase.name} · ${clase.code} · ${estudiantes.length} estudiante(s)</summary>
+      <div class="class-toolbar">
+        <div>
+          <strong>${clase.name}</strong>
+          <span>Código de aula: ${clase.code}</span>
+        </div>
+        <button class="btn btn-outline" data-delete-class="${clase.id}" type="button">Eliminar aula</button>
+      </div>
       <div class="class-actions-panel">
         <textarea class="admin-input" rows="3" data-class-add-input="${clase.id}" placeholder="Nombre Apellido <correo@gmail.com>"></textarea>
         <div class="result-actions">
           <button class="btn btn-primary" data-add-students-class="${clase.id}" type="button">Agregar estudiantes a esta aula</button>
-          <button class="btn btn-outline" data-delete-class="${clase.id}" type="button">Eliminar aula</button>
         </div>
         <p class="bank-status" data-class-status="${clase.id}"></p>
       </div>
@@ -2513,7 +2532,7 @@ async function prepararSesionAutenticada() {
     localStorage.setItem(STORAGE_GRUPO, grupoActivo);
     document.body.classList.remove("group-locked");
     aplicarModoUsuario();
-    activarNav("admin");
+    activarNav(seccionRestaurable());
     guardarPerfilUsuario({ isAdmin: true, grupo: "admin" }).catch(err => console.warn("No se pudo guardar perfil admin.", err));
     cargarClasesAdmin().catch(err => console.warn("No se pudieron cargar clases admin.", err));
     return;
@@ -2536,7 +2555,7 @@ async function prepararSesionAutenticada() {
     sincronizarCompletadosGuardados();
     document.body.classList.remove("group-locked");
     aplicarModoUsuario();
-    activarNav("inicio");
+    activarNav(seccionRestaurable());
     actualizarEstadoDiagnostico();
     restaurarIntentoActivo();
     return;
@@ -2719,11 +2738,8 @@ async function recuperarPassword() {
 }
 
 function abrirPanelRecuperarPassword() {
-  document.getElementById("loginPanel")?.classList.add("hidden");
-  document.getElementById("registerPanel")?.classList.add("hidden");
-  document.getElementById("recoverEmailPanel")?.classList.add("hidden");
-  document.getElementById("forgotPasswordPanel")?.classList.remove("hidden");
-  document.querySelector(".auth-divider")?.classList.add("hidden");
+  document.getElementById("loginCard")?.classList.add("hidden");
+  document.getElementById("forgotPasswordCard")?.classList.remove("hidden");
   document.getElementById("forgotPasswordEmail").value = document.getElementById("loginEmail")?.value || "";
   setStatus("forgotPasswordStatus", "");
 }
@@ -2740,9 +2756,10 @@ function abrirPanelRecuperarUsuario() {
 
 function volverLoginDesdeRecuperacion() {
   document.getElementById("forgotUserCard")?.classList.add("hidden");
-  document.getElementById("forgotPasswordPanel")?.classList.add("hidden");
+  document.getElementById("forgotPasswordCard")?.classList.add("hidden");
   document.querySelector(".auth-divider")?.classList.remove("hidden");
   cambiarAuthMode("login");
+  document.getElementById("forgotPasswordPanel")?.classList.remove("hidden");
   document.getElementById("loginCard")?.classList.remove("hidden");
 }
 
@@ -2894,7 +2911,6 @@ function cambiarAuthMode(modo) {
   document.getElementById("loginPanel").classList.toggle("hidden", !login);
   document.getElementById("registerPanel").classList.toggle("hidden", login);
   document.getElementById("recoverEmailPanel")?.classList.add("hidden");
-  document.getElementById("forgotPasswordPanel")?.classList.add("hidden");
   document.getElementById("tabLogin").classList.toggle("active", login);
   document.getElementById("tabRegister").classList.toggle("active", !login);
   if (!login) inicializarRegistroPerfil();
@@ -3327,6 +3343,7 @@ document.getElementById("btnGoogleLogin")?.addEventListener("click", loginGoogle
 document.getElementById("btnForgotPassword")?.addEventListener("click", abrirPanelRecuperarPassword);
 document.getElementById("btnSendPasswordRecovery")?.addEventListener("click", recuperarPassword);
 document.getElementById("btnForgotPasswordBack")?.addEventListener("click", volverLoginDesdeRecuperacion);
+document.getElementById("btnRecoverPasswordClose")?.addEventListener("click", volverLoginDesdeRecuperacion);
 document.getElementById("btnShowLogin")?.addEventListener("click", mostrarLoginCard);
 document.getElementById("btnShowLoginNav")?.addEventListener("click", mostrarLoginCard);
 document.getElementById("btnShowLoginBottom")?.addEventListener("click", mostrarLoginCard);
