@@ -843,7 +843,7 @@
     <div class="settings-shell">
       <section class="profile-panel student-settings">
         <h2>Configuración</h2>
-        <details class="accordion-card" open>
+        <details class="accordion-card" id="settingsBankPanel" open>
           <summary>Banco de preguntas</summary>
           <p>Cambia entre bancos. El siguiente banco se habilita cuando terminas diagnóstico, nivel medio y final.</p>
           <div class="result-actions">
@@ -859,6 +859,55 @@
             <button class="btn btn-secondary" id="btnSettingsChangeClass" type="button">Cambiar aula</button>
           </div>
           <p class="bank-status" id="settingsClassStatus"></p>
+        </details>
+        <details class="accordion-card">
+          <summary>Contraseña</summary>
+          <div class="password-settings-grid">
+            <section>
+              <h3>Crear contraseña</h3>
+              <p>Usa esta opción si tu cuenta aún no tiene contraseña.</p>
+              <div class="password-wrap">
+                <input type="password" id="createPasswordNew" class="admin-input" placeholder="Nueva contraseña" autocomplete="new-password" />
+                <button class="password-toggle" type="button" data-toggle-password="createPasswordNew" aria-label="Ver contraseña">👁</button>
+              </div>
+              <div class="password-wrap">
+                <input type="password" id="createPasswordConfirm" class="admin-input" placeholder="Repetir contraseña" autocomplete="new-password" />
+                <button class="password-toggle" type="button" data-toggle-password="createPasswordConfirm" aria-label="Ver contraseña">👁</button>
+              </div>
+              <div class="password-rules compact" id="createPasswordRules">
+                <p data-rule="length">Mínimo 8 caracteres</p>
+                <p data-rule="upper">Mínimo una mayúscula</p>
+                <p data-rule="numbers">Mínimo dos números</p>
+                <p data-rule="symbol">Mínimo un símbolo permitido: ! @ # $ % ^ & * ( ) _ + - = [ ] { } ; : , . ?</p>
+              </div>
+              <button class="btn btn-secondary" id="btnCreatePassword" type="button">Crear contraseña</button>
+              <p class="bank-status" id="createPasswordStatus"></p>
+            </section>
+            <section>
+              <h3>Actualizar contraseña</h3>
+              <p>Escribe tu contraseña actual y confirma la nueva contraseña.</p>
+              <div class="password-wrap">
+                <input type="password" id="updatePasswordCurrent" class="admin-input" placeholder="Contraseña actual" autocomplete="current-password" />
+                <button class="password-toggle" type="button" data-toggle-password="updatePasswordCurrent" aria-label="Ver contraseña">👁</button>
+              </div>
+              <div class="password-wrap">
+                <input type="password" id="updatePasswordNew" class="admin-input" placeholder="Nueva contraseña" autocomplete="new-password" />
+                <button class="password-toggle" type="button" data-toggle-password="updatePasswordNew" aria-label="Ver contraseña">👁</button>
+              </div>
+              <div class="password-wrap">
+                <input type="password" id="updatePasswordConfirm" class="admin-input" placeholder="Repetir nueva contraseña" autocomplete="new-password" />
+                <button class="password-toggle" type="button" data-toggle-password="updatePasswordConfirm" aria-label="Ver contraseña">👁</button>
+              </div>
+              <div class="password-rules compact" id="updatePasswordRules">
+                <p data-rule="length">Mínimo 8 caracteres</p>
+                <p data-rule="upper">Mínimo una mayúscula</p>
+                <p data-rule="numbers">Mínimo dos números</p>
+                <p data-rule="symbol">Mínimo un símbolo permitido: ! @ # $ % ^ & * ( ) _ + - = [ ] { } ; : , . ?</p>
+              </div>
+              <button class="btn btn-secondary" id="btnUpdatePassword" type="button">Actualizar contraseña</button>
+              <p class="bank-status" id="updatePasswordStatus"></p>
+            </section>
+          </div>
         </details>
         <details class="accordion-card danger-zone">
           <summary>Cuenta</summary>

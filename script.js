@@ -12,6 +12,7 @@ import {
   createUserWithEmailAndPassword,
   deleteUser,
   EmailAuthProvider,
+  linkWithCredential,
   onAuthStateChanged,
   reauthenticateWithCredential,
   sendEmailVerification,
@@ -22,6 +23,7 @@ import {
   signInWithPopup,
   signOut,
   updatePhoneNumber,
+  updatePassword,
   updateProfile
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 import {
@@ -1288,6 +1290,13 @@ function mostrarSeccion(sec) {
 }
 
 function activarNav(sec) {
+  if (!modoAdmin && !aulaActualValida() && ["inicio", "diagnostico", "nivel1", "examen", "estadisticas"].includes(sec)) {
+    sec = "configuracion";
+    setTimeout(() => {
+      const status = document.getElementById("settingsClassStatus");
+      if (status) status.textContent = "Tu aula anterior ya no está disponible. Ingresa el código de una nueva aula para continuar.";
+    }, 0);
+  }
   if (sec) localStorage.setItem(STORAGE_SECCION_ACTIVA, sec);
   document.querySelectorAll(".nav-btn").forEach(b => b.classList.toggle("active", b.dataset.section === sec));
   mostrarSeccion(sec);
@@ -1299,6 +1308,9 @@ function seccionRestaurable() {
   const permitidas = modoAdmin
     ? new Set(["admin", "adminMetricas", "perfil", "configuracion", "soporte"])
     : new Set(["inicio", "diagnostico", "nivel1", "examen", "estadisticas", "perfil", "configuracion", "soporte"]);
+  if (!modoAdmin && !aulaActualValida() && ["inicio", "diagnostico", "nivel1", "examen", "estadisticas"].includes(saved)) {
+    return "perfil";
+  }
   return permitidas.has(saved) ? saved : (modoAdmin ? "admin" : "inicio");
 }
 
@@ -1392,12 +1404,19 @@ function renderConfiguracion() {
   document.querySelector(".student-settings")?.classList.toggle("hidden", modoAdmin);
   document.getElementById("adminSettingsPanel")?.classList.toggle("hidden", !modoAdmin);
   if (modoAdmin) renderAdminPanel();
-  else actualizarBancoEstudiante();
+  else {
+    document.getElementById("settingsBankPanel")?.classList.toggle("hidden", !aulaActualValida());
+    actualizarBancoEstudiante();
+  }
 }
 
 function renderStudentStats() {
   const cont = document.getElementById("studentStats");
   if (!cont) return;
+  if (!aulaActualValida()) {
+    cont.innerHTML = `<div class="stats-card"><h3>Sin aula activa</h3><p>Tu aula anterior ya no está disponible. Puedes conservar tu perfil y configuración, pero para ver métricas o presentar exámenes debes ingresar a una nueva aula con su código.</p></div>`;
+    return;
+  }
   const nombres = { diagnostico: "Diagnóstico", nivel1: "Nivel Medio", examen: "Examen Final" };
   cont.innerHTML = "";
   Object.entries(nombres).forEach(([clave, nombre]) => {
@@ -2126,6 +2145,27 @@ function actualizarReglasPassword() {
   return valido;
 }
 
+function actualizarReglasPasswordEn(panelId, password) {
+  const detalle = detallePassword(password || "");
+  Object.entries(detalle).forEach(([regla, ok]) => {
+    document.querySelector(`#${panelId} [data-rule="${regla}"]`)?.classList.toggle("valid", ok);
+  });
+  return Object.values(detalle).every(Boolean);
+}
+
+function tienePasswordActual() {
+  return usuarioActual?.providerData?.some(provider => provider.providerId === "password");
+}
+
+function mensajePasswordFirebase(err) {
+  const code = err?.code || "";
+  if (code.includes("requires-recent-login")) return "Por seguridad debes cerrar sesión, volver a ingresar y repetir la operación.";
+  if (code.includes("provider-already-linked") || code.includes("credential-already-in-use") || code.includes("email-already-in-use")) return "Ya tiene contraseña.";
+  if (code.includes("wrong-password") || code.includes("invalid-credential")) return "La contraseña actual no es correcta.";
+  if (code.includes("weak-password")) return "La nueva contraseña no cumple los requisitos de seguridad.";
+  return "No se pudo completar la operación. Revisa los datos e intenta nuevamente.";
+}
+
 function mostrarAuthInicial() {
   document.getElementById("loginCard")?.classList.add("hidden");
   document.getElementById("forgotUserCard")?.classList.add("hidden");
@@ -2564,9 +2604,24 @@ async function prepararSesionAutenticada() {
 
   if (perfilActual?.classId || claseActiva) {
     const aulaId = perfilActual?.classId || claseActiva;
+    const aulaSnap = await getDoc(refClase(aulaId));
+    if (!aulaSnap.exists()) {
+      grupoActivo = "";
+      claseActiva = "";
+      claseActualInfo = null;
+      localStorage.removeItem(STORAGE_GRUPO);
+      localStorage.removeItem(STORAGE_CLASE_ACTIVA);
+      limpiarIntentoActivo();
+      await guardarPerfilUsuario({ grupo: "", classId: "", className: "", classCode: "" });
+      await guardarEstadoRemoto();
+      document.body.classList.remove("group-locked");
+      aplicarModoUsuario();
+      activarNav("perfil");
+      return;
+    }
     grupoActivo = aulaId;
     claseActiva = aulaId;
-    claseActualInfo = { id: aulaId, name: perfilActual?.className || "", code: perfilActual?.classCode || "" };
+    claseActualInfo = { id: aulaId, ...aulaSnap.data() };
     localStorage.setItem(STORAGE_GRUPO, grupoActivo);
     localStorage.setItem(STORAGE_CLASE_ACTIVA, claseActiva);
     await cargarPermisosRemotos([grupoActivo]);
@@ -3206,6 +3261,73 @@ async function estudianteCambiarClase() {
   renderProfile();
 }
 
+async function crearPasswordEstudiante() {
+  const status = document.getElementById("createPasswordStatus");
+  const password = document.getElementById("createPasswordNew")?.value || "";
+  const confirm = document.getElementById("createPasswordConfirm")?.value || "";
+  setStatus("createPasswordStatus", "");
+  if (tienePasswordActual()) {
+    setStatus("createPasswordStatus", "Ya tiene contraseña.", "error");
+    return;
+  }
+  if (!actualizarReglasPasswordEn("createPasswordRules", password)) {
+    setStatus("createPasswordStatus", "La contraseña no cumple todos los requisitos.", "error");
+    return;
+  }
+  if (password !== confirm) {
+    setStatus("createPasswordStatus", "Las contraseñas no coinciden.", "error");
+    return;
+  }
+  try {
+    const credential = EmailAuthProvider.credential(usuarioActual.email, password);
+    await linkWithCredential(usuarioActual, credential);
+    await usuarioActual.reload();
+    usuarioActual = auth.currentUser;
+    document.getElementById("createPasswordNew").value = "";
+    document.getElementById("createPasswordConfirm").value = "";
+    actualizarReglasPasswordEn("createPasswordRules", "");
+    setStatus("createPasswordStatus", "Contraseña creada correctamente.");
+  } catch (err) {
+    setStatus("createPasswordStatus", mensajePasswordFirebase(err), "error");
+  }
+}
+
+async function actualizarPasswordEstudiante() {
+  const actual = document.getElementById("updatePasswordCurrent")?.value || "";
+  const nueva = document.getElementById("updatePasswordNew")?.value || "";
+  const confirm = document.getElementById("updatePasswordConfirm")?.value || "";
+  setStatus("updatePasswordStatus", "");
+  if (!tienePasswordActual()) {
+    setStatus("updatePasswordStatus", "Aún no tienes contraseña. Usa la opción Crear contraseña.", "error");
+    return;
+  }
+  if (!actual) {
+    setStatus("updatePasswordStatus", "Escribe tu contraseña actual.", "error");
+    return;
+  }
+  if (!actualizarReglasPasswordEn("updatePasswordRules", nueva)) {
+    setStatus("updatePasswordStatus", "La nueva contraseña no cumple todos los requisitos.", "error");
+    return;
+  }
+  if (nueva !== confirm) {
+    setStatus("updatePasswordStatus", "Las contraseñas nuevas no coinciden.", "error");
+    return;
+  }
+  try {
+    const credential = EmailAuthProvider.credential(usuarioActual.email, actual);
+    await reauthenticateWithCredential(usuarioActual, credential);
+    await updatePassword(usuarioActual, nueva);
+    ["updatePasswordCurrent", "updatePasswordNew", "updatePasswordConfirm"].forEach(id => {
+      const input = document.getElementById(id);
+      if (input) input.value = "";
+    });
+    actualizarReglasPasswordEn("updatePasswordRules", "");
+    setStatus("updatePasswordStatus", "Contraseña actualizada correctamente.");
+  } catch (err) {
+    setStatus("updatePasswordStatus", mensajePasswordFirebase(err), "error");
+  }
+}
+
 async function adminCambiarGrupoEstudiante() {
   const email = document.getElementById("adminStudentEmail").value.trim().toLowerCase();
   const grupo = document.getElementById("adminStudentGroupSelect").value;
@@ -3492,6 +3614,10 @@ document.getElementById("btnSettingsChangeGroup")?.addEventListener("click", est
 document.getElementById("btnSettingsBancoAnterior")?.addEventListener("click", () => cambiarBanco(-1));
 document.getElementById("btnSettingsBancoSiguiente")?.addEventListener("click", () => cambiarBanco(1));
 document.getElementById("btnSettingsChangeClass")?.addEventListener("click", estudianteCambiarClase);
+document.getElementById("btnCreatePassword")?.addEventListener("click", crearPasswordEstudiante);
+document.getElementById("btnUpdatePassword")?.addEventListener("click", actualizarPasswordEstudiante);
+document.getElementById("createPasswordNew")?.addEventListener("input", e => actualizarReglasPasswordEn("createPasswordRules", e.target.value));
+document.getElementById("updatePasswordNew")?.addEventListener("input", e => actualizarReglasPasswordEn("updatePasswordRules", e.target.value));
 document.getElementById("btnCreateClass")?.addEventListener("click", crearClaseAdmin);
 document.getElementById("adminClassSelect")?.addEventListener("change", e => {
   adminClaseActiva = e.target.value;

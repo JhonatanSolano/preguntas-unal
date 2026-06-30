@@ -982,6 +982,37 @@ body.admin-mode .admin-exit-dock {
 .password-rules p.valid {
   color: var(--c-green);
 }
+.password-rules.compact {
+  padding: .5rem .65rem;
+}
+.password-rules.compact p {
+  font-size: .72rem;
+}
+.password-settings-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: .8rem;
+}
+.password-settings-grid section {
+  display: grid;
+  align-content: start;
+  gap: .75rem;
+  min-width: 0;
+  padding: .9rem;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  background: #fff;
+}
+.password-settings-grid h3 {
+  color: var(--c-navy);
+  font-size: 1rem;
+}
+.password-settings-grid p {
+  margin: 0;
+  color: var(--c-muted);
+  font-size: .86rem;
+}
 .auth-actions {
   display: flex;
   justify-content: center;
@@ -2239,11 +2270,13 @@ body.admin-mode .admin-exit-dock {
   .profile-form-grid.three,
   .admin-login,
   .bank-grid,
+  .password-settings-grid,
   .auth-tabs {
     min-width: 0;
   }
   .profile-form-grid,
-  .profile-form-grid.three {
+  .profile-form-grid.three,
+  .password-settings-grid {
     grid-template-columns: minmax(0, 1fr);
   }
   .admin-input,
