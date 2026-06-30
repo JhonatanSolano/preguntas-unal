@@ -75,7 +75,9 @@ let usuarioActual = null;
 let perfilActual = null;
 let unsubscribePermisos = null;
 let unsubscribeAdminStudents = null;
+let unsubscribeClassMembership = null;
 let renderizandoAdminStudents = false;
+let classMembershipValid = true;
 let registroEnCurso = false;
 let phoneVerificationId = "";
 let phoneVerificationExpiresAt = 0;
@@ -94,46 +96,17 @@ const PROFILE_PHOTO_QUALITY = 0.82;
 
 const PHONE_CODES = [
   { code: "+57", label: "Colombia (+57)" },
-  { code: "+52", label: "México (+52)" },
-  { code: "+51", label: "Perú (+51)" },
-  { code: "+593", label: "Ecuador (+593)" },
-  { code: "+1", label: "Estados Unidos (+1)" },
-  { code: "+34", label: "España (+34)" }
+  { code: "+58", label: "Venezuela (+58)" }
 ];
 
-const LOCATION_DATA = {
-  "Colombia": {
-    "Bogotá D.C.": ["Bogotá"],
-    "Antioquia": ["Medellín", "Bello", "Envigado"],
-    "Atlántico": ["Barranquilla", "Soledad"],
-    "Valle del Cauca": ["Cali", "Palmira", "Buenaventura"],
-    "Santander": ["Bucaramanga", "Floridablanca"]
-  },
-  "México": {
-    "Ciudad de México": ["Ciudad de México"],
-    "Jalisco": ["Guadalajara", "Zapopan"],
-    "Nuevo León": ["Monterrey", "San Pedro Garza García"]
-  },
-  "Perú": {
-    "Lima": ["Lima", "Callao"],
-    "Arequipa": ["Arequipa"],
-    "Cusco": ["Cusco"]
-  },
-  "Ecuador": {
-    "Pichincha": ["Quito"],
-    "Guayas": ["Guayaquil", "Durán"],
-    "Azuay": ["Cuenca"]
-  },
-  "Estados Unidos": {
-    "Florida": ["Miami", "Orlando"],
-    "California": ["Los Ángeles", "San Francisco"],
-    "New York": ["New York"]
-  },
-  "España": {
-    "Madrid": ["Madrid"],
-    "Cataluña": ["Barcelona"],
-    "Andalucía": ["Sevilla", "Málaga"]
-  }
+const GEO_COUNTRY_FALLBACK = [
+  { id: "CO", name: "Colombia", iso2: "CO", iso3: "COL", phoneCode: "+57" },
+  { id: "VE", name: "Venezuela", iso2: "VE", iso3: "VEN", phoneCode: "+58" }
+];
+const geoCache = {
+  countries: null,
+  regions: {},
+  municipalities: {}
 };
 
 /* ════════════════════════════════════════════════════════
@@ -502,7 +475,7 @@ function requiereSeleccionRol(perfil = perfilActual) {
 }
 
 function aulaActualValida() {
-  return !!grupoActivo && grupoActivo !== "admin";
+  return !!grupoActivo && grupoActivo !== "admin" && classMembershipValid;
 }
 
 function nombreAulaPorId(id = grupoActivo) {
@@ -1446,6 +1419,8 @@ function renderConfiguracion() {
   if (modoAdmin) renderAdminPanel();
   else {
     document.getElementById("settingsBankPanel")?.classList.toggle("hidden", !aulaActualValida());
+    document.getElementById("createPasswordSection")?.classList.toggle("hidden", tienePasswordActual());
+    document.getElementById("updatePasswordSection")?.classList.toggle("hidden", !tienePasswordActual());
     actualizarBancoEstudiante();
   }
 }
@@ -2305,39 +2280,107 @@ function poblarPhoneCodes(selectId, value = "+57") {
   select.value = value;
 }
 
-function poblarUbicacion(prefix, valores = {}) {
+function sortByName(items) {
+  return [...items].sort((a, b) => String(a.name || a.nombre || "").localeCompare(String(b.name || b.nombre || ""), "es"));
+}
+
+async function cargarGeoCountries() {
+  if (geoCache.countries) return geoCache.countries;
+  try {
+    const snap = await getDocs(collection(db, "countries"));
+    const countries = snap.docs.map(item => ({ id: item.id, ...item.data() }));
+    geoCache.countries = sortByName(countries.length ? countries : GEO_COUNTRY_FALLBACK);
+  } catch {
+    geoCache.countries = sortByName(GEO_COUNTRY_FALLBACK);
+  }
+  return geoCache.countries;
+}
+
+async function cargarGeoRegions(countryId) {
+  if (!countryId) return [];
+  if (geoCache.regions[countryId]) return geoCache.regions[countryId];
+  try {
+    const snap = await getDocs(collection(db, "countries", countryId, "regions"));
+    geoCache.regions[countryId] = sortByName(snap.docs.map(item => ({ id: item.id, ...item.data() })));
+  } catch {
+    geoCache.regions[countryId] = [];
+  }
+  return geoCache.regions[countryId];
+}
+
+async function cargarGeoMunicipalities(countryId, regionId) {
+  if (!countryId || !regionId) return [];
+  const key = `${countryId}:${regionId}`;
+  if (geoCache.municipalities[key]) return geoCache.municipalities[key];
+  try {
+    const snap = await getDocs(collection(db, "countries", countryId, "regions", regionId, "municipalities"));
+    geoCache.municipalities[key] = sortByName(snap.docs.map(item => ({ id: item.id, ...item.data() })));
+  } catch {
+    geoCache.municipalities[key] = [];
+  }
+  return geoCache.municipalities[key];
+}
+
+function optionGeo(item, selectedValue = "") {
+  const value = item.id || item.code || item.codigo || item.name || item.nombre;
+  const name = item.name || item.nombre || value;
+  const code = item.code || item.codigo || item.iso2 || "";
+  const selected = value === selectedValue || name === selectedValue || code === selectedValue ? "selected" : "";
+  return `<option value="${value}" data-name="${name}" data-code="${code}" data-iso2="${item.iso2 || ""}" data-iso3="${item.iso3 || ""}" ${selected}>${name}</option>`;
+}
+
+async function poblarUbicacion(prefix, valores = {}) {
   const country = document.getElementById(`${prefix}Country`);
   const region = document.getElementById(`${prefix}Region`);
   const city = document.getElementById(`${prefix}City`);
   if (!country || !region || !city) return;
 
-  const paises = Object.keys(LOCATION_DATA);
-  country.innerHTML = `<option value="">País</option>${paises.map(p => `<option value="${p}">${p}</option>`).join("")}`;
-  country.value = valores.country || "";
+  country.innerHTML = `<option value="">Cargando países...</option>`;
+  region.innerHTML = `<option value="">Selecciona un país primero</option>`;
+  city.innerHTML = `<option value="">Selecciona departamento / estado primero</option>`;
 
-  const renderRegions = () => {
-    const regiones = Object.keys(LOCATION_DATA[country.value] || {});
-    region.innerHTML = `<option value="">Departamento / estado</option>${regiones.map(r => `<option value="${r}">${r}</option>`).join("")}`;
-    region.value = valores.region && regiones.includes(valores.region) ? valores.region : "";
-    renderCities();
+  const countries = await cargarGeoCountries();
+  const selectedCountry = valores.countryId || valores.countryIso2 || valores.country || "";
+  country.innerHTML = `<option value="">País</option>${countries.map(item => optionGeo(item, selectedCountry)).join("")}`;
+
+  const renderRegions = async () => {
+    const countryId = country.value;
+    region.innerHTML = countryId ? `<option value="">Cargando departamentos / estados...</option>` : `<option value="">Selecciona un país primero</option>`;
+    city.innerHTML = `<option value="">Selecciona departamento / estado primero</option>`;
+    if (!countryId) return;
+    const regions = await cargarGeoRegions(countryId);
+    const selectedRegion = valores.regionId || valores.regionCode || valores.region || "";
+    region.innerHTML = regions.length
+      ? `<option value="">Departamento / estado</option>${regions.map(item => optionGeo(item, selectedRegion)).join("")}`
+      : `<option value="">Catálogo pendiente para este país</option>`;
+    await renderCities();
   };
 
-  const renderCities = () => {
-    const ciudades = LOCATION_DATA[country.value]?.[region.value] || [];
-    city.innerHTML = `<option value="">Ciudad</option>${ciudades.map(c => `<option value="${c}">${c}</option>`).join("")}`;
-    city.value = valores.city && ciudades.includes(valores.city) ? valores.city : "";
+  const renderCities = async () => {
+    const countryId = country.value;
+    const regionId = region.value;
+    city.innerHTML = regionId ? `<option value="">Cargando municipios...</option>` : `<option value="">Selecciona departamento / estado primero</option>`;
+    if (!countryId || !regionId) return;
+    const municipalities = await cargarGeoMunicipalities(countryId, regionId);
+    const selectedCity = valores.cityId || valores.cityCode || valores.city || "";
+    city.innerHTML = municipalities.length
+      ? `<option value="">Municipio</option>${municipalities.map(item => optionGeo(item, selectedCity)).join("")}`
+      : `<option value="">Catálogo pendiente para esta división</option>`;
   };
 
-  country.onchange = () => {
+  country.onchange = async () => {
     valores.region = "";
+    valores.regionId = "";
     valores.city = "";
-    renderRegions();
+    valores.cityId = "";
+    await renderRegions();
   };
-  region.onchange = () => {
+  region.onchange = async () => {
     valores.city = "";
-    renderCities();
+    valores.cityId = "";
+    await renderCities();
   };
-  renderRegions();
+  await renderRegions();
 }
 
 function calcularEdad(fecha) {
@@ -2352,14 +2395,34 @@ function calcularEdad(fecha) {
 }
 
 function perfilBasicoDesdeFormulario(prefix) {
+  const country = document.getElementById(`${prefix}Country`);
+  const region = document.getElementById(`${prefix}Region`);
+  const city = document.getElementById(`${prefix}City`);
+  const countryOpt = country?.selectedOptions?.[0];
+  const regionOpt = region?.selectedOptions?.[0];
+  const cityOpt = city?.selectedOptions?.[0];
+  const countryName = countryOpt?.dataset.name || "";
+  const regionName = regionOpt?.dataset.name || "";
+  const cityName = cityOpt?.dataset.name || "";
   return {
     phoneCode: document.getElementById(`${prefix}PhoneCode`)?.value || "+57",
     phone: document.getElementById(`${prefix}Phone`)?.value.trim() || "",
     birthDate: document.getElementById(`${prefix}Birth`)?.value || "",
     gender: document.getElementById(`${prefix}Gender`)?.value || "",
-    country: document.getElementById(`${prefix}Country`)?.value || "",
-    region: document.getElementById(`${prefix}Region`)?.value || "",
-    city: document.getElementById(`${prefix}City`)?.value || ""
+    countryId: country?.value || "",
+    countryCode: countryOpt?.dataset.code || "",
+    countryIso2: countryOpt?.dataset.iso2 || country?.value || "",
+    countryIso3: countryOpt?.dataset.iso3 || "",
+    countryName,
+    country: countryName || country?.value || "",
+    regionId: region?.value || "",
+    regionCode: regionOpt?.dataset.code || "",
+    regionName,
+    region: regionName || region?.value || "",
+    cityId: city?.value || "",
+    cityCode: cityOpt?.dataset.code || "",
+    cityName,
+    city: cityName || city?.value || ""
   };
 }
 
@@ -2680,11 +2743,18 @@ async function prepararSesionAutenticada() {
     grupoActivo = aulaId;
     claseActiva = aulaId;
     claseActualInfo = { id: aulaId, ...aulaSnap.data() };
+    const matriculaSnap = await getDoc(doc(db, "classStudents", `${aulaId}_${safeEmailId(usuarioActual.email || "")}`));
+    if (!matriculaSnap.exists()) {
+      await limpiarAulaLocalYRemota("Ya no perteneces a esa aula. Ingresa un nuevo código para continuar.");
+      return;
+    }
+    classMembershipValid = true;
     localStorage.setItem(STORAGE_GRUPO, grupoActivo);
     localStorage.setItem(STORAGE_CLASE_ACTIVA, claseActiva);
     await cargarPermisosRemotos([grupoActivo]);
     aplicarBancoNivelMedio();
     escucharPermisosGrupo(grupoActivo);
+    escucharMembresiaClase(grupoActivo);
     sincronizarCompletadosGuardados();
     document.body.classList.remove("group-locked");
     aplicarModoUsuario();
@@ -2710,6 +2780,7 @@ async function entrarGrupo() {
   grupoActivo = clase.id;
   claseActiva = clase.id;
   claseActualInfo = clase;
+  classMembershipValid = true;
   modoAdmin = false;
   localStorage.setItem(STORAGE_GRUPO, grupoActivo);
   localStorage.setItem(STORAGE_CLASE_ACTIVA, claseActiva);
@@ -2727,6 +2798,7 @@ async function entrarGrupo() {
   await cargarPermisosRemotos([grupoActivo]);
   aplicarBancoNivelMedio();
   escucharPermisosGrupo(grupoActivo);
+  escucharMembresiaClase(grupoActivo);
   limpiarWarn();
   document.body.classList.remove("group-locked");
   aplicarModoUsuario();
@@ -2774,6 +2846,42 @@ async function sincronizarRegistroEstudianteClase(classId, grupo) {
     ownerEmail,
     updatedAt: serverTimestamp()
   }, { merge: true });
+}
+
+async function limpiarAulaLocalYRemota(mensaje = "El profesor te retiró del aula. Para continuar, ingresa un nuevo código de aula.") {
+  classMembershipValid = false;
+  grupoActivo = "";
+  claseActiva = "";
+  claseActualInfo = null;
+  localStorage.removeItem(STORAGE_GRUPO);
+  localStorage.removeItem(STORAGE_CLASE_ACTIVA);
+  limpiarIntentoActivo();
+  if (unsubscribePermisos) unsubscribePermisos();
+  await guardarPerfilUsuario({ grupo: "", classId: "", className: "", classCode: "", classOwnerUid: "", classOwnerEmail: "" }).catch(() => {});
+  await guardarEstadoRemoto().catch(() => {});
+  document.body.classList.remove("group-locked");
+  aplicarModoUsuario();
+  activarNav("configuracion");
+  const status = document.getElementById("settingsClassStatus");
+  if (status) {
+    status.textContent = mensaje;
+    status.classList.add("error");
+  }
+}
+
+function escucharMembresiaClase(classId) {
+  if (unsubscribeClassMembership) unsubscribeClassMembership();
+  if (!usuarioActual?.email || !classId || modoAdmin) return;
+  const id = `${classId}_${safeEmailId(usuarioActual.email)}`;
+  unsubscribeClassMembership = onSnapshot(doc(db, "classStudents", id), snap => {
+    if (snap.exists()) {
+      classMembershipValid = true;
+      return;
+    }
+    if (grupoActivo === classId) {
+      limpiarAulaLocalYRemota();
+    }
+  }, err => console.warn("No se pudo escuchar la matrícula del aula.", err));
 }
 
 async function loginEmail() {
@@ -3319,6 +3427,7 @@ async function estudianteCambiarClase() {
   claseActiva = clase.id;
   claseActualInfo = clase;
   grupoActivo = clase.id;
+  classMembershipValid = true;
   localStorage.setItem(STORAGE_CLASE_ACTIVA, claseActiva);
   localStorage.setItem(STORAGE_GRUPO, grupoActivo);
   await guardarPerfilUsuario({
@@ -3334,6 +3443,7 @@ async function estudianteCambiarClase() {
   await cargarPermisosRemotos([grupoActivo]);
   aplicarBancoNivelMedio();
   escucharPermisosGrupo(grupoActivo);
+  escucharMembresiaClase(grupoActivo);
   aplicarModoUsuario();
   actualizarEstadoDiagnostico();
   status.textContent = `Ahora estás en el aula ${clase.name}.`;
@@ -3365,6 +3475,7 @@ async function crearPasswordEstudiante() {
     document.getElementById("createPasswordNew").value = "";
     document.getElementById("createPasswordConfirm").value = "";
     actualizarReglasPasswordEn("createPasswordRules", "");
+    renderConfiguracion();
     setStatus("createPasswordStatus", "Contraseña creada correctamente.");
   } catch (err) {
     setStatus("createPasswordStatus", mensajePasswordFirebase(err), "error");
@@ -3577,7 +3688,42 @@ async function cambiarGrupoEstudianteRegistrado(id, grupo) {
 
 async function eliminarEstudianteRegistrado(id) {
   if (!confirm("¿Eliminar este estudiante de la clase?")) return;
-  await deleteDoc(doc(db, "classStudents", id));
+  const ref = doc(db, "classStudents", id);
+  const snap = await getDoc(ref);
+  const data = snap.exists() ? snap.data() : {};
+  await deleteDoc(ref);
+  const uid = data.userUid || "";
+  const email = (data.email || "").toLowerCase();
+  if (uid) {
+    await updateDoc(doc(db, "users", uid), {
+      grupo: "",
+      classId: "",
+      className: "",
+      classCode: "",
+      classOwnerUid: "",
+      classOwnerEmail: "",
+      updatedAt: serverTimestamp()
+    }).catch(() => {});
+    await setDoc(doc(db, "studentState", uid), {
+      grupo: "",
+      aulaId: "",
+      claseId: "",
+      aulaNombre: "",
+      intentoActivo: null,
+      updatedAt: serverTimestamp()
+    }, { merge: true }).catch(() => {});
+  } else if (email) {
+    const usersSnap = await getDocs(query(collection(db, "users"), where("email", "==", email))).catch(() => null);
+    await Promise.all((usersSnap?.docs || []).map(userDoc => updateDoc(userDoc.ref, {
+      grupo: "",
+      classId: "",
+      className: "",
+      classCode: "",
+      classOwnerUid: "",
+      classOwnerEmail: "",
+      updatedAt: serverTimestamp()
+    }).catch(() => {})));
+  }
   await renderAdminStudentsByClass();
 }
 
@@ -3659,6 +3805,7 @@ async function salirApp() {
   localStorage.removeItem(STORAGE_ADMIN_CLASE);
   if (unsubscribePermisos) unsubscribePermisos();
   if (unsubscribeAdminStudents) unsubscribeAdminStudents();
+  if (unsubscribeClassMembership) unsubscribeClassMembership();
   await signOut(auth);
   window.location.reload();
 }
@@ -3862,6 +4009,9 @@ onAuthStateChanged(auth, async user => {
   if (!user) {
     if (unsubscribeAdminStudents) unsubscribeAdminStudents();
     unsubscribeAdminStudents = null;
+    if (unsubscribeClassMembership) unsubscribeClassMembership();
+    unsubscribeClassMembership = null;
+    classMembershipValid = true;
     document.body.classList.add("group-locked");
     mostrarAuthInicial();
     return;
