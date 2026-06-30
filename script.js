@@ -1,5 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
 import {
+  initializeAppCheck,
+  ReCaptchaV3Provider
+} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app-check.js";
+import {
   getAuth,
   GoogleAuthProvider,
   PhoneAuthProvider,
@@ -43,10 +47,24 @@ const firebaseConfig = {
   appId: "1:235600414785:web:780282c2c2379fb39d9ec0"
 };
 
+const APP_CONFIG = {
+  name: "Matemáticas En Tu Bolsillo",
+  recaptchaSiteKey: "6LcmOT0tAAAAAPfwCOhqA1nzfz3YOx8McE_mpFEZ"
+};
+
 const app = initializeApp(firebaseConfig);
+try {
+  initializeAppCheck(app, {
+    provider: new ReCaptchaV3Provider(APP_CONFIG.recaptchaSiteKey),
+    isTokenAutoRefreshEnabled: true
+  });
+} catch (err) {
+  console.warn("No se pudo iniciar App Check. La autenticación continuará sin App Check.", err);
+}
 const auth = getAuth(app);
 const db = getFirestore(app);
 setPersistence(auth, browserLocalPersistence);
+document.title = APP_CONFIG.name;
 
 const ADMIN_EMAIL = "solanojhonatan2000@gmail.com";
 const SIMBOLOS_PERMITIDOS = "!@#$%^&*()_+-=[]{};:,.?";
@@ -108,7 +126,7 @@ const LOCATION_DATA = {
 };
 
 /* ════════════════════════════════════════════════════════
-   Plataforma de Preguntas Matemáticas · script.js
+   Matemáticas En Tu Bolsillo · script.js
    Separación clara: DATOS → LÓGICA → PRESENTACIÓN
 ════════════════════════════════════════════════════════ */
 
@@ -1269,7 +1287,7 @@ function cerrarDrawer() {
 
 function actualizarDrawer() {
   const name = document.getElementById("drawerUserName");
-  if (name) name.textContent = perfilActual?.displayName || usuarioActual?.displayName || "Matemáticas Pro";
+  if (name) name.textContent = perfilActual?.displayName || usuarioActual?.displayName || APP_CONFIG.name;
   document.querySelectorAll(".admin-only").forEach(el => el.classList.toggle("hidden", !modoAdmin));
 }
 
