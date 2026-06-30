@@ -11,39 +11,81 @@
 <body class="group-locked">
 
   <main class="main-content public-home" id="groupGate">
-    <section class="public-hero" aria-labelledby="publicTitle">
-      <span class="brand-pill public-pill">Plataforma educativa</span>
+    <section class="public-hero landing-hero" aria-labelledby="publicTitle">
+      <span class="brand-pill public-pill">Plataforma educativa de matemáticas</span>
       <h1 id="publicTitle">Matemáticas En Tu Bolsillo</h1>
       <p>
-        Aplicación web para que estudiantes practiquen matemáticas por niveles, presenten diagnósticos,
-        reciban resultados medibles y revisen su progreso con el acompañamiento de su profesor.
+        Convierte la práctica matemática en una ruta clara, medible y motivadora. Tus estudiantes presentan
+        diagnósticos, trabajan por niveles, reciben métricas precisas y avanzan con acompañamiento real del profesor.
       </p>
       <div class="public-actions">
-        <a class="btn btn-primary" href="#loginCard">Entrar a la plataforma</a>
+        <button class="btn btn-primary" id="btnShowLogin" type="button">Iniciar sesión</button>
         <a class="btn btn-outline" href="privacidad.html">Política de privacidad</a>
         <a class="btn btn-outline" href="condiciones.html">Condiciones del servicio</a>
       </div>
-      <div class="public-grid" aria-label="Información de la aplicación">
+      <div class="landing-highlights" aria-label="Beneficios principales">
         <article>
-          <strong>Responsable</strong>
-          <span>Jhonatan Alejandro Solano Mendoza, profesor y administrador de la plataforma educativa.</span>
+          <strong>Evaluación inteligente</strong>
+          <span>Diagnóstico, nivel medio y examen final con tiempos, intentos y estadísticas comparables.</span>
         </article>
         <article>
-          <strong>Propósito</strong>
-          <span>Fortalecer aritmética, álgebra, ecuaciones, funciones, conjuntos, precálculo, cálculo y razonamiento matemático.</span>
+          <strong>Control docente</strong>
+          <span>Clases, grupos, bancos de preguntas, permisos y métricas para acompañar decisiones académicas.</span>
         </article>
         <article>
-          <strong>Uso académico</strong>
-          <span>Los profesores crean clases, habilitan exámenes y revisan métricas de desempeño por estudiante y grupo.</span>
+          <strong>Progreso visible</strong>
+          <span>Resultados, tiempo de sobra, segundos por pregunta, nota y recomendaciones según desempeño.</span>
         </article>
         <article>
-          <strong>Acceso seguro</strong>
-          <span>Los usuarios entran con Google o correo, y luego ingresan el código de clase y grupo asignado.</span>
+          <strong>Contenido matemático</strong>
+          <span>Aritmética, álgebra, ecuaciones, funciones, conjuntos, precálculo, cálculo y razonamiento.</span>
         </article>
       </div>
     </section>
 
-    <div class="start-screen group-gate auth-gate" id="loginCard">
+    <section class="landing-section">
+      <h2>Una experiencia diseñada para practicar mejor</h2>
+      <div class="landing-grid">
+        <article>
+          <span>01</span>
+          <strong>El estudiante entra a su clase</strong>
+          <p>Accede con Google o correo, escribe el código de clase y selecciona su grupo asignado.</p>
+        </article>
+        <article>
+          <span>02</span>
+          <strong>Presenta intentos controlados</strong>
+          <p>Cada prueba maneja tiempo, avance, intentos y resultados sin perder información importante.</p>
+        </article>
+        <article>
+          <span>03</span>
+          <strong>El profesor observa el avance</strong>
+          <p>Las métricas ayudan a comparar grupos, identificar dificultades y tomar acciones a tiempo.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="landing-support">
+      <h2>Soporte y documentos</h2>
+      <div class="support-columns">
+        <div>
+          <strong>Ayuda directa</strong>
+          <a href="https://wa.me/573112454282?text=Hola%20Jhonatan%2C%20necesito%20soporte%20con%20Matem%C3%A1ticas%20En%20Tu%20Bolsillo.%20" target="_blank" rel="noopener">WhatsApp de soporte</a>
+          <a href="mailto:jhsolanom@unal.edu.co">jhsolanom@unal.edu.co</a>
+        </div>
+        <div>
+          <strong>Información legal</strong>
+          <a href="privacidad.html">Política de privacidad</a>
+          <a href="condiciones.html">Condiciones del servicio</a>
+        </div>
+        <div>
+          <strong>Responsable</strong>
+          <span>Jhonatan Alejandro Solano Mendoza</span>
+          <span>Creador y administrador académico</span>
+        </div>
+      </div>
+    </section>
+
+    <div class="start-screen group-gate auth-gate hidden" id="loginCard">
       <span class="cs-icon">🔐</span>
       <h2>Ingreso Matemáticas En Tu Bolsillo</h2>
       <p>Accede con Google o con correo Gmail y contraseña. Después ingresarás el código de tu clase y grupo.</p>
@@ -68,8 +110,27 @@
         <button class="btn btn-primary" id="btnEmailLogin" type="button">Ingresar</button>
         <div class="auth-links">
           <button type="button" id="btnForgotPassword">¿Olvidó su contraseña?</button>
-          <a href="https://wa.me/573112454282?text=Hola%20Jhonatan%2C%20olvid%C3%A9%20mi%20correo%20de%20acceso%20a%20Matem%C3%A1ticas%20En%20Tu%20Bolsillo.%20" target="_blank" rel="noopener">¿Olvidó su correo?</a>
+          <button type="button" id="btnForgotUser">¿Olvidó su usuario?</button>
         </div>
+      </div>
+
+      <div class="auth-form hidden" id="recoverEmailPanel">
+        <p class="mini-help">Recupera tu correo solo si tienes teléfono registrado y verificado en la plataforma.</p>
+        <input type="text" id="recoverName" class="admin-input" placeholder="Nombre de usuario registrado" autocomplete="name" />
+        <div class="profile-form-grid">
+          <select id="recoverPhoneCode" class="admin-input" aria-label="Indicador del país"></select>
+          <input type="tel" id="recoverPhone" class="admin-input" placeholder="Teléfono registrado" autocomplete="tel" />
+        </div>
+        <button class="btn btn-secondary" id="btnRecoverSendCode" type="button">Enviar código</button>
+        <div class="phone-code-row">
+          <span id="recoverCountdown" class="phone-countdown" hidden>02:00</span>
+          <span class="phone-help">El código vence en 2 minutos.</span>
+        </div>
+        <input type="text" id="recoverCodeInput" class="admin-input" placeholder="Código SMS" inputmode="numeric" />
+        <button class="btn btn-primary" id="btnRecoverVerifyCode" type="button">Ver correo registrado</button>
+        <p class="bank-status" id="recoverStatus"></p>
+        <div id="recoverRecaptcha"></div>
+        <button class="btn btn-outline" id="btnRecoverBack" type="button">Volver al inicio de sesión</button>
       </div>
 
       <div class="auth-form hidden" id="registerPanel">
@@ -122,11 +183,7 @@
       <p class="warn-msg" id="grupoWarn" hidden>Revisa los datos ingresados.</p>
     </div>
     <footer class="public-footer">
-      <span>Responsable: Jhonatan Alejandro Solano Mendoza</span>
-      <span>Contacto: jhsolanom@unal.edu.co</span>
-      <a href="privacidad.html">Privacidad</a>
-      <a href="condiciones.html">Condiciones</a>
-      <a href="https://wa.me/573112454282?text=Hola%20Jhonatan%2C%20necesito%20soporte%20con%20Matem%C3%A1ticas%20En%20Tu%20Bolsillo.%20" target="_blank" rel="noopener">Soporte</a>
+      <span>Todos los derechos son de Matemáticas En Tu Bolsillo - Creador: Jhonatan Alejandro Solano Mendoza</span>
     </footer>
   </main>
 

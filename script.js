@@ -18,6 +18,7 @@ import {
   sendPasswordResetEmail,
   setPersistence,
   signInWithEmailAndPassword,
+  signInWithCredential,
   signInWithPopup,
   signOut,
   updatePhoneNumber,
@@ -76,6 +77,11 @@ let phoneVerificationId = "";
 let phoneVerificationExpiresAt = 0;
 let recaptchaVerifier = null;
 let phoneCountdownInterval = null;
+let recoverVerificationId = "";
+let recoverVerificationExpiresAt = 0;
+let recoverCountdownInterval = null;
+let recoverCandidate = null;
+let recoverRecaptchaVerifier = null;
 const PHONE_CODE_DURATION_MS = 2 * 60 * 1000;
 const MAX_PROFILE_PHOTO_INPUT_MB = 12;
 const PROFILE_PHOTO_MAX_SIDE = 900;
@@ -494,6 +500,41 @@ function refClase(id) {
 
 function safeEmailId(email) {
   return email.toLowerCase().replace(/[^a-z0-9]/g, "_");
+}
+
+function normalizarTelefono(code = "", phone = "") {
+  const indicativo = String(code || "").trim().replace(/[^\d+]/g, "") || "+57";
+  const numero = String(phone || "").trim().replace(/[^\d]/g, "");
+  return numero ? `${indicativo}${numero}` : "";
+}
+
+function recoveryPhoneId(phoneNumber = "") {
+  return String(phoneNumber || "").replace(/[^\d]/g, "");
+}
+
+function normalizarNombre(nombre = "") {
+  return String(nombre || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+}
+
+async function sincronizarIndiceRecuperacion(perfil = perfilActual) {
+  if (!usuarioActual?.uid || !perfil?.phoneVerified || !perfil?.phone || !perfil?.email) return;
+  const phoneNumber = normalizarTelefono(perfil.phoneCode || "+57", perfil.phone);
+  const phoneId = recoveryPhoneId(phoneNumber);
+  if (!phoneId) return;
+  await setDoc(doc(db, "recoveryContacts", phoneId), {
+    uid: usuarioActual.uid,
+    email: perfil.email,
+    displayName: perfil.displayName || usuarioActual.displayName || "",
+    nameKey: normalizarNombre(perfil.displayName || usuarioActual.displayName || ""),
+    phoneNumber,
+    phoneVerified: true,
+    updatedAt: serverTimestamp()
+  }, { merge: true });
 }
 
 function normalizarResultados(raw = {}) {
@@ -2056,6 +2097,7 @@ function actualizarReglasPassword() {
 }
 
 function mostrarAuthInicial() {
+  document.getElementById("loginCard")?.classList.add("hidden");
   document.querySelector(".auth-tabs")?.classList.remove("hidden");
   document.querySelector(".auth-divider")?.classList.remove("hidden");
   document.getElementById("loginPanel")?.classList.remove("hidden");
@@ -2066,7 +2108,14 @@ function mostrarAuthInicial() {
   document.getElementById("groupEntry")?.classList.add("hidden");
 }
 
+function mostrarLoginCard() {
+  document.getElementById("loginCard")?.classList.remove("hidden");
+  cambiarAuthMode("login");
+  document.getElementById("loginCard")?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 function mostrarEntradaGrupo() {
+  document.getElementById("loginCard")?.classList.remove("hidden");
   document.querySelector(".auth-tabs")?.classList.add("hidden");
   document.querySelector(".auth-divider")?.classList.add("hidden");
   document.getElementById("loginPanel")?.classList.add("hidden");
@@ -2380,6 +2429,9 @@ async function guardarPerfilUsuario(extra = {}) {
     ...extra
   };
   await setDoc(doc(db, "users", uid), { ...perfilActual, updatedAt: serverTimestamp() }, { merge: true });
+  if (perfilActual.phoneVerified) {
+    await sincronizarIndiceRecuperacion(perfilActual);
+  }
 }
 
 async function cargarPerfilUsuario() {
@@ -2614,10 +2666,152 @@ async function recuperarPassword() {
   }
 }
 
+function abrirPanelRecuperarUsuario() {
+  document.getElementById("loginPanel")?.classList.add("hidden");
+  document.getElementById("registerPanel")?.classList.add("hidden");
+  document.getElementById("recoverEmailPanel")?.classList.remove("hidden");
+  document.getElementById("tabLogin")?.classList.remove("active");
+  document.getElementById("tabRegister")?.classList.remove("active");
+  document.querySelector(".auth-divider")?.classList.add("hidden");
+  poblarPhoneCodes("recoverPhoneCode", document.getElementById("recoverPhoneCode")?.value || "+57");
+  setStatus("recoverStatus", "");
+}
+
+function volverLoginDesdeRecuperacion() {
+  document.getElementById("recoverEmailPanel")?.classList.add("hidden");
+  document.querySelector(".auth-divider")?.classList.remove("hidden");
+  cambiarAuthMode("login");
+}
+
+function telefonoCompletoRecuperacion() {
+  return normalizarTelefono(
+    document.getElementById("recoverPhoneCode")?.value || "+57",
+    document.getElementById("recoverPhone")?.value || ""
+  );
+}
+
+function actualizarCronometroRecuperacion() {
+  const countdown = document.getElementById("recoverCountdown");
+  const sendBtn = document.getElementById("btnRecoverSendCode");
+  const restante = recoverVerificationExpiresAt - Date.now();
+  if (!countdown || !sendBtn) return;
+
+  if (recoverVerificationId && restante > 0) {
+    countdown.hidden = false;
+    countdown.textContent = formatCountdown(restante);
+    sendBtn.disabled = true;
+    sendBtn.textContent = `Reenviar en ${formatCountdown(restante)}`;
+    return;
+  }
+
+  clearInterval(recoverCountdownInterval);
+  recoverCountdownInterval = null;
+  countdown.hidden = true;
+  sendBtn.disabled = false;
+  sendBtn.textContent = recoverVerificationId ? "Enviar nuevo código" : "Enviar código";
+}
+
+function iniciarCronometroRecuperacion() {
+  clearInterval(recoverCountdownInterval);
+  actualizarCronometroRecuperacion();
+  recoverCountdownInterval = setInterval(actualizarCronometroRecuperacion, 1000);
+}
+
+async function prepararRecaptchaRecuperacion() {
+  if (!recoverRecaptchaVerifier) {
+    recoverRecaptchaVerifier = new RecaptchaVerifier(auth, "recoverRecaptcha", { size: "invisible" });
+    await recoverRecaptchaVerifier.render();
+  }
+  return recoverRecaptchaVerifier;
+}
+
+async function buscarCandidatoRecuperacion() {
+  const phoneNumber = telefonoCompletoRecuperacion();
+  const phoneId = recoveryPhoneId(phoneNumber);
+  const nameKey = normalizarNombre(document.getElementById("recoverName")?.value || "");
+  if (!phoneId || !nameKey) {
+    setStatus("recoverStatus", "Escribe nombre de usuario y teléfono registrado.", "error");
+    return null;
+  }
+  const snap = await getDoc(doc(db, "recoveryContacts", phoneId));
+  if (!snap.exists()) {
+    setStatus("recoverStatus", "No encontramos un teléfono verificado con esos datos. Ve a soporte para recuperar tu correo.", "error");
+    return null;
+  }
+  const data = snap.data();
+  if (!data.phoneVerified || data.nameKey !== nameKey) {
+    setStatus("recoverStatus", "El nombre de usuario y el teléfono no coinciden. Ve a soporte si necesitas ayuda.", "error");
+    return null;
+  }
+  return { ...data, phoneNumber };
+}
+
+async function enviarCodigoRecuperacion() {
+  const btn = document.getElementById("btnRecoverSendCode");
+  btn.disabled = true;
+  setStatus("recoverStatus", "Validando datos antes de enviar el código...");
+  try {
+    recoverCandidate = await buscarCandidatoRecuperacion();
+    if (!recoverCandidate) {
+      btn.disabled = false;
+      return;
+    }
+    const verifier = await prepararRecaptchaRecuperacion();
+    const provider = new PhoneAuthProvider(auth);
+    recoverVerificationId = await provider.verifyPhoneNumber(recoverCandidate.phoneNumber, verifier);
+    recoverVerificationExpiresAt = Date.now() + PHONE_CODE_DURATION_MS;
+    setStatus("recoverStatus", "Código enviado. Tienes 2 minutos para validarlo.");
+    iniciarCronometroRecuperacion();
+  } catch (err) {
+    console.error("Error en recuperación de usuario:", err);
+    btn.disabled = false;
+    setStatus("recoverStatus", mensajeErrorTelefono(err), "error");
+  }
+}
+
+async function verificarCodigoRecuperacion() {
+  const code = document.getElementById("recoverCodeInput").value.trim();
+  if (!recoverCandidate || !recoverVerificationId || Date.now() > recoverVerificationExpiresAt) {
+    setStatus("recoverStatus", "El código venció. Solicita uno nuevo.", "error");
+    actualizarCronometroRecuperacion();
+    return;
+  }
+  if (!code) {
+    setStatus("recoverStatus", "Escribe el código recibido por SMS.", "error");
+    return;
+  }
+  try {
+    registroEnCurso = true;
+    const credential = PhoneAuthProvider.credential(recoverVerificationId, code);
+    const cred = await signInWithCredential(auth, credential);
+    if (cred.user.uid !== recoverCandidate.uid) {
+      throw new Error("El teléfono verificado no coincide con el usuario registrado.");
+    }
+    const email = recoverCandidate.email;
+    await signOut(auth);
+    registroEnCurso = false;
+    document.body.classList.add("group-locked");
+    abrirPanelRecuperarUsuario();
+    recoverVerificationId = "";
+    recoverVerificationExpiresAt = 0;
+    clearInterval(recoverCountdownInterval);
+    actualizarCronometroRecuperacion();
+    setStatus("recoverStatus", `Correo registrado: ${email}`);
+  } catch (err) {
+    registroEnCurso = false;
+    if (auth.currentUser && !auth.currentUser.email) {
+      await signOut(auth).catch(() => {});
+    }
+    console.error("No se pudo validar recuperación:", err);
+    setStatus("recoverStatus", "Código inválido o teléfono no asociado a ese usuario. Ve a soporte si necesitas ayuda.", "error");
+  }
+}
+
 function cambiarAuthMode(modo) {
   const login = modo === "login";
   document.getElementById("loginPanel").classList.toggle("hidden", !login);
   document.getElementById("registerPanel").classList.toggle("hidden", login);
+  document.getElementById("recoverEmailPanel")?.classList.add("hidden");
   document.getElementById("tabLogin").classList.toggle("active", login);
   document.getElementById("tabRegister").classList.toggle("active", !login);
   if (!login) inicializarRegistroPerfil();
@@ -3021,6 +3215,11 @@ document.getElementById("btnEmailLogin")?.addEventListener("click", loginEmail);
 document.getElementById("btnEmailRegister")?.addEventListener("click", registrarEmail);
 document.getElementById("btnGoogleLogin")?.addEventListener("click", loginGoogle);
 document.getElementById("btnForgotPassword")?.addEventListener("click", recuperarPassword);
+document.getElementById("btnShowLogin")?.addEventListener("click", mostrarLoginCard);
+document.getElementById("btnForgotUser")?.addEventListener("click", abrirPanelRecuperarUsuario);
+document.getElementById("btnRecoverBack")?.addEventListener("click", volverLoginDesdeRecuperacion);
+document.getElementById("btnRecoverSendCode")?.addEventListener("click", enviarCodigoRecuperacion);
+document.getElementById("btnRecoverVerifyCode")?.addEventListener("click", verificarCodigoRecuperacion);
 document.getElementById("tabLogin")?.addEventListener("click", () => cambiarAuthMode("login"));
 document.getElementById("tabRegister")?.addEventListener("click", () => cambiarAuthMode("register"));
 document.getElementById("registerPassword")?.addEventListener("input", actualizarReglasPassword);
