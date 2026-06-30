@@ -47,8 +47,8 @@
         </div>
         <div class="profile-form-grid">
           <input type="date" id="registerBirth" class="admin-input" aria-label="Fecha de nacimiento" />
-          <select id="registerGender" class="admin-input" aria-label="Sexo o género">
-            <option value="">Sexo o género</option>
+          <select id="registerGender" class="admin-input" aria-label="Género">
+            <option value="">Género</option>
             <option value="Femenino">Femenino</option>
             <option value="Masculino">Masculino</option>
             <option value="No binario">No binario</option>
@@ -76,8 +76,8 @@
       <div class="group-entry hidden" id="groupEntry">
         <p>Cuenta validada. Ingresa el código de clase y la clave de tu grupo para continuar.</p>
         <div class="admin-login">
-          <input type="text" id="claseCodigo" class="admin-input" placeholder="Código de clase" autocomplete="one-time-code" />
-          <input type="password" id="grupoClave" class="admin-input" placeholder="Clave de grupo" autocomplete="one-time-code" />
+          <input type="text" id="claseCodigo" class="admin-input code-input" placeholder="Código de clase" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" />
+          <input type="text" id="grupoClave" class="admin-input code-input" placeholder="Código de grupo" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" />
           <button class="btn btn-primary" id="btnGrupoEntrar">Entrar</button>
         </div>
       </div>
@@ -529,7 +529,7 @@
           <label>Fecha de nacimiento<input type="date" id="profileBirth" class="admin-input" /></label>
         </div>
         <div class="profile-form-grid">
-          <label>Sexo o género
+          <label>Género
             <select id="profileGender" class="admin-input">
               <option value="">Selecciona</option>
               <option value="Femenino">Femenino</option>
@@ -576,7 +576,7 @@
           <summary>Grupo</summary>
           <p>Cambia de grupo escribiendo la clave. No podrás hacerlo si estás presentando un examen.</p>
           <div class="admin-login">
-            <input type="password" id="settingsGroupKey" class="admin-input" placeholder="Clave del nuevo grupo" />
+            <input type="text" id="settingsGroupKey" class="admin-input code-input" placeholder="Código del nuevo grupo" autocapitalize="characters" spellcheck="false" />
             <button class="btn btn-secondary" id="btnSettingsChangeGroup" type="button">Cambiar grupo</button>
           </div>
           <p class="bank-status" id="settingsGroupStatus"></p>
@@ -748,6 +748,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260629-3"></script>
+  <script type="module" src="script.js?v=20260629-4"></script>
 </body>
 </html>

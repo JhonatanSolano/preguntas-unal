@@ -2366,8 +2366,8 @@ async function entrarGrupo() {
     mostrarWarn("Primero inicia sesión o regístrate.");
     return;
   }
-  const codigoClase = document.getElementById("claseCodigo").value.trim();
-  const valor = document.getElementById("grupoClave").value.trim();
+  const codigoClase = document.getElementById("claseCodigo").value.trim().toUpperCase();
+  const valor = document.getElementById("grupoClave").value.trim().toUpperCase();
   const clase = await buscarClasePorCodigo(codigoClase);
   if (!clase) {
     mostrarWarn("Código de clase incorrecto o inexistente.");
@@ -2631,7 +2631,7 @@ async function estudianteCambiarGrupo(inputId = "settingsGroupKey", statusId = "
     status.textContent = "No es posible cambiar el grupo porque el estudiante se encuentra realizando un examen.";
     return;
   }
-  const valor = document.getElementById(inputId).value.trim();
+  const valor = document.getElementById(inputId).value.trim().toUpperCase();
   const encontrado = Object.entries(GRUPOS).find(([, grupo]) => grupo.clave === valor);
   if (!encontrado) {
     status.textContent = "Clave de grupo incorrecta.";
