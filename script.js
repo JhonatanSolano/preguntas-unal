@@ -2161,17 +2161,24 @@ function codigoClaseAleatorio() {
   return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
 }
 
+function normalizarCodigoClase(code) {
+  return String(code || "").trim().replace(/\s+/g, "").toUpperCase();
+}
+
 async function buscarClasePorCodigo(code) {
-  const codigoOriginal = code.trim();
-  const codigo = codigoOriginal.toUpperCase();
+  const codigoOriginal = String(code || "").trim();
+  const codigo = normalizarCodigoClase(codigoOriginal);
   if (!codigo) return null;
-  let snap = await getDocs(query(collection(db, "classes"), where("code", "==", codigoOriginal)));
-  if (snap.empty && codigoOriginal !== codigo) {
-    snap = await getDocs(query(collection(db, "classes"), where("code", "==", codigo)));
+  let snap = await getDocs(query(collection(db, "classes"), where("codeKey", "==", codigo)));
+  if (snap.empty) {
+    snap = await getDocs(query(collection(db, "classes"), where("code", "==", codigoOriginal)));
+  }
+  if (snap.empty && codigoOriginal.toUpperCase() !== codigoOriginal) {
+    snap = await getDocs(query(collection(db, "classes"), where("code", "==", codigoOriginal.toUpperCase())));
   }
   if (snap.empty) {
     const all = await getDocs(collection(db, "classes"));
-    const encontrado = all.docs.find(d => String(d.data().code || "").trim().toUpperCase() === codigo);
+    const encontrado = all.docs.find(d => normalizarCodigoClase(d.data().code || d.data().codeKey) === codigo);
     if (!encontrado) return null;
     return { id: encontrado.id, ...encontrado.data() };
   }
@@ -2207,6 +2214,7 @@ async function crearClaseAdmin() {
     const payload = {
       name,
       code,
+      codeKey: normalizarCodigoClase(code),
       ownerEmail: usuarioActual.email,
       ownerUid: usuarioActual.uid,
       status: "activa",
@@ -2402,7 +2410,15 @@ async function entrarGrupo() {
   }
   const codigoClase = document.getElementById("claseCodigo").value.trim();
   const valor = document.getElementById("grupoClave").value.trim().toUpperCase();
-  const clase = await buscarClasePorCodigo(codigoClase);
+  let clase = null;
+  try {
+    clase = await buscarClasePorCodigo(codigoClase);
+  } catch (err) {
+    console.error("Error consultando código de clase:", err);
+    mostrarWarn("No fue posible validar el código de clase. Revisa que las reglas de Firebase permitan leer clases.");
+    document.getElementById("grupoWarn").classList.add("error");
+    return;
+  }
   if (!clase) {
     mostrarWarn("Código de clase incorrecto o inexistente.");
     document.getElementById("grupoWarn").classList.add("error");
