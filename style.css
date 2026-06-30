@@ -306,6 +306,100 @@ body.admin-mode .admin-exit-dock {
 .auth-gate {
   max-width: 720px;
 }
+.public-home {
+  max-width: 1040px;
+}
+.public-hero {
+  background: linear-gradient(135deg, #fff 0%, var(--c-blue-lt) 52%, var(--c-gold-lt) 100%);
+  border: 1.5px solid var(--c-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: 2.4rem;
+  margin-bottom: 1.2rem;
+}
+.public-pill {
+  color: var(--c-navy);
+  background: rgba(255,255,255,.72);
+  border-color: rgba(98,84,243,.22);
+}
+.public-hero h1 {
+  font-family: var(--font-display);
+  color: var(--c-navy);
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  line-height: 1.1;
+  margin: .6rem 0 .8rem;
+}
+.public-hero p {
+  color: var(--c-muted);
+  max-width: 760px;
+  font-size: 1.02rem;
+}
+.public-actions {
+  display: flex;
+  gap: .75rem;
+  flex-wrap: wrap;
+  margin: 1.4rem 0 1.6rem;
+}
+.public-actions a {
+  text-decoration: none;
+}
+.public-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .9rem;
+}
+.public-grid article,
+.legal-panel {
+  background: rgba(255,255,255,.82);
+  border: 1.5px solid rgba(98,84,243,.16);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+}
+.public-grid strong {
+  display: block;
+  color: var(--c-navy);
+  margin-bottom: .35rem;
+}
+.public-grid span {
+  color: var(--c-muted);
+  font-size: .92rem;
+}
+.public-footer {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  color: var(--c-muted);
+  font-size: .9rem;
+  margin: 1rem 0 2rem;
+}
+.public-footer a {
+  color: var(--c-blue);
+  font-weight: 800;
+  text-decoration: none;
+}
+.legal-page {
+  max-width: 860px;
+}
+.legal-hero {
+  margin-bottom: 1rem;
+}
+.legal-panel {
+  background: #fff;
+  box-shadow: var(--shadow-sm);
+}
+.legal-panel h2 {
+  color: var(--c-navy);
+  font-size: 1.15rem;
+  margin: 1rem 0 .35rem;
+}
+.legal-panel h2:first-child {
+  margin-top: 0;
+}
+.legal-panel p {
+  color: var(--c-muted);
+  margin-bottom: .8rem;
+}
 .auth-form,
 .group-entry {
   display: grid;
@@ -876,6 +970,9 @@ body.admin-mode .admin-exit-dock {
   .summary-table { min-width: 520px; }
   #feedbackList { padding: 1.2rem 1rem; }
   .start-screen { padding: 2rem 1rem; }
+  .public-hero { padding: 1.5rem 1rem; }
+  .public-grid { grid-template-columns: 1fr; }
+  .public-actions .btn { max-width: 100%; }
   .btn { width: 100%; max-width: 340px; padding-inline: 1rem; }
   .score-metrics { text-align: left; }
   .admin-login { grid-template-columns: 1fr; }
@@ -896,6 +993,7 @@ body.admin-mode .admin-exit-dock {
   }
   .header-stats { gap: .6rem; }
   .score-card { gap: 1.6rem; padding: 1.8rem; }
+  .public-grid,
   .bank-progress-grid,
   .bank-grid { grid-template-columns: 1fr; }
   .question-card,

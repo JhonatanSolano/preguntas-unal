@@ -4,12 +4,40 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Matemáticas En Tu Bolsillo</title>
+  <meta name="description" content="Matemáticas En Tu Bolsillo es una plataforma educativa para practicar matemáticas por niveles, presentar diagnósticos y consultar estadísticas de aprendizaje." />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body class="group-locked">
 
-  <main class="main-content" id="groupGate">
-    <div class="start-screen group-gate auth-gate">
+  <main class="main-content public-home" id="groupGate">
+    <section class="public-hero" aria-labelledby="publicTitle">
+      <span class="brand-pill public-pill">Plataforma educativa</span>
+      <h1 id="publicTitle">Matemáticas En Tu Bolsillo</h1>
+      <p>
+        Aplicación web para que estudiantes practiquen matemáticas por niveles, presenten diagnósticos,
+        reciban resultados medibles y revisen su progreso con el acompañamiento de su profesor.
+      </p>
+      <div class="public-actions">
+        <a class="btn btn-primary" href="#loginCard">Entrar a la plataforma</a>
+        <a class="btn btn-outline" href="privacidad.html">Política de privacidad</a>
+      </div>
+      <div class="public-grid" aria-label="Información de la aplicación">
+        <article>
+          <strong>Propósito</strong>
+          <span>Fortalecer aritmética, álgebra, ecuaciones, funciones, conjuntos, precálculo, cálculo y razonamiento matemático.</span>
+        </article>
+        <article>
+          <strong>Uso académico</strong>
+          <span>Los profesores crean clases, habilitan exámenes y revisan métricas de desempeño por estudiante y grupo.</span>
+        </article>
+        <article>
+          <strong>Acceso seguro</strong>
+          <span>Los usuarios entran con Google o correo, y luego ingresan el código de clase y grupo asignado.</span>
+        </article>
+      </div>
+    </section>
+
+    <div class="start-screen group-gate auth-gate" id="loginCard">
       <span class="cs-icon">🔐</span>
       <h2>Ingreso Matemáticas En Tu Bolsillo</h2>
       <p>Accede con Google o con correo Gmail y contraseña. Después ingresarás el código de tu clase y grupo.</p>
@@ -87,6 +115,11 @@
 
       <p class="warn-msg" id="grupoWarn" hidden>Revisa los datos ingresados.</p>
     </div>
+    <footer class="public-footer">
+      <span>Contacto: solanojhonatan2000@gmail.com</span>
+      <a href="privacidad.html">Privacidad</a>
+      <a href="https://wa.me/573112454282?text=Hola%20Jhonatan%2C%20necesito%20soporte%20con%20Matem%C3%A1ticas%20En%20Tu%20Bolsillo.%20" target="_blank" rel="noopener">Soporte</a>
+    </footer>
   </main>
 
   <!-- ══════════════════ ENCABEZADO ══════════════════ -->
