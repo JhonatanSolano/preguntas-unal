@@ -6,23 +6,41 @@
   <title>Matemáticas En Tu Bolsillo</title>
   <meta name="google-site-verification" content="c8ec8mVqxpM6cKxpCjHv0k05ZP5c8D84gehom6I5Q2U" />
   <meta name="description" content="Matemáticas En Tu Bolsillo es una plataforma educativa para practicar matemáticas por niveles, presentar diagnósticos y consultar estadísticas de aprendizaje." />
+  <meta name="theme-color" content="#06345f" />
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png" />
+  <link rel="manifest" href="manifest.webmanifest" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body class="group-locked">
+  <div class="welcome-splash hidden" id="welcomeSplash" aria-live="polite">
+    <div>
+      <img src="assets/logo.png" alt="Matemáticas En Tu Bolsillo" />
+      <h2 id="splashTitle">¡Bienvenido nuevamente!</h2>
+      <p id="splashText">Nos alegra verte otra vez. Prepárate para seguir aprendiendo matemáticas.</p>
+    </div>
+  </div>
 
   <main class="main-content public-home" id="groupGate">
     <nav class="landing-nav" aria-label="Navegación principal">
-      <strong>Matemáticas En Tu Bolsillo</strong>
+      <a class="brand-lockup" href="#publicTitle" aria-label="Matemáticas En Tu Bolsillo">
+        <img src="assets/icon-180.png" alt="" />
+        <strong>Matemáticas En Tu Bolsillo</strong>
+      </a>
+      <button class="landing-menu-toggle" id="btnLandingMenu" type="button" aria-label="Abrir menú">☰</button>
       <div>
         <a href="#caracteristicas">Características</a>
         <a href="#estudiantes">Estudiantes</a>
         <a href="#profesores">Profesores</a>
+        <a href="#contacto">Contacto</a>
         <button class="btn btn-primary" id="btnShowLoginNav" type="button">Iniciar sesión</button>
+        <button class="btn btn-outline" id="btnShowRegisterNav" type="button">Crear cuenta</button>
       </div>
     </nav>
 
     <section class="public-hero landing-hero" aria-labelledby="publicTitle">
       <div class="hero-copy">
+        <img class="hero-logo" src="assets/logo.png" alt="Logo de Matemáticas En Tu Bolsillo" />
         <span class="brand-pill public-pill">Plataforma educativa de matemáticas</span>
         <h1 id="publicTitle">Aprender matemáticas nunca fue tan fácil.</h1>
         <p>
@@ -140,8 +158,10 @@
       </div>
     </section>
 
-    <div class="start-screen group-gate auth-gate hidden" id="loginCard">
-      <span class="cs-icon">🔐</span>
+    <div class="auth-shell hidden" id="loginCard" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+      <div class="start-screen group-gate auth-gate">
+      <button class="auth-close" id="btnAuthClose" type="button" aria-label="Cerrar">×</button>
+      <img class="auth-logo" src="assets/logo.png" alt="Matemáticas En Tu Bolsillo" />
       <h2>Ingreso Matemáticas En Tu Bolsillo</h2>
       <p>Accede con Google o con correo Gmail y contraseña. Después ingresarás el código de tu clase y grupo.</p>
 
@@ -167,6 +187,14 @@
           <button type="button" id="btnForgotPassword">¿Olvidó su contraseña?</button>
           <button type="button" id="btnForgotUser">¿Olvidó su usuario?</button>
         </div>
+      </div>
+
+      <div class="auth-form hidden" id="forgotPasswordPanel">
+        <p class="mini-help">Escribe tu correo Gmail registrado. Te enviaremos un enlace seguro para restablecer tu contraseña.</p>
+        <input type="email" id="forgotPasswordEmail" class="admin-input" placeholder="Correo @gmail.com" autocomplete="email" />
+        <button class="btn btn-primary" id="btnSendPasswordRecovery" type="button">Enviar recuperación</button>
+        <p class="bank-status" id="forgotPasswordStatus"></p>
+        <button class="btn btn-outline" id="btnForgotPasswordBack" type="button">Volver al inicio de sesión</button>
       </div>
 
       <div class="auth-form hidden" id="recoverEmailPanel">
@@ -241,8 +269,9 @@
       </div>
 
       <p class="warn-msg" id="grupoWarn" hidden>Revisa los datos ingresados.</p>
+      </div>
     </div>
-    <footer class="public-footer">
+    <footer class="public-footer" id="contacto">
       <div class="footer-columns">
         <div>
           <strong>Plataforma</strong>
@@ -282,6 +311,7 @@
   <header class="site-header">
     <div class="header-inner">
       <div class="header-brand">
+        <img class="app-header-logo" src="assets/icon-180.png" alt="Logo de Matemáticas En Tu Bolsillo" />
         <span class="brand-pill">Matemáticas · Práctica adaptativa</span>
         <h1>Matemáticas En Tu Bolsillo</h1>
         <p class="header-desc">Practica álgebra, aritmética, ecuaciones, funciones, conjuntos, precálculo, cálculo y razonamiento matemático.</p>
@@ -325,7 +355,7 @@
   <div class="drawer-backdrop hidden" id="drawerBackdrop"></div>
   <aside class="side-drawer hidden" id="sideDrawer" aria-label="Menú lateral">
     <div class="drawer-head">
-      <strong id="drawerUserName">Matemáticas En Tu Bolsillo</strong>
+      <span class="drawer-brand"><img src="assets/icon-180.png" alt="" /><strong id="drawerUserName">Matemáticas En Tu Bolsillo</strong></span>
       <button class="drawer-close" id="btnDrawerClose" type="button" aria-label="Cerrar menú">×</button>
     </div>
     <button class="drawer-link" id="btnDrawerHome" type="button">Inicio</button>
@@ -339,6 +369,7 @@
   <!-- ══════════════════ INICIO ══════════════════ -->
   <main class="main-content" id="sectionInicio">
     <section class="welcome-panel" id="welcomePanel">
+      <img class="panel-logo" src="assets/icon-180.png" alt="Logo de Matemáticas En Tu Bolsillo" />
       <h2 id="welcomeTitle">Bienvenido</h2>
       <p>Esta app te acompaña en una ruta de práctica matemática por niveles. Trabajarás diagnóstico, nivel medio y examen final con métricas de precisión, tiempo y temas por reforzar.</p>
       <div class="welcome-grid">
@@ -742,6 +773,7 @@
       </section>
 
       <section class="profile-panel">
+        <img class="panel-logo" src="assets/icon-180.png" alt="Logo de Matemáticas En Tu Bolsillo" />
         <h3>Teléfono verificado</h3>
         <p>Ingresa el indicador del país y tu número. El código enviado por SMS vence en 2 minutos.</p>
         <div class="profile-form-grid">
@@ -869,6 +901,7 @@
   <!-- ══════════════════ ADMINISTRADOR ══════════════════ -->
   <main class="main-content hidden" id="sectionAdmin">
     <div class="start-screen admin-panel">
+      <img class="panel-logo" src="assets/icon-180.png" alt="Logo de Matemáticas En Tu Bolsillo" />
       <img class="admin-welcome-photo" id="adminWelcomePhoto" alt="Foto de perfil del profesor" />
       <h2 id="adminWelcomeTitle">Bienvenido</h2>
       <p>Desde este panel podrás administrar clases, estudiantes, exámenes, estadísticas, bancos de preguntas y permisos por grupo.</p>

@@ -2112,13 +2112,19 @@ function mostrarAuthInicial() {
 function mostrarLoginCard() {
   document.getElementById("loginCard")?.classList.remove("hidden");
   cambiarAuthMode("login");
-  document.getElementById("loginCard")?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function mostrarRegisterCard() {
   document.getElementById("loginCard")?.classList.remove("hidden");
   cambiarAuthMode("register");
-  document.getElementById("loginCard")?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function cerrarAuthCard() {
+  if (usuarioActual && !grupoActivo) {
+    mostrarEntradaGrupo();
+    return;
+  }
+  document.getElementById("loginCard")?.classList.add("hidden");
 }
 
 function mostrarEntradaGrupo() {
@@ -2133,6 +2139,31 @@ function mostrarEntradaGrupo() {
   document.getElementById("classCodeStep")?.classList.remove("hidden");
   document.getElementById("groupCodeStep")?.classList.add("hidden");
   document.getElementById("groupEntryText").textContent = "Cuenta validada. Primero ingresa el código de clase compartido por tu profesor.";
+}
+
+function toggleLandingMenu() {
+  document.querySelector(".landing-nav")?.classList.toggle("open");
+}
+
+function saludoBienvenida(nombre = "", genero = "") {
+  const primero = nombre.trim().split(/\s+/)[0] || "";
+  const base = genero === "Femenino" ? "¡Bienvenida nuevamente" : "¡Bienvenido nuevamente";
+  return `${base}${primero ? `, ${primero}` : ""}!`;
+}
+
+function mostrarSplashBienvenida() {
+  const splash = document.getElementById("welcomeSplash");
+  if (!splash) return Promise.resolve();
+  const nombre = perfilActual?.displayName || usuarioActual?.displayName || "estudiante";
+  document.getElementById("splashTitle").textContent = saludoBienvenida(nombre, perfilActual?.gender || "");
+  document.getElementById("splashText").textContent = "Nos alegra verte otra vez. Prepárate para seguir aprendiendo matemáticas.";
+  splash.classList.remove("hidden");
+  return new Promise(resolve => {
+    setTimeout(() => {
+      splash.classList.add("hidden");
+      resolve();
+    }, 2400);
+  });
 }
 
 function mostrarWarn(msg) {
@@ -2456,6 +2487,7 @@ async function prepararSesionAutenticada() {
     } catch (err) {
       console.warn("No se pudo cargar el perfil admin.", err);
     }
+    await mostrarSplashBienvenida();
     grupoActivo = "admin";
     localStorage.setItem(STORAGE_GRUPO, grupoActivo);
     document.body.classList.remove("group-locked");
@@ -2469,6 +2501,7 @@ async function prepararSesionAutenticada() {
   await cargarPermisosRemotos();
   await cargarPerfilUsuario();
   await cargarEstadoRemoto();
+  await mostrarSplashBienvenida();
 
   if (perfilActual?.grupo && GRUPOS[perfilActual.grupo] && perfilActual?.classId) {
     grupoActivo = perfilActual.grupo;
@@ -2660,22 +2693,33 @@ async function guardarDatosGoogleIniciales(user) {
 }
 
 async function recuperarPassword() {
-  const email = document.getElementById("loginEmail").value.trim().toLowerCase();
+  const email = (document.getElementById("forgotPasswordEmail")?.value || document.getElementById("loginEmail")?.value || "").trim().toLowerCase();
   if (!email.endsWith("@gmail.com")) {
-    mostrarWarn("Escribe tu correo Gmail en el campo de inicio de sesión.");
+    setStatus("forgotPasswordStatus", "Escribe tu correo Gmail registrado.", "error");
     return;
   }
   try {
     await sendPasswordResetEmail(auth, email);
-    mostrarWarn("Te enviamos un correo para restablecer la contraseña.");
+    setStatus("forgotPasswordStatus", "Te enviamos un correo para restablecer la contraseña.");
   } catch {
-    mostrarWarn("No se pudo enviar la recuperación. Revisa el correo.");
+    setStatus("forgotPasswordStatus", "No se pudo enviar la recuperación. Revisa el correo.", "error");
   }
+}
+
+function abrirPanelRecuperarPassword() {
+  document.getElementById("loginPanel")?.classList.add("hidden");
+  document.getElementById("registerPanel")?.classList.add("hidden");
+  document.getElementById("recoverEmailPanel")?.classList.add("hidden");
+  document.getElementById("forgotPasswordPanel")?.classList.remove("hidden");
+  document.querySelector(".auth-divider")?.classList.add("hidden");
+  document.getElementById("forgotPasswordEmail").value = document.getElementById("loginEmail")?.value || "";
+  setStatus("forgotPasswordStatus", "");
 }
 
 function abrirPanelRecuperarUsuario() {
   document.getElementById("loginPanel")?.classList.add("hidden");
   document.getElementById("registerPanel")?.classList.add("hidden");
+  document.getElementById("forgotPasswordPanel")?.classList.add("hidden");
   document.getElementById("recoverEmailPanel")?.classList.remove("hidden");
   document.getElementById("tabLogin")?.classList.remove("active");
   document.getElementById("tabRegister")?.classList.remove("active");
@@ -2689,6 +2733,7 @@ function abrirPanelRecuperarUsuario() {
 
 function volverLoginDesdeRecuperacion() {
   document.getElementById("recoverEmailPanel")?.classList.add("hidden");
+  document.getElementById("forgotPasswordPanel")?.classList.add("hidden");
   document.querySelector(".auth-divider")?.classList.remove("hidden");
   cambiarAuthMode("login");
 }
@@ -2841,6 +2886,7 @@ function cambiarAuthMode(modo) {
   document.getElementById("loginPanel").classList.toggle("hidden", !login);
   document.getElementById("registerPanel").classList.toggle("hidden", login);
   document.getElementById("recoverEmailPanel")?.classList.add("hidden");
+  document.getElementById("forgotPasswordPanel")?.classList.add("hidden");
   document.getElementById("tabLogin").classList.toggle("active", login);
   document.getElementById("tabRegister").classList.toggle("active", !login);
   if (!login) inicializarRegistroPerfil();
@@ -3243,12 +3289,20 @@ document.getElementById("btnSalirAdmin")?.addEventListener("click", salirApp);
 document.getElementById("btnEmailLogin")?.addEventListener("click", loginEmail);
 document.getElementById("btnEmailRegister")?.addEventListener("click", registrarEmail);
 document.getElementById("btnGoogleLogin")?.addEventListener("click", loginGoogle);
-document.getElementById("btnForgotPassword")?.addEventListener("click", recuperarPassword);
+document.getElementById("btnForgotPassword")?.addEventListener("click", abrirPanelRecuperarPassword);
+document.getElementById("btnSendPasswordRecovery")?.addEventListener("click", recuperarPassword);
+document.getElementById("btnForgotPasswordBack")?.addEventListener("click", volverLoginDesdeRecuperacion);
 document.getElementById("btnShowLogin")?.addEventListener("click", mostrarLoginCard);
 document.getElementById("btnShowLoginNav")?.addEventListener("click", mostrarLoginCard);
 document.getElementById("btnShowLoginBottom")?.addEventListener("click", mostrarLoginCard);
 document.getElementById("btnShowRegister")?.addEventListener("click", mostrarRegisterCard);
+document.getElementById("btnShowRegisterNav")?.addEventListener("click", mostrarRegisterCard);
 document.getElementById("btnShowRegisterBottom")?.addEventListener("click", mostrarRegisterCard);
+document.getElementById("btnAuthClose")?.addEventListener("click", cerrarAuthCard);
+document.getElementById("btnLandingMenu")?.addEventListener("click", toggleLandingMenu);
+document.querySelectorAll(".landing-nav a").forEach(link => {
+  link.addEventListener("click", () => document.querySelector(".landing-nav")?.classList.remove("open"));
+});
 document.getElementById("btnForgotUser")?.addEventListener("click", abrirPanelRecuperarUsuario);
 document.getElementById("btnRecoverBack")?.addEventListener("click", volverLoginDesdeRecuperacion);
 document.getElementById("btnRecoverSendCode")?.addEventListener("click", enviarCodigoRecuperacion);
