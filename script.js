@@ -57,6 +57,11 @@ let registroEnCurso = false;
 let phoneVerificationId = "";
 let phoneVerificationExpiresAt = 0;
 let recaptchaVerifier = null;
+let phoneCountdownInterval = null;
+const PHONE_CODE_DURATION_MS = 2 * 60 * 1000;
+const MAX_PROFILE_PHOTO_INPUT_MB = 12;
+const PROFILE_PHOTO_MAX_SIDE = 900;
+const PROFILE_PHOTO_QUALITY = 0.82;
 
 const PHONE_CODES = [
   { code: "+57", label: "Colombia (+57)" },
@@ -2628,19 +2633,123 @@ async function guardarPerfilDesdeFormulario() {
   document.getElementById("profileStatus").textContent = "Perfil actualizado.";
 }
 
-function cargarFotoPerfil(file) {
-  if (!file || !file.type.startsWith("image/")) return;
-  if (file.size > 700 * 1024) {
-    document.getElementById("profileStatus").textContent = "Usa una imagen menor a 700 KB.";
+function setPhoneStatus(message, type = "") {
+  const status = document.getElementById("phoneStatus");
+  if (!status) return;
+  status.textContent = message;
+  status.classList.toggle("error", type === "error");
+  status.classList.toggle("ok", type === "ok");
+}
+
+function formatCountdown(ms) {
+  const total = Math.max(0, Math.ceil(ms / 1000));
+  const min = Math.floor(total / 60);
+  const sec = total % 60;
+  return `${String(min).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+}
+
+function detenerCronometroTelefono() {
+  clearInterval(phoneCountdownInterval);
+  phoneCountdownInterval = null;
+}
+
+function actualizarCronometroTelefono() {
+  const countdown = document.getElementById("phoneCountdown");
+  const sendBtn = document.getElementById("btnSendPhoneCode");
+  const restante = phoneVerificationExpiresAt - Date.now();
+  if (!countdown || !sendBtn) return;
+
+  if (phoneVerificationId && restante > 0) {
+    countdown.hidden = false;
+    countdown.textContent = formatCountdown(restante);
+    sendBtn.disabled = true;
+    sendBtn.textContent = `Reenviar en ${formatCountdown(restante)}`;
     return;
   }
-  const reader = new FileReader();
-  reader.onload = async () => {
-    await guardarPerfilUsuario({ photoData: reader.result });
-    renderProfile();
-    document.getElementById("profileStatus").textContent = "Foto actualizada.";
+
+  detenerCronometroTelefono();
+  countdown.hidden = true;
+  sendBtn.disabled = false;
+  sendBtn.textContent = phoneVerificationId ? "Enviar nuevo código" : "Enviar código";
+}
+
+function iniciarCronometroTelefono() {
+  detenerCronometroTelefono();
+  actualizarCronometroTelefono();
+  phoneCountdownInterval = setInterval(actualizarCronometroTelefono, 1000);
+}
+
+function mensajeErrorTelefono(err) {
+  const code = err?.code || "";
+  const mensajes = {
+    "auth/invalid-phone-number": "El número no es válido. Revisa el indicativo del país y los dígitos.",
+    "auth/too-many-requests": "Firebase bloqueó temporalmente los SMS por demasiados intentos. Espera unos minutos.",
+    "auth/quota-exceeded": "Se superó la cuota de SMS de Firebase para este proyecto.",
+    "auth/captcha-check-failed": "reCAPTCHA no pudo validar la solicitud. Recarga la página e intenta de nuevo.",
+    "auth/app-not-authorized": "Este dominio no está autorizado en Firebase Authentication.",
+    "auth/operation-not-allowed": "El proveedor Teléfono no está habilitado en Firebase Authentication."
   };
-  reader.readAsDataURL(file);
+  return mensajes[code] || "No se pudo enviar el SMS. Revisa el número o intenta de nuevo.";
+}
+
+async function prepararRecaptchaTelefono() {
+  if (!recaptchaVerifier) {
+    recaptchaVerifier = new RecaptchaVerifier(auth, "phoneRecaptcha", {
+      size: "invisible"
+    });
+    await recaptchaVerifier.render();
+  }
+  return recaptchaVerifier;
+}
+
+function reiniciarRecaptchaTelefono() {
+  try {
+    recaptchaVerifier?.clear();
+  } catch {
+    // Firebase puede limpiar internamente el widget antes de llegar aquí.
+  }
+  recaptchaVerifier = null;
+}
+
+function comprimirFotoPerfil(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("No se pudo leer la imagen."));
+    reader.onload = () => {
+      img.onerror = () => reject(new Error("No se pudo procesar la imagen."));
+      img.onload = () => {
+        const scale = Math.min(1, PROFILE_PHOTO_MAX_SIDE / Math.max(img.width, img.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(img.width * scale));
+        canvas.height = Math.max(1, Math.round(img.height * scale));
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", PROFILE_PHOTO_QUALITY));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function cargarFotoPerfil(file) {
+  if (!file || !file.type.startsWith("image/")) return;
+  const status = document.getElementById("profileStatus");
+  if (file.size > MAX_PROFILE_PHOTO_INPUT_MB * 1024 * 1024) {
+    status.textContent = `Usa una imagen menor a ${MAX_PROFILE_PHOTO_INPUT_MB} MB.`;
+    return;
+  }
+  status.textContent = "Procesando foto...";
+  try {
+    const photoData = await comprimirFotoPerfil(file);
+    await guardarPerfilUsuario({ photoData });
+    renderProfile();
+    status.textContent = "Foto actualizada.";
+  } catch (err) {
+    console.error("Error procesando foto:", err);
+    status.textContent = "No se pudo procesar la foto. Intenta con otra imagen.";
+  }
 }
 
 function telefonoCompletoDesdePerfil() {
@@ -2650,34 +2759,39 @@ function telefonoCompletoDesdePerfil() {
 }
 
 async function enviarCodigoTelefono() {
-  const status = document.getElementById("phoneStatus");
   const phoneNumber = telefonoCompletoDesdePerfil();
   if (!usuarioActual || !phoneNumber || phoneNumber.length < 8) {
-    status.textContent = "Escribe un teléfono válido con indicador de país.";
+    setPhoneStatus("Escribe un teléfono válido con indicador de país.", "error");
     return;
   }
+  const sendBtn = document.getElementById("btnSendPhoneCode");
+  sendBtn.disabled = true;
+  setPhoneStatus("Validando reCAPTCHA y enviando SMS...");
   try {
-    if (!recaptchaVerifier) {
-      recaptchaVerifier = new RecaptchaVerifier(auth, "phoneRecaptcha", { size: "invisible" });
-    }
+    const verifier = await prepararRecaptchaTelefono();
     const provider = new PhoneAuthProvider(auth);
-    phoneVerificationId = await provider.verifyPhoneNumber(phoneNumber, recaptchaVerifier);
-    phoneVerificationExpiresAt = Date.now() + 2 * 60 * 1000;
-    status.textContent = "Código enviado. Tienes 2 minutos para verificarlo.";
+    phoneVerificationId = await provider.verifyPhoneNumber(phoneNumber, verifier);
+    phoneVerificationExpiresAt = Date.now() + PHONE_CODE_DURATION_MS;
+    setPhoneStatus("Código enviado. Tienes 2 minutos para verificarlo.", "ok");
+    iniciarCronometroTelefono();
   } catch (err) {
-    status.textContent = "No se pudo enviar el SMS. Revisa el número o intenta de nuevo.";
+    console.error("Error enviando SMS:", err);
+    reiniciarRecaptchaTelefono();
+    sendBtn.disabled = false;
+    sendBtn.textContent = phoneVerificationId ? "Enviar nuevo código" : "Enviar código";
+    setPhoneStatus(mensajeErrorTelefono(err), "error");
   }
 }
 
 async function verificarCodigoTelefono() {
-  const status = document.getElementById("phoneStatus");
   const code = document.getElementById("profilePhoneCodeInput").value.trim();
   if (!phoneVerificationId || Date.now() > phoneVerificationExpiresAt) {
-    status.textContent = "El código venció. Solicita uno nuevo.";
+    setPhoneStatus("El código venció. Solicita uno nuevo.", "error");
+    actualizarCronometroTelefono();
     return;
   }
   if (!code) {
-    status.textContent = "Escribe el código recibido por SMS.";
+    setPhoneStatus("Escribe el código recibido por SMS.", "error");
     return;
   }
   try {
@@ -2689,10 +2803,13 @@ async function verificarCodigoTelefono() {
       phoneVerified: true
     });
     phoneVerificationId = "";
+    phoneVerificationExpiresAt = 0;
+    detenerCronometroTelefono();
+    actualizarCronometroTelefono();
     renderProfile();
-    status.textContent = "Teléfono verificado correctamente.";
+    setPhoneStatus("Teléfono verificado correctamente.", "ok");
   } catch {
-    status.textContent = "Código inválido o verificación no aceptada por Firebase.";
+    setPhoneStatus("Código inválido o verificación no aceptada por Firebase.", "error");
   }
 }
 

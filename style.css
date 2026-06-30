@@ -1027,6 +1027,42 @@ body.admin-mode .admin-exit-dock {
   background: linear-gradient(135deg, var(--c-blue-lt), #fff);
   cursor: zoom-in;
 }
+.phone-code-row {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  flex-wrap: wrap;
+  margin: -.2rem 0 .9rem;
+}
+.phone-countdown {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
+  padding: .35rem .65rem;
+  border-radius: 999px;
+  background: var(--c-gold-lt);
+  color: var(--c-navy);
+  font-weight: 800;
+}
+.phone-help {
+  color: var(--c-muted);
+  font-size: .88rem;
+}
+.bank-status.error {
+  color: var(--c-red);
+  font-weight: 700;
+}
+.bank-status.ok {
+  color: var(--c-green);
+  font-weight: 700;
+}
+.btn:disabled {
+  opacity: .58;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
 .profile-summary h2,
 .profile-panel h3 {
   font-family: var(--font-display);

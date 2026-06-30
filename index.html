@@ -563,6 +563,10 @@
           <button class="btn btn-secondary" id="btnSendPhoneCode" type="button">Enviar código</button>
           <input type="text" id="profilePhoneCodeInput" class="admin-input" placeholder="Código SMS" inputmode="numeric" />
         </div>
+        <div class="phone-code-row">
+          <span id="phoneCountdown" class="phone-countdown" hidden>02:00</span>
+          <span class="phone-help">Podrás solicitar un nuevo código cuando termine el contador.</span>
+        </div>
         <button class="btn btn-primary" id="btnVerifyPhoneCode" type="button">Verificar teléfono</button>
         <div id="phoneRecaptcha"></div>
         <p class="bank-status" id="phoneStatus"></p>
