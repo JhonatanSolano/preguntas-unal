@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Diagnóstico Matemático – UNAL</title>
+  <title>Plataforma de Preguntas Matemáticas</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body class="group-locked">
@@ -11,8 +11,8 @@
   <main class="main-content" id="groupGate">
     <div class="start-screen group-gate auth-gate">
       <span class="cs-icon">🔐</span>
-      <h2>Ingreso Preguntas UNAL</h2>
-      <p>Accede con Google o con correo Gmail y contraseña. Después ingresarás la clave de tu grupo.</p>
+      <h2>Ingreso Matemáticas Pro</h2>
+      <p>Accede con Google o con correo Gmail y contraseña. Después ingresarás el código de tu clase y grupo.</p>
 
       <div class="auth-actions">
         <button class="btn btn-primary" id="btnGoogleLogin" type="button">Entrar con Google</button>
@@ -34,7 +34,7 @@
         <button class="btn btn-primary" id="btnEmailLogin" type="button">Ingresar</button>
         <div class="auth-links">
           <button type="button" id="btnForgotPassword">¿Olvidó su contraseña?</button>
-          <a href="https://wa.me/573112454282?text=Hola%20Jhonatan%2C%20olvid%C3%A9%20mi%20correo%20de%20acceso%20a%20Preguntas%20UNAL.%20" target="_blank" rel="noopener">¿Olvidó su correo?</a>
+          <a href="https://wa.me/573112454282?text=Hola%20Jhonatan%2C%20olvid%C3%A9%20mi%20correo%20de%20acceso%20a%20Matem%C3%A1ticas%20Pro.%20" target="_blank" rel="noopener">¿Olvidó su correo?</a>
         </div>
       </div>
 
@@ -74,11 +74,14 @@
       </div>
 
       <div class="group-entry hidden" id="groupEntry">
-        <p>Cuenta validada. Ingresa el código de clase y la clave de tu grupo para continuar.</p>
-        <div class="admin-login">
+        <p id="groupEntryText">Cuenta validada. Primero ingresa el código de clase compartido por tu profesor.</p>
+        <div class="admin-login" id="classCodeStep">
           <input type="text" id="claseCodigo" class="admin-input class-code-input" placeholder="Código de clase" autocomplete="one-time-code" spellcheck="false" />
-          <input type="text" id="grupoClave" class="admin-input code-input" placeholder="Código de grupo" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" />
-          <button class="btn btn-primary" id="btnGrupoEntrar">Entrar</button>
+          <button class="btn btn-primary" id="btnValidarClase">Continuar</button>
+        </div>
+        <div class="admin-login hidden" id="groupCodeStep">
+          <input type="text" id="grupoClave" class="admin-input code-input" placeholder="Grupo: G1, G2, G3, G4 o G5" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" />
+          <button class="btn btn-primary" id="btnGrupoEntrar">Entrar al grupo</button>
         </div>
       </div>
 
@@ -90,9 +93,9 @@
   <header class="site-header">
     <div class="header-inner">
       <div class="header-brand">
-        <span class="brand-pill">UNAL · Admisiones</span>
-        <h1>Diagnóstico Matemático</h1>
-        <p class="header-desc">Evalúa tu nivel y prepárate para el examen de admisión de la Universidad Nacional de Colombia.</p>
+        <span class="brand-pill">Matemáticas · Práctica adaptativa</span>
+        <h1>Banco de Preguntas Matemáticas</h1>
+        <p class="header-desc">Practica álgebra, aritmética, ecuaciones, funciones, conjuntos, precálculo, cálculo y razonamiento matemático.</p>
       </div>
 
       <div class="header-stats">
@@ -133,7 +136,7 @@
   <div class="drawer-backdrop hidden" id="drawerBackdrop"></div>
   <aside class="side-drawer hidden" id="sideDrawer" aria-label="Menú lateral">
     <div class="drawer-head">
-      <strong id="drawerUserName">Preguntas UNAL</strong>
+      <strong id="drawerUserName">Matemáticas Pro</strong>
       <button class="drawer-close" id="btnDrawerClose" type="button" aria-label="Cerrar menú">×</button>
     </div>
     <button class="drawer-link" id="btnDrawerHome" type="button">Inicio</button>
@@ -148,7 +151,7 @@
   <main class="main-content" id="sectionInicio">
     <section class="welcome-panel" id="welcomePanel">
       <h2 id="welcomeTitle">Bienvenido</h2>
-      <p>Esta app te acompaña en una ruta de práctica para admisión UNAL: diagnóstico, nivel medio y examen final. Cada prueba mide precisión, manejo del tiempo y temas por reforzar.</p>
+      <p>Esta app te acompaña en una ruta de práctica matemática por niveles. Trabajarás diagnóstico, nivel medio y examen final con métricas de precisión, tiempo y temas por reforzar.</p>
       <div class="welcome-grid">
         <span>Presenta los exámenes habilitados para tu grupo.</span>
         <span>Cada examen tiene máximo dos intentos.</span>
@@ -403,7 +406,7 @@
     <div class="start-screen" id="startScreenExamen" hidden>
       <span class="cs-icon">🎯</span>
       <h2>Examen Final</h2>
-      <p>Nivel avanzado. Preguntas de alta complejidad similares a las del examen real de admisión UNAL.</p>
+      <p>Nivel avanzado. Preguntas de alta complejidad sobre álgebra, funciones, ecuaciones, conteo, conjuntos y razonamiento matemático.</p>
       <div class="start-rules">
         <ul>
           <li>10 preguntas de alta dificultad</li>
@@ -697,7 +700,7 @@
       <h2>Soporte</h2>
       <p>Comunícate por WhatsApp para reportar dudas, errores o solicitar ayuda con la app.</p>
       <a class="btn btn-primary support-link" id="whatsappSupport"
-         href="https://wa.me/573112454282?text=Hola%20Jhonatan%2C%20necesito%20soporte%20con%20la%20app%20Preguntas%20UNAL.%20"
+         href="https://wa.me/573112454282?text=Hola%20Jhonatan%2C%20necesito%20soporte%20con%20la%20app%20Matem%C3%A1ticas%20Pro.%20"
          target="_blank" rel="noopener">
         Abrir WhatsApp
       </a>
@@ -737,8 +740,8 @@
   </div>
 
   <footer class="site-footer">
-    <p>Jhonatan Solano · Universidad Nacional de Colombia · 2026</p>
-    <p><a href="https://wa.me/573112454282?text=Hola%20Jhonatan%2C%20necesito%20soporte%20con%20la%20app%20Preguntas%20UNAL.%20" target="_blank" rel="noopener">Soporte por WhatsApp</a></p>
+    <p>Jhonatan Solano · Plataforma de Preguntas Matemáticas · 2026</p>
+    <p><a href="https://wa.me/573112454282?text=Hola%20Jhonatan%2C%20necesito%20soporte%20con%20la%20app%20Matem%C3%A1ticas%20Pro.%20" target="_blank" rel="noopener">Soporte por WhatsApp</a></p>
   </footer>
 
   <!-- KaTeX para renderizar fórmulas matemáticas sin internet (inlined via CDN cache) -->
@@ -755,6 +758,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260629-6"></script>
+  <script type="module" src="script.js?v=20260629-7"></script>
 </body>
 </html>

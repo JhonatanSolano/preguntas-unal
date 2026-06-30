@@ -103,7 +103,7 @@ const LOCATION_DATA = {
 };
 
 /* ════════════════════════════════════════════════════════
-   UNAL – Diagnóstico Matemático · script.js
+   Plataforma de Preguntas Matemáticas · script.js
    Separación clara: DATOS → LÓGICA → PRESENTACIÓN
 ════════════════════════════════════════════════════════ */
 
@@ -449,6 +449,7 @@ let resultadosSesion = cargarResultadosSesion();
 let bancoActivo = localStorage.getItem(STORAGE_BANCO_ACTIVO) || "principal";
 let claseActiva = localStorage.getItem(STORAGE_CLASE_ACTIVA) || "";
 let claseActualInfo = null;
+let clasePendienteIngreso = null;
 let adminClaseActiva = localStorage.getItem(STORAGE_ADMIN_CLASE) || "";
 let adminClases = [];
 
@@ -1263,7 +1264,7 @@ function cerrarDrawer() {
 
 function actualizarDrawer() {
   const name = document.getElementById("drawerUserName");
-  if (name) name.textContent = perfilActual?.displayName || usuarioActual?.displayName || "Preguntas UNAL";
+  if (name) name.textContent = perfilActual?.displayName || usuarioActual?.displayName || "Matemáticas Pro";
   document.querySelectorAll(".admin-only").forEach(el => el.classList.toggle("hidden", !modoAdmin));
 }
 
@@ -1537,11 +1538,11 @@ function aplicarBancoNivelMedio() {
 }
 
 const GRUPOS = {
-  grupo1: { nombre: "Grupo 1", clave: "UNAL-G1-4826" },
-  grupo2: { nombre: "Grupo 2", clave: "UNAL-G2-7391" },
-  grupo3: { nombre: "Grupo 3", clave: "UNAL-G3-1548" },
-  grupo4: { nombre: "Grupo 4", clave: "UNAL-G4-9263" },
-  grupo5: { nombre: "Grupo 5", clave: "UNAL-G5-3174" }
+  grupo1: { nombre: "Grupo 1", clave: "G1" },
+  grupo2: { nombre: "Grupo 2", clave: "G2" },
+  grupo3: { nombre: "Grupo 3", clave: "G3" },
+  grupo4: { nombre: "Grupo 4", clave: "G4" },
+  grupo5: { nombre: "Grupo 5", clave: "G5" }
 };
 const STORAGE_GRUPO = "preguntasUnalGrupoActivo";
 const STORAGE_PERMISOS = "preguntasUnalPermisosPorGrupo";
@@ -2049,6 +2050,10 @@ function mostrarEntradaGrupo() {
   document.getElementById("registerPanel")?.classList.add("hidden");
   document.getElementById("btnGoogleLogin")?.closest(".auth-actions")?.classList.add("hidden");
   document.getElementById("groupEntry")?.classList.remove("hidden");
+  clasePendienteIngreso = null;
+  document.getElementById("classCodeStep")?.classList.remove("hidden");
+  document.getElementById("groupCodeStep")?.classList.add("hidden");
+  document.getElementById("groupEntryText").textContent = "Cuenta validada. Primero ingresa el código de clase compartido por tu profesor.";
 }
 
 function mostrarWarn(msg) {
@@ -2410,23 +2415,14 @@ async function entrarGrupo() {
   }
   const codigoClase = document.getElementById("claseCodigo").value.trim();
   const valor = document.getElementById("grupoClave").value.trim().toUpperCase();
-  let clase = null;
-  try {
-    clase = await buscarClasePorCodigo(codigoClase);
-  } catch (err) {
-    console.error("Error consultando código de clase:", err);
-    mostrarWarn("No fue posible validar el código de clase. Revisa que las reglas de Firebase permitan leer clases.");
-    document.getElementById("grupoWarn").classList.add("error");
-    return;
-  }
+  let clase = clasePendienteIngreso;
+  if (!clase) clase = await validarClaseIngreso(codigoClase);
   if (!clase) {
-    mostrarWarn("Código de clase incorrecto o inexistente.");
-    document.getElementById("grupoWarn").classList.add("error");
     return;
   }
   const encontrado = Object.entries(GRUPOS).find(([, grupo]) => grupo.clave === valor);
   if (!encontrado) {
-    mostrarWarn("Clave de grupo incorrecta.");
+    mostrarWarn("Código de grupo incorrecto. Usa G1, G2, G3, G4 o G5.");
     document.getElementById("grupoWarn").classList.add("error");
     return;
   }
@@ -2446,6 +2442,29 @@ async function entrarGrupo() {
   aplicarModoUsuario();
   activarNav("inicio");
   actualizarEstadoDiagnostico();
+}
+
+async function validarClaseIngreso(codigoClase = document.getElementById("claseCodigo").value.trim()) {
+  try {
+    const clase = await buscarClasePorCodigo(codigoClase);
+    if (!clase) {
+      mostrarWarn("Código de clase incorrecto o inexistente.");
+      document.getElementById("grupoWarn").classList.add("error");
+      return null;
+    }
+    clasePendienteIngreso = clase;
+    limpiarWarn();
+    document.getElementById("classCodeStep").classList.add("hidden");
+    document.getElementById("groupCodeStep").classList.remove("hidden");
+    document.getElementById("groupEntryText").textContent = `Clase validada: ${clase.name}. Ahora ingresa tu grupo: G1, G2, G3, G4 o G5.`;
+    document.getElementById("grupoClave").focus();
+    return clase;
+  } catch (err) {
+    console.error("Error consultando código de clase:", err);
+    mostrarWarn("No fue posible validar el código de clase. Revisa que las reglas de Firebase permitan leer clases.");
+    document.getElementById("grupoWarn").classList.add("error");
+    return null;
+  }
 }
 
 async function sincronizarRegistroEstudianteClase(classId, grupo) {
@@ -2836,6 +2855,7 @@ function requiereVerificacionEmail(user) {
   return user?.providerData?.some(provider => provider.providerId === "password") && !user.emailVerified;
 }
 
+document.getElementById("btnValidarClase")?.addEventListener("click", () => validarClaseIngreso());
 document.getElementById("btnGrupoEntrar").addEventListener("click", entrarGrupo);
 document.getElementById("grupoClave").addEventListener("keydown", (e) => {
   if (e.key === "Enter") {
@@ -2846,7 +2866,7 @@ document.getElementById("grupoClave").addEventListener("keydown", (e) => {
 document.getElementById("claseCodigo")?.addEventListener("keydown", (e) => {
   if (e.key === "Enter") {
     e.preventDefault();
-    entrarGrupo();
+    validarClaseIngreso();
   }
 });
 
