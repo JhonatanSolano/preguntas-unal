@@ -1170,6 +1170,7 @@ function mostrarSeccion(sec) {
   document.getElementById("sectionPerfil").classList.toggle("hidden", sec !== "perfil");
   document.getElementById("sectionConfiguracion").classList.toggle("hidden", sec !== "configuracion");
   document.getElementById("sectionAdmin").classList.toggle("hidden", sec !== "admin");
+  document.getElementById("sectionAdminMetricas").classList.toggle("hidden", sec !== "adminMetricas");
   document.getElementById("sectionSoporte").classList.toggle("hidden", sec !== "soporte");
   if (sec === "diagnostico") actualizarEstadoDiagnostico();
   if (sec === "admin") renderAdminPanel();
@@ -1177,6 +1178,11 @@ function mostrarSeccion(sec) {
   if (sec === "inicio") actualizarBienvenida();
   if (sec === "perfil") renderProfile();
   if (sec === "configuracion") renderConfiguracion();
+  if (sec === "admin") renderAdminWelcome();
+  if (sec === "adminMetricas") {
+    document.getElementById("adminMetricsPanel").hidden = false;
+    renderAdminStats();
+  }
 }
 
 function activarNav(sec) {
@@ -1258,6 +1264,16 @@ function cerrarDrawer() {
 function actualizarDrawer() {
   const name = document.getElementById("drawerUserName");
   if (name) name.textContent = perfilActual?.displayName || usuarioActual?.displayName || "Preguntas UNAL";
+  document.querySelectorAll(".admin-only").forEach(el => el.classList.toggle("hidden", !modoAdmin));
+}
+
+function renderAdminWelcome() {
+  const title = document.getElementById("adminWelcomeTitle");
+  const img = document.getElementById("adminWelcomePhoto");
+  if (!title || !img) return;
+  const nombre = perfilActual?.displayName || usuarioActual?.displayName || "Profesor";
+  title.textContent = `Bienvenido, ${nombre}`;
+  img.src = perfilActual?.photoData || usuarioActual?.photoURL || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Crect width='120' height='120' rx='60' fill='%23e8f0fb'/%3E%3Ctext x='60' y='70' text-anchor='middle' font-size='46' fill='%23003865'%3E%F0%9F%91%A8%E2%80%8D%F0%9F%8F%AB%3C/text%3E%3C/svg%3E";
 }
 
 function renderConfiguracion() {
@@ -2042,7 +2058,16 @@ function mostrarWarn(msg) {
 }
 
 function limpiarWarn() {
-  document.getElementById("grupoWarn").hidden = true;
+  const warn = document.getElementById("grupoWarn");
+  warn.hidden = true;
+  warn.classList.remove("error");
+}
+
+function setStatus(id, msg, tipo = "ok") {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.toggle("error", tipo === "error");
 }
 
 function poblarPhoneCodes(selectId, value = "+57") {
@@ -2137,10 +2162,19 @@ function codigoClaseAleatorio() {
 }
 
 async function buscarClasePorCodigo(code) {
-  const codigo = code.trim().toUpperCase();
+  const codigoOriginal = code.trim();
+  const codigo = codigoOriginal.toUpperCase();
   if (!codigo) return null;
-  const snap = await getDocs(query(collection(db, "classes"), where("code", "==", codigo)));
-  if (snap.empty) return null;
+  let snap = await getDocs(query(collection(db, "classes"), where("code", "==", codigoOriginal)));
+  if (snap.empty && codigoOriginal !== codigo) {
+    snap = await getDocs(query(collection(db, "classes"), where("code", "==", codigo)));
+  }
+  if (snap.empty) {
+    const all = await getDocs(collection(db, "classes"));
+    const encontrado = all.docs.find(d => String(d.data().code || "").trim().toUpperCase() === codigo);
+    if (!encontrado) return null;
+    return { id: encontrado.id, ...encontrado.data() };
+  }
   const docSnap = snap.docs[0];
   return { id: docSnap.id, ...docSnap.data() };
 }
@@ -2366,16 +2400,18 @@ async function entrarGrupo() {
     mostrarWarn("Primero inicia sesión o regístrate.");
     return;
   }
-  const codigoClase = document.getElementById("claseCodigo").value.trim().toUpperCase();
+  const codigoClase = document.getElementById("claseCodigo").value.trim();
   const valor = document.getElementById("grupoClave").value.trim().toUpperCase();
   const clase = await buscarClasePorCodigo(codigoClase);
   if (!clase) {
     mostrarWarn("Código de clase incorrecto o inexistente.");
+    document.getElementById("grupoWarn").classList.add("error");
     return;
   }
   const encontrado = Object.entries(GRUPOS).find(([, grupo]) => grupo.clave === valor);
   if (!encontrado) {
     mostrarWarn("Clave de grupo incorrecta.");
+    document.getElementById("grupoWarn").classList.add("error");
     return;
   }
   grupoActivo = encontrado[0];
@@ -3110,15 +3146,6 @@ document.getElementById("btnGuardarBanco")?.addEventListener("click", async () =
   await guardarBancoGrupoRemoto(grupo, nivel, banco);
   if (status) status.textContent = `Banco guardado para ${GRUPOS[grupo].nombre}.`;
   renderBankPanel();
-});
-
-document.getElementById("btnAdminMetricas")?.addEventListener("click", () => {
-  const panel = document.getElementById("adminMetricsPanel");
-  const btn = document.getElementById("btnAdminMetricas");
-  if (!panel || !btn) return;
-  panel.hidden = !panel.hidden;
-  btn.textContent = panel.hidden ? "Ver métricas y estadísticas" : "Ocultar métricas y estadísticas";
-  if (!panel.hidden) renderAdminStats();
 });
 
 /* ────────────────────────────────────────────────────

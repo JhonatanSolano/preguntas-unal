@@ -76,7 +76,7 @@
       <div class="group-entry hidden" id="groupEntry">
         <p>Cuenta validada. Ingresa el código de clase y la clave de tu grupo para continuar.</p>
         <div class="admin-login">
-          <input type="text" id="claseCodigo" class="admin-input code-input" placeholder="Código de clase" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" />
+          <input type="text" id="claseCodigo" class="admin-input class-code-input" placeholder="Código de clase" autocomplete="one-time-code" spellcheck="false" />
           <input type="text" id="grupoClave" class="admin-input code-input" placeholder="Código de grupo" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" />
           <button class="btn btn-primary" id="btnGrupoEntrar">Entrar</button>
         </div>
@@ -139,6 +139,7 @@
     <button class="drawer-link" id="btnDrawerHome" type="button">Inicio</button>
     <button class="drawer-link" data-section="perfil" type="button">Perfil</button>
     <button class="drawer-link" data-section="configuracion" type="button">Configuración</button>
+    <button class="drawer-link admin-only" data-section="adminMetricas" type="button">Métricas y estadísticas</button>
     <button class="drawer-link danger" id="btnSalirApp" type="button">Cerrar sesión</button>
   </aside>
   <div class="group-status" id="grupoActualPanel" hidden></div>
@@ -672,10 +673,16 @@
   <!-- ══════════════════ ADMINISTRADOR ══════════════════ -->
   <main class="main-content hidden" id="sectionAdmin">
     <div class="start-screen admin-panel">
-      <span class="cs-icon">🔐</span>
-      <h2>Bienvenido Jhonatan</h2>
+      <img class="admin-welcome-photo" id="adminWelcomePhoto" alt="Foto de perfil del profesor" />
+      <h2 id="adminWelcomeTitle">Bienvenido</h2>
       <p>Desde este panel podrás administrar clases, estudiantes, exámenes, estadísticas, bancos de preguntas y permisos por grupo.</p>
-      <button class="btn btn-outline admin-metrics-toggle" id="btnAdminMetricas" type="button">Ver métricas y estadísticas</button>
+    </div>
+  </main>
+
+  <main class="main-content hidden" id="sectionAdminMetricas">
+    <div class="start-screen admin-panel">
+      <span class="cs-icon">📊</span>
+      <h2>Métricas y estadísticas</h2>
       <section class="admin-metrics-panel" id="adminMetricsPanel" hidden>
         <h3>Métricas</h3>
         <div class="stats-grid" id="adminStats"></div>
@@ -748,6 +755,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260629-4"></script>
+  <script type="module" src="script.js?v=20260629-5"></script>
 </body>
 </html>

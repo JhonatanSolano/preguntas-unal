@@ -1281,6 +1281,10 @@ body.admin-mode .admin-exit-dock {
   font-weight: 800;
   margin: .7rem 0 0;
 }
+.bank-status.error,
+.warn-msg {
+  color: var(--c-red);
+}
 .admin-metrics-toggle {
   margin-top: .5rem;
 }
@@ -1291,6 +1295,15 @@ body.admin-mode .admin-exit-dock {
   border-radius: var(--radius-md);
   background: #fff;
   text-align: left;
+}
+.admin-welcome-photo {
+  width: 112px;
+  height: 112px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid var(--c-blue-lt);
+  margin: 0 auto 1rem;
+  display: block;
 }
 .first-attempt-result .score-ring-wrap,
 .first-attempt-result .score-title,
