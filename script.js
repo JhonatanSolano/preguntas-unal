@@ -82,6 +82,7 @@ let recoverVerificationExpiresAt = 0;
 let recoverCountdownInterval = null;
 let recoverCandidate = null;
 let recoverRecaptchaVerifier = null;
+let recoverAttemptCount = 0;
 const PHONE_CODE_DURATION_MS = 2 * 60 * 1000;
 const MAX_PROFILE_PHOTO_INPUT_MB = 12;
 const PROFILE_PHOTO_MAX_SIDE = 900;
@@ -2114,6 +2115,12 @@ function mostrarLoginCard() {
   document.getElementById("loginCard")?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
+function mostrarRegisterCard() {
+  document.getElementById("loginCard")?.classList.remove("hidden");
+  cambiarAuthMode("register");
+  document.getElementById("loginCard")?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 function mostrarEntradaGrupo() {
   document.getElementById("loginCard")?.classList.remove("hidden");
   document.querySelector(".auth-tabs")?.classList.add("hidden");
@@ -2674,6 +2681,9 @@ function abrirPanelRecuperarUsuario() {
   document.getElementById("tabRegister")?.classList.remove("active");
   document.querySelector(".auth-divider")?.classList.add("hidden");
   poblarPhoneCodes("recoverPhoneCode", document.getElementById("recoverPhoneCode")?.value || "+57");
+  const backBtn = document.getElementById("btnRecoverBack");
+  if (backBtn) backBtn.textContent = "Volver al inicio de sesión";
+  setRecoverStep(1);
   setStatus("recoverStatus", "");
 }
 
@@ -2688,6 +2698,16 @@ function telefonoCompletoRecuperacion() {
     document.getElementById("recoverPhoneCode")?.value || "+57",
     document.getElementById("recoverPhone")?.value || ""
   );
+}
+
+function setRecoverStep(step) {
+  document.querySelectorAll(".recovery-wizard span").forEach((item, idx) => {
+    item.classList.toggle("active", idx < step);
+  });
+}
+
+function mensajeRecuperacionProtegido() {
+  return "No fue posible verificar tu identidad. Para proteger tu información debes comunicarte con soporte.";
 }
 
 function actualizarCronometroRecuperacion() {
@@ -2730,17 +2750,17 @@ async function buscarCandidatoRecuperacion() {
   const phoneId = recoveryPhoneId(phoneNumber);
   const nameKey = normalizarNombre(document.getElementById("recoverName")?.value || "");
   if (!phoneId || !nameKey) {
-    setStatus("recoverStatus", "Escribe nombre de usuario y teléfono registrado.", "error");
+    setStatus("recoverStatus", "Completa nombre y teléfono para continuar.", "error");
     return null;
   }
   const snap = await getDoc(doc(db, "recoveryContacts", phoneId));
   if (!snap.exists()) {
-    setStatus("recoverStatus", "No encontramos un teléfono verificado con esos datos. Ve a soporte para recuperar tu correo.", "error");
+    setStatus("recoverStatus", mensajeRecuperacionProtegido(), "error");
     return null;
   }
   const data = snap.data();
   if (!data.phoneVerified || data.nameKey !== nameKey) {
-    setStatus("recoverStatus", "El nombre de usuario y el teléfono no coinciden. Ve a soporte si necesitas ayuda.", "error");
+    setStatus("recoverStatus", mensajeRecuperacionProtegido(), "error");
     return null;
   }
   return { ...data, phoneNumber };
@@ -2748,9 +2768,14 @@ async function buscarCandidatoRecuperacion() {
 
 async function enviarCodigoRecuperacion() {
   const btn = document.getElementById("btnRecoverSendCode");
+  if (recoverAttemptCount >= 3) {
+    setStatus("recoverStatus", "Demasiados intentos. Comunícate con soporte para proteger tu cuenta.", "error");
+    return;
+  }
   btn.disabled = true;
   setStatus("recoverStatus", "Validando datos antes de enviar el código...");
   try {
+    recoverAttemptCount += 1;
     recoverCandidate = await buscarCandidatoRecuperacion();
     if (!recoverCandidate) {
       btn.disabled = false;
@@ -2760,6 +2785,7 @@ async function enviarCodigoRecuperacion() {
     const provider = new PhoneAuthProvider(auth);
     recoverVerificationId = await provider.verifyPhoneNumber(recoverCandidate.phoneNumber, verifier);
     recoverVerificationExpiresAt = Date.now() + PHONE_CODE_DURATION_MS;
+    setRecoverStep(2);
     setStatus("recoverStatus", "Código enviado. Tienes 2 minutos para validarlo.");
     iniciarCronometroRecuperacion();
   } catch (err) {
@@ -2796,14 +2822,17 @@ async function verificarCodigoRecuperacion() {
     recoverVerificationExpiresAt = 0;
     clearInterval(recoverCountdownInterval);
     actualizarCronometroRecuperacion();
-    setStatus("recoverStatus", `Correo registrado: ${email}`);
+    setRecoverStep(3);
+    setStatus("recoverStatus", `Hemos encontrado tu cuenta. Correo electrónico registrado: ${email}`);
+    const backBtn = document.getElementById("btnRecoverBack");
+    if (backBtn) backBtn.textContent = "Ir a iniciar sesión";
   } catch (err) {
     registroEnCurso = false;
     if (auth.currentUser && !auth.currentUser.email) {
       await signOut(auth).catch(() => {});
     }
     console.error("No se pudo validar recuperación:", err);
-    setStatus("recoverStatus", "Código inválido o teléfono no asociado a ese usuario. Ve a soporte si necesitas ayuda.", "error");
+    setStatus("recoverStatus", "Código inválido o vencido. Para proteger tu información, verifica el código o comunícate con soporte.", "error");
   }
 }
 
@@ -3216,6 +3245,10 @@ document.getElementById("btnEmailRegister")?.addEventListener("click", registrar
 document.getElementById("btnGoogleLogin")?.addEventListener("click", loginGoogle);
 document.getElementById("btnForgotPassword")?.addEventListener("click", recuperarPassword);
 document.getElementById("btnShowLogin")?.addEventListener("click", mostrarLoginCard);
+document.getElementById("btnShowLoginNav")?.addEventListener("click", mostrarLoginCard);
+document.getElementById("btnShowLoginBottom")?.addEventListener("click", mostrarLoginCard);
+document.getElementById("btnShowRegister")?.addEventListener("click", mostrarRegisterCard);
+document.getElementById("btnShowRegisterBottom")?.addEventListener("click", mostrarRegisterCard);
 document.getElementById("btnForgotUser")?.addEventListener("click", abrirPanelRecuperarUsuario);
 document.getElementById("btnRecoverBack")?.addEventListener("click", volverLoginDesdeRecuperacion);
 document.getElementById("btnRecoverSendCode")?.addEventListener("click", enviarCodigoRecuperacion);

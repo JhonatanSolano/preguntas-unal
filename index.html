@@ -11,77 +11,132 @@
 <body class="group-locked">
 
   <main class="main-content public-home" id="groupGate">
-    <section class="public-hero landing-hero" aria-labelledby="publicTitle">
-      <span class="brand-pill public-pill">Plataforma educativa de matemáticas</span>
-      <h1 id="publicTitle">Matemáticas En Tu Bolsillo</h1>
-      <p>
-        Convierte la práctica matemática en una ruta clara, medible y motivadora. Tus estudiantes presentan
-        diagnósticos, trabajan por niveles, reciben métricas precisas y avanzan con acompañamiento real del profesor.
-      </p>
-      <div class="public-actions">
-        <button class="btn btn-primary" id="btnShowLogin" type="button">Iniciar sesión</button>
-        <a class="btn btn-outline" href="privacidad.html">Política de privacidad</a>
-        <a class="btn btn-outline" href="condiciones.html">Condiciones del servicio</a>
+    <nav class="landing-nav" aria-label="Navegación principal">
+      <strong>Matemáticas En Tu Bolsillo</strong>
+      <div>
+        <a href="#caracteristicas">Características</a>
+        <a href="#estudiantes">Estudiantes</a>
+        <a href="#profesores">Profesores</a>
+        <button class="btn btn-primary" id="btnShowLoginNav" type="button">Iniciar sesión</button>
       </div>
+    </nav>
+
+    <section class="public-hero landing-hero" aria-labelledby="publicTitle">
+      <div class="hero-copy">
+        <span class="brand-pill public-pill">Plataforma educativa de matemáticas</span>
+        <h1 id="publicTitle">Aprender matemáticas nunca fue tan fácil.</h1>
+        <p>
+          La plataforma inteligente que ayuda a estudiantes y profesores a practicar, evaluar y medir el aprendizaje
+          con bancos de preguntas, simulacros, estadísticas y seguimiento académico en tiempo real.
+        </p>
+        <div class="public-actions">
+          <button class="btn btn-primary" id="btnShowRegister" type="button">Crear cuenta</button>
+          <button class="btn btn-outline" id="btnShowLogin" type="button">Iniciar sesión</button>
+        </div>
+      </div>
+      <div class="math-showcase" aria-hidden="true">
+        <div class="formula-card primary">f(x)=ax²+bx+c</div>
+        <div class="formula-card">log(1000)=3</div>
+        <div class="formula-card">sen²θ+cos²θ=1</div>
+        <div class="mini-dashboard">
+          <span>Progreso</span>
+          <strong>86%</strong>
+          <div><i style="width:86%"></i></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="landing-section" id="caracteristicas">
+      <span class="section-kicker">Qué es</span>
+      <h2>Una plataforma seria para practicar, evaluar y mejorar.</h2>
+      <p class="section-lead">
+        Matemáticas En Tu Bolsillo organiza el aprendizaje en rutas por clase y grupo. Cada estudiante puede presentar
+        pruebas cronometradas, comparar intentos y revisar métricas útiles; cada profesor puede administrar clases,
+        habilitar niveles y observar el desempeño académico de forma clara.
+      </p>
       <div class="landing-highlights" aria-label="Beneficios principales">
         <article>
-          <strong>Evaluación inteligente</strong>
-          <span>Diagnóstico, nivel medio y examen final con tiempos, intentos y estadísticas comparables.</span>
+          <span class="feature-icon">📚</span>
+          <strong>Banco de preguntas inteligente</strong>
+          <p>Preguntas por niveles, bancos reservados y estructura lista para crecer por grupos o cursos.</p>
         </article>
         <article>
-          <strong>Control docente</strong>
-          <span>Clases, grupos, bancos de preguntas, permisos y métricas para acompañar decisiones académicas.</span>
+          <span class="feature-icon">📊</span>
+          <strong>Estadísticas en tiempo real</strong>
+          <p>Nota, tiempo empleado, tiempo restante, segundos por pregunta y comparación de intentos.</p>
         </article>
         <article>
-          <strong>Progreso visible</strong>
-          <span>Resultados, tiempo de sobra, segundos por pregunta, nota y recomendaciones según desempeño.</span>
+          <span class="feature-icon">👨‍🏫</span>
+          <strong>Gestión de clases</strong>
+          <p>Creación de clases, códigos únicos, grupos, permisos por examen y panel del profesor.</p>
         </article>
         <article>
-          <strong>Contenido matemático</strong>
-          <span>Aritmética, álgebra, ecuaciones, funciones, conjuntos, precálculo, cálculo y razonamiento.</span>
+          <span class="feature-icon">👨‍🎓</span>
+          <strong>Seguimiento del estudiante</strong>
+          <p>Resultados persistentes, avance por banco de preguntas y retroalimentación al finalizar.</p>
+        </article>
+        <article>
+          <span class="feature-icon">📱</span>
+          <strong>Compatible con cualquier dispositivo</strong>
+          <p>Diseño responsive para móvil, tablet y computador, con navegación clara y accesible.</p>
+        </article>
+        <article>
+          <span class="feature-icon">☁️</span>
+          <strong>Información segura en la nube</strong>
+          <p>Autenticación con Firebase, correo verificado, perfiles y datos académicos sincronizados.</p>
         </article>
       </div>
     </section>
 
     <section class="landing-section">
-      <h2>Una experiencia diseñada para practicar mejor</h2>
-      <div class="landing-grid">
-        <article>
-          <span>01</span>
-          <strong>El estudiante entra a su clase</strong>
-          <p>Accede con Google o correo, escribe el código de clase y selecciona su grupo asignado.</p>
-        </article>
-        <article>
-          <span>02</span>
-          <strong>Presenta intentos controlados</strong>
-          <p>Cada prueba maneja tiempo, avance, intentos y resultados sin perder información importante.</p>
-        </article>
-        <article>
-          <span>03</span>
-          <strong>El profesor observa el avance</strong>
-          <p>Las métricas ayudan a comparar grupos, identificar dificultades y tomar acciones a tiempo.</p>
-        </article>
+      <span class="section-kicker">Cómo funciona</span>
+      <h2>De la cuenta al progreso medible en seis pasos.</h2>
+      <div class="timeline-grid">
+        <article><span>1</span><strong>Crear una cuenta</strong><p>Registro con Google o correo Gmail y contraseña segura.</p></article>
+        <article><span>2</span><strong>Verificar datos</strong><p>Correo obligatorio y teléfono verificable para recuperación y seguridad.</p></article>
+        <article><span>3</span><strong>Unirse a una clase</strong><p>Código de clase y grupo asignado por el profesor.</p></article>
+        <article><span>4</span><strong>Resolver ejercicios</strong><p>Pruebas cronometradas, intentos controlados y preguntas sin responder como incorrectas.</p></article>
+        <article><span>5</span><strong>Consultar resultados</strong><p>Indicadores de precisión, tiempo, nota y desempeño por intento.</p></article>
+        <article><span>6</span><strong>Mejorar continuamente</strong><p>Comparación de avances por banco, grupo y nivel.</p></article>
       </div>
     </section>
 
-    <section class="landing-support">
-      <h2>Soporte y documentos</h2>
-      <div class="support-columns">
-        <div>
-          <strong>Ayuda directa</strong>
-          <a href="https://wa.me/573112454282?text=Hola%20Jhonatan%2C%20necesito%20soporte%20con%20Matem%C3%A1ticas%20En%20Tu%20Bolsillo.%20" target="_blank" rel="noopener">WhatsApp de soporte</a>
-          <a href="mailto:jhsolanom@unal.edu.co">jhsolanom@unal.edu.co</a>
-        </div>
-        <div>
-          <strong>Información legal</strong>
-          <a href="privacidad.html">Política de privacidad</a>
-          <a href="condiciones.html">Condiciones del servicio</a>
-        </div>
-        <div>
-          <strong>Responsable</strong>
-          <span>Jhonatan Alejandro Solano Mendoza</span>
-          <span>Creador y administrador académico</span>
-        </div>
+    <section class="audience-grid">
+      <article id="estudiantes">
+        <span class="section-kicker">Para estudiantes</span>
+        <h2>Practica con claridad y sin perder tu avance.</h2>
+        <p>Accede desde cualquier dispositivo, presenta intentos, revisa métricas y entiende en qué debes mejorar. La app conserva tus resultados para que puedas comparar tu proceso.</p>
+        <ul>
+          <li>Ruta por diagnóstico, nivel medio y examen final.</li>
+          <li>Resultados organizados por intentos.</li>
+          <li>Perfil, estadísticas y soporte integrado.</li>
+        </ul>
+      </article>
+      <article id="profesores">
+        <span class="section-kicker">Para profesores</span>
+        <h2>Administra clases y toma decisiones con datos.</h2>
+        <p>Crea clases, agrupa estudiantes, habilita exámenes, consulta métricas y prepara bancos de preguntas para distintos momentos del curso.</p>
+        <ul>
+          <li>Permisos por grupo y nivel.</li>
+          <li>Métricas por estudiante y grupo.</li>
+          <li>Gestión de bancos de preguntas.</li>
+        </ul>
+      </article>
+    </section>
+
+    <section class="stats-strip" aria-label="Indicadores de la plataforma">
+      <div><strong>+5</strong><span>Grupos configurables</span></div>
+      <div><strong>10</strong><span>Bancos preparados</span></div>
+      <div><strong>2</strong><span>Intentos por examen</span></div>
+      <div><strong>15 min</strong><span>Pruebas cronometradas</span></div>
+    </section>
+
+    <section class="cta-band">
+      <h2>Empieza hoy mismo a transformar tu aprendizaje en matemáticas.</h2>
+      <p>Una experiencia moderna para practicar con intención, medir avances y acompañar mejor cada proceso.</p>
+      <div class="public-actions">
+        <button class="btn btn-primary" id="btnShowRegisterBottom" type="button">Crear cuenta</button>
+        <button class="btn btn-outline" id="btnShowLoginBottom" type="button">Iniciar sesión</button>
       </div>
     </section>
 
@@ -115,11 +170,16 @@
       </div>
 
       <div class="auth-form hidden" id="recoverEmailPanel">
-        <p class="mini-help">Recupera tu correo solo si tienes teléfono registrado y verificado en la plataforma.</p>
-        <input type="text" id="recoverName" class="admin-input" placeholder="Nombre de usuario registrado" autocomplete="name" />
+        <div class="recovery-wizard">
+          <span class="active">1 Identidad</span>
+          <span>2 Código</span>
+          <span>3 Resultado</span>
+        </div>
+        <p class="mini-help">Por seguridad, solo se recupera el correo si el teléfono ya fue registrado y verificado previamente.</p>
+        <input type="text" id="recoverName" class="admin-input" placeholder="Nombre completo registrado" autocomplete="name" />
         <div class="profile-form-grid">
           <select id="recoverPhoneCode" class="admin-input" aria-label="Indicador del país"></select>
-          <input type="tel" id="recoverPhone" class="admin-input" placeholder="Teléfono registrado" autocomplete="tel" />
+          <input type="tel" id="recoverPhone" class="admin-input" placeholder="Número telefónico registrado" autocomplete="tel" />
         </div>
         <button class="btn btn-secondary" id="btnRecoverSendCode" type="button">Enviar código</button>
         <div class="phone-code-row">
@@ -183,7 +243,38 @@
       <p class="warn-msg" id="grupoWarn" hidden>Revisa los datos ingresados.</p>
     </div>
     <footer class="public-footer">
-      <span>Todos los derechos son de Matemáticas En Tu Bolsillo - Creador: Jhonatan Alejandro Solano Mendoza</span>
+      <div class="footer-columns">
+        <div>
+          <strong>Plataforma</strong>
+          <a href="#publicTitle">Inicio</a>
+          <a href="#caracteristicas">Características</a>
+          <a href="#profesores">Profesores</a>
+          <a href="#estudiantes">Estudiantes</a>
+        </div>
+        <div>
+          <strong>Recursos</strong>
+          <a href="#loginCard">Centro de ayuda</a>
+          <a href="#loginCard">Preguntas frecuentes</a>
+          <a href="#loginCard">Manuales</a>
+        </div>
+        <div>
+          <strong>Legal</strong>
+          <a href="privacidad.html">Política de privacidad</a>
+          <a href="privacidad.html">Tratamiento de datos</a>
+          <a href="condiciones.html">Términos y condiciones</a>
+          <a href="condiciones.html">Aviso legal</a>
+          <a href="condiciones.html">Cookies</a>
+        </div>
+        <div>
+          <strong>Contacto</strong>
+          <a href="mailto:jhsolanom@unal.edu.co">jhsolanom@unal.edu.co</a>
+          <a href="https://wa.me/573112454282?text=Hola%20Jhonatan%2C%20necesito%20soporte%20con%20Matem%C3%A1ticas%20En%20Tu%20Bolsillo.%20" target="_blank" rel="noopener">WhatsApp</a>
+          <span>Teléfono: +57 311 245 4282</span>
+          <span>Horario: lunes a viernes</span>
+        </div>
+      </div>
+      <p>© Matemáticas En Tu Bolsillo. Todos los derechos reservados.</p>
+      <p>Creador: Jhonatan Alejandro Solano Mendoza</p>
     </footer>
   </main>
 
