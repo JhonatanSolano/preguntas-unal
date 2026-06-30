@@ -2303,6 +2303,7 @@ function renderProfile() {
   poblarPhoneCodes("profilePhoneCode", profile.phoneCode || "+57");
   document.getElementById("profilePhone").value = profile.phone || "";
   poblarUbicacion("profile", profile);
+  document.getElementById("teacherDeletePanel")?.classList.toggle("hidden", !modoAdmin);
 }
 
 function codigoClaseAleatorio() {
@@ -3292,7 +3293,18 @@ async function registrarEstudiantesEnClase(claseId, raw, status) {
 async function eliminarClaseAdmin(classId) {
   const clase = aulaPorId(classId);
   if (!clase) return;
-  if (!confirm(`¿Eliminar el aula "${clase.name}"? Se eliminarán todos los estudiantes inscritos en dicha aula, así como avances, métricas y resultados asociados.`)) return;
+  const mensaje = `Eliminar aula: ${clase.name}\n\nEsta acción es permanente. Se eliminarán todos los estudiantes inscritos en esta aula, sus avances, resultados, métricas, permisos y bancos de preguntas asociados.\n\nEsta información no se podrá recuperar.`;
+  if (!confirm(mensaje)) return;
+  await eliminarDatosAula(classId);
+  if (adminClaseActiva === classId) {
+    adminClaseActiva = "";
+    localStorage.removeItem(STORAGE_ADMIN_CLASE);
+  }
+  await cargarClasesAdmin();
+  renderAdminPanel();
+}
+
+async function eliminarDatosAula(classId) {
   const estudiantes = await estudiantesDeClase(classId);
   const estadosAula = await getDocs(query(collection(db, "studentState"), where("aulaId", "==", classId)));
   const estadosClase = await getDocs(query(collection(db, "studentState"), where("claseId", "==", classId)));
@@ -3311,12 +3323,40 @@ async function eliminarClaseAdmin(classId) {
     deleteDoc(refPermisosGrupo(classId)).catch(() => {}),
     deleteDoc(refClase(classId))
   ]);
-  if (adminClaseActiva === classId) {
-    adminClaseActiva = "";
-    localStorage.removeItem(STORAGE_ADMIN_CLASE);
+}
+
+async function eliminarCuentaProfesor() {
+  const status = document.getElementById("teacherDeleteStatus");
+  const password = document.getElementById("teacherDeletePassword")?.value || "";
+  if (!modoAdmin || !usuarioActual?.email) {
+    status.textContent = "Esta opción solo está disponible para cuentas de profesor.";
+    return;
   }
-  await cargarClasesAdmin();
-  renderAdminPanel();
+  if (!password) {
+    status.textContent = "Escribe tu contraseña para confirmar la eliminación.";
+    return;
+  }
+  const mensaje = "Eliminar cuenta de profesor\n\nEsta acción es permanente. Si continúas, no podrás recuperar la cuenta y se eliminarán todas tus aulas, estudiantes inscritos, avances, métricas, resultados, permisos y bancos de preguntas asociados.\n\n¿Deseas continuar?";
+  if (!confirm(mensaje)) return;
+  try {
+    status.textContent = "Eliminando cuenta y datos asociados...";
+    const credential = EmailAuthProvider.credential(usuarioActual.email, password);
+    await reauthenticateWithCredential(usuarioActual, credential);
+    await cargarClasesAdmin();
+    const aulasProfesor = [...adminClases];
+    await Promise.all(aulasProfesor.map(aula => eliminarDatosAula(aula.id)));
+    const recoverySnap = await getDocs(query(collection(db, "recoveryContacts"), where("uid", "==", usuarioActual.uid)));
+    await Promise.all(recoverySnap.docs.map(item => deleteDoc(item.ref)));
+    await setDoc(refEstadoUsuario(), { deleted: true, deletedAt: serverTimestamp(), resultados: {}, intentoActivo: null }, { merge: true });
+    await deleteDoc(refPerfilUsuario());
+    await deleteDoc(refEstadoUsuario()).catch(() => {});
+    await deleteUser(usuarioActual);
+    localStorage.clear();
+    window.location.reload();
+  } catch (err) {
+    console.error(err);
+    status.textContent = "No se pudo eliminar la cuenta. Revisa la contraseña o vuelve a iniciar sesión.";
+  }
 }
 
 async function cambiarGrupoEstudianteRegistrado(id, grupo) {
@@ -3503,6 +3543,7 @@ document.getElementById("adminStudentsByClass")?.addEventListener("click", e => 
   eliminarEstudianteRegistrado(btn.dataset.deleteStudent);
 });
 document.getElementById("btnDeleteAccount")?.addEventListener("click", eliminarCuentaActual);
+document.getElementById("btnDeleteTeacherAccount")?.addEventListener("click", eliminarCuentaProfesor);
 document.getElementById("btnAdminChangeStudentGroup")?.addEventListener("click", adminCambiarGrupoEstudiante);
 document.getElementById("btnDrawerToggle")?.addEventListener("click", () => {
   if (document.getElementById("sideDrawer").classList.contains("hidden")) abrirDrawer();

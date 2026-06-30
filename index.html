@@ -827,6 +827,14 @@
         <p class="bank-status" id="phoneStatus"></p>
       </section>
 
+      <section class="profile-panel danger-zone hidden" id="teacherDeletePanel">
+        <h3>Eliminar cuenta de profesor</h3>
+        <p>Esta acción elimina de forma permanente tu cuenta de profesor y toda la información académica asociada.</p>
+        <input type="password" id="teacherDeletePassword" class="admin-input" placeholder="Contraseña" />
+        <button class="btn btn-secondary" id="btnDeleteTeacherAccount" type="button">Eliminar mi cuenta de profesor</button>
+        <p class="bank-status" id="teacherDeleteStatus"></p>
+      </section>
+
     </div>
   </main>
 
@@ -873,8 +881,7 @@
           </div>
           <button class="btn btn-secondary" id="btnCreateClass" type="button">Crear aula</button>
           <p class="bank-status" id="adminClassStatus"></p>
-          <div class="danger-inline">
-            <p>Si elimina aula, estará eliminando a todos los estudiantes inscritos en dicha aula, así como avances, métricas, etc absolutamente todo.</p>
+          <div class="class-delete-inline">
             <button class="btn btn-outline" id="btnDeleteSelectedClass" type="button">Eliminar aula seleccionada</button>
           </div>
         </details>

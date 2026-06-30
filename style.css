@@ -1110,6 +1110,11 @@ body.admin-mode .admin-exit-dock {
   font-weight: 800;
   margin: 0;
 }
+.class-delete-inline {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 1rem;
+}
 .soon-badge {
   background: var(--c-gold);
   color: #fff;
