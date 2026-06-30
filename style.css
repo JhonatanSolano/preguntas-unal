@@ -1110,6 +1110,42 @@ body.admin-mode .admin-exit-dock {
   color: var(--c-muted);
   font-weight: 800;
 }
+.mini-help {
+  color: var(--c-muted);
+  font-size: .86rem;
+  margin: .5rem 0 .8rem;
+}
+.class-students-list {
+  display: grid;
+  gap: .85rem;
+}
+.student-list {
+  display: grid;
+  gap: .7rem;
+  margin-top: .85rem;
+}
+.student-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 170px auto;
+  gap: .7rem;
+  align-items: center;
+  padding: .85rem;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-md);
+  background: #fff;
+}
+.student-row strong,
+.student-row span,
+.student-row small {
+  display: block;
+}
+.student-row strong {
+  color: var(--c-navy);
+}
+.student-row span,
+.student-row small {
+  color: var(--c-muted);
+}
 .bank-progress-panel {
   margin-top: 1.2rem;
   padding-top: 1.2rem;
@@ -1423,5 +1459,8 @@ body.admin-mode .admin-exit-dock {
   }
   .profile-chips {
     justify-content: center;
+  }
+  .student-row {
+    grid-template-columns: 1fr;
   }
 }

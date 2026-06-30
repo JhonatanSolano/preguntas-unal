@@ -654,9 +654,16 @@
           <summary>Registrar estudiantes</summary>
           <p>Ingresa correos separados por coma, espacio o salto de línea. Cada correo quedará asociado al grupo elegido.</p>
           <textarea id="bulkStudentEmails" class="admin-input" rows="5" placeholder="correo1@gmail.com&#10;correo2@gmail.com"></textarea>
+          <p class="mini-help">También puedes escribir: Nombre Apellido &lt;correo@gmail.com&gt; o Nombre Apellido, correo@gmail.com.</p>
+          <label>Clase para los estudiantes<select id="bulkStudentClass" class="admin-input"></select></label>
           <label>Grupo para los estudiantes<select id="bulkStudentGroup" class="admin-input"></select></label>
           <button class="btn btn-primary" id="btnBulkStudents" type="button">Agregar estudiantes</button>
           <p class="bank-status" id="bulkStudentStatus"></p>
+        </details>
+        <details class="accordion-card">
+          <summary>Estudiantes por clase</summary>
+          <p>Consulta, busca, edita grupo o elimina estudiantes dentro de cada clase.</p>
+          <div id="adminStudentsByClass" class="class-students-list"></div>
         </details>
       </section>
     </div>
@@ -741,6 +748,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260629-2"></script>
+  <script type="module" src="script.js?v=20260629-3"></script>
 </body>
 </html>

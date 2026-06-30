@@ -21,6 +21,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 import {
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -2146,57 +2147,150 @@ async function buscarClasePorCodigo(code) {
 
 async function crearClaseAdmin() {
   const status = document.getElementById("adminClassStatus");
+  const btn = document.getElementById("btnCreateClass");
   const name = document.getElementById("adminClassName")?.value.trim();
   if (!name) {
     status.textContent = "Escribe el nombre de la clase.";
     return;
   }
-  let code = "";
-  for (let i = 0; i < 10; i++) {
-    const candidate = codigoClaseAleatorio();
-    const exists = await buscarClasePorCodigo(candidate);
-    if (!exists) {
-      code = candidate;
-      break;
+  status.textContent = "Creando clase...";
+  if (btn) btn.disabled = true;
+  try {
+    let code = "";
+    for (let i = 0; i < 30; i++) {
+      const candidate = codigoClaseAleatorio();
+      const exists = await buscarClasePorCodigo(candidate);
+      if (!exists) {
+        code = candidate;
+        break;
+      }
     }
+    if (!code) {
+      status.textContent = "No se pudo generar un código único. Intenta de nuevo.";
+      return;
+    }
+    const ref = doc(collection(db, "classes"));
+    const payload = {
+      name,
+      code,
+      ownerEmail: usuarioActual.email,
+      ownerUid: usuarioActual.uid,
+      status: "activa",
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    };
+    await setDoc(ref, payload);
+    adminClaseActiva = ref.id;
+    localStorage.setItem(STORAGE_ADMIN_CLASE, adminClaseActiva);
+    adminClases = [{ id: ref.id, ...payload }, ...adminClases.filter(c => c.id !== ref.id)];
+    renderClassSelectors();
+    await cargarClasesAdmin();
+    document.getElementById("adminClassName").value = "";
+    status.textContent = `Clase creada. Código generado: ${code}`;
+  } catch (err) {
+    console.error(err);
+    status.textContent = "No se pudo crear la clase. Revisa reglas de Firestore y conexión.";
+  } finally {
+    if (btn) btn.disabled = false;
   }
-  if (!code) {
-    status.textContent = "No se pudo generar un código único. Intenta de nuevo.";
-    return;
-  }
-  const ref = doc(collection(db, "classes"));
-  await setDoc(ref, {
-    name,
-    code,
-    ownerEmail: usuarioActual.email,
-    ownerUid: usuarioActual.uid,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp()
-  });
-  adminClaseActiva = ref.id;
-  localStorage.setItem(STORAGE_ADMIN_CLASE, adminClaseActiva);
-  await cargarClasesAdmin();
-  status.textContent = `Clase creada. Código: ${code}`;
 }
 
 async function cargarClasesAdmin() {
   if (!modoAdmin || !usuarioActual) return;
-  const snap = await getDocs(query(collection(db, "classes"), where("ownerUid", "==", usuarioActual.uid)));
-  adminClases = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  if (!adminClaseActiva && adminClases.length) {
-    adminClaseActiva = adminClases[0].id;
-    localStorage.setItem(STORAGE_ADMIN_CLASE, adminClaseActiva);
+  try {
+    const snap = await getDocs(query(collection(db, "classes"), where("ownerUid", "==", usuarioActual.uid)));
+    adminClases = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if ((!adminClaseActiva || !adminClases.some(c => c.id === adminClaseActiva)) && adminClases.length) {
+      adminClaseActiva = adminClases[0].id;
+      localStorage.setItem(STORAGE_ADMIN_CLASE, adminClaseActiva);
+    }
+    renderClassSelectors();
+    renderAdminStudentsByClass().catch(err => console.warn("No se pudieron cargar estudiantes.", err));
+  } catch (err) {
+    console.warn("No se pudieron cargar clases.", err);
+    renderClassSelectors();
   }
-  renderClassSelectors();
 }
 
 function renderClassSelectors() {
   const select = document.getElementById("adminClassSelect");
-  if (!select) return;
-  select.innerHTML = adminClases.length
+  const bulkClass = document.getElementById("bulkStudentClass");
+  const options = adminClases.length
     ? adminClases.map(c => `<option value="${c.id}">${c.name} (${c.code})</option>`).join("")
     : `<option value="">Sin clases creadas</option>`;
-  select.value = adminClaseActiva || "";
+  if (select) {
+    select.innerHTML = options;
+    select.value = adminClaseActiva || "";
+  }
+  if (bulkClass) {
+    bulkClass.innerHTML = options;
+    bulkClass.value = adminClaseActiva || "";
+  }
+}
+
+function parseStudentLines(raw) {
+  return raw.split(/\n|;/)
+    .map(line => line.trim())
+    .filter(Boolean)
+    .map(line => {
+      const angle = line.match(/^(.*?)<([^>]+)>$/);
+      if (angle) {
+        return { name: angle[1].trim(), email: angle[2].trim().toLowerCase() };
+      }
+      const comma = line.match(/^(.*?),\s*([^,\s]+@gmail\.com)$/i);
+      if (comma) {
+        return { name: comma[1].trim(), email: comma[2].trim().toLowerCase() };
+      }
+      const email = line.match(/[A-Z0-9._%+-]+@gmail\.com/i)?.[0]?.toLowerCase() || "";
+      return { name: line.replace(email, "").replace(/[<>,]/g, "").trim(), email };
+    })
+    .filter(item => item.email.endsWith("@gmail.com"));
+}
+
+async function estudiantesDeClase(classId) {
+  const snap = await getDocs(query(collection(db, "classStudents"), where("classId", "==", classId)));
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+async function renderAdminStudentsByClass() {
+  const cont = document.getElementById("adminStudentsByClass");
+  if (!cont || !modoAdmin) return;
+  if (!adminClases.length) {
+    cont.innerHTML = `<p class="mini-help">Aún no hay clases creadas.</p>`;
+    return;
+  }
+  cont.innerHTML = `<p class="mini-help">Cargando estudiantes...</p>`;
+  const groups = await Promise.all(adminClases.map(async clase => ({
+    clase,
+    estudiantes: await estudiantesDeClase(clase.id)
+  })));
+  cont.innerHTML = groups.map(({ clase, estudiantes }) => `
+    <details class="accordion-card class-students-card">
+      <summary>${clase.name} · ${clase.code} · ${estudiantes.length} estudiante(s)</summary>
+      <input class="admin-input student-search" data-class-search="${clase.id}" placeholder="Buscar estudiante" />
+      <div class="student-list" data-class-list="${clase.id}">
+        ${estudiantes.length ? estudiantes.map(est => renderStudentRow(est)).join("") : `<p class="mini-help">Sin estudiantes registrados.</p>`}
+      </div>
+    </details>
+  `).join("");
+}
+
+function renderStudentRow(est) {
+  const fecha = est.registeredLabel || est.createdLabel || "—";
+  const opciones = Object.entries(GRUPOS).map(([clave, grupo]) =>
+    `<option value="${clave}" ${est.grupo === clave ? "selected" : ""}>${grupo.nombre}</option>`
+  ).join("");
+  return `
+    <div class="student-row" data-student-row data-search="${(est.name || "")} ${est.email}">
+      <div>
+        <strong>${est.name || "Nombre pendiente"}</strong>
+        <span>${est.email}</span>
+        <small>Registro: ${fecha} · Estado: ${est.status || "pendiente"}</small>
+      </div>
+      <select class="admin-input" data-student-group="${est.id}">${opciones}</select>
+      <button class="btn btn-outline" data-delete-student="${est.id}" type="button">Eliminar</button>
+    </div>
+  `;
 }
 
 async function guardarPerfilUsuario(extra = {}) {
@@ -2291,6 +2385,7 @@ async function entrarGrupo() {
   localStorage.setItem(STORAGE_GRUPO, grupoActivo);
   localStorage.setItem(STORAGE_CLASE_ACTIVA, claseActiva);
   await guardarPerfilUsuario({ grupo: grupoActivo, isAdmin: false, classId: clase.id, className: clase.name, classCode: clase.code });
+  await sincronizarRegistroEstudianteClase(clase.id, grupoActivo);
   await guardarEstadoRemoto();
   aplicarBancoNivelMedio();
   escucharPermisosGrupo(grupoActivo);
@@ -2299,6 +2394,24 @@ async function entrarGrupo() {
   aplicarModoUsuario();
   activarNav("inicio");
   actualizarEstadoDiagnostico();
+}
+
+async function sincronizarRegistroEstudianteClase(classId, grupo) {
+  if (!usuarioActual?.email || !classId) return;
+  const ref = doc(db, "classStudents", `${classId}_${safeEmailId(usuarioActual.email)}`);
+  await setDoc(ref, {
+    classId,
+    className: claseActualInfo?.name || perfilActual?.className || "",
+    classCode: claseActualInfo?.code || perfilActual?.classCode || "",
+    email: usuarioActual.email,
+    name: perfilActual?.displayName || usuarioActual.displayName || "",
+    grupo,
+    groupName: GRUPOS[grupo]?.nombre || "",
+    status: "activo",
+    registeredLabel: perfilActual?.createdLabel || new Date().toLocaleDateString("es-CO"),
+    userUid: usuarioActual.uid,
+    updatedAt: serverTimestamp()
+  }, { merge: true });
 }
 
 async function loginEmail() {
@@ -2364,10 +2477,33 @@ async function registrarEmail() {
 
 async function loginGoogle() {
   try {
-    await signInWithPopup(auth, new GoogleAuthProvider());
+    const cred = await signInWithPopup(auth, new GoogleAuthProvider());
+    await guardarDatosGoogleIniciales(cred.user);
   } catch (err) {
     mostrarWarn("No se pudo ingresar con Google.");
   }
+}
+
+async function guardarDatosGoogleIniciales(user) {
+  if (!user) return;
+  const snap = await getDoc(doc(db, "users", user.uid));
+  const existente = snap.exists() ? snap.data() : {};
+  const googleProvider = user.providerData?.find(p => p.providerId === "google.com");
+  const inicial = {
+    uid: user.uid,
+    email: user.email || "",
+    googleUid: googleProvider?.uid || "",
+    googleDisplayName: googleProvider?.displayName || user.displayName || "",
+    googlePhotoURL: googleProvider?.photoURL || user.photoURL || "",
+    displayName: existente.displayName || perfilActual?.displayName || user.displayName || googleProvider?.displayName || "",
+    photoData: existente.photoData || perfilActual?.photoData || googleProvider?.photoURL || user.photoURL || "",
+    grupo: existente.grupo || grupoActivo || "",
+    classId: existente.classId || claseActiva || "",
+    className: existente.className || claseActualInfo?.name || "",
+    classCode: existente.classCode || claseActualInfo?.code || "",
+    authProvider: "google.com"
+  };
+  await guardarPerfilUsuario(inicial);
 }
 
 async function recuperarPassword() {
@@ -2563,25 +2699,54 @@ async function registrarEstudiantesBulk() {
   const status = document.getElementById("bulkStudentStatus");
   const raw = document.getElementById("bulkStudentEmails").value;
   const grupo = document.getElementById("bulkStudentGroup").value;
-  const claseId = adminClaseActiva;
+  const claseId = document.getElementById("bulkStudentClass")?.value || adminClaseActiva;
   if (!claseId) {
     status.textContent = "Primero crea o selecciona una clase.";
     return;
   }
-  const emails = [...new Set(raw.split(/[\s,;]+/).map(e => e.trim().toLowerCase()).filter(e => e.endsWith("@gmail.com")))];
-  if (!emails.length || !GRUPOS[grupo]) {
+  const clase = adminClases.find(c => c.id === claseId);
+  const students = parseStudentLines(raw);
+  const unique = [...new Map(students.map(item => [item.email, item])).values()];
+  if (!unique.length || !GRUPOS[grupo] || !clase) {
     status.textContent = "Agrega correos Gmail válidos y selecciona grupo.";
     return;
   }
-  await Promise.all(emails.map(email => setDoc(doc(db, "classStudents", `${claseId}_${safeEmailId(email)}`), {
+  status.textContent = "Registrando estudiantes...";
+  const registeredLabel = new Date().toLocaleDateString("es-CO");
+  await Promise.all(unique.map(({ email, name }) => setDoc(doc(db, "classStudents", `${claseId}_${safeEmailId(email)}`), {
     classId: claseId,
+    className: clase.name,
+    classCode: clase.code,
     email,
+    name: name || "",
     grupo,
+    groupName: GRUPOS[grupo].nombre,
+    registeredLabel,
     status: "pendiente",
     ownerUid: usuarioActual.uid,
+    ownerEmail: usuarioActual.email,
+    createdAt: serverTimestamp(),
     updatedAt: serverTimestamp()
   }, { merge: true })));
-  status.textContent = `${emails.length} estudiante(s) registrado(s) en la clase.`;
+  status.textContent = `${unique.length} estudiante(s) registrado(s) en ${clase.name}.`;
+  document.getElementById("bulkStudentEmails").value = "";
+  await renderAdminStudentsByClass();
+}
+
+async function cambiarGrupoEstudianteRegistrado(id, grupo) {
+  if (!GRUPOS[grupo]) return;
+  await setDoc(doc(db, "classStudents", id), {
+    grupo,
+    groupName: GRUPOS[grupo].nombre,
+    updatedAt: serverTimestamp()
+  }, { merge: true });
+  await renderAdminStudentsByClass();
+}
+
+async function eliminarEstudianteRegistrado(id) {
+  if (!confirm("¿Eliminar este estudiante de la clase?")) return;
+  await deleteDoc(doc(db, "classStudents", id));
+  await renderAdminStudentsByClass();
 }
 
 async function eliminarCuentaActual() {
@@ -2677,9 +2842,31 @@ document.getElementById("btnCreateClass")?.addEventListener("click", crearClaseA
 document.getElementById("adminClassSelect")?.addEventListener("change", e => {
   adminClaseActiva = e.target.value;
   localStorage.setItem(STORAGE_ADMIN_CLASE, adminClaseActiva);
+  const bulkClass = document.getElementById("bulkStudentClass");
+  if (bulkClass) bulkClass.value = adminClaseActiva;
+  renderAdminStudentsByClass().catch(err => console.warn("No se pudieron cargar estudiantes.", err));
   if (!document.getElementById("adminMetricsPanel")?.hidden) renderAdminStats();
 });
 document.getElementById("btnBulkStudents")?.addEventListener("click", registrarEstudiantesBulk);
+document.getElementById("adminStudentsByClass")?.addEventListener("input", e => {
+  const search = e.target.closest("[data-class-search]");
+  if (!search) return;
+  const classId = search.dataset.classSearch;
+  const term = search.value.trim().toLowerCase();
+  document.querySelectorAll(`[data-class-list="${classId}"] [data-student-row]`).forEach(row => {
+    row.hidden = term && !row.dataset.search.toLowerCase().includes(term);
+  });
+});
+document.getElementById("adminStudentsByClass")?.addEventListener("change", e => {
+  const select = e.target.closest("[data-student-group]");
+  if (!select) return;
+  cambiarGrupoEstudianteRegistrado(select.dataset.studentGroup, select.value);
+});
+document.getElementById("adminStudentsByClass")?.addEventListener("click", e => {
+  const btn = e.target.closest("[data-delete-student]");
+  if (!btn) return;
+  eliminarEstudianteRegistrado(btn.dataset.deleteStudent);
+});
 document.getElementById("btnDeleteAccount")?.addEventListener("click", eliminarCuentaActual);
 document.getElementById("btnAdminChangeStudentGroup")?.addEventListener("click", adminCambiarGrupoEstudiante);
 document.getElementById("btnDrawerToggle")?.addEventListener("click", () => {
@@ -2728,6 +2915,9 @@ onAuthStateChanged(auth, async user => {
     return;
   }
   limpiarWarn();
+  if (user.providerData?.some(provider => provider.providerId === "google.com")) {
+    await guardarDatosGoogleIniciales(user);
+  }
   await prepararSesionAutenticada();
 });
 
