@@ -74,6 +74,8 @@ const SIMBOLOS_PERMITIDOS = "!@#$%^&*()_+-=[]{};:,.?";
 let usuarioActual = null;
 let perfilActual = null;
 let unsubscribePermisos = null;
+let unsubscribeAdminStudents = null;
+let renderizandoAdminStudents = false;
 let registroEnCurso = false;
 let phoneVerificationId = "";
 let phoneVerificationExpiresAt = 0;
@@ -1267,6 +1269,7 @@ function actualizarEstadoDiagnostico() {
 
 function mostrarSeccion(sec) {
   document.getElementById("sectionInicio").classList.toggle("hidden", sec !== "inicio");
+  document.getElementById("sectionExamenes").classList.toggle("hidden", sec !== "examenes");
   document.getElementById("sectionDiagnostico").classList.toggle("hidden", sec !== "diagnostico");
   document.getElementById("sectionNivel").classList.toggle("hidden", !sec.startsWith("nivel"));
   document.getElementById("sectionExamen").classList.toggle("hidden", sec !== "examen");
@@ -1277,6 +1280,7 @@ function mostrarSeccion(sec) {
   document.getElementById("sectionAdminMetricas").classList.toggle("hidden", sec !== "adminMetricas");
   document.getElementById("sectionSoporte").classList.toggle("hidden", sec !== "soporte");
   if (sec === "diagnostico") actualizarEstadoDiagnostico();
+  if (sec === "examenes") renderExamenesHub();
   if (sec === "admin") renderAdminPanel();
   if (sec === "estadisticas") renderStudentStats();
   if (sec === "inicio") actualizarBienvenida();
@@ -1290,11 +1294,21 @@ function mostrarSeccion(sec) {
 }
 
 function activarNav(sec) {
-  if (!modoAdmin && !aulaActualValida() && ["inicio", "diagnostico", "nivel1", "examen", "estadisticas"].includes(sec)) {
+  if (!modoAdmin && !aulaActualValida() && ["diagnostico", "nivel1", "examen"].includes(sec)) {
+    sec = "examenes";
+    setTimeout(() => {
+      const locked = document.getElementById("examsLockedMsg");
+      if (locked) {
+        locked.hidden = false;
+        locked.textContent = "Primero debes pertenecer a una clase o aula.";
+      }
+    }, 0);
+  }
+  if (!modoAdmin && !aulaActualValida() && ["inicio", "estadisticas"].includes(sec)) {
     sec = "configuracion";
     setTimeout(() => {
       const status = document.getElementById("settingsClassStatus");
-      if (status) status.textContent = "Tu aula anterior ya no está disponible. Ingresa el código de una nueva aula para continuar.";
+      if (status) status.textContent = "Primero debes pertenecer a una clase o aula. Ingresa el código cuando lo tengas.";
     }, 0);
   }
   if (sec) localStorage.setItem(STORAGE_SECCION_ACTIVA, sec);
@@ -1307,7 +1321,7 @@ function seccionRestaurable() {
   const saved = localStorage.getItem(STORAGE_SECCION_ACTIVA) || "inicio";
   const permitidas = modoAdmin
     ? new Set(["admin", "adminMetricas", "perfil", "configuracion", "soporte"])
-    : new Set(["inicio", "diagnostico", "nivel1", "examen", "estadisticas", "perfil", "configuracion", "soporte"]);
+    : new Set(["inicio", "examenes", "diagnostico", "nivel1", "examen", "estadisticas", "perfil", "configuracion", "soporte"]);
   if (!modoAdmin && !aulaActualValida() && ["inicio", "diagnostico", "nivel1", "examen", "estadisticas"].includes(saved)) {
     return "perfil";
   }
@@ -1347,6 +1361,32 @@ function actualizarBienvenida() {
   titulo.textContent = `Bienvenido ${primerNombre}`;
   panel.hidden = false;
   actualizarBancoEstudiante();
+}
+
+function renderExamenesHub() {
+  const locked = document.getElementById("examsLockedMsg");
+  const intro = document.getElementById("examsHubIntro");
+  const sinAula = !aulaActualValida();
+  if (locked) {
+    locked.hidden = !sinAula;
+    locked.textContent = "Primero debes pertenecer a una clase o aula.";
+  }
+  if (intro) {
+    intro.textContent = sinAula
+      ? "Cuando ingreses el código de aula, podrás presentar los exámenes habilitados por tu profesor."
+      : "Elige el examen que vas a presentar o revisar.";
+  }
+  document.querySelectorAll("[data-go-exam]").forEach(btn => {
+    btn.disabled = sinAula;
+    btn.classList.toggle("disabled", sinAula);
+  });
+}
+
+function continuarSinAula() {
+  document.getElementById("loginCard")?.classList.add("hidden");
+  document.body.classList.remove("group-locked");
+  aplicarModoUsuario();
+  activarNav("perfil");
 }
 
 function actualizarBancoEstudiante() {
@@ -2211,7 +2251,7 @@ function mostrarEntradaGrupo() {
   clasePendienteIngreso = null;
   document.getElementById("classCodeStep")?.classList.remove("hidden");
   document.getElementById("groupCodeStep")?.classList.add("hidden");
-  document.getElementById("groupEntryText").textContent = "Cuenta validada. Ingresa el código del aula compartido por tu profesor.";
+  document.getElementById("groupEntryText").textContent = "Cuenta validada. Ingresa el código del aula compartido por tu profesor o continúa más tarde desde configuración.";
 }
 
 function toggleLandingMenu() {
@@ -2439,11 +2479,22 @@ async function cargarClasesAdmin() {
     adminGrupoActual = adminClaseActiva || idsAulasAdmin()[0] || "";
     await cargarPermisosRemotos(idsAulasAdmin());
     renderClassSelectors();
+    escucharEstudiantesAdmin();
     renderAdminStudentsByClass().catch(err => console.warn("No se pudieron cargar estudiantes.", err));
   } catch (err) {
     console.warn("No se pudieron cargar clases.", err);
     renderClassSelectors();
   }
+}
+
+function escucharEstudiantesAdmin() {
+  if (!modoAdmin || !usuarioActual) return;
+  if (unsubscribeAdminStudents) unsubscribeAdminStudents();
+  unsubscribeAdminStudents = onSnapshot(
+    query(collection(db, "classStudents"), where("ownerUid", "==", usuarioActual.uid)),
+    () => renderAdminStudentsByClass().catch(err => console.warn("No se pudieron actualizar estudiantes.", err)),
+    err => console.warn("No se pudo escuchar estudiantes en tiempo real.", err)
+  );
 }
 
 function renderClassSelectors() {
@@ -2494,38 +2545,45 @@ async function estudiantesDeClase(classId) {
 async function renderAdminStudentsByClass() {
   const cont = document.getElementById("adminStudentsByClass");
   if (!cont || !modoAdmin) return;
+  if (renderizandoAdminStudents) return;
+  renderizandoAdminStudents = true;
   if (!adminClases.length) {
     cont.innerHTML = `<p class="mini-help">Aún no hay aulas creadas.</p>`;
+    renderizandoAdminStudents = false;
     return;
   }
   cont.innerHTML = `<p class="mini-help">Cargando estudiantes...</p>`;
-  const groups = await Promise.all(adminClases.map(async clase => ({
-    clase,
-    estudiantes: await estudiantesDeClase(clase.id)
-  })));
-  cont.innerHTML = groups.map(({ clase, estudiantes }) => `
-    <details class="accordion-card class-students-card">
-      <summary>${clase.name} · ${clase.code} · ${estudiantes.length} estudiante(s)</summary>
-      <div class="class-toolbar">
-        <div>
-          <strong>${clase.name}</strong>
-          <span>Código de aula: ${clase.code}</span>
+  try {
+    const groups = await Promise.all(adminClases.map(async clase => ({
+      clase,
+      estudiantes: await estudiantesDeClase(clase.id)
+    })));
+    cont.innerHTML = groups.map(({ clase, estudiantes }) => `
+      <details class="accordion-card class-students-card">
+        <summary>${clase.name} · ${clase.code} · ${estudiantes.length} estudiante(s)</summary>
+        <div class="class-toolbar">
+          <div>
+            <strong>${clase.name}</strong>
+            <span>Código de aula: ${clase.code}</span>
+          </div>
+          <button class="btn btn-outline" data-delete-class="${clase.id}" type="button">Eliminar aula</button>
         </div>
-        <button class="btn btn-outline" data-delete-class="${clase.id}" type="button">Eliminar aula</button>
-      </div>
-      <div class="class-actions-panel">
-        <textarea class="admin-input" rows="3" data-class-add-input="${clase.id}" placeholder="Nombre Apellido <correo@gmail.com>"></textarea>
-        <div class="result-actions">
-          <button class="btn btn-primary" data-add-students-class="${clase.id}" type="button">Agregar estudiantes a esta aula</button>
+        <div class="class-actions-panel">
+          <textarea class="admin-input" rows="3" data-class-add-input="${clase.id}" placeholder="Nombre Apellido <correo@gmail.com>"></textarea>
+          <div class="result-actions">
+            <button class="btn btn-primary" data-add-students-class="${clase.id}" type="button">Agregar estudiantes a esta aula</button>
+          </div>
+          <p class="bank-status" data-class-status="${clase.id}"></p>
         </div>
-        <p class="bank-status" data-class-status="${clase.id}"></p>
-      </div>
-      <input class="admin-input student-search" data-class-search="${clase.id}" placeholder="Buscar estudiante" />
-      <div class="student-list" data-class-list="${clase.id}">
-        ${estudiantes.length ? estudiantes.map(est => renderStudentRow(est)).join("") : `<p class="mini-help">Sin estudiantes registrados.</p>`}
-      </div>
-    </details>
-  `).join("");
+        <input class="admin-input student-search" data-class-search="${clase.id}" placeholder="Buscar estudiante" />
+        <div class="student-list" data-class-list="${clase.id}">
+          ${estudiantes.length ? estudiantes.map(est => renderStudentRow(est)).join("") : `<p class="mini-help">Sin estudiantes registrados.</p>`}
+        </div>
+      </details>
+    `).join("");
+  } finally {
+    renderizandoAdminStudents = false;
+  }
 }
 
 function renderStudentRow(est) {
@@ -2655,7 +2713,15 @@ async function entrarGrupo() {
   modoAdmin = false;
   localStorage.setItem(STORAGE_GRUPO, grupoActivo);
   localStorage.setItem(STORAGE_CLASE_ACTIVA, claseActiva);
-  await guardarPerfilUsuario({ grupo: grupoActivo, isAdmin: false, classId: clase.id, className: clase.name, classCode: clase.code });
+  await guardarPerfilUsuario({
+    grupo: grupoActivo,
+    isAdmin: false,
+    classId: clase.id,
+    className: clase.name,
+    classCode: clase.code,
+    classOwnerUid: clase.ownerUid || "",
+    classOwnerEmail: clase.ownerEmail || ""
+  });
   await sincronizarRegistroEstudianteClase(clase.id, grupoActivo);
   await guardarEstadoRemoto();
   await cargarPermisosRemotos([grupoActivo]);
@@ -2690,6 +2756,8 @@ async function validarClaseIngreso(codigoClase = document.getElementById("claseC
 async function sincronizarRegistroEstudianteClase(classId, grupo) {
   if (!usuarioActual?.email || !classId) return;
   const ref = doc(db, "classStudents", `${classId}_${safeEmailId(usuarioActual.email)}`);
+  const ownerUid = claseActualInfo?.ownerUid || perfilActual?.classOwnerUid || "";
+  const ownerEmail = claseActualInfo?.ownerEmail || perfilActual?.classOwnerEmail || "";
   await setDoc(ref, {
     classId,
     className: claseActualInfo?.name || perfilActual?.className || "",
@@ -2702,6 +2770,8 @@ async function sincronizarRegistroEstudianteClase(classId, grupo) {
     status: "activo",
     registeredLabel: perfilActual?.createdLabel || new Date().toLocaleDateString("es-CO"),
     userUid: usuarioActual.uid,
+    ownerUid,
+    ownerEmail,
     updatedAt: serverTimestamp()
   }, { merge: true });
 }
@@ -3227,6 +3297,8 @@ async function verificarCodigoTelefono() {
     detenerCronometroTelefono();
     actualizarCronometroTelefono();
     renderProfile();
+    document.getElementById("profilePhone").value = "";
+    document.getElementById("profilePhoneCodeInput").value = "";
     setPhoneStatus("Teléfono verificado correctamente.", "ok");
   } catch {
     setPhoneStatus("Código inválido o verificación no aceptada por Firebase.", "error");
@@ -3249,7 +3321,14 @@ async function estudianteCambiarClase() {
   grupoActivo = clase.id;
   localStorage.setItem(STORAGE_CLASE_ACTIVA, claseActiva);
   localStorage.setItem(STORAGE_GRUPO, grupoActivo);
-  await guardarPerfilUsuario({ classId: clase.id, className: clase.name, classCode: clase.code, grupo: clase.id });
+  await guardarPerfilUsuario({
+    classId: clase.id,
+    className: clase.name,
+    classCode: clase.code,
+    classOwnerUid: clase.ownerUid || "",
+    classOwnerEmail: clase.ownerEmail || "",
+    grupo: clase.id
+  });
   await sincronizarRegistroEstudianteClase(clase.id, clase.id);
   await guardarEstadoRemoto();
   await cargarPermisosRemotos([grupoActivo]);
@@ -3502,6 +3581,28 @@ async function eliminarEstudianteRegistrado(id) {
   await renderAdminStudentsByClass();
 }
 
+async function eliminarDatosCuentaActual() {
+  if (!usuarioActual) return;
+  const uid = usuarioActual.uid;
+  const email = (usuarioActual.email || "").toLowerCase();
+  const deletes = [];
+
+  const recoverySnap = await getDocs(query(collection(db, "recoveryContacts"), where("uid", "==", uid))).catch(() => null);
+  if (recoverySnap) deletes.push(...recoverySnap.docs.map(item => deleteDoc(item.ref)));
+
+  const classByUid = await getDocs(query(collection(db, "classStudents"), where("userUid", "==", uid))).catch(() => null);
+  if (classByUid) deletes.push(...classByUid.docs.map(item => deleteDoc(item.ref)));
+
+  if (email) {
+    const classByEmail = await getDocs(query(collection(db, "classStudents"), where("email", "==", email))).catch(() => null);
+    if (classByEmail) deletes.push(...classByEmail.docs.map(item => deleteDoc(item.ref)));
+  }
+
+  deletes.push(deleteDoc(refPerfilUsuario()).catch(() => {}));
+  deletes.push(deleteDoc(refEstadoUsuario()).catch(() => {}));
+  await Promise.all(deletes);
+}
+
 async function eliminarCuentaActual() {
   const status = document.getElementById("deleteAccountStatus");
   const password = document.getElementById("deleteAccountPassword").value;
@@ -3517,8 +3618,7 @@ async function eliminarCuentaActual() {
   try {
     const credential = EmailAuthProvider.credential(usuarioActual.email, password);
     await reauthenticateWithCredential(usuarioActual, credential);
-    await setDoc(refPerfilUsuario(), { deleted: true, deletedAt: serverTimestamp() }, { merge: true });
-    await setDoc(refEstadoUsuario(), { deleted: true, deletedAt: serverTimestamp(), resultados: {}, intentoActivo: null }, { merge: true });
+    await eliminarDatosCuentaActual();
     await deleteUser(usuarioActual);
     localStorage.clear();
     window.location.reload();
@@ -3558,11 +3658,13 @@ async function salirApp() {
   localStorage.removeItem(STORAGE_CLASE_ACTIVA);
   localStorage.removeItem(STORAGE_ADMIN_CLASE);
   if (unsubscribePermisos) unsubscribePermisos();
+  if (unsubscribeAdminStudents) unsubscribeAdminStudents();
   await signOut(auth);
   window.location.reload();
 }
 
-document.getElementById("btnSalirApp").addEventListener("click", salirApp);
+document.getElementById("btnSalirApp")?.addEventListener("click", salirApp);
+document.getElementById("btnDrawerSalirApp")?.addEventListener("click", salirApp);
 document.getElementById("btnSalirAdmin")?.addEventListener("click", salirApp);
 document.getElementById("btnEmailLogin")?.addEventListener("click", loginEmail);
 document.getElementById("btnEmailRegister")?.addEventListener("click", registrarEmail);
@@ -3587,6 +3689,17 @@ document.getElementById("btnRecoverUserClose")?.addEventListener("click", volver
 document.getElementById("btnRecoverBack")?.addEventListener("click", volverLoginDesdeRecuperacion);
 document.getElementById("btnRecoverSendCode")?.addEventListener("click", enviarCodigoRecuperacion);
 document.getElementById("btnRecoverVerifyCode")?.addEventListener("click", verificarCodigoRecuperacion);
+document.getElementById("btnClassLater")?.addEventListener("click", continuarSinAula);
+document.querySelectorAll("[data-go-exam]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    if (!aulaActualValida()) {
+      renderExamenesHub();
+      return;
+    }
+    activarNav(btn.dataset.goExam);
+    if (btn.dataset.goExam?.startsWith("nivel")) abrirNivel(btn.dataset.goExam);
+  });
+});
 document.querySelectorAll("[data-role-choice]").forEach(btn => {
   btn.addEventListener("click", () => guardarRolUsuario(btn.dataset.roleChoice));
 });
@@ -3699,11 +3812,56 @@ document.querySelectorAll("[data-toggle-password]").forEach(btn => {
   btn.addEventListener("click", () => alternarPassword(btn.dataset.togglePassword));
 });
 
+document.addEventListener("keydown", e => {
+  if (e.key !== "Enter" || e.defaultPrevented) return;
+  const target = e.target;
+  if (!(target instanceof HTMLInputElement || target instanceof HTMLSelectElement)) return;
+  if (target.type === "file" || target.type === "checkbox" || target.type === "radio") return;
+  const explicitTargets = {
+    loginEmail: "btnEmailLogin",
+    loginPassword: "btnEmailLogin",
+    registerName: "btnEmailRegister",
+    registerEmail: "btnEmailRegister",
+    registerPassword: "btnEmailRegister",
+    claseCodigo: "btnValidarClase",
+    forgotPasswordEmail: "btnSendPasswordRecovery",
+    recoverName: "btnRecoverSendCode",
+    recoverPhone: "btnRecoverSendCode",
+    recoverCodeInput: "btnRecoverVerifyCode",
+    profilePhone: "btnSendPhoneCode",
+    profilePhoneCodeInput: "btnVerifyPhoneCode",
+    settingsClassCode: "btnSettingsChangeClass",
+    createPasswordNew: "btnCreatePassword",
+    createPasswordConfirm: "btnCreatePassword",
+    updatePasswordCurrent: "btnUpdatePassword",
+    updatePasswordNew: "btnUpdatePassword",
+    updatePasswordConfirm: "btnUpdatePassword",
+    deleteAccountPassword: "btnDeleteAccount",
+    teacherDeletePassword: "btnDeleteTeacherAccount",
+    adminClassName: "btnCreateClass",
+    adminStudentEmail: "btnAdminChangeStudentGroup"
+  };
+  const explicit = explicitTargets[target.id] ? document.getElementById(explicitTargets[target.id]) : null;
+  if (explicit && !explicit.disabled) {
+    e.preventDefault();
+    explicit.click();
+    return;
+  }
+  const panel = target.closest(".auth-form, .group-entry, .profile-panel, .accordion-card, .admin-panel, .settings-shell, .profile-shell");
+  if (!panel) return;
+  const button = panel.querySelector("button.btn-primary:not([disabled]), button.btn-secondary:not([disabled])");
+  if (!button) return;
+  e.preventDefault();
+  button.click();
+});
+
 inicializarRegistroPerfil();
 
 onAuthStateChanged(auth, async user => {
   usuarioActual = user;
   if (!user) {
+    if (unsubscribeAdminStudents) unsubscribeAdminStudents();
+    unsubscribeAdminStudents = null;
     document.body.classList.add("group-locked");
     mostrarAuthInicial();
     return;

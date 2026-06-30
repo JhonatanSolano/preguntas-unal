@@ -230,11 +230,12 @@
       </div>
 
         <div class="group-entry hidden" id="groupEntry">
-          <p id="groupEntryText">Cuenta validada. Ingresa el código del aula compartido por tu profesor.</p>
+          <p id="groupEntryText">Cuenta validada. Ingresa el código del aula compartido por tu profesor o continúa más tarde desde configuración.</p>
           <div class="admin-login" id="classCodeStep">
             <input type="text" id="claseCodigo" class="admin-input class-code-input" placeholder="Código de aula" autocomplete="one-time-code" spellcheck="false" />
             <button class="btn btn-primary" id="btnValidarClase">Entrar al aula</button>
           </div>
+          <button class="btn btn-outline" id="btnClassLater" type="button">Más tarde</button>
         </div>
 
         <p class="warn-msg" id="grupoWarn" hidden>Revisa los datos ingresados.</p>
@@ -380,12 +381,6 @@
   <!-- ══════════════════ NAVEGACIÓN DE SECCIONES ══════════════════ -->
   <nav class="section-nav">
     <button class="drawer-toggle" id="btnDrawerToggle" type="button" aria-label="Abrir menú">☰</button>
-    <button class="nav-btn active" data-section="inicio">Inicio</button>
-    <button class="nav-btn" data-section="diagnostico">Diagnóstico</button>
-    <button class="nav-btn" data-section="nivel1">Nivel Medio</button>
-    <button class="nav-btn" data-section="examen">Examen Final</button>
-    <button class="nav-btn" data-section="estadisticas">Estadísticas</button>
-    <button class="nav-btn support-nav" data-section="soporte">Soporte</button>
   </nav>
   <div class="drawer-backdrop hidden" id="drawerBackdrop"></div>
   <aside class="side-drawer hidden" id="sideDrawer" aria-label="Menú lateral">
@@ -395,9 +390,12 @@
     </div>
     <button class="drawer-link" id="btnDrawerHome" type="button">Inicio</button>
     <button class="drawer-link" data-section="perfil" type="button">Perfil</button>
+    <button class="drawer-link" data-section="examenes" type="button">Exámenes</button>
     <button class="drawer-link" data-section="configuracion" type="button">Configuración</button>
+    <button class="drawer-link" data-section="estadisticas" type="button">Estadísticas</button>
+    <button class="drawer-link" data-section="soporte" type="button">Soporte</button>
     <button class="drawer-link admin-only" data-section="adminMetricas" type="button">Métricas y estadísticas</button>
-    <button class="drawer-link danger" id="btnSalirApp" type="button">Cerrar sesión</button>
+    <button class="drawer-link danger" id="btnDrawerSalirApp" type="button">Cerrar sesión</button>
   </aside>
   <div class="group-status" id="grupoActualPanel" hidden></div>
 
@@ -423,6 +421,30 @@
         </div>
       </div>
     </section>
+  </main>
+
+  <!-- ══════════════════ EXÁMENES ══════════════════ -->
+  <main class="main-content hidden" id="sectionExamenes">
+    <div class="start-screen exams-hub">
+      <span class="cs-icon">🧮</span>
+      <h2>Exámenes</h2>
+      <p id="examsHubIntro">Elige el examen que vas a presentar o revisar.</p>
+      <p class="warn-msg" id="examsLockedMsg" hidden>Primero debes pertenecer a una clase o aula.</p>
+      <div class="exam-hub-grid">
+        <button class="exam-hub-card" data-go-exam="diagnostico" type="button">
+          <strong>Diagnóstico</strong>
+          <span>15 preguntas · 15 minutos</span>
+        </button>
+        <button class="exam-hub-card" data-go-exam="nivel1" type="button">
+          <strong>Nivel Medio</strong>
+          <span>10 preguntas · 15 minutos</span>
+        </button>
+        <button class="exam-hub-card" data-go-exam="examen" type="button">
+          <strong>Examen Final</strong>
+          <span>10 preguntas · 15 minutos</span>
+        </button>
+      </div>
+    </div>
   </main>
 
   <!-- ══════════════════ SECCIÓN DIAGNÓSTICO ══════════════════ -->
@@ -806,7 +828,8 @@
         <p class="bank-status" id="profileStatus"></p>
       </section>
 
-      <section class="profile-panel">
+      <details class="profile-panel phone-panel" id="phoneVerifyPanel">
+        <summary>Verificar número de teléfono</summary>
         <img class="panel-logo" src="assets/icon-180.png" alt="Logo de Matemáticas En Tu Bolsillo" />
         <h3>Teléfono verificado</h3>
         <p>Ingresa el indicador del país y tu número. El código enviado por SMS vence en 2 minutos.</p>
@@ -825,7 +848,7 @@
         <button class="btn btn-primary" id="btnVerifyPhoneCode" type="button">Verificar teléfono</button>
         <div id="phoneRecaptcha"></div>
         <p class="bank-status" id="phoneStatus"></p>
-      </section>
+      </details>
 
       <section class="profile-panel danger-zone hidden" id="teacherDeletePanel">
         <h3>Eliminar cuenta de profesor</h3>
@@ -1063,6 +1086,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260629-7"></script>
+  <script type="module" src="script.js?v=20260630-1"></script>
 </body>
 </html>

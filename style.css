@@ -275,7 +275,7 @@ body.admin-mode .admin-exit-dock {
   background: var(--c-surface);
   border-bottom: 1px solid var(--c-border);
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
   gap: .5rem;
   padding: .8rem 1rem;
   position: sticky;
@@ -283,6 +283,9 @@ body.admin-mode .admin-exit-dock {
   z-index: 50;
   box-shadow: var(--shadow-sm);
   overflow-x: auto;
+}
+.section-nav .nav-btn {
+  display: none;
 }
 .drawer-toggle {
   border: 0;
@@ -392,6 +395,71 @@ body.admin-mode .admin-exit-dock {
   font-weight: 800;
   text-align: center;
   box-shadow: var(--shadow-sm);
+}
+.exams-hub {
+  max-width: 900px;
+}
+.exam-hub-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+.exam-hub-card {
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, #fff, #f6fbff);
+  color: var(--c-navy);
+  padding: 1.2rem;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition);
+}
+.exam-hub-card strong,
+.exam-hub-card span {
+  display: block;
+}
+.exam-hub-card strong {
+  font-size: 1.05rem;
+  margin-bottom: .35rem;
+}
+.exam-hub-card span {
+  color: var(--c-muted);
+  font-size: .9rem;
+}
+.exam-hub-card:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: var(--c-cyan);
+  box-shadow: var(--shadow-md);
+}
+.exam-hub-card.disabled,
+.exam-hub-card:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+.phone-panel summary {
+  cursor: pointer;
+  color: var(--c-navy);
+  font-weight: 900;
+  list-style: none;
+}
+.phone-panel summary::-webkit-details-marker {
+  display: none;
+}
+.phone-panel summary::after {
+  content: "Abrir";
+  float: right;
+  color: var(--c-blue);
+  font-size: .85rem;
+}
+.phone-panel[open] summary {
+  margin-bottom: 1rem;
+  padding-bottom: .8rem;
+  border-bottom: 1px solid var(--c-border);
+}
+.phone-panel[open] summary::after {
+  content: "Ocultar";
 }
 .auth-gate {
   max-width: 720px;
@@ -2237,6 +2305,7 @@ body.admin-mode .admin-exit-dock {
   .profile-form-grid,
   .profile-form-grid.three,
   .bank-progress-grid,
+  .exam-hub-grid,
   .bank-grid {
     grid-template-columns: 1fr;
   }
