@@ -74,7 +74,7 @@ body {
   object-fit: contain;
 }
 .hero-logo {
-  margin-bottom: 1rem;
+  margin: 0 auto 1rem;
 }
 .auth-logo {
   margin: 0 auto 1rem;
@@ -1027,6 +1027,15 @@ body.admin-mode .admin-exit-dock {
 .stats-card p {
   margin: .25rem 0;
   color: var(--c-text);
+}
+.class-actions-panel {
+  display: grid;
+  gap: .7rem;
+  margin: .85rem 0;
+  padding: .9rem;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  background: var(--c-blue-lt);
 }
 .soon-badge {
   background: var(--c-gold);

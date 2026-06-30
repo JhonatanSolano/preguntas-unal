@@ -23,6 +23,11 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    match /classPermissions/{classId} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
     match /classes/{classId} {
       allow read: if signedIn();
       allow create, update, delete: if isAdmin();

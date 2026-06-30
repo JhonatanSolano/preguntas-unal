@@ -68,15 +68,15 @@
       <span class="section-kicker">Qué es</span>
       <h2>Una plataforma seria para practicar, evaluar y mejorar.</h2>
       <p class="section-lead">
-        Matemáticas En Tu Bolsillo organiza el aprendizaje en rutas por clase y grupo. Cada estudiante puede presentar
-        pruebas cronometradas, comparar intentos y revisar métricas útiles; cada profesor puede administrar clases,
+        Matemáticas En Tu Bolsillo organiza el aprendizaje en rutas por aulas. Cada estudiante puede presentar
+        pruebas cronometradas, comparar intentos y revisar métricas útiles; cada profesor puede administrar aulas,
         habilitar niveles y observar el desempeño académico de forma clara.
       </p>
       <div class="landing-highlights" aria-label="Beneficios principales">
         <article>
           <span class="feature-icon">📚</span>
           <strong>Banco de preguntas inteligente</strong>
-          <p>Preguntas por niveles, bancos reservados y estructura lista para crecer por grupos o cursos.</p>
+          <p>Preguntas por niveles, bancos reservados y estructura lista para crecer por aulas o cursos.</p>
         </article>
         <article>
           <span class="feature-icon">📊</span>
@@ -85,8 +85,8 @@
         </article>
         <article>
           <span class="feature-icon">👨‍🏫</span>
-          <strong>Gestión de clases</strong>
-          <p>Creación de clases, códigos únicos, grupos, permisos por examen y panel del profesor.</p>
+          <strong>Gestión de aulas</strong>
+          <p>Creación de aulas, códigos únicos, permisos por examen y panel del profesor.</p>
         </article>
         <article>
           <span class="feature-icon">👨‍🎓</span>
@@ -112,10 +112,10 @@
       <div class="timeline-grid">
         <article><span>1</span><strong>Crear una cuenta</strong><p>Registro con Google o correo Gmail y contraseña segura.</p></article>
         <article><span>2</span><strong>Verificar datos</strong><p>Correo obligatorio y teléfono verificable para recuperación y seguridad.</p></article>
-        <article><span>3</span><strong>Unirse a una clase</strong><p>Código de clase y grupo asignado por el profesor.</p></article>
+        <article><span>3</span><strong>Unirse a un aula</strong><p>Código único de aula asignado por el profesor.</p></article>
         <article><span>4</span><strong>Resolver ejercicios</strong><p>Pruebas cronometradas, intentos controlados y preguntas sin responder como incorrectas.</p></article>
         <article><span>5</span><strong>Consultar resultados</strong><p>Indicadores de precisión, tiempo, nota y desempeño por intento.</p></article>
-        <article><span>6</span><strong>Mejorar continuamente</strong><p>Comparación de avances por banco, grupo y nivel.</p></article>
+        <article><span>6</span><strong>Mejorar continuamente</strong><p>Comparación de avances por banco, aula y nivel.</p></article>
       </div>
     </section>
 
@@ -132,18 +132,18 @@
       </article>
       <article id="profesores">
         <span class="section-kicker">Para profesores</span>
-        <h2>Administra clases y toma decisiones con datos.</h2>
-        <p>Crea clases, agrupa estudiantes, habilita exámenes, consulta métricas y prepara bancos de preguntas para distintos momentos del curso.</p>
+        <h2>Administra aulas y toma decisiones con datos.</h2>
+        <p>Crea aulas, habilita exámenes, consulta métricas y prepara bancos de preguntas para distintos momentos del curso.</p>
         <ul>
-          <li>Permisos por grupo y nivel.</li>
-          <li>Métricas por estudiante y grupo.</li>
+          <li>Permisos por aula y nivel.</li>
+          <li>Métricas por estudiante y aula.</li>
           <li>Gestión de bancos de preguntas.</li>
         </ul>
       </article>
     </section>
 
     <section class="stats-strip" aria-label="Indicadores de la plataforma">
-      <div><strong>+5</strong><span>Grupos configurables</span></div>
+      <div><strong>∞</strong><span>Aulas configurables</span></div>
       <div><strong>10</strong><span>Bancos preparados</span></div>
       <div><strong>2</strong><span>Intentos por examen</span></div>
       <div><strong>15 min</strong><span>Pruebas cronometradas</span></div>
@@ -160,68 +160,44 @@
 
     <div class="auth-shell hidden" id="loginCard" role="dialog" aria-modal="true" aria-labelledby="authTitle">
       <div class="start-screen group-gate auth-gate">
-      <button class="auth-close" id="btnAuthClose" type="button" aria-label="Cerrar">×</button>
-      <img class="auth-logo" src="assets/logo.png" alt="Matemáticas En Tu Bolsillo" />
-      <h2>Ingreso Matemáticas En Tu Bolsillo</h2>
-      <p>Accede con Google o con correo Gmail y contraseña. Después ingresarás el código de tu clase y grupo.</p>
+        <button class="auth-close" id="btnAuthClose" type="button" aria-label="Cerrar">×</button>
+        <img class="auth-logo" src="assets/logo.png" alt="Matemáticas En Tu Bolsillo" />
+        <h2 id="authTitle">Ingreso Matemáticas En Tu Bolsillo</h2>
+        <p>Accede con Google o con correo Gmail y contraseña. Después ingresarás el código único de tu aula.</p>
 
-      <div class="auth-actions">
-        <button class="btn btn-primary" id="btnGoogleLogin" type="button">Entrar con Google</button>
-      </div>
-
-      <div class="auth-divider"><span>o</span></div>
-
-      <div class="auth-tabs" role="tablist" aria-label="Acceso">
-        <button class="auth-tab active" id="tabLogin" type="button">Iniciar sesión</button>
-        <button class="auth-tab" id="tabRegister" type="button">Registrarse</button>
-      </div>
-
-      <div class="auth-form" id="loginPanel">
-        <input type="email" id="loginEmail" class="admin-input" placeholder="Correo @gmail.com" autocomplete="email" />
-        <div class="password-wrap">
-          <input type="password" id="loginPassword" class="admin-input" placeholder="Contraseña" autocomplete="current-password" />
-          <button class="password-toggle" type="button" data-toggle-password="loginPassword" aria-label="Ver contraseña">👁</button>
+        <div class="auth-actions">
+          <button class="btn btn-primary" id="btnGoogleLogin" type="button">Entrar con Google</button>
         </div>
-        <button class="btn btn-primary" id="btnEmailLogin" type="button">Ingresar</button>
-        <div class="auth-links">
-          <button type="button" id="btnForgotPassword">¿Olvidó su contraseña?</button>
-          <button type="button" id="btnForgotUser">¿Olvidó su usuario?</button>
-        </div>
-      </div>
 
-      <div class="auth-form hidden" id="forgotPasswordPanel">
-        <p class="mini-help">Escribe tu correo Gmail registrado. Te enviaremos un enlace seguro para restablecer tu contraseña.</p>
-        <input type="email" id="forgotPasswordEmail" class="admin-input" placeholder="Correo @gmail.com" autocomplete="email" />
-        <button class="btn btn-primary" id="btnSendPasswordRecovery" type="button">Enviar recuperación</button>
-        <p class="bank-status" id="forgotPasswordStatus"></p>
-        <button class="btn btn-outline" id="btnForgotPasswordBack" type="button">Volver al inicio de sesión</button>
-      </div>
+        <div class="auth-divider"><span>o</span></div>
 
-      <div class="auth-form hidden" id="recoverEmailPanel">
-        <div class="recovery-wizard">
-          <span class="active">1 Identidad</span>
-          <span>2 Código</span>
-          <span>3 Resultado</span>
+        <div class="auth-tabs" role="tablist" aria-label="Acceso">
+          <button class="auth-tab active" id="tabLogin" type="button">Iniciar sesión</button>
+          <button class="auth-tab" id="tabRegister" type="button">Registrarse</button>
         </div>
-        <p class="mini-help">Por seguridad, solo se recupera el correo si el teléfono ya fue registrado y verificado previamente.</p>
-        <input type="text" id="recoverName" class="admin-input" placeholder="Nombre completo registrado" autocomplete="name" />
-        <div class="profile-form-grid">
-          <select id="recoverPhoneCode" class="admin-input" aria-label="Indicador del país"></select>
-          <input type="tel" id="recoverPhone" class="admin-input" placeholder="Número telefónico registrado" autocomplete="tel" />
-        </div>
-        <button class="btn btn-secondary" id="btnRecoverSendCode" type="button">Enviar código</button>
-        <div class="phone-code-row">
-          <span id="recoverCountdown" class="phone-countdown" hidden>02:00</span>
-          <span class="phone-help">El código vence en 2 minutos.</span>
-        </div>
-        <input type="text" id="recoverCodeInput" class="admin-input" placeholder="Código SMS" inputmode="numeric" />
-        <button class="btn btn-primary" id="btnRecoverVerifyCode" type="button">Ver correo registrado</button>
-        <p class="bank-status" id="recoverStatus"></p>
-        <div id="recoverRecaptcha"></div>
-        <button class="btn btn-outline" id="btnRecoverBack" type="button">Volver al inicio de sesión</button>
-      </div>
 
-      <div class="auth-form hidden" id="registerPanel">
+        <div class="auth-form" id="loginPanel">
+          <input type="email" id="loginEmail" class="admin-input" placeholder="Correo @gmail.com" autocomplete="email" />
+          <div class="password-wrap">
+            <input type="password" id="loginPassword" class="admin-input" placeholder="Contraseña" autocomplete="current-password" />
+            <button class="password-toggle" type="button" data-toggle-password="loginPassword" aria-label="Ver contraseña">👁</button>
+          </div>
+          <button class="btn btn-primary" id="btnEmailLogin" type="button">Ingresar</button>
+          <div class="auth-links">
+            <button type="button" id="btnForgotPassword">¿Olvidó su contraseña?</button>
+            <button type="button" id="btnForgotUser">¿Olvidó su usuario?</button>
+          </div>
+        </div>
+
+        <div class="auth-form hidden" id="forgotPasswordPanel">
+          <p class="mini-help">Escribe tu correo Gmail registrado. Te enviaremos un enlace seguro para restablecer tu contraseña.</p>
+          <input type="email" id="forgotPasswordEmail" class="admin-input" placeholder="Correo @gmail.com" autocomplete="email" />
+          <button class="btn btn-primary" id="btnSendPasswordRecovery" type="button">Enviar recuperación</button>
+          <p class="bank-status" id="forgotPasswordStatus"></p>
+          <button class="btn btn-outline" id="btnForgotPasswordBack" type="button">Volver al inicio de sesión</button>
+        </div>
+
+        <div class="auth-form hidden" id="registerPanel">
         <input type="text" id="registerName" class="admin-input" placeholder="Nombre de usuario" autocomplete="name" />
         <input type="email" id="registerEmail" class="admin-input" placeholder="Correo @gmail.com" autocomplete="email" />
         <div class="profile-form-grid">
@@ -256,19 +232,47 @@
         <button class="btn btn-primary" id="btnEmailRegister" type="button" disabled>Crear cuenta</button>
       </div>
 
-      <div class="group-entry hidden" id="groupEntry">
-        <p id="groupEntryText">Cuenta validada. Primero ingresa el código de clase compartido por tu profesor.</p>
-        <div class="admin-login" id="classCodeStep">
-          <input type="text" id="claseCodigo" class="admin-input class-code-input" placeholder="Código de clase" autocomplete="one-time-code" spellcheck="false" />
-          <button class="btn btn-primary" id="btnValidarClase">Continuar</button>
+        <div class="group-entry hidden" id="groupEntry">
+          <p id="groupEntryText">Cuenta validada. Ingresa el código del aula compartido por tu profesor.</p>
+          <div class="admin-login" id="classCodeStep">
+            <input type="text" id="claseCodigo" class="admin-input class-code-input" placeholder="Código de aula" autocomplete="one-time-code" spellcheck="false" />
+            <button class="btn btn-primary" id="btnValidarClase">Entrar al aula</button>
+          </div>
         </div>
-        <div class="admin-login hidden" id="groupCodeStep">
-          <input type="text" id="grupoClave" class="admin-input code-input" placeholder="Grupo: G1, G2, G3, G4 o G5" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" />
-          <button class="btn btn-primary" id="btnGrupoEntrar">Entrar al grupo</button>
-        </div>
-      </div>
 
-      <p class="warn-msg" id="grupoWarn" hidden>Revisa los datos ingresados.</p>
+        <p class="warn-msg" id="grupoWarn" hidden>Revisa los datos ingresados.</p>
+      </div>
+    </div>
+
+    <div class="auth-shell hidden" id="forgotUserCard" role="dialog" aria-modal="true" aria-labelledby="recoverUserTitle">
+      <div class="start-screen group-gate auth-gate">
+        <button class="auth-close" id="btnRecoverUserClose" type="button" aria-label="Cerrar">×</button>
+        <img class="auth-logo" src="assets/logo.png" alt="Matemáticas En Tu Bolsillo" />
+        <h2 id="recoverUserTitle">Recuperar usuario</h2>
+        <p>Validaremos tu identidad con el teléfono verificado antes de mostrar el correo registrado.</p>
+        <div class="auth-form" id="recoverEmailPanel">
+          <div class="recovery-wizard">
+            <span class="active">1 Identidad</span>
+            <span>2 Código</span>
+            <span>3 Resultado</span>
+          </div>
+          <p class="mini-help">Por seguridad, solo se recupera el correo si el teléfono ya fue registrado y verificado previamente.</p>
+          <input type="text" id="recoverName" class="admin-input" placeholder="Nombre completo registrado" autocomplete="name" />
+          <div class="profile-form-grid">
+            <select id="recoverPhoneCode" class="admin-input" aria-label="Indicador del país"></select>
+            <input type="tel" id="recoverPhone" class="admin-input" placeholder="Número telefónico registrado" autocomplete="tel" />
+          </div>
+          <button class="btn btn-secondary" id="btnRecoverSendCode" type="button">Enviar código</button>
+          <div class="phone-code-row">
+            <span id="recoverCountdown" class="phone-countdown" hidden>02:00</span>
+            <span class="phone-help">El código vence en 2 minutos.</span>
+          </div>
+          <input type="text" id="recoverCodeInput" class="admin-input" placeholder="Código SMS" inputmode="numeric" />
+          <button class="btn btn-primary" id="btnRecoverVerifyCode" type="button">Ver correo registrado</button>
+          <p class="bank-status" id="recoverStatus"></p>
+          <div id="recoverRecaptcha"></div>
+          <button class="btn btn-outline" id="btnRecoverBack" type="button">Volver al inicio de sesión</button>
+        </div>
       </div>
     </div>
     <footer class="public-footer" id="contacto">
@@ -373,7 +377,7 @@
       <h2 id="welcomeTitle">Bienvenido</h2>
       <p>Esta app te acompaña en una ruta de práctica matemática por niveles. Trabajarás diagnóstico, nivel medio y examen final con métricas de precisión, tiempo y temas por reforzar.</p>
       <div class="welcome-grid">
-        <span>Presenta los exámenes habilitados para tu grupo.</span>
+        <span>Presenta los exámenes habilitados para tu aula.</span>
         <span>Cada examen tiene máximo dos intentos.</span>
         <span>El primer intento muestra solo métricas generales.</span>
         <span>El segundo intento muestra respuestas y explicaciones completas.</span>
@@ -611,7 +615,7 @@
     <div class="start-screen" id="examenBloqueado">
       <span class="cs-icon">🔒</span>
       <h2>Examen Final bloqueado</h2>
-      <p>Debes completar el <strong>Nivel Medio</strong> antes de acceder al Examen Final, salvo que el administrador habilite permiso directo para tu grupo.</p>
+      <p>Debes completar el <strong>Nivel Medio</strong> antes de acceder al Examen Final, salvo que el administrador habilite permiso directo para tu aula.</p>
       <div class="start-rules">
         <ul>
           <li>Completa el Nivel Medio</li>
@@ -738,8 +742,7 @@
           <p id="profileEmailText">Correo</p>
           <div class="profile-chips">
             <span id="profileAgeChip">Edad: —</span>
-            <span id="profileGroupChip">Grupo: —</span>
-            <span id="profileClassChip">Clase: —</span>
+            <span id="profileClassChip">Aula: —</span>
             <span id="profileCreatedChip">Registro: —</span>
             <span id="profilePhoneChip">Teléfono sin verificar</span>
           </div>
@@ -802,15 +805,6 @@
       <section class="profile-panel student-settings">
         <h2>Configuración</h2>
         <details class="accordion-card" open>
-          <summary>Grupo</summary>
-          <p>Cambia de grupo escribiendo la clave. No podrás hacerlo si estás presentando un examen.</p>
-          <div class="admin-login">
-            <input type="text" id="settingsGroupKey" class="admin-input code-input" placeholder="Código del nuevo grupo" autocapitalize="characters" spellcheck="false" />
-            <button class="btn btn-secondary" id="btnSettingsChangeGroup" type="button">Cambiar grupo</button>
-          </div>
-          <p class="bank-status" id="settingsGroupStatus"></p>
-        </details>
-        <details class="accordion-card">
           <summary>Banco de preguntas</summary>
           <p>Cambia entre bancos. El siguiente banco se habilita cuando terminas diagnóstico, nivel medio y final.</p>
           <div class="result-actions">
@@ -819,11 +813,11 @@
           </div>
         </details>
         <details class="accordion-card">
-          <summary>Clase</summary>
-          <p>Escribe un código de clase válido. Al cambiar de clase deberás seleccionar nuevamente tu grupo.</p>
+          <summary>Aula</summary>
+          <p>Escribe un código de aula válido. No podrás cambiarte si estás presentando un examen.</p>
           <div class="admin-login">
-            <input type="text" id="settingsClassCode" class="admin-input" placeholder="Código de clase" />
-            <button class="btn btn-secondary" id="btnSettingsChangeClass" type="button">Cambiar clase</button>
+            <input type="text" id="settingsClassCode" class="admin-input" placeholder="Código de aula" />
+            <button class="btn btn-secondary" id="btnSettingsChangeClass" type="button">Cambiar aula</button>
           </div>
           <p class="bank-status" id="settingsClassStatus"></p>
         </details>
@@ -840,39 +834,34 @@
       <section class="profile-panel admin-settings hidden" id="adminSettingsPanel">
         <h2>Configuración del administrador</h2>
         <details class="accordion-card" open>
-          <summary>Clase</summary>
-          <p>Crea clases independientes. Cada código es único y se comparte con estudiantes.</p>
+          <summary>Aulas</summary>
+          <p>Crea aulas independientes. Cada código es único y se comparte con estudiantes.</p>
           <div class="bank-grid">
-            <label>Nombre de la clase<input type="text" id="adminClassName" class="admin-input" placeholder="Matemáticas 10A" /></label>
-            <label>Clase activa<select id="adminClassSelect" class="admin-input"></select></label>
+            <label>Nombre del aula<input type="text" id="adminClassName" class="admin-input" placeholder="Matemáticas 10A" /></label>
+            <label>Aula activa<select id="adminClassSelect" class="admin-input"></select></label>
           </div>
-          <button class="btn btn-secondary" id="btnCreateClass" type="button">Crear clase</button>
+          <button class="btn btn-secondary" id="btnCreateClass" type="button">Crear aula</button>
           <p class="bank-status" id="adminClassStatus"></p>
         </details>
         <details class="accordion-card">
-          <summary>Cambiar estudiante de grupo</summary>
-          <p>Busca al estudiante por el correo con el que se registró y asígnale un grupo sin pedirle clave.</p>
+          <summary>Cambiar estudiante de aula</summary>
+          <p>Busca al estudiante por el correo con el que se registró y asígnale otra aula sin pedirle código.</p>
           <div class="bank-grid">
             <label>Correo del estudiante<input type="email" id="adminStudentEmail" class="admin-input" placeholder="correo@gmail.com" /></label>
-            <label>Nuevo grupo<select id="adminStudentGroupSelect" class="admin-input"></select></label>
+            <label>Nueva aula<select id="adminStudentGroupSelect" class="admin-input"></select></label>
           </div>
-          <button class="btn btn-secondary" id="btnAdminChangeStudentGroup" type="button">Cambiar grupo del estudiante</button>
+          <button class="btn btn-secondary" id="btnAdminChangeStudentGroup" type="button">Cambiar aula del estudiante</button>
           <p class="bank-status" id="adminStudentStatus"></p>
         </details>
         <details class="accordion-card">
-          <summary>Permisos por grupo</summary>
-          <p>Activa permisos por grupo. Un permiso permite presentar ese examen aunque no se haya completado el requisito anterior.</p>
-          <div class="admin-group-select">
-            <label for="adminGrupoSelect">Grupo</label>
-            <select id="adminGrupoSelect" class="admin-input"></select>
-          </div>
+          <summary>Permisos por aula</summary>
+          <p>Activa permisos para el aula seleccionada. Un permiso permite presentar ese examen aunque no se haya completado el requisito anterior.</p>
           <div class="admin-list" id="adminList"></div>
         </details>
         <details class="accordion-card">
           <summary>Banco de preguntas</summary>
-          <p>Escoge el banco que trabajará cada grupo en cada nivel.</p>
+          <p>Escoge el banco que trabajará el aula seleccionada en cada nivel.</p>
           <div class="bank-grid">
-            <label>Grupo<select id="bankGrupoSelect" class="admin-input"></select></label>
             <label>Nivel<select id="bankNivelSelect" class="admin-input"><option value="diagnostico">Diagnóstico</option><option value="nivel1">Nivel Medio</option><option value="examen">Examen Final</option></select></label>
             <label>Banco<select id="bankBancoSelect" class="admin-input"></select></label>
           </div>
@@ -881,17 +870,16 @@
         </details>
         <details class="accordion-card">
           <summary>Registrar estudiantes</summary>
-          <p>Ingresa correos separados por coma, espacio o salto de línea. Cada correo quedará asociado al grupo elegido.</p>
+          <p>Ingresa correos separados por coma, espacio o salto de línea. Cada correo quedará asociado al aula elegida.</p>
           <textarea id="bulkStudentEmails" class="admin-input" rows="5" placeholder="correo1@gmail.com&#10;correo2@gmail.com"></textarea>
           <p class="mini-help">También puedes escribir: Nombre Apellido &lt;correo@gmail.com&gt; o Nombre Apellido, correo@gmail.com.</p>
-          <label>Clase para los estudiantes<select id="bulkStudentClass" class="admin-input"></select></label>
-          <label>Grupo para los estudiantes<select id="bulkStudentGroup" class="admin-input"></select></label>
+          <label>Aula para los estudiantes<select id="bulkStudentClass" class="admin-input"></select></label>
           <button class="btn btn-primary" id="btnBulkStudents" type="button">Agregar estudiantes</button>
           <p class="bank-status" id="bulkStudentStatus"></p>
         </details>
         <details class="accordion-card">
-          <summary>Estudiantes por clase</summary>
-          <p>Consulta, busca, edita grupo o elimina estudiantes dentro de cada clase.</p>
+          <summary>Estudiantes por aula</summary>
+          <p>Da clic en un aula para desplegar sus estudiantes, buscarlos, cambiarlos de aula o eliminarlos.</p>
           <div id="adminStudentsByClass" class="class-students-list"></div>
         </details>
       </section>
@@ -904,7 +892,7 @@
       <img class="panel-logo" src="assets/icon-180.png" alt="Logo de Matemáticas En Tu Bolsillo" />
       <img class="admin-welcome-photo" id="adminWelcomePhoto" alt="Foto de perfil del profesor" />
       <h2 id="adminWelcomeTitle">Bienvenido</h2>
-      <p>Desde este panel podrás administrar clases, estudiantes, exámenes, estadísticas, bancos de preguntas y permisos por grupo.</p>
+      <p>Desde este panel podrás administrar aulas, estudiantes, exámenes, estadísticas, bancos de preguntas y permisos por aula.</p>
     </div>
   </main>
 
