@@ -1064,6 +1064,52 @@ body.admin-mode .admin-exit-dock {
   justify-content: flex-start;
   margin-bottom: 0;
 }
+.role-choice-grid {
+  display: grid;
+  gap: .85rem;
+  margin-top: 1.2rem;
+}
+.role-choice-card {
+  border: 1.5px solid var(--c-border);
+  border-radius: var(--radius-md);
+  background: #fff;
+  color: var(--c-text);
+  padding: 1rem;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--transition), border-color var(--transition);
+}
+.role-choice-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--c-cyan);
+}
+.role-choice-card strong,
+.role-choice-card span {
+  display: block;
+}
+.role-choice-card strong {
+  color: var(--c-navy);
+  margin-bottom: .25rem;
+}
+.role-choice-card span {
+  color: var(--c-muted);
+  font-size: .9rem;
+}
+.danger-inline {
+  display: grid;
+  gap: .7rem;
+  margin-top: 1rem;
+  padding: .9rem;
+  border: 1.5px solid var(--c-red);
+  border-radius: var(--radius-sm);
+  background: var(--c-red-lt);
+}
+.danger-inline p {
+  color: var(--c-red);
+  font-weight: 800;
+  margin: 0;
+}
 .soon-badge {
   background: var(--c-gold);
   color: #fff;
@@ -2222,5 +2268,48 @@ body.admin-mode .admin-exit-dock {
   .student-row .btn,
   .student-row select {
     width: 100%;
+  }
+  .header-inner,
+  .main-content,
+  .section-nav,
+  .profile-shell,
+  .settings-shell,
+  .admin-panel,
+  .question-card,
+  .profile-panel,
+  .welcome-panel {
+    max-width: 100%;
+    min-width: 0;
+  }
+  .section-nav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: visible;
+  }
+  .nav-btn {
+    width: 100%;
+    min-width: 0;
+    white-space: normal;
+  }
+  .header-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .stat-box {
+    min-width: 0;
+  }
+  .table-wrap,
+  .summary-table {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+  .summary-table {
+    min-width: 560px;
+  }
+  .profile-chips span,
+  .bank-progress-item,
+  .welcome-grid span,
+  .admin-row,
+  .stats-card {
+    overflow-wrap: anywhere;
   }
 }

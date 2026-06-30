@@ -484,6 +484,19 @@ let clasePendienteIngreso = null;
 let adminClaseActiva = localStorage.getItem(STORAGE_ADMIN_CLASE) || "";
 let adminClases = [];
 
+function rolUsuario(perfil = perfilActual) {
+  if (usuarioActual?.email?.toLowerCase() === ADMIN_EMAIL) return "teacher";
+  return perfil?.role || perfil?.tipoCuenta || "";
+}
+
+function esProfesor(perfil = perfilActual) {
+  return rolUsuario(perfil) === "teacher";
+}
+
+function requiereSeleccionRol(perfil = perfilActual) {
+  return !!usuarioActual && !rolUsuario(perfil);
+}
+
 function aulaActualValida() {
   return !!grupoActivo && grupoActivo !== "admin";
 }
@@ -2117,6 +2130,7 @@ function mostrarAuthInicial() {
   document.getElementById("loginCard")?.classList.add("hidden");
   document.getElementById("forgotUserCard")?.classList.add("hidden");
   document.getElementById("forgotPasswordCard")?.classList.add("hidden");
+  document.getElementById("roleChoiceCard")?.classList.add("hidden");
   document.querySelector(".auth-tabs")?.classList.remove("hidden");
   document.querySelector(".auth-divider")?.classList.remove("hidden");
   document.getElementById("loginPanel")?.classList.remove("hidden");
@@ -2146,6 +2160,7 @@ function cerrarAuthCard() {
 }
 
 function mostrarEntradaGrupo() {
+  document.getElementById("roleChoiceCard")?.classList.add("hidden");
   document.getElementById("loginCard")?.classList.remove("hidden");
   document.querySelector(".auth-tabs")?.classList.add("hidden");
   document.querySelector(".auth-divider")?.classList.add("hidden");
@@ -2499,7 +2514,11 @@ async function guardarPerfilUsuario(extra = {}) {
     uid,
     email,
     displayName: extra.displayName || perfilActual?.displayName || usuarioActual?.displayName || "",
-    isAdmin: email === ADMIN_EMAIL,
+    role: extra.role || perfilActual?.role || (email === ADMIN_EMAIL ? "teacher" : ""),
+    tipoCuenta: extra.tipoCuenta || perfilActual?.tipoCuenta || extra.role || (email === ADMIN_EMAIL ? "teacher" : ""),
+    isAdmin: Object.prototype.hasOwnProperty.call(extra, "isAdmin")
+      ? extra.isAdmin
+      : (extra.role === "teacher" || perfilActual?.role === "teacher" || email === ADMIN_EMAIL),
     grupo: Object.prototype.hasOwnProperty.call(extra, "grupo") ? extra.grupo : (grupoActivo || perfilActual?.grupo || ""),
     classId: Object.prototype.hasOwnProperty.call(extra, "classId") ? extra.classId : (claseActiva || perfilActual?.classId || ""),
     className: extra.className || perfilActual?.className || claseActualInfo?.name || "",
@@ -2520,25 +2539,25 @@ async function cargarPerfilUsuario() {
 }
 
 async function prepararSesionAutenticada() {
-  modoAdmin = usuarioActual?.email?.toLowerCase() === ADMIN_EMAIL;
+  await cargarPerfilUsuario();
+  if (requiereSeleccionRol()) {
+    await mostrarSplashBienvenida();
+    mostrarSeleccionRol();
+    return;
+  }
+  modoAdmin = esProfesor();
   if (modoAdmin) {
-    try {
-      await cargarPerfilUsuario();
-    } catch (err) {
-      console.warn("No se pudo cargar el perfil admin.", err);
-    }
     await mostrarSplashBienvenida();
     grupoActivo = "admin";
     localStorage.setItem(STORAGE_GRUPO, grupoActivo);
     document.body.classList.remove("group-locked");
     aplicarModoUsuario();
     activarNav(seccionRestaurable());
-    guardarPerfilUsuario({ isAdmin: true, grupo: "admin" }).catch(err => console.warn("No se pudo guardar perfil admin.", err));
+    guardarPerfilUsuario({ role: "teacher", isAdmin: true, grupo: "admin" }).catch(err => console.warn("No se pudo guardar perfil admin.", err));
     cargarClasesAdmin().catch(err => console.warn("No se pudieron cargar clases admin.", err));
     return;
   }
 
-  await cargarPerfilUsuario();
   await cargarEstadoRemoto();
   await mostrarSplashBienvenida();
 
@@ -2650,6 +2669,7 @@ async function registrarEmail() {
   const nombre = document.getElementById("registerName").value.trim();
   const email = document.getElementById("registerEmail").value.trim().toLowerCase();
   const password = document.getElementById("registerPassword").value;
+  const role = document.getElementById("registerRole")?.value || "";
   const perfilRegistro = perfilBasicoDesdeFormulario("register");
   if (nombre.length < 3) {
     mostrarWarn("Escribe un nombre de usuario de mínimo 3 caracteres.");
@@ -2657,6 +2677,10 @@ async function registrarEmail() {
   }
   if (!email.endsWith("@gmail.com")) {
     mostrarWarn("Solo se permiten correos @gmail.com.");
+    return;
+  }
+  if (!["teacher", "student"].includes(role)) {
+    mostrarWarn("Selecciona si tu cuenta será de profesor o estudiante.");
     return;
   }
   if (!actualizarReglasPassword() || !validarPassword(password)) {
@@ -2675,7 +2699,9 @@ async function registrarEmail() {
       uid: cred.user.uid,
       email,
       displayName: nombre,
-      isAdmin: email === ADMIN_EMAIL,
+      role,
+      tipoCuenta: role,
+      isAdmin: role === "teacher" || email === ADMIN_EMAIL,
       phoneVerified: false,
       ...perfilRegistro
     });
@@ -2714,6 +2740,9 @@ async function guardarDatosGoogleIniciales(user) {
     googlePhotoURL: googleProvider?.photoURL || user.photoURL || "",
     displayName: existente.displayName || perfilActual?.displayName || user.displayName || googleProvider?.displayName || "",
     photoData: existente.photoData || perfilActual?.photoData || googleProvider?.photoURL || user.photoURL || "",
+    role: existente.role || perfilActual?.role || "",
+    tipoCuenta: existente.tipoCuenta || perfilActual?.tipoCuenta || "",
+    isAdmin: existente.isAdmin || existente.role === "teacher" || user.email?.toLowerCase() === ADMIN_EMAIL,
     grupo: existente.grupo || grupoActivo || "",
     classId: existente.classId || claseActiva || "",
     className: existente.className || claseActualInfo?.name || "",
@@ -2740,6 +2769,7 @@ async function recuperarPassword() {
 function abrirPanelRecuperarPassword() {
   document.getElementById("loginCard")?.classList.add("hidden");
   document.getElementById("forgotPasswordCard")?.classList.remove("hidden");
+  document.getElementById("forgotPasswordPanel")?.classList.remove("hidden");
   document.getElementById("forgotPasswordEmail").value = document.getElementById("loginEmail")?.value || "";
   setStatus("forgotPasswordStatus", "");
 }
@@ -2747,11 +2777,34 @@ function abrirPanelRecuperarPassword() {
 function abrirPanelRecuperarUsuario() {
   document.getElementById("loginCard")?.classList.add("hidden");
   document.getElementById("forgotUserCard")?.classList.remove("hidden");
+  document.getElementById("recoverEmailPanel")?.classList.remove("hidden");
   poblarPhoneCodes("recoverPhoneCode", document.getElementById("recoverPhoneCode")?.value || "+57");
   const backBtn = document.getElementById("btnRecoverBack");
   if (backBtn) backBtn.textContent = "Volver al inicio de sesión";
   setRecoverStep(1);
   setStatus("recoverStatus", "");
+}
+
+function mostrarSeleccionRol() {
+  document.body.classList.add("group-locked");
+  document.getElementById("loginCard")?.classList.add("hidden");
+  document.getElementById("forgotUserCard")?.classList.add("hidden");
+  document.getElementById("forgotPasswordCard")?.classList.add("hidden");
+  document.getElementById("roleChoiceCard")?.classList.remove("hidden");
+  setStatus("roleChoiceStatus", "");
+}
+
+async function guardarRolUsuario(role) {
+  if (!["teacher", "student"].includes(role)) return;
+  setStatus("roleChoiceStatus", "Guardando tipo de cuenta...");
+  await guardarPerfilUsuario({
+    role,
+    tipoCuenta: role,
+    isAdmin: role === "teacher",
+    grupo: role === "teacher" ? "admin" : (grupoActivo || "")
+  });
+  document.getElementById("roleChoiceCard")?.classList.add("hidden");
+  await prepararSesionAutenticada();
 }
 
 function volverLoginDesdeRecuperacion() {
@@ -3239,10 +3292,22 @@ async function registrarEstudiantesEnClase(claseId, raw, status) {
 async function eliminarClaseAdmin(classId) {
   const clase = aulaPorId(classId);
   if (!clase) return;
-  if (!confirm(`¿Eliminar el aula "${clase.name}"? También se retirarán sus estudiantes de la lista del aula.`)) return;
+  if (!confirm(`¿Eliminar el aula "${clase.name}"? Se eliminarán todos los estudiantes inscritos en dicha aula, así como avances, métricas y resultados asociados.`)) return;
   const estudiantes = await estudiantesDeClase(classId);
+  const estadosAula = await getDocs(query(collection(db, "studentState"), where("aulaId", "==", classId)));
+  const estadosClase = await getDocs(query(collection(db, "studentState"), where("claseId", "==", classId)));
+  const perfilesAula = await getDocs(query(collection(db, "users"), where("classId", "==", classId)));
+  const estadosIds = new Map([...estadosAula.docs, ...estadosClase.docs].map(item => [item.id, item]));
   await Promise.all([
     ...estudiantes.map(est => deleteDoc(doc(db, "classStudents", est.id))),
+    ...[...estadosIds.values()].map(item => deleteDoc(item.ref)),
+    ...perfilesAula.docs.map(item => updateDoc(item.ref, {
+      grupo: "",
+      classId: "",
+      className: "",
+      classCode: "",
+      updatedAt: serverTimestamp()
+    })),
     deleteDoc(refPermisosGrupo(classId)).catch(() => {}),
     deleteDoc(refClase(classId))
   ]);
@@ -3360,6 +3425,9 @@ document.getElementById("btnRecoverUserClose")?.addEventListener("click", volver
 document.getElementById("btnRecoverBack")?.addEventListener("click", volverLoginDesdeRecuperacion);
 document.getElementById("btnRecoverSendCode")?.addEventListener("click", enviarCodigoRecuperacion);
 document.getElementById("btnRecoverVerifyCode")?.addEventListener("click", verificarCodigoRecuperacion);
+document.querySelectorAll("[data-role-choice]").forEach(btn => {
+  btn.addEventListener("click", () => guardarRolUsuario(btn.dataset.roleChoice));
+});
 document.getElementById("tabLogin")?.addEventListener("click", () => cambiarAuthMode("login"));
 document.getElementById("tabRegister")?.addEventListener("click", () => cambiarAuthMode("register"));
 document.getElementById("registerPassword")?.addEventListener("input", actualizarReglasPassword);
@@ -3396,6 +3464,10 @@ document.getElementById("adminClassSelect")?.addEventListener("change", e => {
   if (!document.getElementById("adminMetricsPanel")?.hidden) renderAdminStats();
 });
 document.getElementById("btnBulkStudents")?.addEventListener("click", registrarEstudiantesBulk);
+document.getElementById("btnDeleteSelectedClass")?.addEventListener("click", () => {
+  const selected = document.getElementById("adminClassSelect")?.value || adminClaseActiva;
+  eliminarClaseAdmin(selected);
+});
 document.getElementById("adminStudentsByClass")?.addEventListener("input", e => {
   const search = e.target.closest("[data-class-search]");
   if (!search) return;

@@ -192,6 +192,11 @@
         <div class="auth-form hidden" id="registerPanel">
         <input type="text" id="registerName" class="admin-input" placeholder="Nombre de usuario" autocomplete="name" />
         <input type="email" id="registerEmail" class="admin-input" placeholder="Correo @gmail.com" autocomplete="email" />
+        <select id="registerRole" class="admin-input" aria-label="Tipo de cuenta">
+          <option value="">Tipo de cuenta</option>
+          <option value="student">Estudiante</option>
+          <option value="teacher">Profesor</option>
+        </select>
         <div class="profile-form-grid">
           <select id="registerPhoneCode" class="admin-input" aria-label="Indicador del país"></select>
           <input type="tel" id="registerPhone" class="admin-input" placeholder="Número de teléfono" autocomplete="tel" />
@@ -248,6 +253,25 @@
           <p class="bank-status" id="forgotPasswordStatus"></p>
           <button class="btn btn-outline" id="btnForgotPasswordBack" type="button">Volver al inicio de sesión</button>
         </div>
+      </div>
+    </div>
+
+    <div class="auth-shell hidden" id="roleChoiceCard" role="dialog" aria-modal="true" aria-labelledby="roleChoiceTitle">
+      <div class="start-screen group-gate auth-gate">
+        <img class="auth-logo" src="assets/logo.png" alt="Matemáticas En Tu Bolsillo" />
+        <h2 id="roleChoiceTitle">Elige tu tipo de cuenta</h2>
+        <p>Selecciona cómo usarás la plataforma. Esta elección define si entrarás como profesor o estudiante.</p>
+        <div class="role-choice-grid">
+          <button class="role-choice-card" data-role-choice="teacher" type="button">
+            <strong>Profesor</strong>
+            <span>Crear aulas, gestionar estudiantes, bancos, permisos y métricas.</span>
+          </button>
+          <button class="role-choice-card" data-role-choice="student" type="button">
+            <strong>Estudiante</strong>
+            <span>Ingresar a un aula con código y presentar exámenes.</span>
+          </button>
+        </div>
+        <p class="bank-status" id="roleChoiceStatus"></p>
       </div>
     </div>
 
@@ -849,6 +873,10 @@
           </div>
           <button class="btn btn-secondary" id="btnCreateClass" type="button">Crear aula</button>
           <p class="bank-status" id="adminClassStatus"></p>
+          <div class="danger-inline">
+            <p>Si elimina aula, estará eliminando a todos los estudiantes inscritos en dicha aula, así como avances, métricas, etc absolutamente todo.</p>
+            <button class="btn btn-outline" id="btnDeleteSelectedClass" type="button">Eliminar aula seleccionada</button>
+          </div>
         </details>
         <details class="accordion-card">
           <summary>Cambiar estudiante de aula</summary>
