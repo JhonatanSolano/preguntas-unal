@@ -3201,9 +3201,67 @@ function mostrarSoporteRecuperacion(mostrar = true) {
 function toggleWhatsappWidget() {
   const widget = document.getElementById("whatsappWidget");
   const btn = document.getElementById("btnWhatsappInfo");
+  ajustarLadoWhatsapp();
   const abierto = !widget?.classList.contains("open");
   widget?.classList.toggle("open", abierto);
   btn?.setAttribute("aria-expanded", String(abierto));
+}
+
+function ajustarLadoWhatsapp() {
+  const widget = document.getElementById("whatsappWidget");
+  if (!widget) return;
+  const rect = widget.getBoundingClientRect();
+  widget.classList.toggle("side-right", rect.left < window.innerWidth / 2);
+}
+
+function activarArrastreWhatsapp() {
+  const widget = document.getElementById("whatsappWidget");
+  const btn = document.getElementById("btnWhatsappInfo");
+  if (!widget || !btn) return;
+
+  let arrastrando = false;
+  let movido = false;
+  let offsetX = 0;
+  let offsetY = 0;
+  let startX = 0;
+  let startY = 0;
+
+  const ubicar = (clientX, clientY) => {
+    const rect = widget.getBoundingClientRect();
+    const margen = 10;
+    const maxX = window.innerWidth - rect.width - margen;
+    const maxY = window.innerHeight - rect.height - margen;
+    widget.style.left = `${Math.min(Math.max(clientX - offsetX, margen), Math.max(margen, maxX))}px`;
+    widget.style.top = `${Math.min(Math.max(clientY - offsetY, margen), Math.max(margen, maxY))}px`;
+    widget.style.right = "auto";
+    widget.style.bottom = "auto";
+    ajustarLadoWhatsapp();
+  };
+
+  btn.addEventListener("pointerdown", e => {
+    arrastrando = true;
+    movido = false;
+    const rect = widget.getBoundingClientRect();
+    startX = e.clientX;
+    startY = e.clientY;
+    offsetX = e.clientX - rect.left;
+    offsetY = e.clientY - rect.top;
+    btn.setPointerCapture?.(e.pointerId);
+  });
+  btn.addEventListener("pointermove", e => {
+    if (!arrastrando) return;
+    movido = movido || Math.hypot(e.clientX - startX, e.clientY - startY) > 6;
+    if (!movido) return;
+    widget.classList.add("dragging");
+    ubicar(e.clientX, e.clientY);
+  });
+  btn.addEventListener("pointerup", e => {
+    if (!arrastrando) return;
+    arrastrando = false;
+    widget.classList.remove("dragging");
+    btn.releasePointerCapture?.(e.pointerId);
+    if (!movido) toggleWhatsappWidget();
+  });
 }
 
 function actualizarCronometroRecuperacion() {
@@ -3980,7 +4038,7 @@ document.getElementById("btnRecoverUserClose")?.addEventListener("click", volver
 document.getElementById("btnRecoverBack")?.addEventListener("click", volverLoginDesdeRecuperacion);
 document.getElementById("btnRecoverSendCode")?.addEventListener("click", enviarCodigoRecuperacion);
 document.getElementById("btnRecoverVerifyCode")?.addEventListener("click", verificarCodigoRecuperacion);
-document.getElementById("btnWhatsappInfo")?.addEventListener("click", toggleWhatsappWidget);
+activarArrastreWhatsapp();
 document.getElementById("btnClassLater")?.addEventListener("click", continuarSinAula);
 document.querySelectorAll("[data-go-exam]").forEach(btn => {
   btn.addEventListener("click", () => {

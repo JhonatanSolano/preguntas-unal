@@ -944,9 +944,14 @@ body.admin-mode .admin-exit-dock {
   right: clamp(1rem, 3vw, 1.6rem);
   bottom: clamp(1rem, 3vw, 1.6rem);
   z-index: 90;
-  display: grid;
-  justify-items: end;
+  display: flex;
+  align-items: end;
+  flex-direction: row-reverse;
   gap: .7rem;
+  touch-action: none;
+}
+.whatsapp-widget.side-right {
+  flex-direction: row;
 }
 .whatsapp-float {
   width: 58px;
@@ -963,9 +968,21 @@ body.admin-mode .admin-exit-dock {
   box-shadow: 0 16px 34px rgba(37, 211, 102, .35);
   animation: whatsappPulse 2.8s ease-in-out infinite;
   border: 0;
+  cursor: grab;
+  flex: 0 0 auto;
+}
+.whatsapp-float:active { cursor: grabbing; }
+.whatsapp-float svg {
+  width: 36px;
+  height: 36px;
+  fill: currentColor;
 }
 .whatsapp-float:hover {
   transform: translateY(-2px) scale(1.03);
+}
+.whatsapp-widget.dragging .whatsapp-card {
+  opacity: 0;
+  pointer-events: none;
 }
 .whatsapp-card {
   width: min(310px, calc(100vw - 2rem));
@@ -974,13 +991,13 @@ body.admin-mode .admin-exit-dock {
   background: #fff;
   box-shadow: 0 18px 46px rgba(6,52,95,.2);
   border: 1px solid rgba(37, 211, 102, .3);
-  transform: translateX(24px) translateY(10px);
+  transform: translateX(20px);
   opacity: 0;
   pointer-events: none;
   transition: transform .24s ease, opacity .24s ease;
 }
 .whatsapp-widget.open .whatsapp-card {
-  transform: translateX(0) translateY(0);
+  transform: translateX(0);
   opacity: 1;
   pointer-events: auto;
 }
@@ -2563,6 +2580,19 @@ body.admin-mode .admin-exit-dock {
     max-width: 100%;
     padding-inline: .9rem;
   }
+  .admin-settings .accordion-card > .btn,
+  .settings-shell .accordion-card > .btn,
+  .profile-panel.accordion-card > .btn {
+    width: calc(100% - 2rem);
+    max-width: calc(100% - 2rem);
+    margin-inline: 1rem;
+  }
+  .admin-settings .accordion-card .result-actions .btn,
+  .settings-shell .accordion-card .result-actions .btn {
+    width: 100%;
+    max-width: 100%;
+    margin-inline: 0;
+  }
   .admin-settings select.admin-input,
   .settings-shell select.admin-input,
   .profile-panel select.admin-input {
@@ -2575,12 +2605,17 @@ body.admin-mode .admin-exit-dock {
   .whatsapp-widget {
     right: .9rem;
     bottom: .9rem;
+    max-width: calc(100vw - 1.8rem);
   }
   .whatsapp-float {
     width: 52px;
     height: 52px;
   }
+  .whatsapp-float svg {
+    width: 32px;
+    height: 32px;
+  }
   .whatsapp-card {
-    width: min(292px, calc(100vw - 1.8rem));
+    width: min(250px, calc(100vw - 5rem));
   }
 }
