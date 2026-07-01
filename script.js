@@ -1375,14 +1375,14 @@ function preguntasNivelMedioParaBanco(banco, aulaId = adminClaseActiva || grupoA
 
 function renderQuestionPreviewList(preguntas) {
   return preguntas.map(q => `
-    <article class="question-preview">
-      <strong>Pregunta ${q.id}</strong>
+    <details class="accordion-card question-preview">
+      <summary>Pregunta ${q.id}</summary>
       <p>${q.pregunta || ""}</p>
       ${q.formula ? `<div class="q-formula">${q.formula}</div>` : ""}
       <ol type="A">
         ${q.opciones.map((opcion, idx) => `<li class="${idx === q.correcta ? "correct-answer" : ""}">${opcion}</li>`).join("")}
       </ol>
-    </article>
+    </details>
   `).join("");
 }
 
@@ -3198,6 +3198,14 @@ function mostrarSoporteRecuperacion(mostrar = true) {
   document.getElementById("btnRecoverSupport")?.classList.toggle("hidden", !mostrar);
 }
 
+function toggleWhatsappWidget() {
+  const widget = document.getElementById("whatsappWidget");
+  const btn = document.getElementById("btnWhatsappInfo");
+  const abierto = !widget?.classList.contains("open");
+  widget?.classList.toggle("open", abierto);
+  btn?.setAttribute("aria-expanded", String(abierto));
+}
+
 function actualizarCronometroRecuperacion() {
   const countdown = document.getElementById("recoverCountdown");
   const sendBtn = document.getElementById("btnRecoverSendCode");
@@ -3972,6 +3980,7 @@ document.getElementById("btnRecoverUserClose")?.addEventListener("click", volver
 document.getElementById("btnRecoverBack")?.addEventListener("click", volverLoginDesdeRecuperacion);
 document.getElementById("btnRecoverSendCode")?.addEventListener("click", enviarCodigoRecuperacion);
 document.getElementById("btnRecoverVerifyCode")?.addEventListener("click", verificarCodigoRecuperacion);
+document.getElementById("btnWhatsappInfo")?.addEventListener("click", toggleWhatsappWidget);
 document.getElementById("btnClassLater")?.addEventListener("click", continuarSinAula);
 document.querySelectorAll("[data-go-exam]").forEach(btn => {
   btn.addEventListener("click", () => {
