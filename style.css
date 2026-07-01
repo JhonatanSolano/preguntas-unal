@@ -2190,6 +2190,24 @@ body.admin-mode .admin-exit-dock {
 .switch input:checked + .slider::before {
   transform: translateX(24px);
 }
+.notification-setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .85rem 0;
+}
+.notification-setting strong {
+  display: block;
+  color: var(--c-navy);
+  margin-bottom: .25rem;
+}
+.notification-setting p {
+  margin: 0;
+  color: var(--c-muted);
+  font-size: .92rem;
+  line-height: 1.45;
+}
 .support-panel { max-width: 620px; margin-inline: auto; }
 .support-link { text-decoration: none; }
 
@@ -2338,6 +2356,7 @@ body.admin-mode .admin-exit-dock {
   .profile-form-grid,
   .profile-form-grid.three,
   .admin-login,
+  .notification-setting,
   .bank-grid,
   .password-settings-grid,
   .auth-tabs {
@@ -2345,8 +2364,11 @@ body.admin-mode .admin-exit-dock {
   }
   .profile-form-grid,
   .profile-form-grid.three,
-  .password-settings-grid {
+  .password-settings-grid,
+  .notification-setting {
     grid-template-columns: minmax(0, 1fr);
+    flex-direction: column;
+    align-items: flex-start;
   }
   .admin-input,
   textarea.admin-input,

@@ -932,6 +932,20 @@
             </section>
           </div>
         </details>
+        <details class="accordion-card">
+          <summary>Notificaciones</summary>
+          <div class="notification-setting">
+            <div>
+              <strong>Activar notificaciones de la app</strong>
+              <p>El navegador pedirá permiso la primera vez. Puedes cambiarlo después en la configuración del dispositivo o navegador.</p>
+            </div>
+            <label class="switch" aria-label="Activar notificaciones">
+              <input type="checkbox" id="studentNotificationToggle" data-notification-toggle />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <p class="bank-status" id="studentNotificationStatus"></p>
+        </details>
         <details class="accordion-card danger-zone">
           <summary>Cuenta</summary>
           <p>Eliminar la cuenta es irreversible. Se solicitará contraseña y confirmación antes de borrar datos.</p>
@@ -995,6 +1009,20 @@
           <summary>Estudiantes por aula</summary>
           <p>Da clic en un aula para desplegar sus estudiantes, buscarlos, cambiarlos de aula o eliminarlos.</p>
           <div id="adminStudentsByClass" class="class-students-list"></div>
+        </details>
+        <details class="accordion-card">
+          <summary>Notificaciones</summary>
+          <div class="notification-setting">
+            <div>
+              <strong>Activar notificaciones de la app</strong>
+              <p>El navegador pedirá permiso la primera vez. Úsalo para futuras alertas académicas y avisos de la plataforma.</p>
+            </div>
+            <label class="switch" aria-label="Activar notificaciones">
+              <input type="checkbox" id="adminNotificationToggle" data-notification-toggle />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <p class="bank-status" id="adminNotificationStatus"></p>
         </details>
       </section>
     </div>
@@ -1086,6 +1114,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260630-2"></script>
+  <script type="module" src="script.js?v=20260630-3"></script>
 </body>
 </html>

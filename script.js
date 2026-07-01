@@ -1416,12 +1416,77 @@ function renderAdminWelcome() {
 function renderConfiguracion() {
   document.querySelector(".student-settings")?.classList.toggle("hidden", modoAdmin);
   document.getElementById("adminSettingsPanel")?.classList.toggle("hidden", !modoAdmin);
+  actualizarEstadoNotificaciones();
   if (modoAdmin) renderAdminPanel();
   else {
     document.getElementById("settingsBankPanel")?.classList.toggle("hidden", !aulaActualValida());
     document.getElementById("createPasswordSection")?.classList.toggle("hidden", tienePasswordActual());
     document.getElementById("updatePasswordSection")?.classList.toggle("hidden", !tienePasswordActual());
     actualizarBancoEstudiante();
+  }
+}
+
+function soporteNotificaciones() {
+  return "Notification" in window;
+}
+
+function notificationStatusId() {
+  return modoAdmin ? "adminNotificationStatus" : "studentNotificationStatus";
+}
+
+function actualizarEstadoNotificaciones() {
+  const supported = soporteNotificaciones();
+  const enabled = !!perfilActual?.notificationsEnabled && supported && Notification.permission === "granted";
+  document.querySelectorAll("[data-notification-toggle]").forEach(toggle => {
+    toggle.checked = enabled;
+    toggle.disabled = !supported;
+  });
+  const statusId = notificationStatusId();
+  const status = document.getElementById(statusId);
+  if (!status) return;
+  status.classList.toggle("error", !supported || Notification.permission === "denied");
+  if (!supported) status.textContent = "Este navegador no permite notificaciones.";
+  else if (Notification.permission === "denied") status.textContent = "El permiso está bloqueado. Actívalo desde la configuración del navegador o dispositivo.";
+  else if (enabled) status.textContent = "Notificaciones activadas.";
+  else status.textContent = "Notificaciones desactivadas.";
+}
+
+async function cambiarNotificaciones(e) {
+  if (!usuarioActual) return;
+  const toggle = e.target;
+  const quiereActivar = toggle.checked;
+  const status = document.getElementById(toggle.id === "adminNotificationToggle" ? "adminNotificationStatus" : "studentNotificationStatus");
+  if (!soporteNotificaciones()) {
+    toggle.checked = false;
+    if (status) {
+      status.textContent = "Este navegador no permite notificaciones.";
+      status.classList.add("error");
+    }
+    return;
+  }
+  if (!quiereActivar) {
+    await guardarPerfilUsuario({ notificationsEnabled: false, notificationPermission: Notification.permission });
+    actualizarEstadoNotificaciones();
+    return;
+  }
+  const permission = Notification.permission === "default"
+    ? await Notification.requestPermission()
+    : Notification.permission;
+  if (permission !== "granted") {
+    toggle.checked = false;
+    await guardarPerfilUsuario({ notificationsEnabled: false, notificationPermission: permission });
+    actualizarEstadoNotificaciones();
+    return;
+  }
+  await guardarPerfilUsuario({ notificationsEnabled: true, notificationPermission: permission });
+  actualizarEstadoNotificaciones();
+  try {
+    new Notification(APP_CONFIG.name, {
+      body: "Notificaciones activadas correctamente.",
+      icon: "assets/icon-180.png"
+    });
+  } catch {
+    // Algunos navegadores aceptan el permiso pero bloquean la notificación de prueba.
   }
 }
 
@@ -3957,6 +4022,9 @@ document.querySelectorAll(".accordion-card").forEach(details => {
 });
 document.querySelectorAll("[data-toggle-password]").forEach(btn => {
   btn.addEventListener("click", () => alternarPassword(btn.dataset.togglePassword));
+});
+document.querySelectorAll("[data-notification-toggle]").forEach(toggle => {
+  toggle.addEventListener("change", cambiarNotificaciones);
 });
 
 document.addEventListener("keydown", e => {
