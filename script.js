@@ -2557,12 +2557,15 @@ function renderProfile() {
   const profile = perfilActual || {};
   const displayName = profile.displayName || usuarioActual.displayName || "";
   const photo = profile.photoData || usuarioActual.photoURL || "";
+  const activeClassCount = adminClases.filter(c => (c.status || "activa") === "activa").length;
   document.getElementById("profileNameTitle").textContent = displayName || "Perfil";
   document.getElementById("profileEmailText").textContent = usuarioActual.email || "";
   document.getElementById("profileAgeChip").textContent = `Edad: ${calcularEdad(profile.birthDate)}`;
   const groupChip = document.getElementById("profileGroupChip");
   if (groupChip) groupChip.remove();
-  document.getElementById("profileClassChip").textContent = `Aula: ${profile.className || claseActualInfo?.name || "sin aula"}`;
+  document.getElementById("profileClassChip").textContent = modoAdmin
+    ? `Aulas activas: ${activeClassCount}`
+    : `Aula: ${profile.className || claseActualInfo?.name || "sin aula"}`;
   document.getElementById("profileCreatedChip").textContent = `Registro: ${profile.createdLabel || "—"}`;
   document.getElementById("profilePhoneChip").textContent = profile.phoneVerified ? "Teléfono verificado" : "Teléfono sin verificar";
   document.getElementById("profilePhotoPreview").src = photo || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Crect width='120' height='120' rx='60' fill='%23e8f0fb'/%3E%3Ctext x='60' y='68' text-anchor='middle' font-size='44' fill='%23003865'%3E%F0%9F%91%A4%3C/text%3E%3C/svg%3E";
@@ -2668,6 +2671,7 @@ async function cargarClasesAdmin() {
     adminGrupoActual = adminClaseActiva || idsAulasAdmin()[0] || "";
     await cargarPermisosRemotos(idsAulasAdmin());
     renderClassSelectors();
+    renderProfile();
     escucharEstudiantesAdmin();
     renderAdminStudentsByClass().catch(err => console.warn("No se pudieron cargar estudiantes.", err));
   } catch (err) {
@@ -3214,6 +3218,19 @@ function ajustarLadoWhatsapp() {
   widget.classList.toggle("side-right", rect.left < window.innerWidth / 2);
 }
 
+function ajustarWhatsappAlBorde() {
+  const widget = document.getElementById("whatsappWidget");
+  if (!widget) return;
+  const rect = widget.getBoundingClientRect();
+  const margen = 10;
+  const x = rect.left + rect.width / 2 < window.innerWidth / 2
+    ? margen
+    : window.innerWidth - rect.width - margen;
+  widget.style.left = `${Math.max(margen, x)}px`;
+  widget.style.right = "auto";
+  ajustarLadoWhatsapp();
+}
+
 function activarArrastreWhatsapp() {
   const widget = document.getElementById("whatsappWidget");
   const btn = document.getElementById("btnWhatsappInfo");
@@ -3253,6 +3270,8 @@ function activarArrastreWhatsapp() {
     movido = movido || Math.hypot(e.clientX - startX, e.clientY - startY) > 6;
     if (!movido) return;
     widget.classList.add("dragging");
+    widget.classList.remove("open");
+    btn.setAttribute("aria-expanded", "false");
     ubicar(e.clientX, e.clientY);
   });
   btn.addEventListener("pointerup", e => {
@@ -3260,6 +3279,7 @@ function activarArrastreWhatsapp() {
     arrastrando = false;
     widget.classList.remove("dragging");
     btn.releasePointerCapture?.(e.pointerId);
+    if (movido) ajustarWhatsappAlBorde();
     if (!movido) toggleWhatsappWidget();
   });
 }

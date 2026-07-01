@@ -944,18 +944,13 @@ body.admin-mode .admin-exit-dock {
   right: clamp(1rem, 3vw, 1.6rem);
   bottom: clamp(1rem, 3vw, 1.6rem);
   z-index: 90;
-  display: flex;
-  align-items: end;
-  flex-direction: row-reverse;
-  gap: .7rem;
-  touch-action: none;
-}
-.whatsapp-widget.side-right {
-  flex-direction: row;
-}
-.whatsapp-float {
   width: 58px;
   height: 58px;
+  touch-action: none;
+}
+.whatsapp-float {
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
   background: #25d366;
   color: #fff;
@@ -969,7 +964,6 @@ body.admin-mode .admin-exit-dock {
   animation: whatsappPulse 2.8s ease-in-out infinite;
   border: 0;
   cursor: grab;
-  flex: 0 0 auto;
 }
 .whatsapp-float:active { cursor: grabbing; }
 .whatsapp-float svg {
@@ -985,6 +979,9 @@ body.admin-mode .admin-exit-dock {
   pointer-events: none;
 }
 .whatsapp-card {
+  position: absolute;
+  right: calc(100% + .7rem);
+  bottom: 0;
   width: min(310px, calc(100vw - 2rem));
   padding: 1rem;
   border-radius: var(--radius-md);
@@ -995,6 +992,11 @@ body.admin-mode .admin-exit-dock {
   opacity: 0;
   pointer-events: none;
   transition: transform .24s ease, opacity .24s ease;
+}
+.whatsapp-widget.side-right .whatsapp-card {
+  right: auto;
+  left: calc(100% + .7rem);
+  transform: translateX(-20px);
 }
 .whatsapp-widget.open .whatsapp-card {
   transform: translateX(0);
@@ -2605,11 +2607,12 @@ body.admin-mode .admin-exit-dock {
   .whatsapp-widget {
     right: .9rem;
     bottom: .9rem;
-    max-width: calc(100vw - 1.8rem);
-  }
-  .whatsapp-float {
     width: 52px;
     height: 52px;
+  }
+  .whatsapp-float {
+    width: 100%;
+    height: 100%;
   }
   .whatsapp-float svg {
     width: 32px;
