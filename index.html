@@ -302,11 +302,19 @@
           <input type="text" id="recoverCodeInput" class="admin-input" placeholder="Código SMS" inputmode="numeric" />
           <button class="btn btn-primary" id="btnRecoverVerifyCode" type="button">Ver correo registrado</button>
           <p class="bank-status" id="recoverStatus"></p>
+          <a class="btn btn-outline hidden" id="btnRecoverSupport"
+             href="https://wa.me/573112454282?text=Hola%2C%20necesito%20ayuda%20para%20recuperar%20mi%20usuario%20de%20Matem%C3%A1ticas%20En%20Tu%20Bolsillo."
+             target="_blank" rel="noopener">Contactar soporte</a>
           <div id="recoverRecaptcha"></div>
           <button class="btn btn-outline" id="btnRecoverBack" type="button">Volver al inicio de sesión</button>
         </div>
       </div>
     </div>
+    <a class="whatsapp-float"
+       href="https://wa.me/573112454282?text=Hola%2C%20quiero%20informaci%C3%B3n%20sobre%20los%20planes%20y%20paquetes%20de%20Matem%C3%A1ticas%20En%20Tu%20Bolsillo."
+       target="_blank" rel="noopener" aria-label="WhatsApp">
+      <span>WA</span>
+    </a>
     <footer class="public-footer" id="contacto">
       <div class="footer-columns">
         <div>
@@ -392,7 +400,7 @@
     <button class="drawer-link" data-section="perfil" type="button">Perfil</button>
     <button class="drawer-link" data-section="examenes" type="button">Exámenes</button>
     <button class="drawer-link" data-section="configuracion" type="button">Configuración</button>
-    <button class="drawer-link" data-section="estadisticas" type="button">Estadísticas</button>
+    <button class="drawer-link student-only" data-section="estadisticas" type="button">Estadísticas</button>
     <button class="drawer-link" data-section="soporte" type="button">Soporte</button>
     <button class="drawer-link admin-only" data-section="adminMetricas" type="button">Métricas y estadísticas</button>
     <button class="drawer-link danger" id="btnDrawerSalirApp" type="button">Cerrar sesión</button>
@@ -430,7 +438,7 @@
       <h2>Exámenes</h2>
       <p id="examsHubIntro">Elige el examen que vas a presentar o revisar.</p>
       <p class="warn-msg" id="examsLockedMsg" hidden>Primero debes pertenecer a una clase o aula.</p>
-      <div class="exam-hub-grid">
+      <div class="exam-hub-grid" id="studentExamHub">
         <button class="exam-hub-card" data-go-exam="diagnostico" type="button">
           <strong>Diagnóstico</strong>
           <span>15 preguntas · 15 minutos</span>
@@ -444,6 +452,7 @@
           <span>10 preguntas · 15 minutos</span>
         </button>
       </div>
+      <div class="admin-exam-bank-panel hidden" id="adminExamBankPanel"></div>
     </div>
   </main>
 
@@ -802,8 +811,8 @@
         </div>
       </section>
 
-      <section class="profile-panel">
-        <h3>Datos personales</h3>
+      <details class="profile-panel accordion-card" id="personalDataPanel">
+        <summary>Datos personales</summary>
         <div class="profile-form-grid">
           <label>Nombre de usuario<input type="text" id="profileName" class="admin-input" /></label>
           <label>Fecha de nacimiento<input type="date" id="profileBirth" class="admin-input" /></label>
@@ -826,7 +835,7 @@
         </div>
         <button class="btn btn-primary" id="btnSaveProfile" type="button">Guardar perfil</button>
         <p class="bank-status" id="profileStatus"></p>
-      </section>
+      </details>
 
       <details class="profile-panel phone-panel" id="phoneVerifyPanel">
         <summary>Verificar número de teléfono</summary>
@@ -850,13 +859,14 @@
         <p class="bank-status" id="phoneStatus"></p>
       </details>
 
-      <section class="profile-panel danger-zone hidden" id="teacherDeletePanel">
-        <h3>Eliminar cuenta de profesor</h3>
+      <details class="profile-panel accordion-card danger-zone hidden" id="teacherDeletePanel">
+        <summary>Cuenta</summary>
+        <h3>Eliminar cuenta permanentemente</h3>
         <p>Esta acción elimina de forma permanente tu cuenta de profesor y toda la información académica asociada.</p>
         <input type="password" id="teacherDeletePassword" class="admin-input" placeholder="Contraseña" />
         <button class="btn btn-secondary" id="btnDeleteTeacherAccount" type="button">Eliminar mi cuenta de profesor</button>
         <p class="bank-status" id="teacherDeleteStatus"></p>
-      </section>
+      </details>
 
     </div>
   </main>
@@ -866,7 +876,7 @@
     <div class="settings-shell">
       <section class="profile-panel student-settings">
         <h2>Configuración</h2>
-        <details class="accordion-card" id="settingsBankPanel" open>
+        <details class="accordion-card" id="settingsBankPanel">
           <summary>Banco de preguntas</summary>
           <p>Cambia entre bancos. El siguiente banco se habilita cuando terminas diagnóstico, nivel medio y final.</p>
           <div class="result-actions">
@@ -958,7 +968,7 @@
 
       <section class="profile-panel admin-settings hidden" id="adminSettingsPanel">
         <h2>Configuración del administrador</h2>
-        <details class="accordion-card" open>
+        <details class="accordion-card">
           <summary>Aulas</summary>
           <p>Crea aulas independientes. Cada código es único y se comparte con estudiantes.</p>
           <div class="bank-grid">
@@ -1041,9 +1051,10 @@
   <main class="main-content hidden" id="sectionAdminMetricas">
     <div class="start-screen admin-panel">
       <span class="cs-icon">📊</span>
-      <h2>Métricas y estadísticas</h2>
+      <h2>Métricas del profesor</h2>
+      <p>Métricas por aula, estadísticas por aula, ranking de aulas y comparativas entre aulas.</p>
       <section class="admin-metrics-panel" id="adminMetricsPanel" hidden>
-        <h3>Métricas</h3>
+        <h3>Panel comparativo por aula</h3>
         <div class="stats-grid" id="adminStats"></div>
       </section>
     </div>
@@ -1114,6 +1125,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260630-3"></script>
+  <script type="module" src="script.js?v=20260630-4"></script>
 </body>
 </html>

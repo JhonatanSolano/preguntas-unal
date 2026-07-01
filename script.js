@@ -1241,6 +1241,7 @@ function actualizarEstadoDiagnostico() {
 }
 
 function mostrarSeccion(sec) {
+  cerrarAccordions();
   document.getElementById("sectionInicio").classList.toggle("hidden", sec !== "inicio");
   document.getElementById("sectionExamenes").classList.toggle("hidden", sec !== "examenes");
   document.getElementById("sectionDiagnostico").classList.toggle("hidden", sec !== "diagnostico");
@@ -1284,21 +1285,20 @@ function activarNav(sec) {
       if (status) status.textContent = "Primero debes pertenecer a una clase o aula. Ingresa el código cuando lo tengas.";
     }, 0);
   }
-  if (sec) localStorage.setItem(STORAGE_SECCION_ACTIVA, sec);
+  localStorage.removeItem(STORAGE_SECCION_ACTIVA);
   document.querySelectorAll(".nav-btn").forEach(b => b.classList.toggle("active", b.dataset.section === sec));
   mostrarSeccion(sec);
 }
 
 function seccionRestaurable() {
-  if (!modoAdmin && intentoActivo?.clave) return intentoActivo.clave;
-  const saved = localStorage.getItem(STORAGE_SECCION_ACTIVA) || "inicio";
-  const permitidas = modoAdmin
-    ? new Set(["admin", "adminMetricas", "perfil", "configuracion", "soporte"])
-    : new Set(["inicio", "examenes", "diagnostico", "nivel1", "examen", "estadisticas", "perfil", "configuracion", "soporte"]);
-  if (!modoAdmin && !aulaActualValida() && ["inicio", "diagnostico", "nivel1", "examen", "estadisticas"].includes(saved)) {
-    return "perfil";
-  }
-  return permitidas.has(saved) ? saved : (modoAdmin ? "admin" : "inicio");
+  localStorage.removeItem(STORAGE_SECCION_ACTIVA);
+  return modoAdmin ? "admin" : "inicio";
+}
+
+function cerrarAccordions() {
+  document.querySelectorAll("details.accordion-card, details.profile-panel, details.phone-panel").forEach(details => {
+    details.open = false;
+  });
 }
 
 function aplicarModoUsuario() {
@@ -1339,6 +1339,18 @@ function actualizarBienvenida() {
 function renderExamenesHub() {
   const locked = document.getElementById("examsLockedMsg");
   const intro = document.getElementById("examsHubIntro");
+  const studentHub = document.getElementById("studentExamHub");
+  const adminPanel = document.getElementById("adminExamBankPanel");
+  if (modoAdmin) {
+    if (locked) locked.hidden = true;
+    if (intro) intro.textContent = "Consulta los bancos de preguntas organizados por banco y nivel.";
+    studentHub?.classList.add("hidden");
+    adminPanel?.classList.remove("hidden");
+    renderAdminExamBanks();
+    return;
+  }
+  studentHub?.classList.remove("hidden");
+  adminPanel?.classList.add("hidden");
   const sinAula = !aulaActualValida();
   if (locked) {
     locked.hidden = !sinAula;
@@ -1353,6 +1365,54 @@ function renderExamenesHub() {
     btn.disabled = sinAula;
     btn.classList.toggle("disabled", sinAula);
   });
+}
+
+function preguntasNivelMedioParaBanco(banco, aulaId = adminClaseActiva || grupoActivo || "aula") {
+  const semilla = `${aulaId || "aula"}-${banco}`;
+  const idx = [...semilla].reduce((acc, char) => acc + char.charCodeAt(0), 0) % 5 + 1;
+  return PREGUNTAS_MEDIO_GRUPOS[`grupo${idx}`] || PREGUNTAS_MEDIO_GRUPOS.grupo1;
+}
+
+function renderQuestionPreviewList(preguntas) {
+  return preguntas.map(q => `
+    <article class="question-preview">
+      <strong>Pregunta ${q.id}</strong>
+      <p>${q.pregunta || ""}</p>
+      ${q.formula ? `<div class="q-formula">${q.formula}</div>` : ""}
+      <ol type="A">
+        ${q.opciones.map((opcion, idx) => `<li class="${idx === q.correcta ? "correct-answer" : ""}">${opcion}</li>`).join("")}
+      </ol>
+    </article>
+  `).join("");
+}
+
+function renderAdminExamBanks() {
+  const cont = document.getElementById("adminExamBankPanel");
+  if (!cont) return;
+  const niveles = [
+    ["diagnostico", "Diagnóstico", () => PREGUNTAS],
+    ["nivel1", "Nivel Medio", banco => preguntasNivelMedioParaBanco(banco)],
+    ["examen", "Examen Final", () => PREGUNTAS_EXAMEN]
+  ];
+  cont.innerHTML = BANCOS_DISPONIBLES.map(banco => `
+    <details class="accordion-card admin-bank-card">
+      <summary>${NOMBRES_BANCOS[banco]}</summary>
+      <div class="admin-bank-levels">
+        ${niveles.map(([clave, nombre, resolver]) => {
+          const preguntas = resolver(banco);
+          return `
+            <details class="accordion-card admin-level-card">
+              <summary>${nombre} · ${preguntas.length} preguntas</summary>
+              <div class="question-preview-list" data-admin-bank="${banco}" data-admin-level="${clave}">
+                ${renderQuestionPreviewList(preguntas)}
+              </div>
+            </details>
+          `;
+        }).join("")}
+      </div>
+    </details>
+  `).join("");
+  reRenderKatex(cont);
 }
 
 function continuarSinAula() {
@@ -1402,6 +1462,7 @@ function actualizarDrawer() {
   const name = document.getElementById("drawerUserName");
   if (name) name.textContent = perfilActual?.displayName || usuarioActual?.displayName || APP_CONFIG.name;
   document.querySelectorAll(".admin-only").forEach(el => el.classList.toggle("hidden", !modoAdmin));
+  document.querySelectorAll(".student-only").forEach(el => el.classList.toggle("hidden", modoAdmin));
 }
 
 function renderAdminWelcome() {
@@ -3082,6 +3143,7 @@ function abrirPanelRecuperarUsuario() {
   if (backBtn) backBtn.textContent = "Volver al inicio de sesión";
   setRecoverStep(1);
   setStatus("recoverStatus", "");
+  mostrarSoporteRecuperacion(false);
 }
 
 function mostrarSeleccionRol() {
@@ -3132,6 +3194,10 @@ function mensajeRecuperacionProtegido() {
   return "No fue posible verificar tu identidad. Para proteger tu información debes comunicarte con soporte.";
 }
 
+function mostrarSoporteRecuperacion(mostrar = true) {
+  document.getElementById("btnRecoverSupport")?.classList.toggle("hidden", !mostrar);
+}
+
 function actualizarCronometroRecuperacion() {
   const countdown = document.getElementById("recoverCountdown");
   const sendBtn = document.getElementById("btnRecoverSendCode");
@@ -3173,18 +3239,22 @@ async function buscarCandidatoRecuperacion() {
   const nameKey = normalizarNombre(document.getElementById("recoverName")?.value || "");
   if (!phoneId || !nameKey) {
     setStatus("recoverStatus", "Completa nombre y teléfono para continuar.", "error");
+    mostrarSoporteRecuperacion(false);
     return null;
   }
   const snap = await getDoc(doc(db, "recoveryContacts", phoneId));
   if (!snap.exists()) {
     setStatus("recoverStatus", mensajeRecuperacionProtegido(), "error");
+    mostrarSoporteRecuperacion(true);
     return null;
   }
   const data = snap.data();
   if (!data.phoneVerified || data.nameKey !== nameKey) {
     setStatus("recoverStatus", mensajeRecuperacionProtegido(), "error");
+    mostrarSoporteRecuperacion(true);
     return null;
   }
+  mostrarSoporteRecuperacion(false);
   return { ...data, phoneNumber };
 }
 
@@ -3192,6 +3262,7 @@ async function enviarCodigoRecuperacion() {
   const btn = document.getElementById("btnRecoverSendCode");
   if (recoverAttemptCount >= 3) {
     setStatus("recoverStatus", "Demasiados intentos. Comunícate con soporte para proteger tu cuenta.", "error");
+    mostrarSoporteRecuperacion(true);
     return;
   }
   btn.disabled = true;
@@ -4012,14 +4083,13 @@ document.querySelectorAll(".drawer-link[data-section]").forEach(btn => {
     activarNav(btn.dataset.section);
   });
 });
-document.querySelectorAll(".accordion-card").forEach(details => {
-  details.addEventListener("toggle", () => {
-    if (!details.open) return;
-    details.parentElement?.querySelectorAll(".accordion-card").forEach(other => {
-      if (other !== details) other.open = false;
-    });
+document.addEventListener("toggle", e => {
+  const details = e.target;
+  if (!(details instanceof HTMLDetailsElement) || !details.open) return;
+  details.parentElement?.querySelectorAll(":scope > details.accordion-card, :scope > details.profile-panel, :scope > details.phone-panel").forEach(other => {
+    if (other !== details) other.open = false;
   });
-});
+}, true);
 document.querySelectorAll("[data-toggle-password]").forEach(btn => {
   btn.addEventListener("click", () => alternarPassword(btn.dataset.togglePassword));
 });
