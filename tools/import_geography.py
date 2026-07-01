@@ -1,5 +1,7 @@
 import argparse
+import ast
 import json
+import re
 import time
 import urllib.parse
 import urllib.request
@@ -128,24 +130,100 @@ def read_colombia_divipola(path: Path):
     return sorted(departments.values(), key=lambda item: item["name"]), sorted(municipalities, key=lambda item: (item["departmentName"], item["name"]))
 
 
-def build_writes(project_id: str, departments, municipalities):
+def extract_sql_insert_rows(sql: str, table: str):
+    pattern = rf"INSERT\s+INTO\s+`{re.escape(table)}`\s*\([^)]*\)\s*VALUES\s*(.*?);"
+    match = re.search(pattern, sql, re.IGNORECASE | re.DOTALL)
+    if not match:
+        return []
+    values = match.group(1).strip()
+    rows = re.findall(r"\((.*?)\)(?:,|$)", values, re.DOTALL)
+    parsed = []
+    for row in rows:
+        clean = row.replace("\\'", "'")
+        parsed.append(ast.literal_eval(f"({clean})"))
+    return parsed
+
+
+def read_venezuela_sql(path: Path):
+    sql = path.read_text(encoding="utf-8")
+    states_raw = extract_sql_insert_rows(sql, "estados")
+    municipalities_raw = extract_sql_insert_rows(sql, "municipios")
+    states_by_id = {}
+    regions = []
+    municipalities = []
+
+    for state_id, state_name, iso in states_raw:
+        code = str(iso or f"VE-{state_id}").strip()
+        region_id = str(state_id).zfill(2)
+        state = {
+            "id": region_id,
+            "countryId": "VE",
+            "code": code,
+            "numericCode": region_id,
+            "name": str(state_name).strip(),
+            "officialName": str(state_name).strip(),
+            "kind": "state",
+            "source": "github.com/marydn/venezuela-sql",
+        }
+        states_by_id[int(state_id)] = state
+        regions.append(state)
+
+    for municipality_id, state_id, municipality_name in municipalities_raw:
+        state = states_by_id.get(int(state_id))
+        if not state:
+            continue
+        municipality_code = str(municipality_id).zfill(3)
+        municipalities.append({
+            "id": municipality_code,
+            "countryId": "VE",
+            "regionId": state["id"],
+            "stateCode": state["code"],
+            "stateName": state["name"],
+            "code": municipality_code,
+            "municipalityCode": municipality_code,
+            "name": str(municipality_name).strip(),
+            "municipalityName": str(municipality_name).strip(),
+            "officialName": str(municipality_name).strip(),
+            "source": "github.com/marydn/venezuela-sql",
+        })
+
+    return sorted(regions, key=lambda item: item["name"]), sorted(municipalities, key=lambda item: (item["stateName"], item["name"]))
+
+
+def build_writes(project_id: str, departments, municipalities, venezuela_regions=None, venezuela_municipalities=None):
+    venezuela_regions = venezuela_regions or []
+    venezuela_municipalities = venezuela_municipalities or []
     countries = [
         {"id": "CO", "name": "Colombia", "iso2": "CO", "iso3": "COL", "phoneCode": "+57", "regionLabel": "Departamento", "municipalityLabel": "Municipio"},
-        {"id": "VE", "name": "Venezuela", "iso2": "VE", "iso3": "VEN", "phoneCode": "+58", "regionLabel": "Estado", "municipalityLabel": "Municipio", "status": "pending_catalog"},
+        {"id": "VE", "name": "Venezuela", "iso2": "VE", "iso3": "VEN", "phoneCode": "+58", "regionLabel": "Estado", "municipalityLabel": "Municipio", "status": "active" if venezuela_regions else "pending_catalog"},
     ]
     writes = []
     for country in countries:
-        country_id = country.pop("id")
-        writes.append({"update": {"name": doc_name(project_id, f"countries/{country_id}"), "fields": fs_fields(country)}})
+        country_id = country["id"]
+        data = {key: value for key, value in country.items() if key != "id"}
+        writes.append({"update": {"name": doc_name(project_id, f"countries/{country_id}"), "fields": fs_fields(data)}})
 
     for department in departments:
-        department_id = department.pop("id")
-        writes.append({"update": {"name": doc_name(project_id, f"countries/CO/regions/{department_id}"), "fields": fs_fields(department)}})
+        department_id = department["id"]
+        data = {key: value for key, value in department.items() if key != "id"}
+        writes.append({"update": {"name": doc_name(project_id, f"countries/CO/regions/{department_id}"), "fields": fs_fields(data)}})
 
     for municipality in municipalities:
-        municipality_id = municipality.pop("id")
+        municipality_id = municipality["id"]
         region_id = municipality["regionId"]
-        writes.append({"update": {"name": doc_name(project_id, f"countries/CO/regions/{region_id}/municipalities/{municipality_id}"), "fields": fs_fields(municipality)}})
+        data = {key: value for key, value in municipality.items() if key != "id"}
+        writes.append({"update": {"name": doc_name(project_id, f"countries/CO/regions/{region_id}/municipalities/{municipality_id}"), "fields": fs_fields(data)}})
+
+    for region in venezuela_regions:
+        region_id = region["id"]
+        data = {key: value for key, value in region.items() if key != "id"}
+        writes.append({"update": {"name": doc_name(project_id, f"countries/VE/regions/{region_id}"), "fields": fs_fields(data)}})
+
+    for municipality in venezuela_municipalities:
+        municipality_id = municipality["id"]
+        region_id = municipality["regionId"]
+        data = {key: value for key, value in municipality.items() if key != "id"}
+        writes.append({"update": {"name": doc_name(project_id, f"countries/VE/regions/{region_id}/municipalities/{municipality_id}"), "fields": fs_fields(data)}})
     return writes
 
 
@@ -169,6 +247,7 @@ def main():
     parser = argparse.ArgumentParser(description="Importa catálogo geográfico a Cloud Firestore.")
     parser.add_argument("--service-account", required=True, help="Ruta del JSON privado de Firebase Admin SDK.")
     parser.add_argument("--colombia-divipola", required=True, help="Ruta del Excel DIVIPOLA_Municipios.xlsx del DANE.")
+    parser.add_argument("--venezuela-sql", help="Ruta del SQL de marydn/venezuela-sql con estados y municipios.")
     parser.add_argument("--dry-run", action="store_true", help="Solo lee y muestra conteos; no escribe en Firestore.")
     args = parser.parse_args()
 
@@ -178,15 +257,22 @@ def main():
     project_id = service_account["project_id"]
 
     departments, municipalities = read_colombia_divipola(divipola_path)
+    venezuela_regions = []
+    venezuela_municipalities = []
+    if args.venezuela_sql:
+        venezuela_regions, venezuela_municipalities = read_venezuela_sql(Path(args.venezuela_sql))
     print(f"Proyecto: {project_id}")
     print(f"Colombia: {len(departments)} departamentos y {len(municipalities)} municipios/áreas leídos.")
-    print("Venezuela: se crea el país VE, pero los estados/municipios quedan pendientes hasta tener fuente confiable.")
+    if args.venezuela_sql:
+        print(f"Venezuela: {len(venezuela_regions)} estados/distritos y {len(venezuela_municipalities)} municipios leídos.")
+    else:
+        print("Venezuela: se crea el país VE, pero los estados/municipios quedan pendientes hasta tener fuente confiable.")
 
     if args.dry_run:
         print("Dry run completado. No se escribió en Firestore.")
         return
 
-    writes = build_writes(project_id, departments, municipalities)
+    writes = build_writes(project_id, departments, municipalities, venezuela_regions, venezuela_municipalities)
     token = get_access_token(service_account)
     batch_write(project_id, token, writes)
     print("Importación terminada.")
