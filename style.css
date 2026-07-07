@@ -84,6 +84,17 @@ body {
 .panel-logo {
   margin: 0 auto .9rem;
 }
+.student-welcome-photo {
+  display: block;
+  width: 96px;
+  height: 96px;
+  margin: 0 auto 1rem;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 5px solid var(--c-blue-lt);
+  box-shadow: var(--shadow-sm);
+  background: #fff;
+}
 .welcome-splash {
   position: fixed;
   inset: 0;
@@ -1317,12 +1328,17 @@ body.admin-mode .admin-exit-dock {
 }
 .messages-panel {
   text-align: left;
+  overflow: hidden;
 }
 .teacher-message-compose {
   display: grid;
   gap: .85rem;
   margin: 1rem 0 1.3rem;
   padding: 1rem;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
   border: 1px solid var(--c-border);
   border-radius: var(--radius-md);
   background: #f8fbff;
@@ -1337,6 +1353,12 @@ body.admin-mode .admin-exit-dock {
 .teacher-message-compose .btn {
   width: fit-content;
   max-width: 100%;
+}
+.file-inline input {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .message-thread-list {
   display: grid;
@@ -3065,9 +3087,19 @@ body.admin-mode .admin-exit-dock {
   }
   .teacher-message-compose {
     padding: .85rem;
+    margin-inline: 0;
+    border-radius: 16px;
   }
   .teacher-message-compose .btn {
     width: 100%;
+  }
+  .teacher-message-compose label,
+  .file-inline {
+    max-width: 100%;
+    min-width: 0;
+  }
+  .file-inline input {
+    font-size: .92rem;
   }
   .message-reply-form {
     grid-template-columns: 1fr;

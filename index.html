@@ -351,7 +351,7 @@
         <div>
           <strong>Contacto</strong>
           <a href="mailto:jhsolanom@unal.edu.co">jhsolanom@unal.edu.co</a>
-          <a href="https://wa.me/573112454282?text=Hola%20Jhonatan%2C%20necesito%20soporte%20con%20Matem%C3%A1ticas%20En%20Tu%20Bolsillo.%20" target="_blank" rel="noopener">WhatsApp</a>
+          <a href="https://wa.me/573112454282?text=Hola%2C%20necesito%20soporte%20con%20Matem%C3%A1ticas%20En%20Tu%20Bolsillo.%20" target="_blank" rel="noopener">WhatsApp</a>
           <span>Teléfono: +57 311 245 4282</span>
           <span>Horario: lunes a viernes</span>
         </div>
@@ -420,12 +420,12 @@
     <button class="drawer-link" id="btnDrawerHome" type="button">Inicio</button>
     <button class="drawer-link" data-section="perfil" type="button">Perfil</button>
     <button class="drawer-link" data-section="examenes" type="button">Exámenes</button>
-    <button class="drawer-link" data-section="configuracion" type="button">Configuración</button>
     <button class="drawer-link student-only" data-section="estadisticas" type="button">Estadísticas</button>
-    <button class="drawer-link" data-section="soporte" type="button">Soporte</button>
+    <button class="drawer-link admin-only" data-section="adminMetricas" type="button">Métricas y estadísticas</button>
     <button class="drawer-link" data-section="mensajes" type="button">Mensajes</button>
     <button class="drawer-link" data-section="asesorIA" type="button">Asesor IA</button>
-    <button class="drawer-link admin-only" data-section="adminMetricas" type="button">Métricas y estadísticas</button>
+    <button class="drawer-link" data-section="configuracion" type="button">Configuración</button>
+    <button class="drawer-link" data-section="soporte" type="button">Soporte</button>
     <button class="drawer-link danger" id="btnDrawerSalirApp" type="button">Cerrar sesión</button>
   </aside>
   <div class="group-status" id="grupoActualPanel" hidden></div>
@@ -433,9 +433,9 @@
   <!-- ══════════════════ INICIO ══════════════════ -->
   <main class="main-content" id="sectionInicio">
     <section class="welcome-panel" id="welcomePanel">
-      <img class="panel-logo" src="assets/icon-180.png" alt="Logo de Matemáticas En Tu Bolsillo" />
+      <img class="student-welcome-photo" id="studentWelcomePhoto" src="assets/icon-180.png" alt="Foto de perfil del estudiante" />
       <h2 id="welcomeTitle">Bienvenido</h2>
-      <p>Esta app te acompaña en una ruta de práctica matemática por niveles. Trabajarás diagnóstico, nivel medio y examen final con métricas de precisión, tiempo y temas por reforzar.</p>
+      <p id="studentWelcomeText">Esta app te acompaña en una ruta de práctica matemática por niveles. Trabajarás diagnóstico, nivel medio y examen final con métricas de precisión, tiempo y temas por reforzar.</p>
       <div class="welcome-grid">
         <span>Presenta los exámenes habilitados para tu aula.</span>
         <span>Cada examen tiene máximo dos intentos.</span>
@@ -1090,7 +1090,7 @@
       <h2>Soporte</h2>
       <p>Comunícate por WhatsApp para reportar dudas, errores o solicitar ayuda con la app.</p>
       <a class="btn btn-primary support-link" id="whatsappSupport"
-         href="https://wa.me/573112454282?text=Hola%20Jhonatan%2C%20necesito%20soporte%20con%20la%20app%20Matem%C3%A1ticas%20Pro.%20"
+         href="https://wa.me/573112454282?text=Hola%2C%20necesito%20soporte%20con%20Matem%C3%A1ticas%20En%20Tu%20Bolsillo.%20"
          target="_blank" rel="noopener">
         Abrir WhatsApp
       </a>
@@ -1220,7 +1220,7 @@
 
   <footer class="site-footer">
     <p>© Todos los derechos reservados. Matemáticas En Tu Bolsillo.</p>
-    <p><a href="https://wa.me/573112454282?text=Hola%20Jhonatan%2C%20necesito%20soporte%20con%20la%20app%20Matem%C3%A1ticas%20Pro.%20" target="_blank" rel="noopener">Soporte por WhatsApp</a></p>
+    <p><a href="https://wa.me/573112454282?text=Hola%2C%20necesito%20soporte%20con%20Matem%C3%A1ticas%20En%20Tu%20Bolsillo.%20" target="_blank" rel="noopener">Soporte por WhatsApp</a></p>
   </footer>
 
   <!-- KaTeX para renderizar fórmulas matemáticas sin internet (inlined via CDN cache) -->

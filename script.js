@@ -1448,14 +1448,25 @@ function actualizarGrupoActualPanel() {
 function actualizarBienvenida() {
   const panel = document.getElementById("welcomePanel");
   const titulo = document.getElementById("welcomeTitle");
+  const texto = document.getElementById("studentWelcomeText");
+  const foto = document.getElementById("studentWelcomePhoto");
   if (!panel || !titulo) return;
-  if (modoAdmin || !aulaActualValida()) {
+  if (modoAdmin) {
     panel.hidden = true;
     return;
   }
   const nombreBase = perfilActual?.displayName || usuarioActual?.displayName || "estudiante";
   const primerNombre = nombreBase.trim().split(/\s+/)[0] || "estudiante";
   titulo.textContent = `Bienvenido ${primerNombre}`;
+  if (foto) {
+    foto.src = perfilActual?.photoURL || usuarioActual?.photoURL || "assets/icon-180.png";
+    foto.alt = `Foto de perfil de ${primerNombre}`;
+  }
+  if (texto) {
+    texto.textContent = aulaActualValida()
+      ? "Desde aquí puedes presentar los exámenes habilitados por tu profesor, revisar tu avance, recibir mensajes del aula, consultar estadísticas y apoyarte en el Asesor IA para estudiar mejor."
+      : "Completa tu perfil y entra a un aula con el código de tu profesor para desbloquear exámenes, mensajes, estadísticas y herramientas de estudio.";
+  }
   panel.hidden = false;
   actualizarBancoEstudiante();
 }
@@ -2786,6 +2797,7 @@ function mostrarAuthInicial() {
   document.getElementById("tabRegister")?.classList.remove("active");
   document.getElementById("btnGoogleLogin")?.closest(".auth-actions")?.classList.remove("hidden");
   document.getElementById("groupEntry")?.classList.add("hidden");
+  document.getElementById("btnAuthClose")?.classList.remove("hidden");
 }
 
 function mostrarLoginCard() {
@@ -2809,6 +2821,7 @@ function cerrarAuthCard() {
 function mostrarEntradaGrupo() {
   document.getElementById("roleChoiceCard")?.classList.add("hidden");
   document.getElementById("loginCard")?.classList.remove("hidden");
+  document.getElementById("btnAuthClose")?.classList.add("hidden");
   document.querySelector(".auth-tabs")?.classList.add("hidden");
   document.querySelector(".auth-divider")?.classList.add("hidden");
   document.getElementById("loginPanel")?.classList.add("hidden");
@@ -4146,6 +4159,7 @@ async function verificarCodigoRecuperacion() {
 
 function cambiarAuthMode(modo) {
   const login = modo === "login";
+  document.getElementById("btnAuthClose")?.classList.remove("hidden");
   document.getElementById("loginPanel").classList.toggle("hidden", !login);
   document.getElementById("registerPanel").classList.toggle("hidden", login);
   document.getElementById("recoverEmailPanel")?.classList.add("hidden");
