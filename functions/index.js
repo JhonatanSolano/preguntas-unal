@@ -196,11 +196,12 @@ exports.sendClassMessageEmail = onDocumentWritten({
     if (user?.notificationsEnabled) enabledEmails.push(email);
   }
   if (!enabledEmails.length) return;
+  const messageContent = after.bodyHtml || escapeHtml(after.body || "").replace(/\n/g, "<br>");
   const html = `
     <div style="font-family:Arial,sans-serif;line-height:1.6;color:#162838;max-width:640px;margin:auto;padding:24px">
       <h1 style="color:#06345f">${escapeHtml(after.subject || "Nuevo mensaje")}</h1>
       <p><strong>${escapeHtml(after.fromName || "Tu profesor")}</strong> envió un mensaje interno en <strong>${escapeHtml(after.className || "tu aula")}</strong>.</p>
-      <p>${escapeHtml(after.body || "").replace(/\n/g, "<br>")}</p>
+      <div>${messageContent}</div>
       <p>Este correo es solo informativo. Para responder, entra a la app y abre la campana de notificaciones.</p>
       <p style="font-size:12px;color:#66788a">© Todos los derechos reservados. Matemáticas En Tu Bolsillo.</p>
     </div>`;

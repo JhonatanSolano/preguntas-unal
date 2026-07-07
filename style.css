@@ -1356,6 +1356,17 @@ body.admin-mode .admin-exit-dock {
   overflow: hidden;
   background: #fff;
 }
+.message-menu-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .85rem;
+  padding: .55rem .7rem;
+  border-bottom: 1px solid var(--c-border);
+  color: var(--c-navy);
+  font-size: .86rem;
+  font-weight: 800;
+  background: #fff;
+}
 .message-toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -1365,7 +1376,9 @@ body.admin-mode .admin-exit-dock {
   background: linear-gradient(180deg, #fff, #f2f8fb);
 }
 .message-toolbar button,
-.message-font-size {
+.message-toolbar select,
+.message-font-size,
+.toolbar-color {
   min-height: 34px;
   border: 1px solid var(--c-border);
   border-radius: 10px;
@@ -1374,17 +1387,88 @@ body.admin-mode .admin-exit-dock {
   font-weight: 900;
   padding: .35rem .6rem;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .25rem;
 }
 .message-toolbar button:hover,
+.message-toolbar select:hover,
+.toolbar-color:hover,
 .message-font-size:hover {
   border-color: var(--c-cyan);
   background: var(--c-blue-lt);
 }
-.message-editor textarea.admin-input {
+.toolbar-color input {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.rich-message-area {
+  min-height: 260px;
+  width: 100%;
+  padding: .9rem;
   border: 0;
   border-radius: 0;
   box-shadow: none;
-  resize: vertical;
+  color: var(--c-ink);
+  background: #fff;
+  font-weight: 500;
+  line-height: 1.6;
+  outline: none;
+  overflow: auto;
+}
+.rich-message-area:empty::before {
+  content: attr(data-placeholder);
+  color: #7d8792;
+}
+.rich-message-area img,
+.rich-message-output img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 10px;
+}
+.rich-message-area iframe,
+.rich-message-output iframe {
+  width: 100%;
+  min-height: 240px;
+  border: 0;
+  border-radius: 12px;
+}
+.rich-table,
+.rich-message-area table,
+.rich-message-output table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: .75rem 0;
+}
+.rich-table td,
+.rich-table th,
+.rich-message-area td,
+.rich-message-area th,
+.rich-message-output td,
+.rich-message-output th {
+  border: 1px solid var(--c-border);
+  padding: .45rem;
+  min-width: 48px;
+}
+.rich-video {
+  margin: .8rem 0;
+}
+.math-inline,
+.math-block {
+  display: inline-block;
+  padding: .1rem .2rem;
+  border-radius: 6px;
+  background: rgba(232,244,248,.65);
+}
+.math-block {
+  display: block;
+  text-align: center;
+  margin: .8rem 0;
 }
 .teacher-message-compose .btn {
   width: fit-content;
@@ -1457,6 +1541,39 @@ body.admin-mode .admin-exit-dock {
   padding: .85rem;
   margin: .75rem 0;
   background: #f8fbff;
+}
+.equation-card {
+  max-width: 860px;
+}
+.equation-toolbar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: .45rem;
+  margin: .8rem 0 1rem;
+}
+.equation-toolbar button {
+  border: 1px solid var(--c-border);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--c-navy);
+  font-weight: 800;
+  padding: .55rem .7rem;
+  cursor: pointer;
+}
+.equation-toolbar button:hover {
+  border-color: var(--c-cyan);
+  background: var(--c-blue-lt);
+}
+.equation-preview {
+  min-height: 86px;
+  display: grid;
+  place-items: center;
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  background: #f8fbff;
+  overflow-x: auto;
 }
 .message-replies article.own {
   background: var(--c-green-lt);
@@ -3148,9 +3265,18 @@ body.admin-mode .admin-exit-dock {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
   .message-toolbar button,
+  .message-toolbar select,
+  .toolbar-color,
   .message-font-size {
     width: 100%;
     min-width: 0;
+  }
+  .message-menu-bar {
+    gap: .5rem;
+    font-size: .78rem;
+  }
+  .rich-message-area {
+    min-height: 220px;
   }
   .file-inline input {
     font-size: .92rem;

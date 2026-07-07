@@ -1108,21 +1108,50 @@
         <label>Aula<select id="messageClassSelect" class="admin-input"></select></label>
         <label>Asunto<input id="messageSubject" class="admin-input" type="text" placeholder="Asunto del mensaje" /></label>
         <label>Mensaje
-          <div class="message-editor">
-            <div class="message-toolbar" aria-label="Herramientas de formato">
-              <button type="button" data-message-format="bold" title="Negrita">B</button>
-              <button type="button" data-message-format="italic" title="Cursiva"><em>I</em></button>
-              <button type="button" data-message-format="heading" title="Título">T</button>
-              <button type="button" data-message-format="inlineLatex" title="Ecuación en línea">x²</button>
-              <button type="button" data-message-format="blockLatex" title="Ecuación centrada">∑</button>
-              <select id="messageFontSize" class="message-font-size" aria-label="Tamaño de texto">
-                <option value="">Tamaño</option>
-                <option value="small">Pequeño</option>
-                <option value="normal">Normal</option>
-                <option value="large">Grande</option>
-              </select>
+          <div class="message-editor rich-editor">
+            <div class="message-menu-bar" aria-label="Menú del editor">
+              <span>Editar</span><span>Insertar</span><span>Formato</span><span>Tabla</span><span>Matemáticas</span>
             </div>
-            <textarea id="messageBody" class="admin-input" rows="6" placeholder="Escribe el mensaje para los estudiantes del aula"></textarea>
+            <div class="message-toolbar" aria-label="Herramientas de formato">
+              <button type="button" data-rich-command="undo" title="Deshacer">↶</button>
+              <button type="button" data-rich-command="redo" title="Rehacer">↷</button>
+              <button type="button" data-rich-command="bold" title="Negrita"><strong>B</strong></button>
+              <button type="button" data-rich-command="italic" title="Cursiva"><em>I</em></button>
+              <button type="button" data-rich-command="underline" title="Subrayado"><u>U</u></button>
+              <button type="button" data-rich-command="strikeThrough" title="Tachado"><s>S</s></button>
+              <select data-rich-select="fontName" aria-label="Tipo de letra">
+                <option value="">Fuente</option>
+                <option value="Arial">Arial</option>
+                <option value="Georgia">Georgia</option>
+                <option value="Times New Roman">Times</option>
+                <option value="Verdana">Verdana</option>
+              </select>
+              <select data-rich-select="fontSize" aria-label="Tamaño de texto">
+                <option value="">Tamaño</option>
+                <option value="2">Pequeño</option>
+                <option value="3">Normal</option>
+                <option value="5">Grande</option>
+                <option value="7">Título</option>
+              </select>
+              <label class="toolbar-color" title="Color de texto">A<input type="color" data-rich-color="foreColor" value="#06345f" /></label>
+              <label class="toolbar-color" title="Color de resaltado">▰<input type="color" data-rich-color="hiliteColor" value="#fff2a8" /></label>
+              <button type="button" data-rich-command="justifyLeft" title="Alinear izquierda">☰</button>
+              <button type="button" data-rich-command="justifyCenter" title="Centrar">≡</button>
+              <button type="button" data-rich-command="justifyRight" title="Alinear derecha">☷</button>
+              <button type="button" data-rich-command="justifyFull" title="Justificar">▤</button>
+              <button type="button" data-rich-command="insertUnorderedList" title="Viñetas">•</button>
+              <button type="button" data-rich-command="insertOrderedList" title="Lista numerada">1.</button>
+              <button type="button" data-rich-command="outdent" title="Disminuir sangría">⇤</button>
+              <button type="button" data-rich-command="indent" title="Aumentar sangría">⇥</button>
+              <button type="button" data-rich-insert="link" title="Hipervínculo">🔗</button>
+              <button type="button" data-rich-insert="image" title="Imagen">▧</button>
+              <button type="button" data-rich-insert="video" title="Video">▶</button>
+              <button type="button" data-rich-insert="table" title="Tabla">▦</button>
+              <button type="button" data-rich-insert="emoji" title="Emoji">😊</button>
+              <button type="button" data-rich-insert="equation" title="Insertar ecuación">∑</button>
+              <button type="button" id="btnPreviewMessage" title="Vista previa">👁</button>
+            </div>
+            <div id="messageBody" class="rich-message-area" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="Escribe el mensaje para los estudiantes del aula"></div>
           </div>
         </label>
         <label class="file-inline">Adjuntos
@@ -1148,6 +1177,50 @@
         <button class="btn btn-primary" type="submit">Responder</button>
       </form>
       <p class="bank-status" id="messageReplyStatus"></p>
+    </article>
+  </div>
+
+  <div class="message-detail-overlay hidden" id="messagePreviewOverlay">
+    <article class="message-detail-card">
+      <button class="auth-close" id="btnCloseMessagePreview" type="button" aria-label="Cerrar vista previa">×</button>
+      <h2>Vista previa del mensaje</h2>
+      <p class="mini-help" id="messagePreviewSubject">Sin asunto</p>
+      <div class="message-body rich-message-output" id="messagePreviewContent"></div>
+    </article>
+  </div>
+
+  <div class="message-detail-overlay hidden" id="equationOverlay">
+    <article class="message-detail-card equation-card">
+      <button class="auth-close" id="btnCloseEquationEditor" type="button" aria-label="Cerrar editor de ecuaciones">×</button>
+      <h2>Insertar ecuación</h2>
+      <p class="mini-help">Construye la expresión con botones. No necesitas escribir LaTeX.</p>
+      <div class="equation-toolbar" id="equationPalette">
+        <button type="button" data-eq-template="\\frac{a}{b}">Fracción</button>
+        <button type="button" data-eq-template="x^{2}">Potencia</button>
+        <button type="button" data-eq-template="x_{1}">Subíndice</button>
+        <button type="button" data-eq-template="\\sqrt{x}">Raíz</button>
+        <button type="button" data-eq-template="\\int_{a}^{b} f(x)\\,dx">Integral</button>
+        <button type="button" data-eq-template="\\frac{dy}{dx}">Derivada</button>
+        <button type="button" data-eq-template="\\sum_{i=1}^{n} i">Sumatoria</button>
+        <button type="button" data-eq-template="\\prod_{i=1}^{n} i">Productoria</button>
+        <button type="button" data-eq-template="\\lim_{x\\to a} f(x)">Límite</button>
+        <button type="button" data-eq-template="\\begin{pmatrix}a & b\\\\ c & d\\end{pmatrix}">Matriz</button>
+        <button type="button" data-eq-template="\\vec{v}">Vector</button>
+        <button type="button" data-eq-template="\\sin(x)">sin</button>
+        <button type="button" data-eq-template="\\cos(x)">cos</button>
+        <button type="button" data-eq-template="\\tan(x)">tan</button>
+        <button type="button" data-eq-template="\\log(x)">log</button>
+        <button type="button" data-eq-template="\\alpha">α</button>
+        <button type="button" data-eq-template="\\beta">β</button>
+        <button type="button" data-eq-template="\\pi">π</button>
+        <button type="button" data-eq-template="\\infty">∞</button>
+      </div>
+      <input class="admin-input" id="equationInput" type="text" value="x^2+y^2=z^2" aria-label="Ecuación" />
+      <div class="equation-preview" id="equationPreview"></div>
+      <div class="result-actions">
+        <button class="btn btn-outline" id="btnInsertInlineEquation" type="button">Insertar en línea</button>
+        <button class="btn btn-primary" id="btnInsertBlockEquation" type="button">Insertar centrada</button>
+      </div>
     </article>
   </div>
 

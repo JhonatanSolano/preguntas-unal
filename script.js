@@ -108,6 +108,7 @@ let internalReplies = [];
 let activeMessageId = "";
 let recoverAttemptCount = 0;
 let seccionActual = "inicio";
+let savedRichSelection = null;
 const PHONE_CODE_DURATION_MS = 2 * 60 * 1000;
 const MAX_PROFILE_PHOTO_INPUT_MB = 12;
 const MAX_MESSAGE_ATTACHMENT_MB = 8;
@@ -1397,18 +1398,16 @@ function mostrarSeccion(sec) {
 function hayBorradorMensajeProfesor() {
   if (!modoAdmin) return false;
   const subject = document.getElementById("messageSubject")?.value.trim() || "";
-  const body = document.getElementById("messageBody")?.value.trim() || "";
   const files = document.getElementById("messageAttachments")?.files?.length || 0;
-  return !!(subject || body || files);
+  return !!(subject || richMessageHasContent() || files);
 }
 
 function limpiarBorradorMensajeProfesor() {
   if (!modoAdmin) return;
   const subject = document.getElementById("messageSubject");
-  const body = document.getElementById("messageBody");
   const files = document.getElementById("messageAttachments");
   if (subject) subject.value = "";
-  if (body) body.value = "";
+  setRichMessageHtml("");
   if (files) files.value = "";
 }
 
@@ -1930,6 +1929,104 @@ function renderAttachments(attachments = []) {
   ).join("")}</div>`;
 }
 
+function sanitizeRichHtml(html = "") {
+  const template = document.createElement("template");
+  template.innerHTML = String(html || "");
+  const allowedTags = new Set([
+    "A", "B", "BLOCKQUOTE", "BR", "DIV", "EM", "FONT", "H1", "H2", "H3", "H4",
+    "HR", "I", "IFRAME", "IMG", "LI", "OL", "P", "S", "SPAN", "STRONG", "SUB",
+    "SUP", "TABLE", "TBODY", "TD", "TFOOT", "TH", "THEAD", "TR", "U", "UL"
+  ]);
+  const allowedAttrs = new Set(["href", "src", "alt", "title", "target", "rel", "class", "style", "data-latex", "contenteditable", "face", "size"]);
+  const safeUrl = value => /^(https?:|data:image\/)/i.test(String(value || ""));
+  const cleanNode = node => {
+    [...node.childNodes].forEach(child => {
+      if (child.nodeType === Node.ELEMENT_NODE) {
+        if (!allowedTags.has(child.tagName)) {
+          child.replaceWith(...child.childNodes);
+          return;
+        }
+        [...child.attributes].forEach(attr => {
+          const name = attr.name.toLowerCase();
+          const value = attr.value;
+          const isUrl = name === "href" || name === "src";
+          if (!allowedAttrs.has(name) || (isUrl && !safeUrl(value))) {
+            child.removeAttribute(attr.name);
+          }
+        });
+        if (child.tagName === "A") {
+          child.setAttribute("target", "_blank");
+          child.setAttribute("rel", "noopener");
+        }
+        if (child.tagName === "IFRAME") {
+          child.setAttribute("loading", "lazy");
+          child.setAttribute("allowfullscreen", "true");
+        }
+        cleanNode(child);
+      } else if (child.nodeType !== Node.TEXT_NODE) {
+        child.remove();
+      }
+    });
+  };
+  cleanNode(template.content);
+  return template.innerHTML.trim();
+}
+
+function richEditor() {
+  return document.getElementById("messageBody");
+}
+
+function richMessageHtml() {
+  return sanitizeRichHtml(richEditor()?.innerHTML || "");
+}
+
+function richMessageText() {
+  return (richEditor()?.innerText || "").replace(/\u00a0/g, " ").trim();
+}
+
+function richMessageHasContent() {
+  const html = richMessageHtml();
+  return !!(richMessageText() || /<(img|iframe|table|span|div)[\s>]/i.test(html));
+}
+
+function setRichMessageHtml(html = "") {
+  const editor = richEditor();
+  if (editor) editor.innerHTML = html;
+}
+
+function focusRichEditor() {
+  const editor = richEditor();
+  if (!editor) return null;
+  editor.focus();
+  if (savedRichSelection) {
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(savedRichSelection);
+  }
+  return editor;
+}
+
+function execRich(command, value = null) {
+  focusRichEditor();
+  document.execCommand(command, false, value);
+  saveRichSelection();
+}
+
+function renderRichMessage(html = "", fallbackText = "") {
+  const safe = sanitizeRichHtml(html);
+  return safe ? safe : renderMarkdownBasico(fallbackText || "");
+}
+
+function saveRichSelection() {
+  const editor = richEditor();
+  const selection = window.getSelection();
+  if (!editor || !selection || !selection.rangeCount) return;
+  const range = selection.getRangeAt(0);
+  if (editor.contains(range.commonAncestorContainer)) {
+    savedRichSelection = range.cloneRange();
+  }
+}
+
 async function cargarRespuestasDelMensaje(messageId) {
   if (!messageId) return;
   try {
@@ -1957,7 +2054,7 @@ function renderMessageDetail(messageId) {
   cont.innerHTML = `
     <h2>${escapeHtml(msg.subject || "Mensaje")}</h2>
     <p class="mini-help">${escapeHtml(msg.className || "Aula")} · ${escapeHtml(msg.fromName || msg.teacherName || "Profesor")}</p>
-    <div class="message-body">${renderMarkdownBasico(msg.body || "")}</div>
+    <div class="message-body rich-message-output">${renderRichMessage(msg.bodyHtml, msg.body || "")}</div>
     ${renderAttachments(msg.attachments)}
     <h3>Respuestas</h3>
     <div class="message-replies">
@@ -1986,8 +2083,9 @@ async function enviarMensajeAula() {
   const classId = document.getElementById("messageClassSelect")?.value || adminClaseActiva;
   const clase = aulaPorId(classId);
   const subject = document.getElementById("messageSubject")?.value.trim() || "";
-  const body = document.getElementById("messageBody")?.value.trim() || "";
-  if (!clase || !subject || !body) {
+  const body = richMessageText();
+  const bodyHtml = richMessageHtml();
+  if (!clase || !subject || !richMessageHasContent()) {
     if (status) status.textContent = "Selecciona aula, asunto y mensaje.";
     return;
   }
@@ -2011,6 +2109,7 @@ async function enviarMensajeAula() {
       toEmails: students.map(s => s.email.toLowerCase()),
       subject,
       body,
+      bodyHtml,
       attachments: [],
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
@@ -2032,7 +2131,7 @@ async function enviarMensajeAula() {
       classId
     })));
     document.getElementById("messageSubject").value = "";
-    document.getElementById("messageBody").value = "";
+    setRichMessageHtml("");
     document.getElementById("messageAttachments").value = "";
     if (status) status.textContent = `Mensaje enviado a ${students.length} estudiante(s).`;
   } catch (err) {
@@ -2099,29 +2198,108 @@ async function responderMensaje(e) {
   }
 }
 
-function envolverSeleccionTextarea(textarea, antes, despues = antes, fallback = "texto") {
-  if (!textarea) return;
-  const start = textarea.selectionStart ?? textarea.value.length;
-  const end = textarea.selectionEnd ?? textarea.value.length;
-  const selected = textarea.value.slice(start, end) || fallback;
-  textarea.value = `${textarea.value.slice(0, start)}${antes}${selected}${despues}${textarea.value.slice(end)}`;
-  const cursor = start + antes.length + selected.length + despues.length;
-  textarea.focus();
-  textarea.setSelectionRange(cursor, cursor);
+function insertarHtmlEnEditor(html = "") {
+  focusRichEditor();
+  document.execCommand("insertHTML", false, html);
+  saveRichSelection();
 }
 
-function aplicarFormatoMensaje(tipo) {
-  const textarea = document.getElementById("messageBody");
+function videoEmbedUrl(url = "") {
+  const raw = String(url || "").trim();
+  const youtube = raw.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/i);
+  if (youtube) return `https://www.youtube.com/embed/${youtube[1]}`;
+  const vimeo = raw.match(/vimeo\.com\/(\d+)/i);
+  if (vimeo) return `https://player.vimeo.com/video/${vimeo[1]}`;
+  return raw;
+}
+
+function insertarTablaMensaje() {
+  const rows = Math.max(1, Math.min(8, Number(prompt("Número de filas", "3")) || 3));
+  const cols = Math.max(1, Math.min(8, Number(prompt("Número de columnas", "3")) || 3));
+  const cells = "<td><br></td>".repeat(cols);
+  insertarHtmlEnEditor(`<table class="rich-table"><tbody>${`<tr>${cells}</tr>`.repeat(rows)}</tbody></table><p><br></p>`);
+}
+
+function insertarEmojiMensaje() {
+  const emoji = prompt("Escribe o pega un emoji", "😊");
+  if (emoji) insertarHtmlEnEditor(escapeHtml(emoji));
+}
+
+function insertarLinkMensaje() {
+  const url = prompt("URL del enlace", "https://");
+  if (!url) return;
+  execRich("createLink", url);
+}
+
+function insertarImagenMensaje() {
+  const url = prompt("URL de la imagen", "https://");
+  if (!url) return;
+  insertarHtmlEnEditor(`<img src="${escapeHtml(url)}" alt="Imagen del mensaje" />`);
+}
+
+function insertarVideoMensaje() {
+  const url = videoEmbedUrl(prompt("URL del video de YouTube, Vimeo o enlace embebible", "https://"));
+  if (!url) return;
+  insertarHtmlEnEditor(`<div class="rich-video"><iframe src="${escapeHtml(url)}" title="Video del mensaje"></iframe></div><p><br></p>`);
+}
+
+function ejecutarInsercionRica(tipo) {
   const acciones = {
-    bold: () => envolverSeleccionTextarea(textarea, "**", "**", "texto en negrita"),
-    italic: () => envolverSeleccionTextarea(textarea, "*", "*", "texto en cursiva"),
-    heading: () => envolverSeleccionTextarea(textarea, "### ", "", "Título del mensaje"),
-    inlineLatex: () => envolverSeleccionTextarea(textarea, "$", "$", "x^2 + y^2 = z^2"),
-    blockLatex: () => envolverSeleccionTextarea(textarea, "\n$$\n", "\n$$\n", "E = mc^2"),
-    small: () => envolverSeleccionTextarea(textarea, "[small]", "[/small]", "texto pequeño"),
-    large: () => envolverSeleccionTextarea(textarea, "[large]", "[/large]", "texto grande")
+    link: insertarLinkMensaje,
+    image: insertarImagenMensaje,
+    video: insertarVideoMensaje,
+    table: insertarTablaMensaje,
+    emoji: insertarEmojiMensaje,
+    equation: abrirEditorEcuacion
   };
   acciones[tipo]?.();
+}
+
+function abrirVistaPreviaMensaje() {
+  const overlay = document.getElementById("messagePreviewOverlay");
+  const subject = document.getElementById("messagePreviewSubject");
+  const content = document.getElementById("messagePreviewContent");
+  if (!overlay || !content) return;
+  if (subject) subject.textContent = document.getElementById("messageSubject")?.value.trim() || "Sin asunto";
+  content.innerHTML = renderRichMessage(richMessageHtml(), richMessageText());
+  overlay.classList.remove("hidden");
+  reRenderKatex(content);
+}
+
+function renderEquationPreview() {
+  const preview = document.getElementById("equationPreview");
+  const input = document.getElementById("equationInput");
+  if (!preview || !input) return;
+  const latex = input.value.trim() || "x^2+y^2=z^2";
+  preview.textContent = "";
+  try {
+    if (window.katex) katex.render(latex, preview, { throwOnError: false, displayMode: true });
+    else preview.textContent = latex;
+  } catch {
+    preview.textContent = latex;
+  }
+}
+
+function abrirEditorEcuacion() {
+  document.getElementById("equationOverlay")?.classList.remove("hidden");
+  renderEquationPreview();
+}
+
+function insertarEcuacion(displayMode = false) {
+  const input = document.getElementById("equationInput");
+  const latex = input?.value.trim() || "x^2+y^2=z^2";
+  const temp = document.createElement(displayMode ? "div" : "span");
+  temp.className = displayMode ? "math-block" : "math-inline";
+  temp.dataset.latex = latex;
+  temp.contentEditable = "false";
+  try {
+    if (window.katex) katex.render(latex, temp, { throwOnError: false, displayMode });
+    else temp.textContent = latex;
+  } catch {
+    temp.textContent = latex;
+  }
+  insertarHtmlEnEditor(temp.outerHTML + (displayMode ? "<p><br></p>" : " "));
+  document.getElementById("equationOverlay")?.classList.add("hidden");
 }
 
 function renderStudentStats() {
@@ -4914,11 +5092,52 @@ document.addEventListener("pointerdown", e => {
   toggleNotificationsPopover(false);
 });
 document.getElementById("btnSendClassMessage")?.addEventListener("click", enviarMensajeAula);
-document.querySelectorAll("[data-message-format]").forEach(btn => {
-  btn.addEventListener("click", () => aplicarFormatoMensaje(btn.dataset.messageFormat));
+document.getElementById("messageBody")?.addEventListener("keyup", saveRichSelection);
+document.getElementById("messageBody")?.addEventListener("mouseup", saveRichSelection);
+document.getElementById("messageBody")?.addEventListener("input", saveRichSelection);
+document.querySelector(".message-toolbar")?.addEventListener("mousedown", e => {
+  if (e.target.closest("button")) e.preventDefault();
+});
+document.querySelectorAll("[data-rich-command]").forEach(btn => {
+  btn.addEventListener("click", () => execRich(btn.dataset.richCommand));
+});
+document.querySelectorAll("[data-rich-select]").forEach(select => {
+  select.addEventListener("change", e => {
+    if (e.target.value) execRich(e.target.dataset.richSelect, e.target.value);
+    e.target.value = "";
+  });
+});
+document.querySelectorAll("[data-rich-color]").forEach(input => {
+  input.addEventListener("input", e => execRich(e.target.dataset.richColor, e.target.value));
+});
+document.querySelectorAll("[data-rich-insert]").forEach(btn => {
+  btn.addEventListener("click", () => ejecutarInsercionRica(btn.dataset.richInsert));
+});
+document.getElementById("btnPreviewMessage")?.addEventListener("click", abrirVistaPreviaMensaje);
+document.getElementById("btnCloseMessagePreview")?.addEventListener("click", () => document.getElementById("messagePreviewOverlay")?.classList.add("hidden"));
+document.getElementById("messagePreviewOverlay")?.addEventListener("pointerdown", e => {
+  if (e.target.id === "messagePreviewOverlay") e.currentTarget.classList.add("hidden");
+});
+document.getElementById("btnCloseEquationEditor")?.addEventListener("click", () => document.getElementById("equationOverlay")?.classList.add("hidden"));
+document.getElementById("equationOverlay")?.addEventListener("pointerdown", e => {
+  if (e.target.id === "equationOverlay") e.currentTarget.classList.add("hidden");
+});
+document.getElementById("equationInput")?.addEventListener("input", renderEquationPreview);
+document.getElementById("equationPalette")?.addEventListener("click", e => {
+  const btn = e.target.closest("[data-eq-template]");
+  const input = document.getElementById("equationInput");
+  if (!btn || !input) return;
+  input.value = btn.dataset.eqTemplate;
+  renderEquationPreview();
+});
+document.getElementById("btnInsertInlineEquation")?.addEventListener("click", () => insertarEcuacion(false));
+document.getElementById("btnInsertBlockEquation")?.addEventListener("click", () => insertarEcuacion(true));
+document.getElementById("messageBody")?.addEventListener("input", () => {
+  const status = document.getElementById("messageComposeStatus");
+  if (status && status.textContent === "Mensaje enviado.") status.textContent = "";
 });
 document.getElementById("messageFontSize")?.addEventListener("change", e => {
-  if (e.target.value) aplicarFormatoMensaje(e.target.value);
+  if (e.target.value) execRich("fontSize", e.target.value);
   e.target.value = "";
 });
 document.getElementById("messageThreadList")?.addEventListener("click", e => {
