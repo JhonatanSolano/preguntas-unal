@@ -1350,6 +1350,42 @@ body.admin-mode .admin-exit-dock {
   color: var(--c-navy);
   font-weight: 800;
 }
+.message-editor {
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: #fff;
+}
+.message-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .35rem;
+  padding: .55rem;
+  border-bottom: 1px solid var(--c-border);
+  background: linear-gradient(180deg, #fff, #f2f8fb);
+}
+.message-toolbar button,
+.message-font-size {
+  min-height: 34px;
+  border: 1px solid var(--c-border);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--c-navy);
+  font-weight: 900;
+  padding: .35rem .6rem;
+  cursor: pointer;
+}
+.message-toolbar button:hover,
+.message-font-size:hover {
+  border-color: var(--c-cyan);
+  background: var(--c-blue-lt);
+}
+.message-editor textarea.admin-input {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  resize: vertical;
+}
 .teacher-message-compose .btn {
   width: fit-content;
   max-width: 100%;
@@ -1386,6 +1422,15 @@ body.admin-mode .admin-exit-dock {
 .message-thread-card small {
   color: var(--c-muted);
 }
+.msg-title {
+  display: block;
+  color: var(--c-navy);
+  font-size: 1.18em;
+  font-weight: 900;
+  margin-bottom: .25rem;
+}
+.msg-small { font-size: .86em; }
+.msg-large { font-size: 1.18em; }
 .message-detail-overlay {
   position: fixed;
   inset: 0;
@@ -3096,6 +3141,15 @@ body.admin-mode .admin-exit-dock {
   .teacher-message-compose label,
   .file-inline {
     max-width: 100%;
+    min-width: 0;
+  }
+  .message-toolbar {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .message-toolbar button,
+  .message-font-size {
+    width: 100%;
     min-width: 0;
   }
   .file-inline input {

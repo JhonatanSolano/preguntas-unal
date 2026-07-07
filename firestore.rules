@@ -92,7 +92,11 @@ service cloud.firestore {
       allow read: if signedIn() && (
         isAdmin() ||
         resource.data.ownerUid == request.auth.uid ||
-        resource.data.fromUid == request.auth.uid
+        resource.data.fromUid == request.auth.uid ||
+        (
+          exists(/databases/$(database)/documents/classMessages/$(resource.data.messageId)) &&
+          request.auth.token.email in get(/databases/$(database)/documents/classMessages/$(resource.data.messageId)).data.toEmails
+        )
       );
       allow create: if signedIn() &&
         exists(/databases/$(database)/documents/classMessages/$(request.resource.data.messageId)) &&

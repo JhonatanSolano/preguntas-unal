@@ -1107,7 +1107,24 @@
         <h3>Enviar mensaje al aula</h3>
         <label>Aula<select id="messageClassSelect" class="admin-input"></select></label>
         <label>Asunto<input id="messageSubject" class="admin-input" type="text" placeholder="Asunto del mensaje" /></label>
-        <label>Mensaje<textarea id="messageBody" class="admin-input" rows="5" placeholder="Escribe el mensaje para los estudiantes del aula"></textarea></label>
+        <label>Mensaje
+          <div class="message-editor">
+            <div class="message-toolbar" aria-label="Herramientas de formato">
+              <button type="button" data-message-format="bold" title="Negrita">B</button>
+              <button type="button" data-message-format="italic" title="Cursiva"><em>I</em></button>
+              <button type="button" data-message-format="heading" title="Título">T</button>
+              <button type="button" data-message-format="inlineLatex" title="Ecuación en línea">x²</button>
+              <button type="button" data-message-format="blockLatex" title="Ecuación centrada">∑</button>
+              <select id="messageFontSize" class="message-font-size" aria-label="Tamaño de texto">
+                <option value="">Tamaño</option>
+                <option value="small">Pequeño</option>
+                <option value="normal">Normal</option>
+                <option value="large">Grande</option>
+              </select>
+            </div>
+            <textarea id="messageBody" class="admin-input" rows="6" placeholder="Escribe el mensaje para los estudiantes del aula"></textarea>
+          </div>
+        </label>
         <label class="file-inline">Adjuntos
           <input id="messageAttachments" type="file" multiple accept="image/*,.pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
         </label>

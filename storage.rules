@@ -39,7 +39,8 @@ service firebase.storage {
     function canReadReply(replyId) {
       return signedIn() && (
         reply(replyId).ownerUid == request.auth.uid ||
-        reply(replyId).fromUid == request.auth.uid
+        reply(replyId).fromUid == request.auth.uid ||
+        request.auth.token.email in message(reply(replyId).messageId).toEmails
       );
     }
 

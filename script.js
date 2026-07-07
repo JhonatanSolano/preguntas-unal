@@ -1748,6 +1748,9 @@ function iniciarListenersComunicacion() {
       const latestUnread = internalNotifications.find(n => !n.read);
       if (latestUnread && internalNotifications.filter(n => !n.read).length > prevUnread) {
         lanzarNotificacionLocal(latestUnread.title || APP_CONFIG.name, latestUnread.body || "Tienes una nueva notificación.");
+        if (latestUnread.messageId && latestUnread.messageId === activeMessageId) {
+          cargarRespuestasDelMensaje(activeMessageId).then(() => renderMessageDetail(activeMessageId));
+        }
       }
     },
     err => console.warn("No se pudieron escuchar notificaciones.", err)
@@ -1769,6 +1772,13 @@ function iniciarListenersComunicacion() {
     renderMessagesPanel();
     if (activeMessageId) renderMessageDetail(activeMessageId);
   }, err => console.warn("No se pudieron escuchar respuestas.", err));
+}
+
+function mezclarRespuestas(respuestas = []) {
+  const merged = new Map(internalReplies.map(reply => [reply.id, reply]));
+  respuestas.forEach(reply => merged.set(reply.id, reply));
+  internalReplies = [...merged.values()]
+    .sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
 }
 
 function renderNotificationBell() {
@@ -1809,7 +1819,7 @@ async function abrirNotificacion(id) {
   toggleNotificationsPopover(false);
   if (item.messageId) {
     activarNav("mensajes");
-    renderMessageDetail(item.messageId);
+    abrirDetalleMensaje(item.messageId);
     return;
   }
   activarNav("mensajes");
@@ -1891,6 +1901,16 @@ function renderAttachments(attachments = []) {
   ).join("")}</div>`;
 }
 
+async function cargarRespuestasDelMensaje(messageId) {
+  if (!messageId) return;
+  try {
+    const snap = await getDocs(query(collection(db, "messageReplies"), where("messageId", "==", messageId)));
+    mezclarRespuestas(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+  } catch (err) {
+    console.warn("No se pudieron cargar todas las respuestas del mensaje.", err);
+  }
+}
+
 function renderMessageDetail(messageId) {
   const msg = internalMessages.find(m => m.id === messageId);
   if (!msg) return;
@@ -1899,6 +1919,12 @@ function renderMessageDetail(messageId) {
   const overlay = document.getElementById("messageDetailOverlay");
   if (!cont || !overlay) return;
   const replies = internalReplies.filter(r => r.messageId === messageId);
+  const replyInput = document.getElementById("messageReplyBody");
+  if (replyInput) {
+    replyInput.placeholder = modoAdmin
+      ? "Responder internamente al estudiante"
+      : "Responder internamente al profesor";
+  }
   cont.innerHTML = `
     <h2>${escapeHtml(msg.subject || "Mensaje")}</h2>
     <p class="mini-help">${escapeHtml(msg.className || "Aula")} · ${escapeHtml(msg.fromName || msg.teacherName || "Profesor")}</p>
@@ -1915,8 +1941,15 @@ function renderMessageDetail(messageId) {
       `).join("") : `<p class="mini-help">Aún no hay respuestas.</p>`}
     </div>
   `;
+  reRenderKatex(cont);
   document.getElementById("messageReplyForm")?.classList.toggle("hidden", false);
   overlay.classList.remove("hidden");
+}
+
+async function abrirDetalleMensaje(messageId) {
+  activeMessageId = messageId;
+  await cargarRespuestasDelMensaje(messageId);
+  renderMessageDetail(messageId);
 }
 
 async function enviarMensajeAula() {
@@ -2007,10 +2040,19 @@ async function responderMensaje(e) {
     if (attachments.length) {
       await updateDoc(ref, { attachments });
     }
-    const targetEmail = modoAdmin ? "" : msg.teacherEmail;
-    if (targetEmail) {
+    if (modoAdmin) {
+      await Promise.all((msg.toEmails || []).map(email => crearNotificacion({
+        targetEmail: email.toLowerCase(),
+        targetUid: "",
+        type: "message-reply",
+        title: `Respuesta a: ${msg.subject || "mensaje"}`,
+        body: `${fromName} respondió en el hilo del aula.`,
+        messageId: msg.id,
+        classId: msg.classId
+      })));
+    } else if (msg.teacherEmail) {
       await crearNotificacion({
-        targetEmail: targetEmail.toLowerCase(),
+        targetEmail: msg.teacherEmail.toLowerCase(),
         targetUid: msg.ownerUid || "",
         type: "message-reply",
         title: `Respuesta a: ${msg.subject || "mensaje"}`,
@@ -2026,6 +2068,31 @@ async function responderMensaje(e) {
     console.error(err);
     if (status) status.textContent = err.message || "No se pudo enviar la respuesta.";
   }
+}
+
+function envolverSeleccionTextarea(textarea, antes, despues = antes, fallback = "texto") {
+  if (!textarea) return;
+  const start = textarea.selectionStart ?? textarea.value.length;
+  const end = textarea.selectionEnd ?? textarea.value.length;
+  const selected = textarea.value.slice(start, end) || fallback;
+  textarea.value = `${textarea.value.slice(0, start)}${antes}${selected}${despues}${textarea.value.slice(end)}`;
+  const cursor = start + antes.length + selected.length + despues.length;
+  textarea.focus();
+  textarea.setSelectionRange(cursor, cursor);
+}
+
+function aplicarFormatoMensaje(tipo) {
+  const textarea = document.getElementById("messageBody");
+  const acciones = {
+    bold: () => envolverSeleccionTextarea(textarea, "**", "**", "texto en negrita"),
+    italic: () => envolverSeleccionTextarea(textarea, "*", "*", "texto en cursiva"),
+    heading: () => envolverSeleccionTextarea(textarea, "### ", "", "Título del mensaje"),
+    inlineLatex: () => envolverSeleccionTextarea(textarea, "$", "$", "x^2 + y^2 = z^2"),
+    blockLatex: () => envolverSeleccionTextarea(textarea, "\n$$\n", "\n$$\n", "E = mc^2"),
+    small: () => envolverSeleccionTextarea(textarea, "[small]", "[/small]", "texto pequeño"),
+    large: () => envolverSeleccionTextarea(textarea, "[large]", "[/large]", "texto grande")
+  };
+  acciones[tipo]?.();
 }
 
 function renderStudentStats() {
@@ -3922,7 +3989,11 @@ function escapeHtml(text = "") {
 
 function renderMarkdownBasico(text = "") {
   const html = escapeHtml(text)
+    .replace(/^### (.*)$/gm, "<span class=\"msg-title\">$1</span>")
+    .replace(/\[small\]([\s\S]*?)\[\/small\]/g, "<span class=\"msg-small\">$1</span>")
+    .replace(/\[large\]([\s\S]*?)\[\/large\]/g, "<span class=\"msg-large\">$1</span>")
     .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.*?)\*/g, "<em>$1</em>")
     .replace(/\n{2,}/g, "</p><p>")
     .replace(/\n/g, "<br>");
   return `<p>${html}</p>`;
@@ -4806,9 +4877,16 @@ document.getElementById("notificationsList")?.addEventListener("click", e => {
   if (btn) abrirNotificacion(btn.dataset.notificationId);
 });
 document.getElementById("btnSendClassMessage")?.addEventListener("click", enviarMensajeAula);
+document.querySelectorAll("[data-message-format]").forEach(btn => {
+  btn.addEventListener("click", () => aplicarFormatoMensaje(btn.dataset.messageFormat));
+});
+document.getElementById("messageFontSize")?.addEventListener("change", e => {
+  if (e.target.value) aplicarFormatoMensaje(e.target.value);
+  e.target.value = "";
+});
 document.getElementById("messageThreadList")?.addEventListener("click", e => {
   const btn = e.target.closest("[data-open-message]");
-  if (btn) renderMessageDetail(btn.dataset.openMessage);
+  if (btn) abrirDetalleMensaje(btn.dataset.openMessage);
 });
 document.getElementById("btnCloseMessageDetail")?.addEventListener("click", () => {
   activeMessageId = "";
