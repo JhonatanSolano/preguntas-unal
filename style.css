@@ -1046,9 +1046,9 @@ body.admin-mode .admin-exit-dock {
   box-shadow: 0 0 0 10px rgba(23, 183, 183, .2), 0 0 48px rgba(23, 183, 183, .9), 0 22px 50px rgba(6,52,95,.34);
 }
 .advisor-chat-panel {
-  position: absolute;
-  right: 0;
-  bottom: 76px;
+  position: fixed;
+  right: .9rem;
+  bottom: 5.3rem;
   width: min(420px, calc(100vw - 1.5rem));
   height: min(640px, calc(100dvh - 7.2rem));
   display: flex;
@@ -1088,13 +1088,15 @@ body.admin-mode .admin-exit-dock {
 }
 .advisor-quick {
   display: flex;
+  flex-wrap: wrap;
   gap: .45rem;
   padding: .7rem;
-  overflow-x: auto;
+  overflow: visible;
   border-bottom: 1px solid var(--c-border);
 }
 .advisor-quick button {
-  flex: 0 0 auto;
+  flex: 1 1 128px;
+  min-width: 0;
   border: 1px solid var(--c-border);
   border-radius: 999px;
   background: #f8fbff;
@@ -1102,6 +1104,7 @@ body.admin-mode .admin-exit-dock {
   padding: .45rem .7rem;
   font-weight: 800;
   cursor: pointer;
+  white-space: normal;
 }
 .advisor-messages {
   min-height: 0;
@@ -1186,6 +1189,23 @@ body.admin-mode .admin-exit-dock {
   padding: 0 .9rem .65rem;
   color: var(--c-muted);
   font-size: .82rem;
+}
+.admin-settings .accordion-card,
+.admin-settings .accordion-card > :not(summary),
+.admin-settings textarea.admin-input,
+.admin-settings select.admin-input,
+.admin-settings input.admin-input {
+  max-width: 100%;
+}
+.admin-settings .accordion-card > .btn {
+  width: min(260px, calc(100% - 2rem));
+  max-width: calc(100% - 2rem);
+  margin-inline: 1rem;
+}
+.admin-settings .accordion-card > textarea.admin-input,
+.admin-settings .accordion-card > label,
+.admin-settings .accordion-card > p {
+  width: calc(100% - 2rem);
 }
 .advisor-feature-grid {
   display: grid;
@@ -2822,8 +2842,8 @@ body.admin-mode .admin-exit-dock {
     font-size: 1.65rem;
   }
   .advisor-chat-panel {
-    right: -.2rem;
-    bottom: 66px;
+    right: .7rem;
+    bottom: 4.6rem;
     width: calc(100vw - 1.4rem);
     height: min(620px, calc(100dvh - 6rem));
   }

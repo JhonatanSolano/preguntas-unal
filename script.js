@@ -466,6 +466,13 @@ const ASESOR_QUICK_REPLIES = [
   ["Revisar error", "Revisar mi error"],
   ["Plan de estudio", "Crear plan de estudio"]
 ];
+const ASESOR_TEACHER_QUICK_REPLIES = [
+  ["Planear clase", "Ayúdame a planear una clase"],
+  ["Crear examen", "Crear un examen de matemáticas"],
+  ["Redactar correo", "Redactar un correo para mis estudiantes"],
+  ["Diseñar actividad", "Diseñar una actividad de práctica"],
+  ["Retroalimentar grupo", "Crear retroalimentación para un grupo"]
+];
 const ASESOR_MODE_LABELS = {
   solve: "Resolver pregunta",
   generate: "Ejercicios tipo examen",
@@ -484,6 +491,11 @@ const ASESOR_INITIAL_MESSAGE = {
   id: "initial-advisor-message",
   sender: "bot",
   text: "Hola. Soy tu Asesor IA de matemáticas. Puedo ayudarte a resolver preguntas, practicar por tema, revisar errores o crear un plan de estudio."
+};
+const ASESOR_TEACHER_INITIAL_MESSAGE = {
+  id: "initial-advisor-teacher-message",
+  sender: "bot",
+  text: "Hola, profe. Soy tu Asesor IA. Puedo ayudarte a planear clases, crear exámenes, diseñar actividades, redactar correos para estudiantes y preparar retroalimentaciones."
 };
 let intentoActivo = cargarIntentoActivo();
 let resultadosSesion = cargarResultadosSesion();
@@ -1319,6 +1331,7 @@ function mostrarSeccion(sec) {
   if (sec === "inicio") actualizarBienvenida();
   if (sec === "perfil") renderProfile();
   if (sec === "configuracion") renderConfiguracion();
+  if (sec === "asesorIA") renderAsesorInfo();
   if (sec === "admin") renderAdminWelcome();
   if (sec === "adminMetricas") {
     document.getElementById("adminMetricsPanel").hidden = false;
@@ -1425,6 +1438,36 @@ function renderExamenesHub() {
     btn.disabled = sinAula;
     btn.classList.toggle("disabled", sinAula);
   });
+}
+
+function renderAsesorInfo() {
+  const section = document.getElementById("sectionAsesorIA");
+  if (!section) return;
+  const intro = section.querySelector(".asesor-info-panel > p");
+  const grid = section.querySelector(".advisor-feature-grid");
+  if (modoAdmin) {
+    if (intro) intro.textContent = "Tu asistente docente te ayuda a planear clases, crear evaluaciones, preparar comunicaciones y diseñar actividades matemáticas.";
+    if (grid) {
+      grid.innerHTML = [
+        ["Planear clases", "Estructura objetivos, tiempos, explicación, práctica guiada y cierre."],
+        ["Crear exámenes", "Diseña evaluaciones con opciones, soluciones y niveles de dificultad."],
+        ["Redactar correos", "Prepara mensajes claros para estudiantes según tus indicaciones."],
+        ["Diseñar actividades", "Crea talleres, guías, rúbricas y ejercicios por tema."],
+        ["Retroalimentar grupos", "Convierte métricas o resultados en recomendaciones pedagógicas."]
+      ].map(([title, text]) => `<article><strong>${title}</strong><span>${text}</span></article>`).join("");
+    }
+    return;
+  }
+  if (intro) intro.textContent = "Tu tutor de matemáticas está listo para ayudarte a estudiar, resolver dudas y practicar con intención.";
+  if (grid) {
+    grid.innerHTML = [
+      ["Resolver preguntas", "Pega un enunciado y recibe explicación paso a paso."],
+      ["Ejercicios tipo examen", "Pide preguntas por tema, cantidad y dificultad."],
+      ["Practicar por tema", "Entrena álgebra, funciones, geometría, probabilidad y más."],
+      ["Revisar errores", "Entiende por qué fallaste y cómo evitarlo en el examen."],
+      ["Plan de estudio", "Organiza una ruta corta según tus temas flojos."]
+    ].map(([title, text]) => `<article><strong>${title}</strong><span>${text}</span></article>`).join("");
+  }
 }
 
 function preguntasNivelMedioParaBanco(banco, aulaId = adminClaseActiva || grupoActivo || "aula") {
@@ -2633,7 +2676,8 @@ function renderProfile() {
   document.getElementById("profileBirth").value = profile.birthDate || "";
   document.getElementById("profileGender").value = profile.gender || "";
   poblarPhoneCodes("profilePhoneCode", profile.phoneCode || "+57");
-  document.getElementById("profilePhone").value = profile.phone || "";
+  document.getElementById("profilePhone").value = profile.phoneVerified ? "" : (profile.phone || "");
+  document.getElementById("profilePhoneCodeInput").value = "";
   poblarUbicacion("profile", profile);
   document.getElementById("teacherDeletePanel")?.classList.toggle("hidden", !modoAdmin);
 }
@@ -3443,6 +3487,8 @@ function normalizarTextoAsesor(input = "") {
 
 function detectarModoAsesor(input = "") {
   const normalized = normalizarTextoAsesor(input);
+  if (modoAdmin && /correo|mensaje|comunicado|email|padres|estudiantes/.test(normalized)) return "guide";
+  if (modoAdmin && /clase|planea|planear|actividad|rubrica|retroalimentacion|evaluacion/.test(normalized)) return "guide";
   if (/generar|crear ejercicios|ejercicios tipo|preguntas tipo|banco|examen/.test(normalized)) return "generate";
   if (/resolver|resuelve|solucionar|calcula|hallar|halla|factoriza|simplifica|pregunta|enunciado|cuanto es/.test(normalized)) return "solve";
   if (/practicar|practica|tema|entrenar|repasar/.test(normalized)) return "practice";
@@ -3472,7 +3518,7 @@ function cargarEstadoAsesor() {
     advisorMessages = saved.messages;
     advisorMode = saved.activeMode || null;
   } catch {
-    advisorMessages = [ASESOR_INITIAL_MESSAGE];
+    advisorMessages = [modoAdmin ? ASESOR_TEACHER_INITIAL_MESSAGE : ASESOR_INITIAL_MESSAGE];
     advisorMode = null;
   }
 }
@@ -3506,7 +3552,8 @@ function renderMarkdownBasico(text = "") {
 function renderAsesorQuickReplies() {
   const cont = document.getElementById("advisorQuickReplies");
   if (!cont) return;
-  cont.innerHTML = ASESOR_QUICK_REPLIES.map(([label, value]) =>
+  const replies = modoAdmin ? ASESOR_TEACHER_QUICK_REPLIES : ASESOR_QUICK_REPLIES;
+  cont.innerHTML = replies.map(([label, value]) =>
     `<button type="button" data-advisor-quick="${escapeHtml(value)}">${escapeHtml(label)}</button>`
   ).join("");
 }
@@ -3533,7 +3580,9 @@ function contextoAsesor(mode = advisorMode) {
     bank: NOMBRES_BANCOS[bancoActivo] || bancoActivo,
     mode: mode || "menu",
     modeLabel: mode ? ASESOR_MODE_LABELS[mode] : "Menú",
-    instruction: mode ? ASESOR_MODE_PROMPTS[mode] : "Ayuda al usuario a escoger entre resolver pregunta, generar ejercicios, practicar por tema, revisar error o crear plan de estudio."
+    instruction: modoAdmin
+      ? "El usuario es profesor. Ayúdale a planear clases, crear exámenes, redactar correos a estudiantes, diseñar actividades, preparar rúbricas, retroalimentaciones y materiales matemáticos."
+      : (mode ? ASESOR_MODE_PROMPTS[mode] : "Ayuda al estudiante a escoger entre resolver pregunta, generar ejercicios, practicar por tema, revisar error o crear plan de estudio.")
   };
 }
 
@@ -3940,9 +3989,10 @@ async function verificarCodigoTelefono() {
     phoneVerificationExpiresAt = 0;
     detenerCronometroTelefono();
     actualizarCronometroTelefono();
-    renderProfile();
     document.getElementById("profilePhone").value = "";
     document.getElementById("profilePhoneCodeInput").value = "";
+    await cargarPerfilUsuario();
+    renderProfile();
     setPhoneStatus("Teléfono verificado correctamente.", "ok");
   } catch {
     setPhoneStatus("Código inválido o verificación no aceptada por Firebase.", "error");
@@ -4345,6 +4395,13 @@ document.getElementById("advisorForm")?.addEventListener("submit", e => {
 document.getElementById("advisorQuickReplies")?.addEventListener("click", e => {
   const btn = e.target.closest("[data-advisor-quick]");
   if (btn) enviarMensajeAsesor(btn.dataset.advisorQuick || "");
+});
+document.addEventListener("pointerdown", e => {
+  const panel = document.getElementById("advisorChatPanel");
+  const floatBtn = document.getElementById("btnAdvisorFloat");
+  if (!panel || panel.classList.contains("hidden")) return;
+  if (panel.contains(e.target) || floatBtn?.contains(e.target)) return;
+  cerrarAsesorIA();
 });
 document.getElementById("btnClassLater")?.addEventListener("click", continuarSinAula);
 document.querySelectorAll("[data-go-exam]").forEach(btn => {
