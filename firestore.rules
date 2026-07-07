@@ -89,8 +89,20 @@ service cloud.firestore {
     }
 
     match /messageReplies/{replyId} {
-      allow read: if signedIn();
-      allow create: if signedIn();
+      allow read: if signedIn() && (
+        isAdmin() ||
+        resource.data.ownerUid == request.auth.uid ||
+        resource.data.fromUid == request.auth.uid
+      );
+      allow create: if signedIn() &&
+        exists(/databases/$(database)/documents/classMessages/$(request.resource.data.messageId)) &&
+        request.resource.data.fromUid == request.auth.uid &&
+        request.resource.data.ownerUid == get(/databases/$(database)/documents/classMessages/$(request.resource.data.messageId)).data.ownerUid &&
+        request.resource.data.classId == get(/databases/$(database)/documents/classMessages/$(request.resource.data.messageId)).data.classId &&
+        (
+          request.resource.data.ownerUid == request.auth.uid ||
+          request.auth.token.email in get(/databases/$(database)/documents/classMessages/$(request.resource.data.messageId)).data.toEmails
+        );
       allow update, delete: if signedIn() && resource.data.fromUid == request.auth.uid;
     }
 

@@ -6,12 +6,55 @@ service firebase.storage {
       return request.auth != null;
     }
 
+    function validAttachment() {
+      return request.resource == null ||
+        (request.resource.size < 8 * 1024 * 1024 &&
+          request.resource.contentType in [
+            "image/jpeg",
+            "image/png",
+            "image/webp",
+            "image/gif",
+            "application/pdf",
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/octet-stream"
+          ]);
+    }
+
+    function message(messageId) {
+      return firestore.get(/databases/(default)/documents/classMessages/$(messageId)).data;
+    }
+
+    function reply(replyId) {
+      return firestore.get(/databases/(default)/documents/messageReplies/$(replyId)).data;
+    }
+
+    function canReadMessage(messageId) {
+      return signedIn() && (
+        message(messageId).ownerUid == request.auth.uid ||
+        request.auth.token.email in message(messageId).toEmails
+      );
+    }
+
+    function canReadReply(replyId) {
+      return signedIn() && (
+        reply(replyId).ownerUid == request.auth.uid ||
+        reply(replyId).fromUid == request.auth.uid
+      );
+    }
+
     match /classMessages/{messageId}/{fileName} {
-      allow read, write: if signedIn();
+      allow read: if canReadMessage(messageId);
+      allow write: if signedIn() &&
+        message(messageId).ownerUid == request.auth.uid &&
+        validAttachment();
     }
 
     match /messageReplies/{replyId}/{fileName} {
-      allow read, write: if signedIn();
+      allow read: if canReadReply(replyId);
+      allow write: if signedIn() &&
+        reply(replyId).fromUid == request.auth.uid &&
+        validAttachment();
     }
 
     match /{allPaths=**} {

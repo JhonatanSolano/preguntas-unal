@@ -1926,7 +1926,6 @@ async function enviarMensajeAula() {
   if (status) status.textContent = "Enviando mensaje...";
   try {
     const ref = doc(collection(db, "classMessages"));
-    const attachments = await subirAdjuntos(document.getElementById("messageAttachments")?.files, `classMessages/${ref.id}`);
     const teacherName = perfilActual?.displayName || usuarioActual?.displayName || usuarioActual?.email || "Profesor";
     await setDoc(ref, {
       classId,
@@ -1939,10 +1938,17 @@ async function enviarMensajeAula() {
       toEmails: students.map(s => s.email.toLowerCase()),
       subject,
       body,
-      attachments,
+      attachments: [],
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
+    const attachments = await subirAdjuntos(document.getElementById("messageAttachments")?.files, `classMessages/${ref.id}`);
+    if (attachments.length) {
+      await updateDoc(ref, {
+        attachments,
+        updatedAt: serverTimestamp()
+      });
+    }
     await Promise.all(students.map(est => crearNotificacion({
       targetEmail: est.email.toLowerCase(),
       targetUid: est.userUid || "",
@@ -1974,7 +1980,6 @@ async function responderMensaje(e) {
   if (status) status.textContent = "Enviando respuesta...";
   try {
     const ref = doc(collection(db, "messageReplies"));
-    const attachments = await subirAdjuntos(document.getElementById("messageReplyAttachments")?.files, `messageReplies/${ref.id}`);
     const fromName = perfilActual?.displayName || usuarioActual?.displayName || usuarioActual?.email || "Usuario";
     await setDoc(ref, {
       messageId: msg.id,
@@ -1984,9 +1989,13 @@ async function responderMensaje(e) {
       fromEmail: usuarioActual.email,
       fromName,
       body,
-      attachments,
+      attachments: [],
       createdAt: serverTimestamp()
     });
+    const attachments = await subirAdjuntos(document.getElementById("messageReplyAttachments")?.files, `messageReplies/${ref.id}`);
+    if (attachments.length) {
+      await updateDoc(ref, { attachments });
+    }
     const targetEmail = modoAdmin ? "" : msg.teacherEmail;
     if (targetEmail) {
       await crearNotificacion({
