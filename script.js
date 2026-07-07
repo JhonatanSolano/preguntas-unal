@@ -40,6 +40,12 @@ import {
   updateDoc,
   where
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+import {
+  getDownloadURL,
+  getStorage,
+  ref as storageRef,
+  uploadBytes
+} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-storage.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCx2xCjNzfeH_KfQKMuKImuE13X6DnAk7I",
@@ -67,6 +73,7 @@ try {
 }
 const auth = getAuth(app);
 const db = getFirestore(app);
+const storage = getStorage(app);
 setPersistence(auth, browserLocalPersistence);
 document.title = APP_CONFIG.name;
 
@@ -77,6 +84,9 @@ let perfilActual = null;
 let unsubscribePermisos = null;
 let unsubscribeAdminStudents = null;
 let unsubscribeClassMembership = null;
+let unsubscribeNotifications = null;
+let unsubscribeMessages = null;
+let unsubscribeReplies = null;
 let renderizandoAdminStudents = false;
 let classMembershipValid = true;
 let registroEnCurso = false;
@@ -92,9 +102,14 @@ let recoverRecaptchaVerifier = null;
 let advisorMessages = [];
 let advisorMode = null;
 let advisorLoading = false;
+let internalNotifications = [];
+let internalMessages = [];
+let internalReplies = [];
+let activeMessageId = "";
 let recoverAttemptCount = 0;
 const PHONE_CODE_DURATION_MS = 2 * 60 * 1000;
 const MAX_PROFILE_PHOTO_INPUT_MB = 12;
+const MAX_MESSAGE_ATTACHMENT_MB = 8;
 const PROFILE_PHOTO_MAX_SIDE = 900;
 const PROFILE_PHOTO_QUALITY = 0.82;
 
@@ -716,6 +731,39 @@ function guardarResultadoSesion(clave, respuestas, restante) {
   const previos = resultadosSesion[key]?.intentos || [];
   resultadosSesion[key] = { intentos: [...previos, intento].slice(0, 2) };
   guardarResultadosSesion();
+  notificarIntentoCompletado(clave, previos.length + 1);
+}
+
+function nombreEvaluacion(clave) {
+  if (clave === "diagnostico") return "Diagnóstico";
+  if (clave === "nivel1") return "Nivel Medio";
+  if (clave === "examen") return "Examen Final";
+  return NIVELES_META[clave]?.titulo || clave;
+}
+
+function notificarIntentoCompletado(clave, intentoNumero) {
+  if (!usuarioActual?.email || modoAdmin) return;
+  const examName = nombreEvaluacion(clave);
+  const studentName = perfilActual?.displayName || usuarioActual.displayName || usuarioActual.email;
+  crearNotificacion({
+    targetEmail: usuarioActual.email.toLowerCase(),
+    targetUid: usuarioActual.uid,
+    type: "exam-finished",
+    title: `${examName} terminado`,
+    body: `Terminaste el intento ${intentoNumero} de ${examName}.`,
+    classId: claseActiva || grupoActivo || ""
+  }).catch(() => {});
+  const teacherEmail = perfilActual?.classOwnerEmail || claseActualInfo?.ownerEmail || "";
+  if (teacherEmail) {
+    crearNotificacion({
+      targetEmail: teacherEmail.toLowerCase(),
+      targetUid: perfilActual?.classOwnerUid || claseActualInfo?.ownerUid || "",
+      type: "student-exam-finished",
+      title: `${studentName} terminó ${examName}`,
+      body: `${studentName} completó el intento ${intentoNumero} de ${examName}.`,
+      classId: claseActiva || grupoActivo || ""
+    }).catch(() => {});
+  }
 }
 
 function borrarResultadoSesion(clave) {
@@ -1312,6 +1360,7 @@ function actualizarEstadoDiagnostico() {
 
 function mostrarSeccion(sec) {
   cerrarAccordions();
+  if (sec !== "perfil") limpiarVerificacionTelefonoTemporal();
   document.getElementById("sectionInicio").classList.toggle("hidden", sec !== "inicio");
   document.getElementById("sectionExamenes").classList.toggle("hidden", sec !== "examenes");
   document.getElementById("sectionDiagnostico").classList.toggle("hidden", sec !== "diagnostico");
@@ -1323,6 +1372,7 @@ function mostrarSeccion(sec) {
   document.getElementById("sectionAdmin").classList.toggle("hidden", sec !== "admin");
   document.getElementById("sectionAdminMetricas").classList.toggle("hidden", sec !== "adminMetricas");
   document.getElementById("sectionSoporte").classList.toggle("hidden", sec !== "soporte");
+  document.getElementById("sectionMensajes")?.classList.toggle("hidden", sec !== "mensajes");
   document.getElementById("sectionAsesorIA")?.classList.toggle("hidden", sec !== "asesorIA");
   if (sec === "diagnostico") actualizarEstadoDiagnostico();
   if (sec === "examenes") renderExamenesHub();
@@ -1331,6 +1381,7 @@ function mostrarSeccion(sec) {
   if (sec === "inicio") actualizarBienvenida();
   if (sec === "perfil") renderProfile();
   if (sec === "configuracion") renderConfiguracion();
+  if (sec === "mensajes") renderMessagesPanel();
   if (sec === "asesorIA") renderAsesorInfo();
   if (sec === "admin") renderAdminWelcome();
   if (sec === "adminMetricas") {
@@ -1651,6 +1702,309 @@ async function cambiarNotificaciones(e) {
     });
   } catch {
     // Algunos navegadores aceptan el permiso pero bloquean la notificación de prueba.
+  }
+}
+
+function lanzarNotificacionLocal(title, body) {
+  if (!perfilActual?.notificationsEnabled || !soporteNotificaciones() || Notification.permission !== "granted") return;
+  try {
+    new Notification(title || APP_CONFIG.name, { body, icon: "assets/icon-180.png" });
+  } catch {
+    // El navegador puede bloquear notificaciones aunque el permiso exista.
+  }
+}
+
+function detenerListenersComunicacion() {
+  if (unsubscribeNotifications) unsubscribeNotifications();
+  if (unsubscribeMessages) unsubscribeMessages();
+  if (unsubscribeReplies) unsubscribeReplies();
+  unsubscribeNotifications = null;
+  unsubscribeMessages = null;
+  unsubscribeReplies = null;
+}
+
+function iniciarListenersComunicacion() {
+  if (!usuarioActual?.email) return;
+  detenerListenersComunicacion();
+  const email = usuarioActual.email.toLowerCase();
+  unsubscribeNotifications = onSnapshot(
+    query(collection(db, "notifications"), where("targetEmail", "==", email)),
+    snap => {
+      const prevUnread = internalNotifications.filter(n => !n.read).length;
+      internalNotifications = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+      renderNotificationBell();
+      const latestUnread = internalNotifications.find(n => !n.read);
+      if (latestUnread && internalNotifications.filter(n => !n.read).length > prevUnread) {
+        lanzarNotificacionLocal(latestUnread.title || APP_CONFIG.name, latestUnread.body || "Tienes una nueva notificación.");
+      }
+    },
+    err => console.warn("No se pudieron escuchar notificaciones.", err)
+  );
+  const messageQuery = modoAdmin
+    ? query(collection(db, "classMessages"), where("ownerUid", "==", usuarioActual.uid))
+    : query(collection(db, "classMessages"), where("toEmails", "array-contains", email));
+  unsubscribeMessages = onSnapshot(messageQuery, snap => {
+    internalMessages = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+    renderMessagesPanel();
+  }, err => console.warn("No se pudieron escuchar mensajes.", err));
+  const repliesQuery = modoAdmin
+    ? query(collection(db, "messageReplies"), where("ownerUid", "==", usuarioActual.uid))
+    : query(collection(db, "messageReplies"), where("fromEmail", "==", email));
+  unsubscribeReplies = onSnapshot(repliesQuery, snap => {
+    internalReplies = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
+    renderMessagesPanel();
+    if (activeMessageId) renderMessageDetail(activeMessageId);
+  }, err => console.warn("No se pudieron escuchar respuestas.", err));
+}
+
+function renderNotificationBell() {
+  const bell = document.getElementById("btnNotificationBell");
+  const dot = document.getElementById("notificationDot");
+  if (!bell || !dot) return;
+  bell.classList.toggle("hidden", !usuarioActual);
+  dot.hidden = !internalNotifications.some(n => !n.read);
+}
+
+function toggleNotificationsPopover(force) {
+  const pop = document.getElementById("notificationsPopover");
+  if (!pop) return;
+  const open = typeof force === "boolean" ? force : pop.classList.contains("hidden");
+  pop.classList.toggle("hidden", !open);
+  if (open) renderNotificationsList();
+}
+
+function renderNotificationsList() {
+  const cont = document.getElementById("notificationsList");
+  if (!cont) return;
+  if (!internalNotifications.length) {
+    cont.innerHTML = `<p class="mini-help">No tienes notificaciones.</p>`;
+    return;
+  }
+  cont.innerHTML = internalNotifications.map(n => `
+    <button type="button" class="notification-item ${n.read ? "" : "unread"}" data-notification-id="${n.id}">
+      <strong>${escapeHtml(n.title || "Notificación")}</strong>
+      <span>${escapeHtml(n.body || "")}</span>
+    </button>
+  `).join("");
+}
+
+async function abrirNotificacion(id) {
+  const item = internalNotifications.find(n => n.id === id);
+  if (!item) return;
+  await updateDoc(doc(db, "notifications", id), { read: true, readAt: serverTimestamp() }).catch(() => {});
+  toggleNotificationsPopover(false);
+  if (item.messageId) {
+    activarNav("mensajes");
+    renderMessageDetail(item.messageId);
+    return;
+  }
+  activarNav("mensajes");
+}
+
+function archivoSeguro(nombre = "archivo") {
+  return nombre.replace(/[^\w.\-]+/g, "_").slice(0, 90);
+}
+
+async function subirAdjuntos(files, folder) {
+  const list = [...(files || [])];
+  const attachments = [];
+  for (const file of list) {
+    if (file.size > MAX_MESSAGE_ATTACHMENT_MB * 1024 * 1024) {
+      throw new Error(`El archivo ${file.name} supera ${MAX_MESSAGE_ATTACHMENT_MB} MB.`);
+    }
+    const path = `${folder}/${Date.now()}-${crypto.randomUUID()}-${archivoSeguro(file.name)}`;
+    const ref = storageRef(storage, path);
+    await uploadBytes(ref, file, { contentType: file.type || "application/octet-stream" });
+    attachments.push({
+      name: file.name,
+      type: file.type || "application/octet-stream",
+      size: file.size,
+      url: await getDownloadURL(ref),
+      path
+    });
+  }
+  return attachments;
+}
+
+async function estudiantesActivosDeClase(classId) {
+  const snap = await getDocs(query(collection(db, "classStudents"), where("classId", "==", classId)));
+  return snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(est => (est.status || "activo") === "activo" && est.email);
+}
+
+async function crearNotificacion(payload) {
+  await setDoc(doc(collection(db, "notifications")), {
+    ...payload,
+    read: false,
+    createdAt: serverTimestamp()
+  });
+}
+
+function renderMessagesPanel() {
+  const compose = document.getElementById("teacherMessageCompose");
+  const intro = document.getElementById("messagesIntro");
+  const list = document.getElementById("messageThreadList");
+  if (!list) return;
+  compose?.classList.toggle("hidden", !modoAdmin);
+  if (intro) intro.textContent = modoAdmin
+    ? "Envía mensajes internos por aula. Los estudiantes responden únicamente desde la app."
+    : "Lee mensajes de tu profesor y responde internamente desde la app.";
+  const select = document.getElementById("messageClassSelect");
+  if (select && modoAdmin) {
+    select.innerHTML = adminClases.length
+      ? adminClases.map(c => `<option value="${c.id}">${escapeHtml(c.name)} (${escapeHtml(c.code || "")})</option>`).join("")
+      : `<option value="">Sin aulas creadas</option>`;
+    select.value = adminClaseActiva || adminClases[0]?.id || "";
+  }
+  if (!internalMessages.length) {
+    list.innerHTML = `<p class="mini-help">Aún no hay mensajes.</p>`;
+    return;
+  }
+  list.innerHTML = internalMessages.map(msg => `
+    <article class="message-thread-card">
+      <button type="button" data-open-message="${msg.id}">
+        <strong>${escapeHtml(msg.subject || "Sin asunto")}</strong>
+        <span>${escapeHtml(msg.className || "Aula")} · ${escapeHtml(msg.fromName || msg.teacherName || "Profesor")}</span>
+        <small>${escapeHtml((msg.body || "").slice(0, 130))}</small>
+      </button>
+    </article>
+  `).join("");
+}
+
+function renderAttachments(attachments = []) {
+  if (!attachments.length) return "";
+  return `<div class="message-attachments">${attachments.map(a =>
+    `<a href="${escapeHtml(a.url)}" target="_blank" rel="noopener">${escapeHtml(a.name || "Adjunto")}</a>`
+  ).join("")}</div>`;
+}
+
+function renderMessageDetail(messageId) {
+  const msg = internalMessages.find(m => m.id === messageId);
+  if (!msg) return;
+  activeMessageId = messageId;
+  const cont = document.getElementById("messageDetailContent");
+  const overlay = document.getElementById("messageDetailOverlay");
+  if (!cont || !overlay) return;
+  const replies = internalReplies.filter(r => r.messageId === messageId);
+  cont.innerHTML = `
+    <h2>${escapeHtml(msg.subject || "Mensaje")}</h2>
+    <p class="mini-help">${escapeHtml(msg.className || "Aula")} · ${escapeHtml(msg.fromName || msg.teacherName || "Profesor")}</p>
+    <div class="message-body">${renderMarkdownBasico(msg.body || "")}</div>
+    ${renderAttachments(msg.attachments)}
+    <h3>Respuestas</h3>
+    <div class="message-replies">
+      ${replies.length ? replies.map(reply => `
+        <article class="${reply.fromUid === usuarioActual?.uid ? "own" : ""}">
+          <strong>${escapeHtml(reply.fromName || reply.fromEmail || "Usuario")}</strong>
+          <div>${renderMarkdownBasico(reply.body || "")}</div>
+          ${renderAttachments(reply.attachments)}
+        </article>
+      `).join("") : `<p class="mini-help">Aún no hay respuestas.</p>`}
+    </div>
+  `;
+  document.getElementById("messageReplyForm")?.classList.toggle("hidden", false);
+  overlay.classList.remove("hidden");
+}
+
+async function enviarMensajeAula() {
+  const status = document.getElementById("messageComposeStatus");
+  const classId = document.getElementById("messageClassSelect")?.value || adminClaseActiva;
+  const clase = aulaPorId(classId);
+  const subject = document.getElementById("messageSubject")?.value.trim() || "";
+  const body = document.getElementById("messageBody")?.value.trim() || "";
+  if (!clase || !subject || !body) {
+    if (status) status.textContent = "Selecciona aula, asunto y mensaje.";
+    return;
+  }
+  const students = await estudiantesActivosDeClase(classId);
+  if (!students.length) {
+    if (status) status.textContent = "Esta aula aún no tiene estudiantes activos.";
+    return;
+  }
+  if (status) status.textContent = "Enviando mensaje...";
+  try {
+    const ref = doc(collection(db, "classMessages"));
+    const attachments = await subirAdjuntos(document.getElementById("messageAttachments")?.files, `classMessages/${ref.id}`);
+    const teacherName = perfilActual?.displayName || usuarioActual?.displayName || usuarioActual?.email || "Profesor";
+    await setDoc(ref, {
+      classId,
+      className: clase.name,
+      ownerUid: usuarioActual.uid,
+      teacherEmail: usuarioActual.email,
+      fromUid: usuarioActual.uid,
+      fromEmail: usuarioActual.email,
+      fromName: teacherName,
+      toEmails: students.map(s => s.email.toLowerCase()),
+      subject,
+      body,
+      attachments,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+    await Promise.all(students.map(est => crearNotificacion({
+      targetEmail: est.email.toLowerCase(),
+      targetUid: est.userUid || "",
+      type: "class-message",
+      title: subject,
+      body: `Nuevo mensaje de ${teacherName} en ${clase.name}.`,
+      messageId: ref.id,
+      classId
+    })));
+    document.getElementById("messageSubject").value = "";
+    document.getElementById("messageBody").value = "";
+    document.getElementById("messageAttachments").value = "";
+    if (status) status.textContent = `Mensaje enviado a ${students.length} estudiante(s).`;
+  } catch (err) {
+    console.error(err);
+    if (status) status.textContent = err.message || "No se pudo enviar el mensaje.";
+  }
+}
+
+async function responderMensaje(e) {
+  e.preventDefault();
+  const status = document.getElementById("messageReplyStatus");
+  const msg = internalMessages.find(m => m.id === activeMessageId);
+  const body = document.getElementById("messageReplyBody")?.value.trim() || "";
+  if (!msg || !body) {
+    if (status) status.textContent = "Escribe una respuesta.";
+    return;
+  }
+  if (status) status.textContent = "Enviando respuesta...";
+  try {
+    const ref = doc(collection(db, "messageReplies"));
+    const attachments = await subirAdjuntos(document.getElementById("messageReplyAttachments")?.files, `messageReplies/${ref.id}`);
+    const fromName = perfilActual?.displayName || usuarioActual?.displayName || usuarioActual?.email || "Usuario";
+    await setDoc(ref, {
+      messageId: msg.id,
+      classId: msg.classId,
+      ownerUid: msg.ownerUid,
+      fromUid: usuarioActual.uid,
+      fromEmail: usuarioActual.email,
+      fromName,
+      body,
+      attachments,
+      createdAt: serverTimestamp()
+    });
+    const targetEmail = modoAdmin ? "" : msg.teacherEmail;
+    if (targetEmail) {
+      await crearNotificacion({
+        targetEmail: targetEmail.toLowerCase(),
+        targetUid: msg.ownerUid || "",
+        type: "message-reply",
+        title: `Respuesta a: ${msg.subject || "mensaje"}`,
+        body: `${fromName} respondió tu mensaje.`,
+        messageId: msg.id,
+        classId: msg.classId
+      });
+    }
+    document.getElementById("messageReplyBody").value = "";
+    document.getElementById("messageReplyAttachments").value = "";
+    if (status) status.textContent = "Respuesta enviada.";
+  } catch (err) {
+    console.error(err);
+    if (status) status.textContent = err.message || "No se pudo enviar la respuesta.";
   }
 }
 
@@ -2948,6 +3302,7 @@ async function prepararSesionAutenticada() {
     localStorage.setItem(STORAGE_GRUPO, grupoActivo);
     document.body.classList.remove("group-locked");
     aplicarModoUsuario();
+    iniciarListenersComunicacion();
     activarNav(seccionRestaurable());
     guardarPerfilUsuario({ role: "teacher", isAdmin: true, grupo: "admin" }).catch(err => console.warn("No se pudo guardar perfil admin.", err));
     cargarClasesAdmin().catch(err => console.warn("No se pudieron cargar clases admin.", err));
@@ -2956,6 +3311,7 @@ async function prepararSesionAutenticada() {
 
   await cargarEstadoRemoto();
   await mostrarSplashBienvenida();
+  iniciarListenersComunicacion();
 
   if (await aceptarInvitacionPendiente()) {
     return;
@@ -2994,9 +3350,10 @@ async function prepararSesionAutenticada() {
     escucharPermisosGrupo(grupoActivo);
     escucharMembresiaClase(grupoActivo);
     sincronizarCompletadosGuardados();
-    document.body.classList.remove("group-locked");
-    aplicarModoUsuario();
-    activarNav(seccionRestaurable());
+  document.body.classList.remove("group-locked");
+  aplicarModoUsuario();
+  iniciarListenersComunicacion();
+  activarNav(seccionRestaurable());
     actualizarEstadoDiagnostico();
     restaurarIntentoActivo();
     return;
@@ -3853,7 +4210,30 @@ function actualizarCronometroTelefono() {
   detenerCronometroTelefono();
   countdown.hidden = true;
   sendBtn.disabled = false;
-  sendBtn.textContent = phoneVerificationId ? "Enviar nuevo código" : "Enviar código";
+  if (phoneVerificationId) {
+    phoneVerificationId = "";
+    phoneVerificationExpiresAt = 0;
+    setPhoneStatus("El tiempo finalizó. Pide otro código.", "error");
+  }
+  sendBtn.textContent = "Enviar código";
+}
+
+function limpiarVerificacionTelefonoTemporal() {
+  if (!phoneVerificationId && !document.getElementById("profilePhone")?.value && !document.getElementById("profilePhoneCodeInput")?.value) return;
+  phoneVerificationId = "";
+  phoneVerificationExpiresAt = 0;
+  detenerCronometroTelefono();
+  const countdown = document.getElementById("phoneCountdown");
+  const sendBtn = document.getElementById("btnSendPhoneCode");
+  if (countdown) countdown.hidden = true;
+  if (sendBtn) {
+    sendBtn.disabled = false;
+    sendBtn.textContent = "Enviar código";
+  }
+  const phone = document.getElementById("profilePhone");
+  const code = document.getElementById("profilePhoneCodeInput");
+  if (phone) phone.value = "";
+  if (code) code.value = "";
 }
 
 function iniciarCronometroTelefono() {
@@ -4396,6 +4776,28 @@ document.getElementById("advisorQuickReplies")?.addEventListener("click", e => {
   const btn = e.target.closest("[data-advisor-quick]");
   if (btn) enviarMensajeAsesor(btn.dataset.advisorQuick || "");
 });
+document.getElementById("btnNotificationBell")?.addEventListener("click", () => toggleNotificationsPopover());
+document.getElementById("btnCloseNotifications")?.addEventListener("click", () => toggleNotificationsPopover(false));
+document.getElementById("notificationsList")?.addEventListener("click", e => {
+  const btn = e.target.closest("[data-notification-id]");
+  if (btn) abrirNotificacion(btn.dataset.notificationId);
+});
+document.getElementById("btnSendClassMessage")?.addEventListener("click", enviarMensajeAula);
+document.getElementById("messageThreadList")?.addEventListener("click", e => {
+  const btn = e.target.closest("[data-open-message]");
+  if (btn) renderMessageDetail(btn.dataset.openMessage);
+});
+document.getElementById("btnCloseMessageDetail")?.addEventListener("click", () => {
+  activeMessageId = "";
+  document.getElementById("messageDetailOverlay")?.classList.add("hidden");
+});
+document.getElementById("messageDetailOverlay")?.addEventListener("pointerdown", e => {
+  if (e.target.id === "messageDetailOverlay") {
+    activeMessageId = "";
+    e.currentTarget.classList.add("hidden");
+  }
+});
+document.getElementById("messageReplyForm")?.addEventListener("submit", responderMensaje);
 document.addEventListener("pointerdown", e => {
   const panel = document.getElementById("advisorChatPanel");
   const floatBtn = document.getElementById("btnAdvisorFloat");
@@ -4581,6 +4983,7 @@ onAuthStateChanged(auth, async user => {
     unsubscribeAdminStudents = null;
     if (unsubscribeClassMembership) unsubscribeClassMembership();
     unsubscribeClassMembership = null;
+    detenerListenersComunicacion();
     classMembershipValid = true;
     document.getElementById("advisorWidget")?.classList.add("hidden");
     cerrarAsesorIA();

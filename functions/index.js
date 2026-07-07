@@ -140,6 +140,28 @@ async function sendInviteEmail(invite) {
   }
 }
 
+async function sendEmail({ to, subject, html }) {
+  const apiKey = resendApiKey.value();
+  if (!apiKey) {
+    console.warn("RESEND_API_KEY no está configurada; no se envió correo.");
+    return;
+  }
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      from: "Matemáticas En Tu Bolsillo <noreply@matematicasentubolsillo.com>",
+      to: Array.isArray(to) ? to : [to],
+      subject,
+      html
+    })
+  });
+  if (!response.ok) throw new Error(await response.text());
+}
+
 exports.sendClassInviteEmail = onDocumentWritten({
   region: "us-central1",
   document: "classInvites/{inviteId}",
@@ -150,6 +172,74 @@ exports.sendClassInviteEmail = onDocumentWritten({
   if (!after || after.status !== "pending") return;
   if (before && before.inviteToken === after.inviteToken && before.emailSentAt) return;
   await sendInviteEmail(after);
+  await event.data.after.ref.set({
+    emailSentAt: admin.firestore.FieldValue.serverTimestamp(),
+    emailStatus: "sent"
+  }, { merge: true });
+});
+
+exports.sendClassMessageEmail = onDocumentWritten({
+  region: "us-central1",
+  document: "classMessages/{messageId}",
+  secrets: [resendApiKey]
+}, async event => {
+  const before = event.data.before.exists ? event.data.before.data() : null;
+  const after = event.data.after.exists ? event.data.after.data() : null;
+  if (!after || before) return;
+  const emails = Array.isArray(after.toEmails) ? after.toEmails : [];
+  if (!emails.length) return;
+  const db = admin.firestore();
+  const enabledEmails = [];
+  for (const email of emails) {
+    const users = await db.collection("users").where("email", "==", email).limit(1).get();
+    const user = users.docs[0]?.data();
+    if (user?.notificationsEnabled) enabledEmails.push(email);
+  }
+  if (!enabledEmails.length) return;
+  const html = `
+    <div style="font-family:Arial,sans-serif;line-height:1.6;color:#162838;max-width:640px;margin:auto;padding:24px">
+      <h1 style="color:#06345f">${escapeHtml(after.subject || "Nuevo mensaje")}</h1>
+      <p><strong>${escapeHtml(after.fromName || "Tu profesor")}</strong> envió un mensaje interno en <strong>${escapeHtml(after.className || "tu aula")}</strong>.</p>
+      <p>${escapeHtml(after.body || "").replace(/\n/g, "<br>")}</p>
+      <p>Este correo es solo informativo. Para responder, entra a la app y abre la campana de notificaciones.</p>
+      <p style="font-size:12px;color:#66788a">© Todos los derechos reservados. Matemáticas En Tu Bolsillo.</p>
+    </div>`;
+  await sendEmail({
+    to: enabledEmails,
+    subject: after.subject || "Nuevo mensaje interno",
+    html
+  });
+  await event.data.after.ref.set({
+    emailSentAt: admin.firestore.FieldValue.serverTimestamp(),
+    emailStatus: "sent"
+  }, { merge: true });
+});
+
+exports.sendInternalNotificationEmail = onDocumentWritten({
+  region: "us-central1",
+  document: "notifications/{notificationId}",
+  secrets: [resendApiKey]
+}, async event => {
+  const before = event.data.before.exists ? event.data.before.data() : null;
+  const after = event.data.after.exists ? event.data.after.data() : null;
+  if (!after || before || after.emailSentAt || after.type === "class-message") return;
+  const targetEmail = after.targetEmail;
+  if (!targetEmail) return;
+  const users = await admin.firestore().collection("users").where("email", "==", targetEmail).limit(1).get();
+  const user = users.docs[0]?.data();
+  if (!user?.notificationsEnabled) return;
+  const html = `
+    <div style="font-family:Arial,sans-serif;line-height:1.6;color:#162838;max-width:640px;margin:auto;padding:24px">
+      <h1 style="color:#06345f">${escapeHtml(after.title || "Nueva notificación")}</h1>
+      <p>${escapeHtml(after.body || "Tienes una nueva notificación interna en Matemáticas En Tu Bolsillo.")}</p>
+      <p>Este correo es solo informativo. Para revisar detalles o responder, entra a la app.</p>
+      <p style="font-size:12px;color:#66788a">© Todos los derechos reservados. Matemáticas En Tu Bolsillo.</p>
+    </div>`;
+  await sendEmail({
+    to: targetEmail,
+    subject: after.title || "Nueva notificación",
+    html
+  });
   await event.data.after.ref.set({
     emailSentAt: admin.firestore.FieldValue.serverTimestamp(),
     emailStatus: "sent"

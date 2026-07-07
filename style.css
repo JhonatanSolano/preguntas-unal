@@ -299,6 +299,89 @@ body.admin-mode .admin-exit-dock {
   box-shadow: var(--shadow-sm);
   flex: 0 0 auto;
 }
+.notification-bell {
+  position: fixed;
+  top: 1.2rem;
+  right: 1.2rem;
+  z-index: 72;
+  width: 48px;
+  height: 48px;
+  border: 0;
+  border-radius: 16px;
+  background: #fff;
+  color: var(--c-navy);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+}
+.notification-bell span {
+  font-size: 1.25rem;
+}
+.notification-bell i {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--c-red);
+  box-shadow: 0 0 0 3px #fff;
+}
+.notifications-popover {
+  position: fixed;
+  top: 4.6rem;
+  right: 1.2rem;
+  z-index: 95;
+  width: min(360px, calc(100vw - 1.5rem));
+  max-height: min(520px, calc(100dvh - 6rem));
+  overflow: hidden;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-md);
+  background: #fff;
+  box-shadow: 0 22px 58px rgba(6,52,95,.22);
+}
+.notifications-popover header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: .85rem 1rem;
+  border-bottom: 1px solid var(--c-border);
+  color: var(--c-navy);
+}
+.notifications-popover header button {
+  border: 0;
+  background: transparent;
+  color: var(--c-muted);
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+.notifications-list {
+  max-height: calc(min(520px, calc(100dvh - 6rem)) - 56px);
+  overflow-y: auto;
+  padding: .5rem;
+}
+.notification-item {
+  width: 100%;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  padding: .75rem;
+  text-align: left;
+  cursor: pointer;
+}
+.notification-item.unread {
+  background: var(--c-blue-lt);
+}
+.notification-item strong,
+.notification-item span {
+  display: block;
+}
+.notification-item strong {
+  color: var(--c-navy);
+}
+.notification-item span {
+  color: var(--c-muted);
+  font-size: .88rem;
+}
 .drawer-backdrop {
   position: fixed;
   inset: 0;
@@ -1231,6 +1314,122 @@ body.admin-mode .admin-exit-dock {
 .advisor-feature-grid span {
   color: var(--c-muted);
   font-size: .9rem;
+}
+.messages-panel {
+  text-align: left;
+}
+.teacher-message-compose {
+  display: grid;
+  gap: .85rem;
+  margin: 1rem 0 1.3rem;
+  padding: 1rem;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-md);
+  background: #f8fbff;
+}
+.teacher-message-compose label,
+.file-inline {
+  display: grid;
+  gap: .35rem;
+  color: var(--c-navy);
+  font-weight: 800;
+}
+.teacher-message-compose .btn {
+  width: fit-content;
+  max-width: 100%;
+}
+.message-thread-list {
+  display: grid;
+  gap: .75rem;
+}
+.message-thread-card button {
+  width: 100%;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  padding: .9rem;
+  text-align: left;
+  cursor: pointer;
+}
+.message-thread-card strong,
+.message-thread-card span,
+.message-thread-card small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.message-thread-card strong {
+  color: var(--c-navy);
+}
+.message-thread-card span,
+.message-thread-card small {
+  color: var(--c-muted);
+}
+.message-detail-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(6,52,95,.36);
+}
+.message-detail-card {
+  position: relative;
+  width: min(760px, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+  border-radius: var(--radius-lg);
+  background: #fff;
+  padding: 1.3rem;
+  box-shadow: var(--shadow-md);
+}
+.message-body,
+.message-replies article {
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  padding: .85rem;
+  margin: .75rem 0;
+  background: #f8fbff;
+}
+.message-replies article.own {
+  background: var(--c-green-lt);
+}
+.message-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  margin: .7rem 0;
+}
+.message-attachments a {
+  border: 1px solid var(--c-border);
+  border-radius: 999px;
+  padding: .35rem .65rem;
+  color: var(--c-blue);
+  text-decoration: none;
+  font-weight: 800;
+}
+.message-reply-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: .55rem;
+  align-items: end;
+  margin-top: 1rem;
+}
+.reply-attach-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--c-blue-lt);
+  color: var(--c-navy);
+  font-size: 1.5rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+.reply-attach-btn input {
+  display: none;
 }
 .recovery-wizard {
   display: grid;
@@ -2852,5 +3051,29 @@ body.admin-mode .admin-exit-dock {
   }
   .advisor-message div {
     max-width: calc(100% - 3rem);
+  }
+  .notification-bell {
+    top: .95rem;
+    right: .9rem;
+    width: 44px;
+    height: 44px;
+  }
+  .notifications-popover {
+    top: 4.1rem;
+    right: .75rem;
+    width: calc(100vw - 1.5rem);
+  }
+  .teacher-message-compose {
+    padding: .85rem;
+  }
+  .teacher-message-compose .btn {
+    width: 100%;
+  }
+  .message-reply-form {
+    grid-template-columns: 1fr;
+  }
+  .reply-attach-btn {
+    width: 100%;
+    border-radius: 999px;
   }
 }

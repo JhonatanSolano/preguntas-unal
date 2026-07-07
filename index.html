@@ -399,7 +399,18 @@
   <!-- ══════════════════ NAVEGACIÓN DE SECCIONES ══════════════════ -->
   <nav class="section-nav">
     <button class="drawer-toggle" id="btnDrawerToggle" type="button" aria-label="Abrir menú">☰</button>
+    <button class="notification-bell hidden" id="btnNotificationBell" type="button" aria-label="Notificaciones">
+      <span>🔔</span>
+      <i id="notificationDot" hidden></i>
+    </button>
   </nav>
+  <div class="notifications-popover hidden" id="notificationsPopover">
+    <header>
+      <strong>Notificaciones</strong>
+      <button type="button" id="btnCloseNotifications" aria-label="Cerrar notificaciones">×</button>
+    </header>
+    <div id="notificationsList" class="notifications-list"></div>
+  </div>
   <div class="drawer-backdrop hidden" id="drawerBackdrop"></div>
   <aside class="side-drawer hidden" id="sideDrawer" aria-label="Menú lateral">
     <div class="drawer-head">
@@ -412,6 +423,7 @@
     <button class="drawer-link" data-section="configuracion" type="button">Configuración</button>
     <button class="drawer-link student-only" data-section="estadisticas" type="button">Estadísticas</button>
     <button class="drawer-link" data-section="soporte" type="button">Soporte</button>
+    <button class="drawer-link" data-section="mensajes" type="button">Mensajes</button>
     <button class="drawer-link" data-section="asesorIA" type="button">Asesor IA</button>
     <button class="drawer-link admin-only" data-section="adminMetricas" type="button">Métricas y estadísticas</button>
     <button class="drawer-link danger" id="btnDrawerSalirApp" type="button">Cerrar sesión</button>
@@ -1084,6 +1096,43 @@
       </a>
     </div>
   </main>
+
+  <!-- ══════════════════ MENSAJES INTERNOS ══════════════════ -->
+  <main class="main-content hidden" id="sectionMensajes">
+    <div class="start-screen messages-panel">
+      <span class="cs-icon">✉</span>
+      <h2>Mensajes internos</h2>
+      <p id="messagesIntro">Comunicación interna del aula.</p>
+      <section class="teacher-message-compose hidden" id="teacherMessageCompose">
+        <h3>Enviar mensaje al aula</h3>
+        <label>Aula<select id="messageClassSelect" class="admin-input"></select></label>
+        <label>Asunto<input id="messageSubject" class="admin-input" type="text" placeholder="Asunto del mensaje" /></label>
+        <label>Mensaje<textarea id="messageBody" class="admin-input" rows="5" placeholder="Escribe el mensaje para los estudiantes del aula"></textarea></label>
+        <label class="file-inline">Adjuntos
+          <input id="messageAttachments" type="file" multiple accept="image/*,.pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+        </label>
+        <button class="btn btn-primary" id="btnSendClassMessage" type="button">Enviar mensaje</button>
+        <p class="bank-status" id="messageComposeStatus"></p>
+      </section>
+      <div class="message-thread-list" id="messageThreadList"></div>
+    </div>
+  </main>
+
+  <div class="message-detail-overlay hidden" id="messageDetailOverlay">
+    <article class="message-detail-card">
+      <button class="auth-close" id="btnCloseMessageDetail" type="button" aria-label="Cerrar mensaje">×</button>
+      <div id="messageDetailContent"></div>
+      <form class="message-reply-form" id="messageReplyForm">
+        <textarea id="messageReplyBody" class="admin-input" rows="3" placeholder="Responder internamente al profesor"></textarea>
+        <label class="reply-attach-btn" title="Adjuntar archivo">
+          +
+          <input id="messageReplyAttachments" type="file" multiple accept="image/*,.pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+        </label>
+        <button class="btn btn-primary" type="submit">Responder</button>
+      </form>
+      <p class="bank-status" id="messageReplyStatus"></p>
+    </article>
+  </div>
 
   <!-- ══════════════════ ASESOR IA ══════════════════ -->
   <main class="main-content hidden" id="sectionAsesorIA">
