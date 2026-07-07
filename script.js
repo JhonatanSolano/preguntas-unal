@@ -107,6 +107,7 @@ let internalMessages = [];
 let internalReplies = [];
 let activeMessageId = "";
 let recoverAttemptCount = 0;
+let seccionActual = "inicio";
 const PHONE_CODE_DURATION_MS = 2 * 60 * 1000;
 const MAX_PROFILE_PHOTO_INPUT_MB = 12;
 const MAX_MESSAGE_ATTACHMENT_MB = 8;
@@ -1278,6 +1279,7 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
   btn.addEventListener("click", () => {
     const sec = btn.dataset.section;
     if (!sec) return;
+    if (!confirmarSalidaMensajes(sec)) return;
     const activa = pruebaActivaActual();
     if (activa && sec !== activa && sec !== "soporte") {
       activarNav(activa);
@@ -1361,6 +1363,7 @@ function actualizarEstadoDiagnostico() {
 function mostrarSeccion(sec) {
   cerrarAccordions();
   if (sec !== "perfil") limpiarVerificacionTelefonoTemporal();
+  if (sec !== "mensajes") limpiarBorradorMensajeProfesor();
   document.getElementById("sectionInicio").classList.toggle("hidden", sec !== "inicio");
   document.getElementById("sectionExamenes").classList.toggle("hidden", sec !== "examenes");
   document.getElementById("sectionDiagnostico").classList.toggle("hidden", sec !== "diagnostico");
@@ -1388,9 +1391,34 @@ function mostrarSeccion(sec) {
     document.getElementById("adminMetricsPanel").hidden = false;
     renderAdminStats();
   }
+  seccionActual = sec;
+}
+
+function hayBorradorMensajeProfesor() {
+  if (!modoAdmin) return false;
+  const subject = document.getElementById("messageSubject")?.value.trim() || "";
+  const body = document.getElementById("messageBody")?.value.trim() || "";
+  const files = document.getElementById("messageAttachments")?.files?.length || 0;
+  return !!(subject || body || files);
+}
+
+function limpiarBorradorMensajeProfesor() {
+  if (!modoAdmin) return;
+  const subject = document.getElementById("messageSubject");
+  const body = document.getElementById("messageBody");
+  const files = document.getElementById("messageAttachments");
+  if (subject) subject.value = "";
+  if (body) body.value = "";
+  if (files) files.value = "";
+}
+
+function confirmarSalidaMensajes(secDestino = "") {
+  if (seccionActual !== "mensajes" || secDestino === "mensajes" || !hayBorradorMensajeProfesor()) return true;
+  return confirm("Tienes un mensaje sin enviar. Si sales de Mensajes se borrará el asunto, el contenido y los adjuntos escritos. ¿Deseas salir de todos modos?");
 }
 
 function activarNav(sec) {
+  if (!confirmarSalidaMensajes(sec)) return false;
   if (!modoAdmin && !aulaActualValida() && ["diagnostico", "nivel1", "examen"].includes(sec)) {
     sec = "examenes";
     setTimeout(() => {
@@ -1411,6 +1439,7 @@ function activarNav(sec) {
   localStorage.removeItem(STORAGE_SECCION_ACTIVA);
   document.querySelectorAll(".nav-btn").forEach(b => b.classList.toggle("active", b.dataset.section === sec));
   mostrarSeccion(sec);
+  return true;
 }
 
 function seccionRestaurable() {
@@ -4814,6 +4843,7 @@ document.getElementById("claseCodigo")?.addEventListener("keydown", (e) => {
 });
 
 async function salirApp() {
+  if (!confirmarSalidaMensajes("salir")) return;
   localStorage.removeItem(STORAGE_GRUPO);
   localStorage.removeItem(STORAGE_BANCO_ACTIVO);
   localStorage.removeItem(STORAGE_CLASE_ACTIVA);
@@ -4875,6 +4905,13 @@ document.getElementById("btnCloseNotifications")?.addEventListener("click", () =
 document.getElementById("notificationsList")?.addEventListener("click", e => {
   const btn = e.target.closest("[data-notification-id]");
   if (btn) abrirNotificacion(btn.dataset.notificationId);
+});
+document.addEventListener("pointerdown", e => {
+  const pop = document.getElementById("notificationsPopover");
+  const bell = document.getElementById("btnNotificationBell");
+  if (!pop || pop.classList.contains("hidden")) return;
+  if (pop.contains(e.target) || bell?.contains(e.target)) return;
+  toggleNotificationsPopover(false);
 });
 document.getElementById("btnSendClassMessage")?.addEventListener("click", enviarMensajeAula);
 document.querySelectorAll("[data-message-format]").forEach(btn => {
@@ -5008,13 +5045,11 @@ document.getElementById("btnDrawerToggle")?.addEventListener("click", () => {
 document.getElementById("btnDrawerClose")?.addEventListener("click", cerrarDrawer);
 document.getElementById("drawerBackdrop")?.addEventListener("click", cerrarDrawer);
 document.getElementById("btnDrawerHome")?.addEventListener("click", () => {
-  cerrarDrawer();
-  activarNav(modoAdmin ? "admin" : "inicio");
+  if (activarNav(modoAdmin ? "admin" : "inicio")) cerrarDrawer();
 });
 document.querySelectorAll(".drawer-link[data-section]").forEach(btn => {
   btn.addEventListener("click", () => {
-    cerrarDrawer();
-    activarNav(btn.dataset.section);
+    if (activarNav(btn.dataset.section)) cerrarDrawer();
   });
 });
 document.addEventListener("toggle", e => {
@@ -5029,6 +5064,12 @@ document.querySelectorAll("[data-toggle-password]").forEach(btn => {
 });
 document.querySelectorAll("[data-notification-toggle]").forEach(toggle => {
   toggle.addEventListener("change", cambiarNotificaciones);
+});
+
+window.addEventListener("beforeunload", e => {
+  if (!hayBorradorMensajeProfesor()) return;
+  e.preventDefault();
+  e.returnValue = "";
 });
 
 document.addEventListener("keydown", e => {
