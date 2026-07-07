@@ -1,0 +1,157 @@
+const admin = require("firebase-admin");
+const { onRequest } = require("firebase-functions/v2/https");
+const { onDocumentWritten } = require("firebase-functions/v2/firestore");
+const { defineSecret } = require("firebase-functions/params");
+
+admin.initializeApp();
+
+const geminiApiKey = defineSecret("GEMINI_API_KEY");
+const resendApiKey = defineSecret("RESEND_API_KEY");
+
+const SYSTEM_PROMPT = String.raw`
+Eres "Asesor IA", un tutor experto de Matemáticas En Tu Bolsillo para estudiantes que preparan matemáticas, admisión UNAL e ICFES Saber 11. Explica con rigor, claridad y pasos verificables.
+
+Puedes resolver preguntas, crear ejercicios tipo examen, proponer práctica por tema, revisar errores y crear planes de estudio. Responde en español claro, con tono profesional y cercano. Usa Markdown y LaTeX cuando haya fórmulas. No inventes datos oficiales si no son necesarios. Si falta información, haz una sola pregunta concreta.
+`;
+
+function setCors(res) {
+  res.set("Access-Control-Allow-Origin", "*");
+  res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+}
+
+function normalizeLatex(text) {
+  return String(text || "")
+    .replace(/\\\[((?:.|\n)*?)\\\]/g, "\n$$$$\n$1\n$$$$\n")
+    .replace(/\\\((.*?)\\\)/g, "$$$1$$")
+    .replace(/\bTruco PREICFES\b/gi, "Consejo para examen")
+    .replace(/\bTruco ICFES\b/gi, "Consejo para examen")
+    .replace(/\bTruco UNAL\b/gi, "Consejo para examen");
+}
+
+async function generateWithGemini(apiKey, modelName, contents) {
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(apiKey)}`;
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+      contents
+    })
+  });
+  const raw = await response.text();
+  if (!response.ok) throw new Error(raw || `Gemini API error ${response.status}`);
+  const data = JSON.parse(raw);
+  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) throw new Error("Gemini response did not include text.");
+  return normalizeLatex(text.trim());
+}
+
+exports.generateAiResponse = onRequest({ region: "us-central1", secrets: [geminiApiKey] }, async (req, res) => {
+  setCors(res);
+  if (req.method === "OPTIONS") return res.status(204).send("");
+  if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
+
+  const apiKey = geminiApiKey.value();
+  const { history = [], currentUserInput = "", currentData = {} } = req.body || {};
+  if (!apiKey) return res.status(500).json({ error: "Falta configurar GEMINI_API_KEY." });
+  if (!String(currentUserInput).trim()) return res.status(400).json({ error: "Mensaje vacío." });
+
+  try {
+    const prompt = [
+      `Datos actuales del usuario: ${JSON.stringify(currentData)}`,
+      `Mensaje actual del usuario: ${currentUserInput}`,
+      "Responde directamente al usuario en Markdown claro y con LaTeX cuando corresponda."
+    ].join("\n\n");
+    const contents = [
+      ...history.slice(-12),
+      { role: "user", parts: [{ text: prompt }] }
+    ];
+    const models = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-lite-latest"];
+    let lastError;
+    for (const model of models) {
+      try {
+        const responseText = await generateWithGemini(apiKey, model, contents);
+        return res.status(200).json({ responseText, action: "RESPOND" });
+      } catch (err) {
+        lastError = err;
+        if (!/429|503|quota|Service Unavailable|Too Many Requests|high demand/i.test(String(err.message))) {
+          throw err;
+        }
+      }
+    }
+    throw lastError;
+  } catch (err) {
+    console.error("Gemini error", err);
+    return res.status(500).json({ error: "No se pudo generar la respuesta con Gemini." });
+  }
+});
+
+function escapeHtml(text = "") {
+  return String(text).replace(/[&<>"']/g, char => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;"
+  }[char]));
+}
+
+async function sendInviteEmail(invite) {
+  const apiKey = resendApiKey.value();
+  if (!apiKey) {
+    console.warn("RESEND_API_KEY no está configurada; no se envió correo.");
+    return;
+  }
+  const studentEmail = invite.email || invite.studentEmail;
+  const className = invite.className || "Aula";
+  const teacherName = invite.teacherName || "Tu profesor";
+  const teacherEmail = invite.teacherEmail || "";
+  const acceptUrl = invite.acceptUrl;
+  if (!studentEmail || !acceptUrl) return;
+
+  const html = `
+    <div style="font-family:Arial,sans-serif;line-height:1.6;color:#162838;max-width:640px;margin:auto;padding:24px">
+      <h1 style="color:#06345f">Invitación a clase</h1>
+      <p><strong>${escapeHtml(teacherName)}</strong> te invitó a unirte al aula <strong>${escapeHtml(className)}</strong> en Matemáticas En Tu Bolsillo.</p>
+      <p>Correo del profesor: ${escapeHtml(teacherEmail)}</p>
+      <p style="margin:28px 0">
+        <a href="${escapeHtml(acceptUrl)}" style="background:#0d9488;color:white;padding:14px 22px;border-radius:999px;text-decoration:none;font-weight:bold">Unirme a la clase</a>
+      </p>
+      <p>Si no esperabas esta invitación, puedes ignorar este correo.</p>
+      <p style="font-size:12px;color:#66788a">© Todos los derechos reservados. Matemáticas En Tu Bolsillo.</p>
+    </div>`;
+
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      from: "Matemáticas En Tu Bolsillo <noreply@matematicasentubolsillo.com>",
+      to: [studentEmail],
+      subject: `${teacherName} te invitó a ${className}`,
+      html
+    })
+  });
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+}
+
+exports.sendClassInviteEmail = onDocumentWritten({
+  region: "us-central1",
+  document: "classInvites/{inviteId}",
+  secrets: [resendApiKey]
+}, async event => {
+  const before = event.data.before.exists ? event.data.before.data() : null;
+  const after = event.data.after.exists ? event.data.after.data() : null;
+  if (!after || after.status !== "pending") return;
+  if (before && before.inviteToken === after.inviteToken && before.emailSentAt) return;
+  await sendInviteEmail(after);
+  await event.data.after.ref.set({
+    emailSentAt: admin.firestore.FieldValue.serverTimestamp(),
+    emailStatus: "sent"
+  }, { merge: true });
+});

@@ -412,6 +412,7 @@
     <button class="drawer-link" data-section="configuracion" type="button">Configuración</button>
     <button class="drawer-link student-only" data-section="estadisticas" type="button">Estadísticas</button>
     <button class="drawer-link" data-section="soporte" type="button">Soporte</button>
+    <button class="drawer-link" data-section="asesorIA" type="button">Asesor IA</button>
     <button class="drawer-link admin-only" data-section="adminMetricas" type="button">Métricas y estadísticas</button>
     <button class="drawer-link danger" id="btnDrawerSalirApp" type="button">Cerrar sesión</button>
   </aside>
@@ -1084,6 +1085,58 @@
     </div>
   </main>
 
+  <!-- ══════════════════ ASESOR IA ══════════════════ -->
+  <main class="main-content hidden" id="sectionAsesorIA">
+    <div class="start-screen asesor-info-panel">
+      <span class="cs-icon">∑</span>
+      <h2>Asesor IA</h2>
+      <p>Tu tutor de matemáticas está listo para ayudarte a estudiar, resolver dudas y practicar con intención.</p>
+      <div class="advisor-feature-grid">
+        <article>
+          <strong>Resolver preguntas</strong>
+          <span>Pega un enunciado y recibe explicación paso a paso.</span>
+        </article>
+        <article>
+          <strong>Ejercicios tipo examen</strong>
+          <span>Pide preguntas por tema, cantidad y dificultad.</span>
+        </article>
+        <article>
+          <strong>Practicar por tema</strong>
+          <span>Entrena álgebra, funciones, geometría, probabilidad y más.</span>
+        </article>
+        <article>
+          <strong>Revisar errores</strong>
+          <span>Entiende por qué fallaste y cómo evitarlo en el examen.</span>
+        </article>
+        <article>
+          <strong>Plan de estudio</strong>
+          <span>Organiza una ruta corta según tus temas flojos.</span>
+        </article>
+      </div>
+      <button class="btn btn-primary" id="btnOpenAdvisorSection" type="button">Abrir Asesor IA</button>
+    </div>
+  </main>
+
+  <div class="advisor-widget hidden" id="advisorWidget">
+    <button class="advisor-float" id="btnAdvisorFloat" type="button" aria-expanded="false" aria-label="Abrir Asesor IA">∑</button>
+    <section class="advisor-chat-panel hidden" id="advisorChatPanel" aria-label="Chat Asesor IA">
+      <header>
+        <div>
+          <strong>Asesor IA</strong>
+          <span>Matemáticas · UNAL · ICFES</span>
+        </div>
+        <button class="advisor-close" id="btnAdvisorClose" type="button" aria-label="Cerrar asesor">×</button>
+      </header>
+      <div class="advisor-quick" id="advisorQuickReplies"></div>
+      <div class="advisor-messages" id="advisorMessages"></div>
+      <form class="advisor-input-row" id="advisorForm">
+        <input type="text" id="advisorInput" placeholder="Escribe tu pregunta, tema o instrucción..." autocomplete="off" />
+        <button type="submit" aria-label="Enviar mensaje">➤</button>
+      </form>
+      <p class="advisor-status" id="advisorStatus"></p>
+    </section>
+  </div>
+
   <!-- ══════════════════ MODALES TIEMPO AGOTADO ══════════════════ -->
   <div id="timeoutOverlay" class="overlay hidden">
     <div class="overlay-card">
@@ -1117,7 +1170,7 @@
   </div>
 
   <footer class="site-footer">
-    <p>Jhonatan Solano · Matemáticas En Tu Bolsillo · 2026</p>
+    <p>© Todos los derechos reservados. Matemáticas En Tu Bolsillo.</p>
     <p><a href="https://wa.me/573112454282?text=Hola%20Jhonatan%2C%20necesito%20soporte%20con%20la%20app%20Matem%C3%A1ticas%20Pro.%20" target="_blank" rel="noopener">Soporte por WhatsApp</a></p>
   </footer>
 
@@ -1135,6 +1188,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260630-4"></script>
+  <script type="module" src="script.js?v=20260707-1"></script>
 </body>
 </html>

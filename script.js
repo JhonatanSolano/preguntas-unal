@@ -52,7 +52,8 @@ const firebaseConfig = {
 
 const APP_CONFIG = {
   name: "Matemáticas En Tu Bolsillo",
-  recaptchaSiteKey: "6LcmOT0tAAAAAPfwCOhqA1nzfz3YOx8McE_mpFEZ"
+  recaptchaSiteKey: "6LcmOT0tAAAAAPfwCOhqA1nzfz3YOx8McE_mpFEZ",
+  asesorEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/generateAiResponse"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -88,6 +89,9 @@ let recoverVerificationExpiresAt = 0;
 let recoverCountdownInterval = null;
 let recoverCandidate = null;
 let recoverRecaptchaVerifier = null;
+let advisorMessages = [];
+let advisorMode = null;
+let advisorLoading = false;
 let recoverAttemptCount = 0;
 const PHONE_CODE_DURATION_MS = 2 * 60 * 1000;
 const MAX_PROFILE_PHOTO_INPUT_MB = 12;
@@ -446,12 +450,41 @@ const STORAGE_BANCO_ACTIVO = "preguntasUnalBancoActivo";
 const STORAGE_CLASE_ACTIVA = "preguntasUnalClaseActiva";
 const STORAGE_ADMIN_CLASE = "preguntasUnalAdminClaseActiva";
 const STORAGE_SECCION_ACTIVA = "matematicasBolsilloSeccionActiva";
+const STORAGE_ASESOR_CHAT = "matematicasBolsilloAsesorIA";
+const STORAGE_INVITE_TOKEN = "matematicasBolsilloInviteToken";
 const INACTIVIDAD_MS = 10 * 60 * 1000;
+const ASESOR_INACTIVIDAD_MS = 10 * 60 * 1000;
 const BANCOS_DISPONIBLES = ["principal", ...Array.from({ length: 10 }, (_, i) => `reserva${i + 1}`)];
 const NOMBRES_BANCOS = Object.fromEntries(BANCOS_DISPONIBLES.map((banco, idx) => [
   banco,
   idx === 0 ? "Banco principal" : `Reserva ${idx}`
 ]));
+const ASESOR_QUICK_REPLIES = [
+  ["Resolver pregunta", "Resolver una pregunta"],
+  ["Ejercicios tipo examen", "Generar ejercicios tipo examen"],
+  ["Practicar por tema", "Practicar por tema"],
+  ["Revisar error", "Revisar mi error"],
+  ["Plan de estudio", "Crear plan de estudio"]
+];
+const ASESOR_MODE_LABELS = {
+  solve: "Resolver pregunta",
+  generate: "Ejercicios tipo examen",
+  practice: "Practicar por tema",
+  review: "Revisar error",
+  guide: "Plan de estudio"
+};
+const ASESOR_MODE_PROMPTS = {
+  solve: "Listo. Pega el enunciado o escribe la pregunta y te explico el tema, la idea clave, los pasos y un consejo para examen.",
+  generate: "Perfecto. Dime tema, cantidad y dificultad. Ej: 5 preguntas de funciones, nivel medio, con solución.",
+  practice: "Vamos a practicar. Dime el tema: álgebra, funciones, geometría, trigonometría, probabilidad, estadística o lectura de gráficas.",
+  review: "Pega el enunciado, tu respuesta y la respuesta correcta si la tienes. Te explico dónde estuvo el error y cómo evitarlo.",
+  guide: "Dime cuántos días tienes, qué examen preparas y tus temas flojos. Te armo una ruta corta de estudio."
+};
+const ASESOR_INITIAL_MESSAGE = {
+  id: "initial-advisor-message",
+  sender: "bot",
+  text: "Hola. Soy tu Asesor IA de matemáticas. Puedo ayudarte a resolver preguntas, practicar por tema, revisar errores o crear un plan de estudio."
+};
 let intentoActivo = cargarIntentoActivo();
 let resultadosSesion = cargarResultadosSesion();
 let bancoActivo = localStorage.getItem(STORAGE_BANCO_ACTIVO) || "principal";
@@ -512,6 +545,31 @@ function refClase(id) {
 
 function safeEmailId(email) {
   return email.toLowerCase().replace(/[^a-z0-9]/g, "_");
+}
+
+function generarTokenSeguro(length = 32) {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  const values = new Uint32Array(length);
+  crypto.getRandomValues(values);
+  return Array.from(values, value => chars[value % chars.length]).join("");
+}
+
+function enlaceInvitacionAula(token) {
+  const url = new URL(window.location.href);
+  url.search = "";
+  url.hash = "";
+  url.searchParams.set("classInvite", token);
+  return url.toString();
+}
+
+function capturarInvitacionUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get("classInvite");
+  if (!token) return;
+  localStorage.setItem(STORAGE_INVITE_TOKEN, token);
+  params.delete("classInvite");
+  const clean = `${window.location.pathname}${params.toString() ? `?${params}` : ""}${window.location.hash || ""}`;
+  window.history.replaceState({}, "", clean);
 }
 
 function normalizarTelefono(code = "", phone = "") {
@@ -1253,6 +1311,7 @@ function mostrarSeccion(sec) {
   document.getElementById("sectionAdmin").classList.toggle("hidden", sec !== "admin");
   document.getElementById("sectionAdminMetricas").classList.toggle("hidden", sec !== "adminMetricas");
   document.getElementById("sectionSoporte").classList.toggle("hidden", sec !== "soporte");
+  document.getElementById("sectionAsesorIA")?.classList.toggle("hidden", sec !== "asesorIA");
   if (sec === "diagnostico") actualizarEstadoDiagnostico();
   if (sec === "examenes") renderExamenesHub();
   if (sec === "admin") renderAdminPanel();
@@ -1303,6 +1362,7 @@ function cerrarAccordions() {
 
 function aplicarModoUsuario() {
   document.body.classList.toggle("admin-mode", modoAdmin);
+  document.getElementById("advisorWidget")?.classList.toggle("hidden", !usuarioActual);
   actualizarGrupoActualPanel();
   actualizarBienvenida();
   actualizarDrawer();
@@ -2853,6 +2913,10 @@ async function prepararSesionAutenticada() {
   await cargarEstadoRemoto();
   await mostrarSplashBienvenida();
 
+  if (await aceptarInvitacionPendiente()) {
+    return;
+  }
+
   if (perfilActual?.classId || claseActiva) {
     const aulaId = perfilActual?.classId || claseActiva;
     const aulaSnap = await getDoc(refClase(aulaId));
@@ -2955,17 +3019,17 @@ async function validarClaseIngreso(codigoClase = document.getElementById("claseC
   }
 }
 
-async function sincronizarRegistroEstudianteClase(classId, grupo) {
+async function sincronizarRegistroEstudianteClase(classId, grupo, extra = {}) {
   if (!usuarioActual?.email || !classId) return;
   const ref = doc(db, "classStudents", `${classId}_${safeEmailId(usuarioActual.email)}`);
-  const ownerUid = claseActualInfo?.ownerUid || perfilActual?.classOwnerUid || "";
-  const ownerEmail = claseActualInfo?.ownerEmail || perfilActual?.classOwnerEmail || "";
+  const ownerUid = extra.ownerUid || claseActualInfo?.ownerUid || perfilActual?.classOwnerUid || "";
+  const ownerEmail = extra.ownerEmail || claseActualInfo?.ownerEmail || perfilActual?.classOwnerEmail || "";
   await setDoc(ref, {
     classId,
     className: claseActualInfo?.name || perfilActual?.className || "",
     classCode: claseActualInfo?.code || perfilActual?.classCode || "",
     email: usuarioActual.email,
-    name: perfilActual?.displayName || usuarioActual.displayName || "",
+    name: extra.name || perfilActual?.displayName || usuarioActual.displayName || "",
     grupo: classId,
     aulaId: classId,
     groupName: claseActualInfo?.name || perfilActual?.className || "",
@@ -2976,6 +3040,95 @@ async function sincronizarRegistroEstudianteClase(classId, grupo) {
     ownerEmail,
     updatedAt: serverTimestamp()
   }, { merge: true });
+}
+
+async function crearInvitacionClase(clase, { email, name = "" }) {
+  const inviteToken = generarTokenSeguro();
+  const id = `${clase.id}_${safeEmailId(email)}`;
+  const teacherName = perfilActual?.displayName || usuarioActual?.displayName || usuarioActual?.email || "Profesor";
+  await setDoc(doc(db, "classInvites", id), {
+    classId: clase.id,
+    className: clase.name,
+    classCode: clase.code,
+    studentEmail: email,
+    email,
+    studentName: name || "",
+    teacherUid: usuarioActual.uid,
+    ownerUid: usuarioActual.uid,
+    teacherEmail: usuarioActual.email || "",
+    teacherName,
+    status: "pending",
+    inviteToken,
+    acceptUrl: enlaceInvitacionAula(inviteToken),
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
+  }, { merge: true });
+}
+
+async function aceptarInvitacionPendiente() {
+  const token = localStorage.getItem(STORAGE_INVITE_TOKEN);
+  if (!token || !usuarioActual?.email) return false;
+  const snap = await getDocs(query(
+    collection(db, "classInvites"),
+    where("inviteToken", "==", token),
+    where("status", "==", "pending"),
+    where("email", "==", usuarioActual.email)
+  ));
+  if (snap.empty) {
+    localStorage.removeItem(STORAGE_INVITE_TOKEN);
+    mostrarWarn("La invitación ya no está disponible o ya fue utilizada.");
+    return false;
+  }
+  const inviteDoc = snap.docs[0];
+  const invite = inviteDoc.data();
+  if ((invite.email || invite.studentEmail || "").toLowerCase() !== usuarioActual.email.toLowerCase()) {
+    mostrarWarn("Esta invitación corresponde a otro correo. Inicia sesión con el correo invitado.");
+    return false;
+  }
+  const claseSnap = await getDoc(refClase(invite.classId));
+  if (!claseSnap.exists()) {
+    localStorage.removeItem(STORAGE_INVITE_TOKEN);
+    mostrarWarn("El aula de esta invitación ya no existe.");
+    return false;
+  }
+  const clase = { id: invite.classId, ...claseSnap.data() };
+  grupoActivo = clase.id;
+  claseActiva = clase.id;
+  claseActualInfo = clase;
+  classMembershipValid = true;
+  localStorage.setItem(STORAGE_GRUPO, grupoActivo);
+  localStorage.setItem(STORAGE_CLASE_ACTIVA, claseActiva);
+  await sincronizarRegistroEstudianteClase(clase.id, clase.id, {
+    name: perfilActual?.displayName || invite.studentName || "",
+    ownerUid: clase.ownerUid || invite.ownerUid || invite.teacherUid || "",
+    ownerEmail: clase.ownerEmail || invite.teacherEmail || ""
+  });
+  await updateDoc(inviteDoc.ref, {
+    status: "accepted",
+    acceptedAt: serverTimestamp(),
+    acceptedByUid: usuarioActual.uid,
+    updatedAt: serverTimestamp()
+  });
+  await guardarPerfilUsuario({
+    grupo: clase.id,
+    classId: clase.id,
+    className: clase.name,
+    classCode: clase.code,
+    classOwnerUid: clase.ownerUid || invite.ownerUid || invite.teacherUid || "",
+    classOwnerEmail: clase.ownerEmail || invite.teacherEmail || ""
+  });
+  await guardarEstadoRemoto();
+  await cargarPermisosRemotos([grupoActivo]);
+  aplicarBancoNivelMedio();
+  escucharPermisosGrupo(grupoActivo);
+  escucharMembresiaClase(grupoActivo);
+  localStorage.removeItem(STORAGE_INVITE_TOKEN);
+  document.body.classList.remove("group-locked");
+  aplicarModoUsuario();
+  activarNav("inicio");
+  actualizarEstadoDiagnostico();
+  mostrarWarn(`Te uniste al aula ${clase.name}.`);
+  return true;
 }
 
 async function limpiarAulaLocalYRemota(mensaje = "El profesor te retiró del aula. Para continuar, ingresa un nuevo código de aula.") {
@@ -3282,6 +3435,167 @@ function activarArrastreWhatsapp() {
     if (movido) ajustarWhatsappAlBorde();
     if (!movido) toggleWhatsappWidget();
   });
+}
+
+function normalizarTextoAsesor(input = "") {
+  return input.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+}
+
+function detectarModoAsesor(input = "") {
+  const normalized = normalizarTextoAsesor(input);
+  if (/generar|crear ejercicios|ejercicios tipo|preguntas tipo|banco|examen/.test(normalized)) return "generate";
+  if (/resolver|resuelve|solucionar|calcula|hallar|halla|factoriza|simplifica|pregunta|enunciado|cuanto es/.test(normalized)) return "solve";
+  if (/practicar|practica|tema|entrenar|repasar/.test(normalized)) return "practice";
+  if (/revisar|error|me equivoque|respuesta incorrecta|por que/.test(normalized)) return "review";
+  if (/plan|ruta|guia|clase|taller|quiz|evaluacion|material/.test(normalized)) return "guide";
+  return null;
+}
+
+function modoExplicitoAsesor(input = "") {
+  const normalized = normalizarTextoAsesor(input);
+  if (normalized === "resolver una pregunta" || normalized === "resolver pregunta") return "solve";
+  if (normalized === "generar ejercicios tipo examen" || normalized === "ejercicios tipo examen") return "generate";
+  if (normalized === "practicar por tema") return "practice";
+  if (normalized === "revisar mi error" || normalized === "revisar error") return "review";
+  if (normalized === "crear plan de estudio" || normalized === "plan de estudio") return "guide";
+  return null;
+}
+
+function cargarEstadoAsesor() {
+  try {
+    const raw = localStorage.getItem(STORAGE_ASESOR_CHAT);
+    if (!raw) throw new Error("empty");
+    const saved = JSON.parse(raw);
+    if (!Array.isArray(saved.messages) || Date.now() - (saved.updatedAt || 0) > ASESOR_INACTIVIDAD_MS) {
+      throw new Error("expired");
+    }
+    advisorMessages = saved.messages;
+    advisorMode = saved.activeMode || null;
+  } catch {
+    advisorMessages = [ASESOR_INITIAL_MESSAGE];
+    advisorMode = null;
+  }
+}
+
+function guardarEstadoAsesor() {
+  localStorage.setItem(STORAGE_ASESOR_CHAT, JSON.stringify({
+    messages: advisorMessages,
+    activeMode: advisorMode,
+    updatedAt: Date.now()
+  }));
+}
+
+function escapeHtml(text = "") {
+  return String(text).replace(/[&<>"']/g, char => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;"
+  }[char]));
+}
+
+function renderMarkdownBasico(text = "") {
+  const html = escapeHtml(text)
+    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\n{2,}/g, "</p><p>")
+    .replace(/\n/g, "<br>");
+  return `<p>${html}</p>`;
+}
+
+function renderAsesorQuickReplies() {
+  const cont = document.getElementById("advisorQuickReplies");
+  if (!cont) return;
+  cont.innerHTML = ASESOR_QUICK_REPLIES.map(([label, value]) =>
+    `<button type="button" data-advisor-quick="${escapeHtml(value)}">${escapeHtml(label)}</button>`
+  ).join("");
+}
+
+function renderAsesorMessages() {
+  const cont = document.getElementById("advisorMessages");
+  if (!cont) return;
+  cont.innerHTML = advisorMessages.map(msg => `
+    <article class="advisor-message ${msg.sender === "user" ? "user" : "bot"}">
+      <span>${msg.sender === "user" ? "Tú" : "∑"}</span>
+      <div>${renderMarkdownBasico(msg.text || "")}</div>
+    </article>
+  `).join("");
+  reRenderKatex(cont);
+  cont.scrollTop = cont.scrollHeight;
+  guardarEstadoAsesor();
+}
+
+function contextoAsesor(mode = advisorMode) {
+  return {
+    app: APP_CONFIG.name,
+    role: modoAdmin ? "teacher" : "student",
+    className: claseActualInfo?.name || perfilActual?.className || "",
+    bank: NOMBRES_BANCOS[bancoActivo] || bancoActivo,
+    mode: mode || "menu",
+    modeLabel: mode ? ASESOR_MODE_LABELS[mode] : "Menú",
+    instruction: mode ? ASESOR_MODE_PROMPTS[mode] : "Ayuda al usuario a escoger entre resolver pregunta, generar ejercicios, practicar por tema, revisar error o crear plan de estudio."
+  };
+}
+
+async function enviarMensajeAsesor(text) {
+  const input = String(text || "").trim();
+  if (!input || advisorLoading) return;
+  abrirAsesorIA();
+  advisorMessages.push({ id: `${Date.now()}-user`, sender: "user", text: input });
+  renderAsesorMessages();
+
+  const explicitMode = modoExplicitoAsesor(input);
+  if (explicitMode) {
+    advisorMode = explicitMode;
+    advisorMessages.push({ id: `${Date.now()}-bot`, sender: "bot", text: ASESOR_MODE_PROMPTS[explicitMode] });
+    renderAsesorMessages();
+    return;
+  }
+  const inferredMode = detectarModoAsesor(input);
+  const modeForRequest = inferredMode || advisorMode;
+  if (inferredMode) advisorMode = inferredMode;
+
+  advisorLoading = true;
+  const status = document.getElementById("advisorStatus");
+  if (status) status.textContent = "El Asesor IA está pensando...";
+  try {
+    const history = advisorMessages
+      .filter(msg => msg.sender === "bot" || msg.sender === "user")
+      .slice(-12)
+      .map(msg => ({ role: msg.sender === "bot" ? "model" : "user", parts: [{ text: msg.text }] }));
+    const response = await fetch(APP_CONFIG.asesorEndpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ history, currentUserInput: input, currentData: contextoAsesor(modeForRequest) })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "No se pudo generar respuesta.");
+    advisorMessages.push({ id: `${Date.now()}-bot`, sender: "bot", text: data.responseText || "No recibí respuesta del modelo." });
+  } catch (err) {
+    console.error(err);
+    advisorMessages.push({
+      id: `${Date.now()}-bot`,
+      sender: "bot",
+      text: "No pude conectar con el Asesor IA en este momento. Revisa que la Cloud Function `generateAiResponse` esté desplegada y que la variable GEMINI_API_KEY esté configurada."
+    });
+  } finally {
+    advisorLoading = false;
+    if (status) status.textContent = "";
+    renderAsesorMessages();
+  }
+}
+
+function abrirAsesorIA() {
+  cargarEstadoAsesor();
+  renderAsesorQuickReplies();
+  renderAsesorMessages();
+  document.getElementById("advisorChatPanel")?.classList.remove("hidden");
+  document.getElementById("btnAdvisorFloat")?.setAttribute("aria-expanded", "true");
+}
+
+function cerrarAsesorIA() {
+  document.getElementById("advisorChatPanel")?.classList.add("hidden");
+  document.getElementById("btnAdvisorFloat")?.setAttribute("aria-expanded", "false");
 }
 
 function actualizarCronometroRecuperacion() {
@@ -3749,37 +4063,8 @@ async function adminCambiarGrupoEstudiante() {
     status.textContent = "Escribe un correo Gmail válido y selecciona aula.";
     return;
   }
-  const usersSnap = await getDocs(query(collection(db, "users"), where("email", "==", email)));
-  if (usersSnap.empty) {
-    status.textContent = "No encontré un estudiante con ese correo.";
-    return;
-  }
-  const userDoc = usersSnap.docs[0];
-  const stateSnap = await getDoc(doc(db, "studentState", userDoc.id));
-  const active = stateSnap.exists() ? stateSnap.data().intentoActivo : null;
-  if (active && active.vence > Date.now() && Date.now() - (active.ultimaActividad || 0) <= INACTIVIDAD_MS) {
-    status.textContent = "No es posible cambiar el aula porque el estudiante se encuentra realizando un examen.";
-    return;
-  }
-  await updateDoc(userDoc.ref, { grupo, classId: aula.id, className: aula.name, classCode: aula.code, updatedAt: serverTimestamp() });
-  await setDoc(doc(db, "studentState", userDoc.id), { grupo, aulaId: aula.id, claseId: aula.id, aulaNombre: aula.name, updatedAt: serverTimestamp() }, { merge: true });
-  const prevStudents = await getDocs(query(collection(db, "classStudents"), where("email", "==", email)));
-  await Promise.all(prevStudents.docs
-    .filter(item => item.id !== `${aula.id}_${safeEmailId(email)}`)
-    .map(item => deleteDoc(item.ref)));
-  await setDoc(doc(db, "classStudents", `${aula.id}_${safeEmailId(email)}`), {
-    classId: aula.id,
-    className: aula.name,
-    classCode: aula.code,
-    email,
-    grupo: aula.id,
-    aulaId: aula.id,
-    groupName: aula.name,
-    status: "activo",
-    updatedAt: serverTimestamp()
-  }, { merge: true });
-  status.textContent = `Estudiante asignado al aula ${aula.name}.`;
-  await renderAdminStudentsByClass();
+  await crearInvitacionClase(aula, { email });
+  status.textContent = `Invitación enviada a ${email} para unirse a ${aula.name}.`;
 }
 
 async function registrarEstudiantesBulk() {
@@ -3802,25 +4087,9 @@ async function registrarEstudiantesEnClase(claseId, raw, status) {
     if (status) status.textContent = "Agrega correos Gmail válidos y selecciona aula.";
     return;
   }
-  if (status) status.textContent = "Registrando estudiantes...";
-  const registeredLabel = new Date().toLocaleDateString("es-CO");
-  await Promise.all(unique.map(({ email, name }) => setDoc(doc(db, "classStudents", `${claseId}_${safeEmailId(email)}`), {
-    classId: claseId,
-    className: clase.name,
-    classCode: clase.code,
-    email,
-    name: name || "",
-    grupo: claseId,
-    aulaId: claseId,
-    groupName: clase.name,
-    registeredLabel,
-    status: "pendiente",
-    ownerUid: usuarioActual.uid,
-    ownerEmail: usuarioActual.email,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp()
-  }, { merge: true })));
-  if (status) status.textContent = `${unique.length} estudiante(s) registrado(s) en ${clase.name}.`;
+  if (status) status.textContent = "Creando invitaciones...";
+  await Promise.all(unique.map(student => crearInvitacionClase(clase, student)));
+  if (status) status.textContent = `${unique.length} invitación(es) enviada(s) para ${clase.name}.`;
   await renderAdminStudentsByClass();
 }
 
@@ -4059,6 +4328,24 @@ document.getElementById("btnRecoverBack")?.addEventListener("click", volverLogin
 document.getElementById("btnRecoverSendCode")?.addEventListener("click", enviarCodigoRecuperacion);
 document.getElementById("btnRecoverVerifyCode")?.addEventListener("click", verificarCodigoRecuperacion);
 activarArrastreWhatsapp();
+document.getElementById("btnAdvisorFloat")?.addEventListener("click", () => {
+  const panel = document.getElementById("advisorChatPanel");
+  if (panel?.classList.contains("hidden")) abrirAsesorIA();
+  else cerrarAsesorIA();
+});
+document.getElementById("btnAdvisorClose")?.addEventListener("click", cerrarAsesorIA);
+document.getElementById("btnOpenAdvisorSection")?.addEventListener("click", abrirAsesorIA);
+document.getElementById("advisorForm")?.addEventListener("submit", e => {
+  e.preventDefault();
+  const input = document.getElementById("advisorInput");
+  const value = input?.value || "";
+  if (input) input.value = "";
+  enviarMensajeAsesor(value);
+});
+document.getElementById("advisorQuickReplies")?.addEventListener("click", e => {
+  const btn = e.target.closest("[data-advisor-quick]");
+  if (btn) enviarMensajeAsesor(btn.dataset.advisorQuick || "");
+});
 document.getElementById("btnClassLater")?.addEventListener("click", continuarSinAula);
 document.querySelectorAll("[data-go-exam]").forEach(btn => {
   btn.addEventListener("click", () => {
@@ -4227,6 +4514,7 @@ document.addEventListener("keydown", e => {
   button.click();
 });
 
+capturarInvitacionUrl();
 inicializarRegistroPerfil();
 
 onAuthStateChanged(auth, async user => {
@@ -4237,6 +4525,8 @@ onAuthStateChanged(auth, async user => {
     if (unsubscribeClassMembership) unsubscribeClassMembership();
     unsubscribeClassMembership = null;
     classMembershipValid = true;
+    document.getElementById("advisorWidget")?.classList.add("hidden");
+    cerrarAsesorIA();
     document.body.classList.add("group-locked");
     mostrarAuthInicial();
     return;

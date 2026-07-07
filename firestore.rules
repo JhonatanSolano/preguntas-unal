@@ -64,6 +64,20 @@ service cloud.firestore {
         (signedIn() && resource.data.userUid == request.auth.uid);
     }
 
+    match /classInvites/{inviteId} {
+      allow read: if signedIn() && (
+        isAdmin() ||
+        resource.data.email == request.auth.token.email ||
+        resource.data.studentEmail == request.auth.token.email
+      );
+      allow create, update: if (isAdmin() && ownsClass(request.resource.data.classId)) ||
+        (signedIn() &&
+          resource.data.email == request.auth.token.email &&
+          request.resource.data.email == request.auth.token.email &&
+          request.resource.data.status in ["pending", "accepted"]);
+      allow delete: if isAdmin() && ownsClass(resource.data.classId);
+    }
+
     match /recoveryContacts/{phoneId} {
       allow read: if true;
       allow create, update: if isAdmin() || (signedIn() && request.resource.data.uid == request.auth.uid);
