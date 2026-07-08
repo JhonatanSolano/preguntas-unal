@@ -109,6 +109,7 @@ let activeMessageId = "";
 let recoverAttemptCount = 0;
 let seccionActual = "inicio";
 let savedRichSelection = null;
+const attachmentPreviewUrls = new Map();
 const EMOJIS_MENSAJE = [
   ["😀", "feliz sonrisa alegre"], ["😃", "sonrisa feliz"], ["😄", "risa feliz"], ["😁", "sonrisa grande"], ["😆", "risa"], ["😅", "risa sudor"], ["😂", "llorando risa fuerte"], ["🤣", "carcajada llorando fuerte"], ["😭", "cara llorando fuerte"], ["😉", "guiño"], ["😘", "beso"], ["😗", "beso"], ["😙", "beso feliz"], ["😚", "beso tierno"], ["🥰", "amor cariño"], ["😍", "enamorado corazones"], ["🤩", "estrella emoción"], ["🥳", "celebración fiesta"], ["🤔", "pensando duda"], ["🙄", "ojos arriba"], ["🙂", "sonrisa suave"], ["🥲", "sonrisa lágrima"], ["🥺", "tierno triste"], ["😊", "feliz amable"], ["😌", "tranquilo"], ["😔", "triste"], ["😇", "ángel"], ["😈", "diablo"], ["⭐", "estrella"], ["👍", "bien pulgar"], ["❤️", "corazón amor"]
 ];
@@ -1937,9 +1938,93 @@ function renderMessagesPanel() {
 
 function renderAttachments(attachments = []) {
   if (!attachments.length) return "";
-  return `<div class="message-attachments">${attachments.map(a =>
-    `<a href="${escapeHtml(a.url)}" target="_blank" rel="noopener">${escapeHtml(a.name || "Adjunto")}</a>`
-  ).join("")}</div>`;
+  return `<div class="message-attachments">${attachments.map(a => {
+    const name = escapeHtml(a.name || "Adjunto");
+    const url = escapeHtml(a.url || "#");
+    if (esImagenAdjunto(a)) {
+      return `
+        <a class="attachment-card attachment-image" href="${url}" target="_blank" rel="noopener" title="Abrir imagen">
+          <img src="${url}" alt="${name}" loading="lazy" />
+          <span>${name}</span>
+        </a>`;
+    }
+    const icon = esPdfAdjunto(a) ? "PDF" : esWordAdjunto(a) ? "DOC" : "ARCH";
+    return `<a class="attachment-card attachment-file" href="${url}" target="_blank" rel="noopener"><strong>${icon}</strong><span>${name}</span></a>`;
+  }).join("")}</div>`;
+}
+
+function extensionArchivo(nombre = "") {
+  return String(nombre || "").split(".").pop()?.toLowerCase() || "";
+}
+
+function esImagenAdjunto(file = {}) {
+  const type = String(file.type || "").toLowerCase();
+  const ext = extensionArchivo(file.name);
+  return type.startsWith("image/") || ["jpg", "jpeg", "png", "gif", "webp", "bmp", "svg"].includes(ext);
+}
+
+function esPdfAdjunto(file = {}) {
+  return String(file.type || "").toLowerCase() === "application/pdf" || extensionArchivo(file.name) === "pdf";
+}
+
+function esWordAdjunto(file = {}) {
+  const ext = extensionArchivo(file.name);
+  const type = String(file.type || "").toLowerCase();
+  return ["doc", "docx"].includes(ext) || type.includes("wordprocessingml") || type.includes("msword");
+}
+
+function formatoBytes(bytes = 0) {
+  const value = Number(bytes || 0);
+  if (value < 1024) return `${value} B`;
+  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
+  return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function limpiarPreviewAdjuntos(containerId) {
+  (attachmentPreviewUrls.get(containerId) || []).forEach(url => URL.revokeObjectURL(url));
+  attachmentPreviewUrls.set(containerId, []);
+  const cont = document.getElementById(containerId);
+  if (cont) cont.innerHTML = "";
+}
+
+function renderPreviewAdjuntos(inputId, containerId) {
+  const input = document.getElementById(inputId);
+  const cont = document.getElementById(containerId);
+  if (!input || !cont) return;
+  limpiarPreviewAdjuntos(containerId);
+  const files = [...(input.files || [])];
+  if (!files.length) return;
+  const urls = [];
+  cont.innerHTML = files.map(file => {
+    const url = URL.createObjectURL(file);
+    urls.push(url);
+    const name = escapeHtml(file.name);
+    const size = formatoBytes(file.size);
+    if (esImagenAdjunto(file)) {
+      return `
+        <article class="attachment-preview-card">
+          <a href="${url}" target="_blank" rel="noopener"><img src="${url}" alt="${name}" /></a>
+          <strong>${name}</strong>
+          <span>${size}</span>
+        </article>`;
+    }
+    if (esPdfAdjunto(file)) {
+      return `
+        <article class="attachment-preview-card attachment-preview-pdf">
+          <iframe src="${url}" title="${name}"></iframe>
+          <strong>${name}</strong>
+          <a href="${url}" target="_blank" rel="noopener">Abrir PDF</a>
+        </article>`;
+    }
+    return `
+      <article class="attachment-preview-card attachment-preview-file">
+        <div class="file-badge">${esWordAdjunto(file) ? "DOC" : "ARCH"}</div>
+        <strong>${name}</strong>
+        <span>${size}</span>
+        <a href="${url}" target="_blank" rel="noopener">Abrir archivo</a>
+      </article>`;
+  }).join("");
+  attachmentPreviewUrls.set(containerId, urls);
 }
 
 function sanitizeRichHtml(html = "") {
@@ -2282,6 +2367,7 @@ async function enviarMensajeAula() {
     document.getElementById("messageSubject").value = "";
     setRichMessageHtml("");
     document.getElementById("messageAttachments").value = "";
+    limpiarPreviewAdjuntos("messageAttachmentPreview");
     if (status) status.textContent = `Mensaje enviado a ${students.length} estudiante(s).`;
   } catch (err) {
     console.error(err);
@@ -2354,6 +2440,7 @@ async function responderMensaje(e) {
     }
     document.getElementById("messageReplyBody").value = "";
     document.getElementById("messageReplyAttachments").value = "";
+    limpiarPreviewAdjuntos("messageReplyAttachmentPreview");
     if (status) status.textContent = "Respuesta enviada.";
   } catch (err) {
     console.error(err);
@@ -5404,6 +5491,12 @@ document.querySelectorAll("[data-rich-select]").forEach(select => {
 });
 document.querySelectorAll("[data-rich-color]").forEach(input => {
   input.addEventListener("input", e => execRich(e.target.dataset.richColor, e.target.value));
+});
+document.getElementById("messageAttachments")?.addEventListener("change", () => {
+  renderPreviewAdjuntos("messageAttachments", "messageAttachmentPreview");
+});
+document.getElementById("messageReplyAttachments")?.addEventListener("change", () => {
+  renderPreviewAdjuntos("messageReplyAttachments", "messageReplyAttachmentPreview");
 });
 document.querySelectorAll("[data-rich-insert]").forEach(btn => {
   btn.addEventListener("click", () => ejecutarInsercionRica(btn.dataset.richInsert));

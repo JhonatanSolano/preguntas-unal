@@ -1765,12 +1765,94 @@ body.admin-mode .admin-exit-dock {
   margin: .7rem 0;
 }
 .message-attachments a {
-  border: 1px solid var(--c-border);
-  border-radius: 999px;
-  padding: .35rem .65rem;
   color: var(--c-blue);
   text-decoration: none;
   font-weight: 800;
+}
+.attachment-card {
+  border: 1px solid var(--c-border);
+  background: #fff;
+  box-shadow: 0 8px 18px rgba(6,52,95,.08);
+}
+.attachment-image {
+  display: grid;
+  gap: .35rem;
+  width: min(220px, 100%);
+  border-radius: 14px;
+  padding: .45rem;
+}
+.attachment-image img {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  border-radius: 10px;
+  background: #eef7fb;
+}
+.attachment-image span,
+.attachment-file span {
+  overflow-wrap: anywhere;
+}
+.attachment-file {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  border-radius: 999px;
+  padding: .42rem .7rem;
+}
+.attachment-file strong {
+  color: var(--c-teal-deep);
+}
+.attachment-preview-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: .75rem;
+  margin-top: .5rem;
+}
+.attachment-preview-list:empty {
+  display: none;
+}
+.attachment-preview-card {
+  display: grid;
+  gap: .4rem;
+  min-width: 0;
+  border: 1px solid var(--c-border);
+  border-radius: 14px;
+  padding: .65rem;
+  background: #fff;
+  box-shadow: 0 10px 22px rgba(6,52,95,.08);
+}
+.attachment-preview-card img {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  border-radius: 10px;
+  background: #eef7fb;
+}
+.attachment-preview-card iframe {
+  width: 100%;
+  min-height: 210px;
+  border: 1px solid var(--c-border);
+  border-radius: 10px;
+  background: #f8fbff;
+}
+.attachment-preview-card strong,
+.attachment-preview-card span,
+.attachment-preview-card a {
+  overflow-wrap: anywhere;
+}
+.attachment-preview-card a {
+  color: var(--c-blue);
+  font-weight: 800;
+}
+.file-badge {
+  display: grid;
+  place-items: center;
+  width: 62px;
+  height: 62px;
+  border-radius: 16px;
+  background: var(--c-blue-lt);
+  color: var(--c-navy);
+  font-weight: 900;
 }
 .message-reply-form {
   display: grid;

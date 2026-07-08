@@ -1162,6 +1162,7 @@
         <label class="file-inline">Adjuntos
           <input id="messageAttachments" type="file" multiple accept="image/*,.pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
         </label>
+        <div class="attachment-preview-list" id="messageAttachmentPreview" aria-live="polite"></div>
         <button class="btn btn-primary" id="btnSendClassMessage" type="button">Enviar mensaje</button>
         <p class="bank-status" id="messageComposeStatus"></p>
       </section>
@@ -1181,6 +1182,7 @@
         </label>
         <button class="btn btn-primary" type="submit">Responder</button>
       </form>
+      <div class="attachment-preview-list reply-preview" id="messageReplyAttachmentPreview" aria-live="polite"></div>
       <p class="bank-status" id="messageReplyStatus"></p>
     </article>
   </div>
