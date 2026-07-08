@@ -16,7 +16,6 @@ import {
   onAuthStateChanged,
   reauthenticateWithCredential,
   sendEmailVerification,
-  sendPasswordResetEmail,
   setPersistence,
   signInWithEmailAndPassword,
   signInWithCredential,
@@ -59,7 +58,8 @@ const firebaseConfig = {
 const APP_CONFIG = {
   name: "Matemáticas En Tu Bolsillo",
   recaptchaSiteKey: "6LcmOT0tAAAAAPfwCOhqA1nzfz3YOx8McE_mpFEZ",
-  asesorEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/generateAiResponse"
+  asesorEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/generateAiResponse",
+  passwordResetEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/sendPasswordResetEmailCustom"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -2010,6 +2010,7 @@ function execRich(command, value = null) {
   focusRichEditor();
   document.execCommand(command, false, value);
   saveRichSelection();
+  updateRichToolbarState();
 }
 
 function renderRichMessage(html = "", fallbackText = "") {
@@ -2025,6 +2026,22 @@ function saveRichSelection() {
   if (editor.contains(range.commonAncestorContainer)) {
     savedRichSelection = range.cloneRange();
   }
+}
+
+function updateRichToolbarState() {
+  const commands = ["bold", "italic", "underline", "strikeThrough", "insertUnorderedList", "insertOrderedList", "justifyLeft", "justifyCenter", "justifyRight", "justifyFull"];
+  commands.forEach(command => {
+    const btn = document.querySelector(`[data-rich-command="${command}"]`);
+    if (!btn) return;
+    let active = false;
+    try {
+      active = document.queryCommandState(command);
+    } catch {
+      active = false;
+    }
+    btn.classList.toggle("active", active);
+    btn.setAttribute("aria-pressed", active ? "true" : "false");
+  });
 }
 
 async function cargarRespuestasDelMensaje(messageId) {
@@ -3973,8 +3990,13 @@ async function recuperarPassword() {
     return;
   }
   try {
-    await sendPasswordResetEmail(auth, email);
-    setStatus("forgotPasswordStatus", "Te enviamos un correo para restablecer la contraseña.");
+    const response = await fetch(APP_CONFIG.passwordResetEndpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email })
+    });
+    if (!response.ok) throw new Error(await response.text());
+    setStatus("forgotPasswordStatus", "Te enviamos un correo para restablecer la contraseña desde Matemáticas En Tu Bolsillo.");
   } catch {
     setStatus("forgotPasswordStatus", "No se pudo enviar la recuperación. Revisa el correo.", "error");
   }
@@ -5094,7 +5116,18 @@ document.addEventListener("pointerdown", e => {
 document.getElementById("btnSendClassMessage")?.addEventListener("click", enviarMensajeAula);
 document.getElementById("messageBody")?.addEventListener("keyup", saveRichSelection);
 document.getElementById("messageBody")?.addEventListener("mouseup", saveRichSelection);
-document.getElementById("messageBody")?.addEventListener("input", saveRichSelection);
+document.getElementById("messageBody")?.addEventListener("focus", () => {
+  saveRichSelection();
+  updateRichToolbarState();
+});
+document.getElementById("messageBody")?.addEventListener("input", () => {
+  saveRichSelection();
+  updateRichToolbarState();
+});
+document.getElementById("messageBody")?.addEventListener("touchend", () => setTimeout(() => {
+  saveRichSelection();
+  updateRichToolbarState();
+}, 0));
 document.querySelector(".message-toolbar")?.addEventListener("mousedown", e => {
   if (e.target.closest("button")) e.preventDefault();
 });
@@ -5135,10 +5168,6 @@ document.getElementById("btnInsertBlockEquation")?.addEventListener("click", () 
 document.getElementById("messageBody")?.addEventListener("input", () => {
   const status = document.getElementById("messageComposeStatus");
   if (status && status.textContent === "Mensaje enviado.") status.textContent = "";
-});
-document.getElementById("messageFontSize")?.addEventListener("change", e => {
-  if (e.target.value) execRich("fontSize", e.target.value);
-  e.target.value = "";
 });
 document.getElementById("messageThreadList")?.addEventListener("click", e => {
   const btn = e.target.closest("[data-open-message]");

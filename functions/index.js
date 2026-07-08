@@ -87,6 +87,43 @@ exports.generateAiResponse = onRequest({ region: "us-central1", secrets: [gemini
   }
 });
 
+exports.sendPasswordResetEmailCustom = onRequest({ region: "us-central1", secrets: [resendApiKey] }, async (req, res) => {
+  setCors(res);
+  if (req.method === "OPTIONS") return res.status(204).send("");
+  if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
+
+  const email = String(req.body?.email || "").trim().toLowerCase();
+  if (!/^[^\s@]+@gmail\.com$/i.test(email)) {
+    return res.status(400).json({ error: "Correo inválido." });
+  }
+
+  try {
+    const resetLink = await admin.auth().generatePasswordResetLink(email, {
+      url: "https://matematicasentubolsillo.com/",
+      handleCodeInApp: false
+    });
+    const html = `
+      <div style="font-family:Arial,sans-serif;line-height:1.6;color:#162838;max-width:640px;margin:auto;padding:24px">
+        <h1 style="color:#06345f">Restablece tu contraseña</h1>
+        <p>Recibimos una solicitud para restablecer la contraseña de tu cuenta en <strong>Matemáticas En Tu Bolsillo</strong>.</p>
+        <p style="margin:28px 0">
+          <a href="${escapeHtml(resetLink)}" style="background:#0d9488;color:white;padding:14px 22px;border-radius:999px;text-decoration:none;font-weight:bold">Cambiar contraseña</a>
+        </p>
+        <p>Si no solicitaste este cambio, puedes ignorar este correo.</p>
+        <p style="font-size:12px;color:#66788a">© Todos los derechos reservados. Matemáticas En Tu Bolsillo.</p>
+      </div>`;
+    await sendEmail({
+      to: email,
+      subject: "Restablece tu contraseña de Matemáticas En Tu Bolsillo",
+      html
+    });
+  } catch (err) {
+    console.warn("No se pudo enviar recuperación personalizada.", err);
+  }
+
+  return res.status(200).json({ ok: true });
+});
+
 function escapeHtml(text = "") {
   return String(text).replace(/[&<>"']/g, char => ({
     "&": "&amp;",

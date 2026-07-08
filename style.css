@@ -1399,6 +1399,12 @@ body.admin-mode .admin-exit-dock {
   border-color: var(--c-cyan);
   background: var(--c-blue-lt);
 }
+.message-toolbar button.active {
+  border-color: var(--c-teal-deep);
+  background: linear-gradient(135deg, var(--c-blue), var(--c-teal-deep));
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(11,77,120,.18);
+}
 .toolbar-color input {
   width: 22px;
   height: 22px;
@@ -3262,7 +3268,9 @@ body.admin-mode .admin-exit-dock {
   }
   .message-toolbar {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: .35rem;
+    padding: .5rem;
   }
   .message-toolbar button,
   .message-toolbar select,
@@ -3270,13 +3278,21 @@ body.admin-mode .admin-exit-dock {
   .message-font-size {
     width: 100%;
     min-width: 0;
+    min-height: 40px;
+    padding: .3rem .35rem;
+    font-size: .9rem;
   }
+  .message-toolbar .toolbar-advanced,
   .message-menu-bar {
-    gap: .5rem;
-    font-size: .78rem;
+    display: none;
+  }
+  .message-toolbar select.toolbar-essential {
+    grid-column: span 2;
   }
   .rich-message-area {
     min-height: 220px;
+    padding: .85rem;
+    text-align: left;
   }
   .file-inline input {
     font-size: .92rem;
