@@ -5349,42 +5349,21 @@ document.addEventListener("pointerdown", e => {
   toggleNotificationsPopover(false);
 });
 document.getElementById("btnSendClassMessage")?.addEventListener("click", enviarMensajeAula);
-document.getElementById("messageBody")?.addEventListener("keyup", saveRichSelection);
-document.getElementById("messageBody")?.addEventListener("mouseup", saveRichSelection);
-document.getElementById("messageBody")?.addEventListener("focus", () => {
-  saveRichSelection();
-  updateRichToolbarState();
-});
-document.getElementById("messageBody")?.addEventListener("input", () => {
-  saveRichSelection();
-  updateRichToolbarState();
-});
-document.getElementById("messageBody")?.addEventListener("keyup", () => {
-  saveRichSelection();
-  updateRichToolbarState();
-});
-document.getElementById("messageBody")?.addEventListener("mouseup", () => {
-  saveRichSelection();
-  updateRichToolbarState();
-});
-document.getElementById("messageBody")?.addEventListener("focus", () => {
-  saveRichSelection();
-  updateRichToolbarState();
-});
 document.getElementById("messageBody")?.addEventListener("pointerdown", e => {
-  const control = e.target.closest?.("[data-rich-control]");
-  if (control) return;
-  const editor = e.currentTarget;
-  setTimeout(() => {
-    editor.focus();
+  if (e.target.closest?.("[data-rich-control]")) return;
+  e.currentTarget.focus();
+});
+document.getElementById("messageBody")?.addEventListener("beforeinput", saveRichSelection);
+["input", "keyup", "mouseup", "focus", "touchend"].forEach(eventName => {
+  document.getElementById("messageBody")?.addEventListener(eventName, () => setTimeout(() => {
     saveRichSelection();
     updateRichToolbarState();
-  }, 0);
+  }, 0));
 });
-document.getElementById("messageBody")?.addEventListener("touchend", () => setTimeout(() => {
+document.getElementById("messageBody")?.addEventListener("click", () => {
   saveRichSelection();
   updateRichToolbarState();
-}, 0));
+});
 document.addEventListener("selectionchange", () => {
   const editor = richEditor();
   const selection = window.getSelection();
@@ -5414,9 +5393,6 @@ document.querySelectorAll("[data-rich-color]").forEach(input => {
 });
 document.querySelectorAll("[data-rich-insert]").forEach(btn => {
   btn.addEventListener("click", () => ejecutarInsercionRica(btn.dataset.richInsert));
-});
-document.querySelectorAll("[data-table-action]").forEach(btn => {
-  btn.addEventListener("click", () => modificarTabla(btn.dataset.tableAction));
 });
 document.getElementById("messageBody")?.addEventListener("click", e => {
   const deleteTable = e.target.closest?.("[data-rich-control='delete-table']");

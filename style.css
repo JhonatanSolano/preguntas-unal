@@ -1457,6 +1457,18 @@ body.admin-mode .admin-exit-dock {
   line-height: 1.6;
   outline: none;
   overflow: auto;
+  cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.rich-message-area * {
+  cursor: text;
+}
+.rich-message-area button,
+.rich-message-area [data-rich-control] {
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
 }
 .rich-message-area:empty::before {
   content: attr(data-placeholder);
