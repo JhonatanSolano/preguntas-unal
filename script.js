@@ -2076,6 +2076,18 @@ function enfocarEditorAlFinal() {
   saveRichSelection();
 }
 
+function colocarCursorSiEditorVacio(editor = richEditor()) {
+  if (!editor || richMessageHasContent()) return;
+  editor.focus();
+  const selection = window.getSelection();
+  const range = document.createRange();
+  range.setStart(editor, 0);
+  range.collapse(true);
+  selection.removeAllRanges();
+  selection.addRange(range);
+  saveRichSelection();
+}
+
 function normalizarLatexPlantilla(latex = "") {
   return String(latex || "")
     .replace(/\\\\([a-zA-Z]+)/g, "\\$1")
@@ -5349,10 +5361,6 @@ document.addEventListener("pointerdown", e => {
   toggleNotificationsPopover(false);
 });
 document.getElementById("btnSendClassMessage")?.addEventListener("click", enviarMensajeAula);
-document.getElementById("messageBody")?.addEventListener("pointerdown", e => {
-  if (e.target.closest?.("[data-rich-control]")) return;
-  e.currentTarget.focus();
-});
 document.getElementById("messageBody")?.addEventListener("beforeinput", saveRichSelection);
 ["input", "keyup", "mouseup", "focus", "touchend"].forEach(eventName => {
   document.getElementById("messageBody")?.addEventListener(eventName, () => setTimeout(() => {
@@ -5360,9 +5368,13 @@ document.getElementById("messageBody")?.addEventListener("beforeinput", saveRich
     updateRichToolbarState();
   }, 0));
 });
-document.getElementById("messageBody")?.addEventListener("click", () => {
-  saveRichSelection();
-  updateRichToolbarState();
+document.getElementById("messageBody")?.addEventListener("click", e => {
+  if (e.target.closest?.("[data-rich-control]")) return;
+  colocarCursorSiEditorVacio(e.currentTarget);
+  setTimeout(() => {
+    saveRichSelection();
+    updateRichToolbarState();
+  }, 0);
 });
 document.addEventListener("selectionchange", () => {
   const editor = richEditor();

@@ -1376,9 +1376,11 @@ body.admin-mode .admin-exit-dock {
   font: inherit;
   padding: .15rem 0;
 }
-.message-menu-bar button:hover,
 .message-menu-bar button.active {
   border-color: var(--c-teal-deep);
+  color: var(--c-teal-deep);
+}
+.message-menu-bar button:hover {
   color: var(--c-teal-deep);
 }
 .message-toolbar {
@@ -1473,6 +1475,7 @@ body.admin-mode .admin-exit-dock {
 .rich-message-area:empty::before {
   content: attr(data-placeholder);
   color: #7d8792;
+  pointer-events: none;
 }
 .rich-message-area img,
 .rich-message-output img {
