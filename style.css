@@ -1581,6 +1581,32 @@ body.admin-mode .admin-exit-dock {
   background: #f8fbff;
   overflow-x: auto;
 }
+.emoji-card {
+  max-width: 560px;
+}
+.emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(58px, 1fr));
+  gap: .55rem;
+  margin-top: 1rem;
+}
+.emoji-grid button {
+  aspect-ratio: 1;
+  border: 1px solid var(--c-border);
+  border-radius: 18px;
+  background: linear-gradient(180deg, #fff, #f4fbfd);
+  box-shadow: 0 8px 18px rgba(6,52,95,.08);
+  cursor: pointer;
+  font-size: 1.8rem;
+  line-height: 1;
+  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+.emoji-grid button:hover,
+.emoji-grid button:focus-visible {
+  border-color: var(--c-cyan);
+  box-shadow: 0 12px 24px rgba(11,77,120,.15);
+  transform: translateY(-2px);
+}
 .message-replies article.own {
   background: var(--c-green-lt);
 }
@@ -3268,9 +3294,9 @@ body.admin-mode .admin-exit-dock {
   }
   .message-toolbar {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: .35rem;
-    padding: .5rem;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: .3rem;
+    padding: .45rem;
   }
   .message-toolbar button,
   .message-toolbar select,
@@ -3278,9 +3304,10 @@ body.admin-mode .admin-exit-dock {
   .message-font-size {
     width: 100%;
     min-width: 0;
-    min-height: 40px;
-    padding: .3rem .35rem;
-    font-size: .9rem;
+    min-height: 36px;
+    border-radius: 10px;
+    padding: .25rem .3rem;
+    font-size: .84rem;
   }
   .message-toolbar .toolbar-advanced,
   .message-menu-bar {
@@ -3290,9 +3317,21 @@ body.admin-mode .admin-exit-dock {
     grid-column: span 2;
   }
   .rich-message-area {
-    min-height: 220px;
+    min-height: 210px;
     padding: .85rem;
     text-align: left;
+  }
+  .emoji-card {
+    width: min(94vw, 430px);
+    padding: 1rem;
+  }
+  .emoji-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: .45rem;
+  }
+  .emoji-grid button {
+    border-radius: 16px;
+    font-size: 1.55rem;
   }
   .file-inline input {
     font-size: .92rem;

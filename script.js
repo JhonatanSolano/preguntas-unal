@@ -109,6 +109,7 @@ let activeMessageId = "";
 let recoverAttemptCount = 0;
 let seccionActual = "inicio";
 let savedRichSelection = null;
+const EMOJIS_MENSAJE = ["😀", "😟", "😢", "😭", "😮", "😊", "😯", "😖", "🥰", "😘", "😍", "😂", "😎", "😉", "😵", "😠", "😡", "🙄", "🙂", "😜", "😇", "😈", "⭐", "👍", "❤️"];
 const PHONE_CODE_DURATION_MS = 2 * 60 * 1000;
 const MAX_PROFILE_PHOTO_INPUT_MB = 12;
 const MAX_MESSAGE_ATTACHMENT_MB = 8;
@@ -2013,6 +2014,13 @@ function execRich(command, value = null) {
   updateRichToolbarState();
 }
 
+function normalizarLatexPlantilla(latex = "") {
+  return String(latex || "")
+    .replace(/\\\\([a-zA-Z]+)/g, "\\$1")
+    .replace(/\\\\,/g, "\\,")
+    .replace(/\\\\to/g, "\\to");
+}
+
 function renderRichMessage(html = "", fallbackText = "") {
   const safe = sanitizeRichHtml(html);
   return safe ? safe : renderMarkdownBasico(fallbackText || "");
@@ -2238,8 +2246,8 @@ function insertarTablaMensaje() {
 }
 
 function insertarEmojiMensaje() {
-  const emoji = prompt("Escribe o pega un emoji", "😊");
-  if (emoji) insertarHtmlEnEditor(escapeHtml(emoji));
+  renderEmojiPicker();
+  document.getElementById("emojiOverlay")?.classList.remove("hidden");
 }
 
 function insertarLinkMensaje() {
@@ -2287,7 +2295,8 @@ function renderEquationPreview() {
   const preview = document.getElementById("equationPreview");
   const input = document.getElementById("equationInput");
   if (!preview || !input) return;
-  const latex = input.value.trim() || "x^2+y^2=z^2";
+  const latex = normalizarLatexPlantilla(input.value.trim() || "x^2+y^2=z^2");
+  if (input.value !== latex) input.value = latex;
   preview.textContent = "";
   try {
     if (window.katex) katex.render(latex, preview, { throwOnError: false, displayMode: true });
@@ -2304,7 +2313,7 @@ function abrirEditorEcuacion() {
 
 function insertarEcuacion(displayMode = false) {
   const input = document.getElementById("equationInput");
-  const latex = input?.value.trim() || "x^2+y^2=z^2";
+  const latex = normalizarLatexPlantilla(input?.value.trim() || "x^2+y^2=z^2");
   const temp = document.createElement(displayMode ? "div" : "span");
   temp.className = displayMode ? "math-block" : "math-inline";
   temp.dataset.latex = latex;
@@ -2317,6 +2326,15 @@ function insertarEcuacion(displayMode = false) {
   }
   insertarHtmlEnEditor(temp.outerHTML + (displayMode ? "<p><br></p>" : " "));
   document.getElementById("equationOverlay")?.classList.add("hidden");
+}
+
+function renderEmojiPicker() {
+  const grid = document.getElementById("emojiGrid");
+  if (!grid || grid.dataset.ready === "true") return;
+  grid.innerHTML = EMOJIS_MENSAJE.map(emoji => `
+    <button type="button" data-emoji="${emoji}" aria-label="Insertar ${emoji}">${emoji}</button>
+  `).join("");
+  grid.dataset.ready = "true";
 }
 
 function renderStudentStats() {
@@ -5131,10 +5149,31 @@ document.getElementById("messageBody")?.addEventListener("input", () => {
   saveRichSelection();
   updateRichToolbarState();
 });
+document.getElementById("messageBody")?.addEventListener("keyup", () => {
+  saveRichSelection();
+  updateRichToolbarState();
+});
+document.getElementById("messageBody")?.addEventListener("mouseup", () => {
+  saveRichSelection();
+  updateRichToolbarState();
+});
+document.getElementById("messageBody")?.addEventListener("focus", () => {
+  saveRichSelection();
+  updateRichToolbarState();
+});
 document.getElementById("messageBody")?.addEventListener("touchend", () => setTimeout(() => {
   saveRichSelection();
   updateRichToolbarState();
 }, 0));
+document.addEventListener("selectionchange", () => {
+  const editor = richEditor();
+  const selection = window.getSelection();
+  if (!editor || !selection || !selection.rangeCount) return;
+  const range = selection.getRangeAt(0);
+  if (!editor.contains(range.commonAncestorContainer)) return;
+  saveRichSelection();
+  updateRichToolbarState();
+});
 document.querySelector(".message-toolbar")?.addEventListener("mousedown", e => {
   if (e.target.closest("button")) e.preventDefault();
 });
@@ -5158,6 +5197,16 @@ document.getElementById("btnCloseMessagePreview")?.addEventListener("click", () 
 document.getElementById("messagePreviewOverlay")?.addEventListener("pointerdown", e => {
   if (e.target.id === "messagePreviewOverlay") e.currentTarget.classList.add("hidden");
 });
+document.getElementById("btnCloseEmojiPicker")?.addEventListener("click", () => document.getElementById("emojiOverlay")?.classList.add("hidden"));
+document.getElementById("emojiOverlay")?.addEventListener("pointerdown", e => {
+  if (e.target.id === "emojiOverlay") e.currentTarget.classList.add("hidden");
+});
+document.getElementById("emojiGrid")?.addEventListener("click", e => {
+  const btn = e.target.closest("[data-emoji]");
+  if (!btn) return;
+  insertarHtmlEnEditor(escapeHtml(btn.dataset.emoji));
+  document.getElementById("emojiOverlay")?.classList.add("hidden");
+});
 document.getElementById("btnCloseEquationEditor")?.addEventListener("click", () => document.getElementById("equationOverlay")?.classList.add("hidden"));
 document.getElementById("equationOverlay")?.addEventListener("pointerdown", e => {
   if (e.target.id === "equationOverlay") e.currentTarget.classList.add("hidden");
@@ -5167,7 +5216,8 @@ document.getElementById("equationPalette")?.addEventListener("click", e => {
   const btn = e.target.closest("[data-eq-template]");
   const input = document.getElementById("equationInput");
   if (!btn || !input) return;
-  input.value = btn.dataset.eqTemplate;
+  input.value = normalizarLatexPlantilla(btn.dataset.eqTemplate);
+  input.focus();
   renderEquationPreview();
 });
 document.getElementById("btnInsertInlineEquation")?.addEventListener("click", () => insertarEcuacion(false));
