@@ -109,7 +109,11 @@ let activeMessageId = "";
 let recoverAttemptCount = 0;
 let seccionActual = "inicio";
 let savedRichSelection = null;
-const EMOJIS_MENSAJE = ["😀", "😟", "😢", "😭", "😮", "😊", "😯", "😖", "🥰", "😘", "😍", "😂", "😎", "😉", "😵", "😠", "😡", "🙄", "🙂", "😜", "😇", "😈", "⭐", "👍", "❤️"];
+const EMOJIS_MENSAJE = [
+  ["😀", "feliz sonrisa alegre"], ["😃", "sonrisa feliz"], ["😄", "risa feliz"], ["😁", "sonrisa grande"], ["😆", "risa"], ["😅", "risa sudor"], ["😂", "llorando risa fuerte"], ["🤣", "carcajada llorando fuerte"], ["😭", "cara llorando fuerte"], ["😉", "guiño"], ["😘", "beso"], ["😗", "beso"], ["😙", "beso feliz"], ["😚", "beso tierno"], ["🥰", "amor cariño"], ["😍", "enamorado corazones"], ["🤩", "estrella emoción"], ["🥳", "celebración fiesta"], ["🤔", "pensando duda"], ["🙄", "ojos arriba"], ["🙂", "sonrisa suave"], ["🥲", "sonrisa lágrima"], ["🥺", "tierno triste"], ["😊", "feliz amable"], ["😌", "tranquilo"], ["😔", "triste"], ["😇", "ángel"], ["😈", "diablo"], ["⭐", "estrella"], ["👍", "bien pulgar"], ["❤️", "corazón amor"]
+];
+const SECCIONES_ESTUDIANTE = new Set(["inicio", "perfil", "examenes", "diagnostico", "nivel1", "examen", "estadisticas", "mensajes", "asesorIA", "configuracion", "soporte"]);
+const SECCIONES_PROFESOR = new Set(["admin", "perfil", "examenes", "adminMetricas", "mensajes", "asesorIA", "configuracion", "soporte"]);
 const PHONE_CODE_DURATION_MS = 2 * 60 * 1000;
 const MAX_PROFILE_PHOTO_INPUT_MB = 12;
 const MAX_MESSAGE_ATTACHMENT_MB = 8;
@@ -1394,6 +1398,9 @@ function mostrarSeccion(sec) {
     renderAdminStats();
   }
   seccionActual = sec;
+  if (usuarioActual) {
+    localStorage.setItem(STORAGE_SECCION_ACTIVA, sec);
+  }
 }
 
 function hayBorradorMensajeProfesor() {
@@ -1436,15 +1443,20 @@ function activarNav(sec) {
       if (status) status.textContent = "Primero debes pertenecer a una clase o aula. Ingresa el código cuando lo tengas.";
     }, 0);
   }
-  localStorage.removeItem(STORAGE_SECCION_ACTIVA);
   document.querySelectorAll(".nav-btn").forEach(b => b.classList.toggle("active", b.dataset.section === sec));
   mostrarSeccion(sec);
   return true;
 }
 
 function seccionRestaurable() {
-  localStorage.removeItem(STORAGE_SECCION_ACTIVA);
-  return modoAdmin ? "admin" : "inicio";
+  const fallback = modoAdmin ? "admin" : "inicio";
+  const guardada = localStorage.getItem(STORAGE_SECCION_ACTIVA) || "";
+  const permitidas = modoAdmin ? SECCIONES_PROFESOR : SECCIONES_ESTUDIANTE;
+  if (!permitidas.has(guardada)) return fallback;
+  if (!modoAdmin && !aulaActualValida() && ["diagnostico", "nivel1", "examen", "estadisticas"].includes(guardada)) {
+    return "configuracion";
+  }
+  return guardada;
 }
 
 function cerrarAccordions() {
@@ -1992,7 +2004,9 @@ function richMessageHasContent() {
 
 function setRichMessageHtml(html = "") {
   const editor = richEditor();
-  if (editor) editor.innerHTML = html;
+  if (!editor) return;
+  editor.innerHTML = html;
+  if (!html) resetRichEditorDefaults();
 }
 
 function focusRichEditor() {
@@ -2012,6 +2026,32 @@ function execRich(command, value = null) {
   document.execCommand(command, false, value);
   saveRichSelection();
   updateRichToolbarState();
+}
+
+function resetRichEditorDefaults() {
+  const editor = richEditor();
+  if (!editor) return;
+  editor.style.textAlign = "left";
+  savedRichSelection = null;
+  ["bold", "italic", "underline", "strikeThrough"].forEach(command => {
+    try {
+      if (document.queryCommandState(command)) document.execCommand(command, false, null);
+    } catch {
+      // El navegador puede no permitir consultar un comando sin foco.
+    }
+  });
+  setTimeout(updateRichToolbarState, 0);
+}
+
+function setRichPanel(panel = "formato") {
+  const toolbar = document.querySelector(".message-toolbar");
+  if (!toolbar) return;
+  toolbar.dataset.activePanel = panel;
+  document.querySelectorAll("[data-rich-panel]").forEach(btn => {
+    const active = btn.dataset.richPanel === panel;
+    btn.classList.toggle("active", active);
+    btn.setAttribute("aria-pressed", active ? "true" : "false");
+  });
 }
 
 function normalizarLatexPlantilla(latex = "") {
@@ -2037,6 +2077,8 @@ function saveRichSelection() {
 }
 
 function updateRichToolbarState() {
+  const editor = richEditor();
+  const emptyEditor = !richMessageHasContent();
   const commands = ["bold", "italic", "underline", "strikeThrough", "insertUnorderedList", "insertOrderedList", "justifyLeft", "justifyCenter", "justifyRight", "justifyFull"];
   commands.forEach(command => {
     const btn = document.querySelector(`[data-rich-command="${command}"]`);
@@ -2050,6 +2092,7 @@ function updateRichToolbarState() {
     btn.classList.toggle("active", active);
     btn.setAttribute("aria-pressed", active ? "true" : "false");
   });
+  if (editor && emptyEditor) editor.style.textAlign = "left";
 }
 
 async function cargarRespuestasDelMensaje(messageId) {
@@ -2060,6 +2103,48 @@ async function cargarRespuestasDelMensaje(messageId) {
   } catch (err) {
     console.warn("No se pudieron cargar todas las respuestas del mensaje.", err);
   }
+}
+
+function setReplyFormEnabled(enabled, message = "") {
+  const form = document.getElementById("messageReplyForm");
+  const body = document.getElementById("messageReplyBody");
+  const files = document.getElementById("messageReplyAttachments");
+  const button = form?.querySelector("button[type='submit']");
+  const status = document.getElementById("messageReplyStatus");
+  form?.classList.toggle("reply-disabled", !enabled);
+  if (body) body.disabled = !enabled;
+  if (files) files.disabled = !enabled;
+  if (button) button.disabled = !enabled;
+  if (status) {
+    status.textContent = message;
+    status.classList.toggle("error", !enabled && !!message);
+  }
+}
+
+async function destinatariosActivosMensaje(msg) {
+  if (!msg?.classId) return [];
+  const activos = await estudiantesActivosDeClase(msg.classId);
+  const permitidos = new Set((msg.toEmails || []).map(email => String(email || "").toLowerCase()));
+  return activos.filter(est => permitidos.has(String(est.email || "").toLowerCase()));
+}
+
+async function actualizarEstadoRespuestaMensaje(messageId) {
+  const msg = internalMessages.find(m => m.id === messageId);
+  if (!msg || activeMessageId !== messageId) return;
+  if (modoAdmin) {
+    const activos = await destinatariosActivosMensaje(msg).catch(() => []);
+    if (activeMessageId !== messageId) return;
+    setReplyFormEnabled(
+      activos.length > 0,
+      activos.length ? "" : "No puedes responder: ya no hay estudiantes activos de esta aula en este hilo."
+    );
+    return;
+  }
+  const puedeResponder = aulaActualValida() && classMembershipValid && msg.classId === claseActiva;
+  setReplyFormEnabled(
+    puedeResponder,
+    puedeResponder ? "" : "No puedes responder: ya no perteneces a esta aula."
+  );
 }
 
 function renderMessageDetail(messageId) {
@@ -2094,7 +2179,9 @@ function renderMessageDetail(messageId) {
   `;
   reRenderKatex(cont);
   document.getElementById("messageReplyForm")?.classList.toggle("hidden", false);
+  setReplyFormEnabled(true, "");
   overlay.classList.remove("hidden");
+  actualizarEstadoRespuestaMensaje(messageId);
 }
 
 async function abrirDetalleMensaje(messageId) {
@@ -2174,7 +2261,21 @@ async function responderMensaje(e) {
     if (status) status.textContent = "Escribe una respuesta.";
     return;
   }
-  if (status) status.textContent = "Enviando respuesta...";
+  let estudiantesDestino = [];
+  if (modoAdmin) {
+    estudiantesDestino = await destinatariosActivosMensaje(msg);
+    if (!estudiantesDestino.length) {
+      setReplyFormEnabled(false, "No puedes responder: ya no hay estudiantes activos de esta aula en este hilo.");
+      return;
+    }
+  } else if (!aulaActualValida() || !classMembershipValid || msg.classId !== claseActiva) {
+    setReplyFormEnabled(false, "No puedes responder: ya no perteneces a esta aula.");
+    return;
+  }
+  if (status) {
+    status.textContent = "Enviando respuesta...";
+    status.classList.remove("error");
+  }
   try {
     const ref = doc(collection(db, "messageReplies"));
     const fromName = perfilActual?.displayName || usuarioActual?.displayName || usuarioActual?.email || "Usuario";
@@ -2194,9 +2295,9 @@ async function responderMensaje(e) {
       await updateDoc(ref, { attachments });
     }
     if (modoAdmin) {
-      await Promise.all((msg.toEmails || []).map(email => crearNotificacion({
-        targetEmail: email.toLowerCase(),
-        targetUid: "",
+      await Promise.all(estudiantesDestino.map(est => crearNotificacion({
+        targetEmail: est.email.toLowerCase(),
+        targetUid: est.userUid || "",
         type: "message-reply",
         title: `Respuesta a: ${msg.subject || "mensaje"}`,
         body: `${fromName} respondió en el hilo del aula.`,
@@ -2246,6 +2347,8 @@ function insertarTablaMensaje() {
 }
 
 function insertarEmojiMensaje() {
+  const search = document.getElementById("emojiSearch");
+  if (search) search.value = "";
   renderEmojiPicker();
   document.getElementById("emojiOverlay")?.classList.remove("hidden");
 }
@@ -2328,13 +2431,14 @@ function insertarEcuacion(displayMode = false) {
   document.getElementById("equationOverlay")?.classList.add("hidden");
 }
 
-function renderEmojiPicker() {
+function renderEmojiPicker(filter = "") {
   const grid = document.getElementById("emojiGrid");
-  if (!grid || grid.dataset.ready === "true") return;
-  grid.innerHTML = EMOJIS_MENSAJE.map(emoji => `
+  if (!grid) return;
+  const term = String(filter || "").trim().toLowerCase();
+  const emojis = EMOJIS_MENSAJE.filter(([emoji, tags]) => !term || emoji.includes(term) || tags.includes(term));
+  grid.innerHTML = emojis.map(([emoji]) => `
     <button type="button" data-emoji="${emoji}" aria-label="Insertar ${emoji}">${emoji}</button>
-  `).join("");
-  grid.dataset.ready = "true";
+  `).join("") || `<p class="mini-help">Sin resultados.</p>`;
 }
 
 function renderStudentStats() {
@@ -5073,6 +5177,7 @@ async function salirApp() {
   localStorage.removeItem(STORAGE_BANCO_ACTIVO);
   localStorage.removeItem(STORAGE_CLASE_ACTIVA);
   localStorage.removeItem(STORAGE_ADMIN_CLASE);
+  localStorage.removeItem(STORAGE_SECCION_ACTIVA);
   if (unsubscribePermisos) unsubscribePermisos();
   if (unsubscribeAdminStudents) unsubscribeAdminStudents();
   if (unsubscribeClassMembership) unsubscribeClassMembership();
@@ -5177,6 +5282,9 @@ document.addEventListener("selectionchange", () => {
 document.querySelector(".message-toolbar")?.addEventListener("mousedown", e => {
   if (e.target.closest("button")) e.preventDefault();
 });
+document.querySelectorAll("[data-rich-panel]").forEach(btn => {
+  btn.addEventListener("click", () => setRichPanel(btn.dataset.richPanel || "formato"));
+});
 document.querySelectorAll("[data-rich-command]").forEach(btn => {
   btn.addEventListener("click", () => execRich(btn.dataset.richCommand));
 });
@@ -5207,6 +5315,7 @@ document.getElementById("emojiGrid")?.addEventListener("click", e => {
   insertarHtmlEnEditor(escapeHtml(btn.dataset.emoji));
   document.getElementById("emojiOverlay")?.classList.add("hidden");
 });
+document.getElementById("emojiSearch")?.addEventListener("input", e => renderEmojiPicker(e.target.value));
 document.getElementById("btnCloseEquationEditor")?.addEventListener("click", () => document.getElementById("equationOverlay")?.classList.add("hidden"));
 document.getElementById("equationOverlay")?.addEventListener("pointerdown", e => {
   if (e.target.id === "equationOverlay") e.currentTarget.classList.add("hidden");

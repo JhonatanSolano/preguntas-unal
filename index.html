@@ -1110,44 +1110,50 @@
         <label>Mensaje
           <div class="message-editor rich-editor">
             <div class="message-menu-bar" aria-label="Menú del editor">
-              <span>Editar</span><span>Insertar</span><span>Formato</span><span>Tabla</span><span>Matemáticas</span>
+              <button type="button" data-rich-panel="editar">Editar</button>
+              <button type="button" data-rich-panel="insertar">Insertar</button>
+              <button class="active" type="button" data-rich-panel="formato">Formato</button>
+              <button type="button" data-rich-panel="tabla">Tabla</button>
+              <button type="button" data-rich-panel="matematicas">Matemáticas</button>
             </div>
-            <div class="message-toolbar" aria-label="Herramientas de formato">
-              <button class="toolbar-essential" type="button" data-rich-command="bold" title="Negrita"><strong>B</strong></button>
-              <button class="toolbar-essential" type="button" data-rich-command="italic" title="Cursiva"><em>I</em></button>
-              <button class="toolbar-essential" type="button" data-rich-command="underline" title="Subrayado"><u>U</u></button>
-              <button class="toolbar-advanced" type="button" data-rich-command="strikeThrough" title="Tachado"><s>S</s></button>
-              <select class="toolbar-advanced" data-rich-select="fontName" aria-label="Tipo de letra">
+            <div class="message-toolbar" data-active-panel="formato" aria-label="Herramientas de formato">
+              <button class="toolbar-essential" type="button" data-rich-command="bold" data-rich-group="formato" title="Negrita"><strong>B</strong></button>
+              <button class="toolbar-essential" type="button" data-rich-command="italic" data-rich-group="formato" title="Cursiva"><em>I</em></button>
+              <button class="toolbar-essential" type="button" data-rich-command="underline" data-rich-group="formato" title="Subrayado"><u>U</u></button>
+              <button class="toolbar-advanced" type="button" data-rich-command="strikeThrough" data-rich-group="formato" title="Tachado"><s>S</s></button>
+              <select class="toolbar-advanced" data-rich-select="fontName" data-rich-group="formato" aria-label="Tipo de letra">
                 <option value="">Fuente</option>
                 <option value="Arial">Arial</option>
                 <option value="Georgia">Georgia</option>
                 <option value="Times New Roman">Times</option>
                 <option value="Verdana">Verdana</option>
               </select>
-              <select class="toolbar-essential" data-rich-select="fontSize" aria-label="Tamaño de texto">
+              <select class="toolbar-essential" data-rich-select="fontSize" data-rich-group="formato" aria-label="Tamaño de texto">
                 <option value="">Tamaño</option>
                 <option value="2">Pequeño</option>
                 <option value="3">Normal</option>
                 <option value="5">Grande</option>
                 <option value="7">Título</option>
               </select>
-              <label class="toolbar-color toolbar-advanced" title="Color de texto">A<input type="color" data-rich-color="foreColor" value="#06345f" /></label>
-              <label class="toolbar-color toolbar-advanced" title="Color de resaltado">▰<input type="color" data-rich-color="hiliteColor" value="#fff2a8" /></label>
-              <button class="toolbar-advanced" type="button" data-rich-command="justifyLeft" title="Alinear izquierda">☰</button>
-              <button class="toolbar-advanced" type="button" data-rich-command="justifyCenter" title="Centrar">≡</button>
-              <button class="toolbar-advanced" type="button" data-rich-command="justifyRight" title="Alinear derecha">☷</button>
-              <button class="toolbar-advanced" type="button" data-rich-command="justifyFull" title="Justificar">▤</button>
-              <button class="toolbar-essential" type="button" data-rich-command="insertUnorderedList" title="Viñetas">•</button>
-              <button class="toolbar-advanced" type="button" data-rich-command="insertOrderedList" title="Lista numerada">1.</button>
-              <button class="toolbar-advanced" type="button" data-rich-command="outdent" title="Disminuir sangría">⇤</button>
-              <button class="toolbar-advanced" type="button" data-rich-command="indent" title="Aumentar sangría">⇥</button>
-              <button class="toolbar-essential" type="button" data-rich-insert="link" title="Hipervínculo">🔗</button>
-              <button class="toolbar-advanced" type="button" data-rich-insert="image" title="Imagen">▧</button>
-              <button class="toolbar-advanced" type="button" data-rich-insert="video" title="Video">▶</button>
-              <button class="toolbar-advanced" type="button" data-rich-insert="table" title="Tabla">▦</button>
-              <button class="toolbar-essential" type="button" data-rich-insert="emoji" title="Emoji">😊</button>
-              <button class="toolbar-essential" type="button" data-rich-insert="equation" title="Insertar ecuación">∑</button>
-              <button class="toolbar-essential" type="button" id="btnPreviewMessage" title="Vista previa">👁</button>
+              <label class="toolbar-color toolbar-advanced" data-rich-group="formato" title="Color de texto">A<input type="color" data-rich-color="foreColor" value="#06345f" /></label>
+              <label class="toolbar-color toolbar-advanced" data-rich-group="formato" title="Color de resaltado">▰<input type="color" data-rich-color="hiliteColor" value="#fff2a8" /></label>
+              <button class="toolbar-advanced" type="button" data-rich-command="justifyLeft" data-rich-group="formato" title="Alinear izquierda">☰</button>
+              <button class="toolbar-advanced" type="button" data-rich-command="justifyCenter" data-rich-group="formato" title="Centrar">≡</button>
+              <button class="toolbar-advanced" type="button" data-rich-command="justifyRight" data-rich-group="formato" title="Alinear derecha">☷</button>
+              <button class="toolbar-advanced" type="button" data-rich-command="justifyFull" data-rich-group="formato" title="Justificar">▤</button>
+              <button class="toolbar-essential" type="button" data-rich-command="insertUnorderedList" data-rich-group="formato" title="Viñetas">•</button>
+              <button class="toolbar-advanced" type="button" data-rich-command="insertOrderedList" data-rich-group="formato" title="Lista numerada">1.</button>
+              <button class="toolbar-advanced" type="button" data-rich-command="outdent" data-rich-group="formato" title="Disminuir sangría">⇤</button>
+              <button class="toolbar-advanced" type="button" data-rich-command="indent" data-rich-group="formato" title="Aumentar sangría">⇥</button>
+              <button class="toolbar-essential" type="button" data-rich-insert="link" data-rich-group="insertar" title="Hipervínculo">🔗 Enlace</button>
+              <button class="toolbar-advanced" type="button" data-rich-insert="image" data-rich-group="insertar" title="Imagen">▧ Imagen</button>
+              <button class="toolbar-advanced" type="button" data-rich-insert="video" data-rich-group="insertar" title="Video">▶ Video</button>
+              <button class="toolbar-essential" type="button" data-rich-insert="emoji" data-rich-group="insertar" title="Emoji">😊 Emoji</button>
+              <button class="toolbar-advanced" type="button" data-rich-insert="table" data-rich-group="tabla" title="Tabla">▦ Insertar tabla</button>
+              <button class="toolbar-essential" type="button" data-rich-insert="equation" data-rich-group="matematicas" title="Insertar ecuación">∑ Ecuación</button>
+              <button class="toolbar-essential" type="button" id="btnPreviewMessage" data-rich-group="editar" title="Vista previa">👁 Vista previa</button>
+              <button class="toolbar-advanced" type="button" data-rich-command="selectAll" data-rich-group="editar" title="Seleccionar todo">Seleccionar todo</button>
+              <button class="toolbar-advanced" type="button" data-rich-command="removeFormat" data-rich-group="editar" title="Limpiar formato">Limpiar formato</button>
             </div>
             <div id="messageBody" class="rich-message-area" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="Escribe el mensaje para los estudiantes del aula"></div>
           </div>
@@ -1227,6 +1233,10 @@
       <button class="auth-close" id="btnCloseEmojiPicker" type="button" aria-label="Cerrar emojis">×</button>
       <h2>Insertar emoji</h2>
       <p class="mini-help">Elige una reacción para agregarla al mensaje.</p>
+      <input class="admin-input emoji-search" id="emojiSearch" type="search" placeholder="Buscar emoji" aria-label="Buscar emoji" />
+      <div class="emoji-categories" aria-label="Categorías de emojis">
+        <span>😀</span><span>🏃</span><span>🎉</span><span>☕</span><span>🏫</span><span>🏆</span><span>💡</span><span>⚑</span>
+      </div>
       <div class="emoji-grid" id="emojiGrid" aria-label="Selector de emojis"></div>
     </article>
   </div>

@@ -1367,6 +1367,20 @@ body.admin-mode .admin-exit-dock {
   font-weight: 800;
   background: #fff;
 }
+.message-menu-bar button {
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--c-navy);
+  cursor: pointer;
+  font: inherit;
+  padding: .15rem 0;
+}
+.message-menu-bar button:hover,
+.message-menu-bar button.active {
+  border-color: var(--c-teal-deep);
+  color: var(--c-teal-deep);
+}
 .message-toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -1374,6 +1388,23 @@ body.admin-mode .admin-exit-dock {
   padding: .55rem;
   border-bottom: 1px solid var(--c-border);
   background: linear-gradient(180deg, #fff, #f2f8fb);
+}
+.message-toolbar [data-rich-group] {
+  display: none;
+}
+.message-toolbar[data-active-panel="formato"] [data-rich-group="formato"],
+.message-toolbar[data-active-panel="insertar"] [data-rich-group="insertar"],
+.message-toolbar[data-active-panel="tabla"] [data-rich-group="tabla"],
+.message-toolbar[data-active-panel="matematicas"] [data-rich-group="matematicas"],
+.message-toolbar[data-active-panel="editar"] [data-rich-group="editar"] {
+  display: inline-flex;
+}
+.message-toolbar[data-active-panel="formato"] select[data-rich-group],
+.message-toolbar[data-active-panel="insertar"] select[data-rich-group],
+.message-toolbar[data-active-panel="tabla"] select[data-rich-group],
+.message-toolbar[data-active-panel="matematicas"] select[data-rich-group],
+.message-toolbar[data-active-panel="editar"] select[data-rich-group] {
+  display: inline-flex;
 }
 .message-toolbar button,
 .message-toolbar select,
@@ -1584,6 +1615,27 @@ body.admin-mode .admin-exit-dock {
 .emoji-card {
   max-width: 560px;
 }
+.emoji-search {
+  margin-top: .6rem;
+}
+.emoji-categories {
+  display: flex;
+  gap: .45rem;
+  margin: .75rem 0 .4rem;
+  overflow-x: auto;
+  padding-bottom: .25rem;
+}
+.emoji-categories span {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: #eef7fb;
+  color: var(--c-navy);
+  font-size: 1.15rem;
+}
 .emoji-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(58px, 1fr));
@@ -1609,6 +1661,14 @@ body.admin-mode .admin-exit-dock {
 }
 .message-replies article.own {
   background: var(--c-green-lt);
+}
+.message-reply-form.reply-disabled {
+  opacity: .72;
+}
+.message-reply-form.reply-disabled textarea,
+.message-reply-form.reply-disabled input,
+.message-reply-form.reply-disabled button {
+  cursor: not-allowed;
 }
 .message-attachments {
   display: flex;
@@ -3309,9 +3369,16 @@ body.admin-mode .admin-exit-dock {
     padding: .25rem .3rem;
     font-size: .84rem;
   }
-  .message-toolbar .toolbar-advanced,
   .message-menu-bar {
-    display: none;
+    display: flex;
+    gap: .45rem;
+    overflow-x: auto;
+    white-space: nowrap;
+    padding: .45rem .55rem;
+  }
+  .message-menu-bar button {
+    flex: 0 0 auto;
+    font-size: .82rem;
   }
   .message-toolbar select.toolbar-essential {
     grid-column: span 2;
