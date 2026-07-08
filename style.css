@@ -1344,11 +1344,15 @@ body.admin-mode .admin-exit-dock {
   background: #f8fbff;
 }
 .teacher-message-compose label,
+.message-field,
 .file-inline {
   display: grid;
   gap: .35rem;
   color: var(--c-navy);
   font-weight: 800;
+}
+.message-field-label {
+  display: block;
 }
 .message-editor {
   border: 1px solid var(--c-border);
@@ -3432,6 +3436,7 @@ body.admin-mode .admin-exit-dock {
     width: 100%;
   }
   .teacher-message-compose label,
+  .message-field,
   .file-inline {
     max-width: 100%;
     min-width: 0;

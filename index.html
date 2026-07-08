@@ -1107,7 +1107,8 @@
         <h3>Enviar mensaje al aula</h3>
         <label>Aula<select id="messageClassSelect" class="admin-input"></select></label>
         <label>Asunto<input id="messageSubject" class="admin-input" type="text" placeholder="Asunto del mensaje" /></label>
-        <label>Mensaje
+        <div class="message-field">
+          <span class="message-field-label">Mensaje</span>
           <div class="message-editor rich-editor">
             <div class="message-menu-bar" aria-label="Menú del editor">
               <button class="active" type="button" data-rich-panel="editar">Editar</button>
@@ -1155,9 +1156,9 @@
               <button class="toolbar-advanced" type="button" data-rich-command="selectAll" data-rich-group="editar" title="Seleccionar todo">Seleccionar todo</button>
               <button class="toolbar-advanced" type="button" data-rich-command="removeFormat" data-rich-group="editar" title="Limpiar formato">Limpiar formato</button>
             </div>
-            <div id="messageBody" class="rich-message-area" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="Escribe el mensaje para los estudiantes del aula"></div>
+            <div id="messageBody" class="rich-message-area" contenteditable="true" role="textbox" aria-multiline="true" tabindex="0" spellcheck="true" data-placeholder="Escribe el mensaje para los estudiantes del aula"></div>
           </div>
-        </label>
+        </div>
         <label class="file-inline">Adjuntos
           <input id="messageAttachments" type="file" multiple accept="image/*,.pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
         </label>
