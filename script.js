@@ -15,7 +15,6 @@ import {
   linkWithCredential,
   onAuthStateChanged,
   reauthenticateWithCredential,
-  sendEmailVerification,
   setPersistence,
   signInWithEmailAndPassword,
   signInWithCredential,
@@ -59,7 +58,8 @@ const APP_CONFIG = {
   name: "Matemáticas En Tu Bolsillo",
   recaptchaSiteKey: "6LcmOT0tAAAAAPfwCOhqA1nzfz3YOx8McE_mpFEZ",
   asesorEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/generateAiResponse",
-  passwordResetEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/sendPasswordResetEmailCustom"
+  passwordResetEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/sendPasswordResetEmailCustom",
+  emailVerificationEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/sendEmailVerificationCustom"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -3936,9 +3936,7 @@ async function registrarEmail() {
       phoneVerified: false,
       ...perfilRegistro
     });
-    await sendEmailVerification(cred.user, {
-      url: `${window.location.origin}${window.location.pathname.replace(/\/[^/]*$/, "/")}verificado.html`
-    });
+    await enviarVerificacionEmailPersonalizada(email);
     await signOut(auth);
     registroEnCurso = false;
     cambiarAuthMode("login");
@@ -4000,6 +3998,15 @@ async function recuperarPassword() {
   } catch {
     setStatus("forgotPasswordStatus", "No se pudo enviar la recuperación. Revisa el correo.", "error");
   }
+}
+
+async function enviarVerificacionEmailPersonalizada(email) {
+  const response = await fetch(APP_CONFIG.emailVerificationEndpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email })
+  });
+  if (!response.ok) throw new Error(await response.text());
 }
 
 function abrirPanelRecuperarPassword() {

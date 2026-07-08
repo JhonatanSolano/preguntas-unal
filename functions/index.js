@@ -124,6 +124,44 @@ exports.sendPasswordResetEmailCustom = onRequest({ region: "us-central1", secret
   return res.status(200).json({ ok: true });
 });
 
+exports.sendEmailVerificationCustom = onRequest({ region: "us-central1", secrets: [resendApiKey] }, async (req, res) => {
+  setCors(res);
+  if (req.method === "OPTIONS") return res.status(204).send("");
+  if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
+
+  const email = String(req.body?.email || "").trim().toLowerCase();
+  if (!/^[^\s@]+@gmail\.com$/i.test(email)) {
+    return res.status(400).json({ error: "Correo inválido." });
+  }
+
+  try {
+    const verificationLink = await admin.auth().generateEmailVerificationLink(email, {
+      url: "https://matematicasentubolsillo.com/verificado.html",
+      handleCodeInApp: false
+    });
+    const html = `
+      <div style="font-family:Arial,sans-serif;line-height:1.6;color:#162838;max-width:640px;margin:auto;padding:24px">
+        <h1 style="color:#06345f">Verifica tu correo</h1>
+        <p>Gracias por crear tu cuenta en <strong>Matemáticas En Tu Bolsillo</strong>.</p>
+        <p>Para activar tu acceso, confirma que este correo te pertenece.</p>
+        <p style="margin:28px 0">
+          <a href="${escapeHtml(verificationLink)}" style="background:#0d9488;color:white;padding:14px 22px;border-radius:999px;text-decoration:none;font-weight:bold">Verificar correo</a>
+        </p>
+        <p>Si no creaste esta cuenta, puedes ignorar este correo.</p>
+        <p style="font-size:12px;color:#66788a">© Todos los derechos reservados. Matemáticas En Tu Bolsillo.</p>
+      </div>`;
+    await sendEmail({
+      to: email,
+      subject: "Verifica tu correo de Matemáticas En Tu Bolsillo",
+      html
+    });
+  } catch (err) {
+    console.warn("No se pudo enviar verificación personalizada.", err);
+  }
+
+  return res.status(200).json({ ok: true });
+});
+
 function escapeHtml(text = "") {
   return String(text).replace(/[&<>"']/g, char => ({
     "&": "&amp;",
