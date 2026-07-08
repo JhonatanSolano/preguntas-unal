@@ -1950,7 +1950,7 @@ function sanitizeRichHtml(html = "") {
     "HR", "I", "IFRAME", "IMG", "LI", "OL", "P", "S", "SPAN", "STRONG", "SUB",
     "SUP", "TABLE", "TBODY", "TD", "TFOOT", "TH", "THEAD", "TR", "U", "UL"
   ]);
-  const allowedAttrs = new Set(["href", "src", "alt", "title", "target", "rel", "class", "style", "data-latex", "contenteditable", "face", "size"]);
+  const allowedAttrs = new Set(["href", "src", "alt", "title", "target", "rel", "class", "style", "data-latex", "data-rich-control", "data-table-action", "contenteditable", "face", "size"]);
   const safeUrl = value => /^(https?:|data:image\/)/i.test(String(value || ""));
   const cleanNode = node => {
     [...node.childNodes].forEach(child => {
@@ -1990,7 +1990,16 @@ function richEditor() {
 }
 
 function richMessageHtml() {
-  return sanitizeRichHtml(richEditor()?.innerHTML || "");
+  const clone = richEditor()?.cloneNode(true);
+  if (!clone) return "";
+  clone.querySelectorAll("[data-rich-control]").forEach(node => node.remove());
+  clone.querySelectorAll(".rich-table-wrap, .math-wrap").forEach(node => {
+    node.removeAttribute("contenteditable");
+  });
+  clone.querySelectorAll(".rich-table").forEach(node => {
+    node.removeAttribute("contenteditable");
+  });
+  return sanitizeRichHtml(clone.innerHTML || "");
 }
 
 function richMessageText() {
@@ -2043,7 +2052,7 @@ function resetRichEditorDefaults() {
   setTimeout(updateRichToolbarState, 0);
 }
 
-function setRichPanel(panel = "formato") {
+function setRichPanel(panel = "editar") {
   const toolbar = document.querySelector(".message-toolbar");
   if (!toolbar) return;
   toolbar.dataset.activePanel = panel;
@@ -2052,6 +2061,19 @@ function setRichPanel(panel = "formato") {
     btn.classList.toggle("active", active);
     btn.setAttribute("aria-pressed", active ? "true" : "false");
   });
+}
+
+function enfocarEditorAlFinal() {
+  const editor = richEditor();
+  if (!editor) return;
+  editor.focus();
+  const selection = window.getSelection();
+  const range = document.createRange();
+  range.selectNodeContents(editor);
+  range.collapse(false);
+  selection.removeAllRanges();
+  selection.addRange(range);
+  saveRichSelection();
 }
 
 function normalizarLatexPlantilla(latex = "") {
@@ -2325,8 +2347,21 @@ async function responderMensaje(e) {
 }
 
 function insertarHtmlEnEditor(html = "") {
+  if (!savedRichSelection) enfocarEditorAlFinal();
   focusRichEditor();
   document.execCommand("insertHTML", false, html);
+  saveRichSelection();
+}
+
+function enfocarEditorDespuesDeInsercion() {
+  const editor = richEditor();
+  const selection = window.getSelection();
+  if (!editor || !selection || !selection.rangeCount) return;
+  editor.focus();
+  const range = selection.getRangeAt(0);
+  range.collapse(false);
+  selection.removeAllRanges();
+  selection.addRange(range);
   saveRichSelection();
 }
 
@@ -2343,7 +2378,63 @@ function insertarTablaMensaje() {
   const rows = Math.max(1, Math.min(8, Number(prompt("Número de filas", "3")) || 3));
   const cols = Math.max(1, Math.min(8, Number(prompt("Número de columnas", "3")) || 3));
   const cells = "<td><br></td>".repeat(cols);
-  insertarHtmlEnEditor(`<table class="rich-table"><tbody>${`<tr>${cells}</tr>`.repeat(rows)}</tbody></table><p><br></p>`);
+  insertarHtmlEnEditor(`
+    <div class="rich-table-wrap">
+      <button class="rich-remove-btn" type="button" data-rich-control="delete-table" title="Eliminar tabla">×</button>
+      <div class="rich-table-tools" data-rich-control="table-tools" contenteditable="false">
+        <button type="button" data-rich-control="table-action" data-table-action="add-row">+ fila</button>
+        <button type="button" data-rich-control="table-action" data-table-action="remove-row">- fila</button>
+        <button type="button" data-rich-control="table-action" data-table-action="add-col">+ columna</button>
+        <button type="button" data-rich-control="table-action" data-table-action="remove-col">- columna</button>
+      </div>
+      <table class="rich-table" contenteditable="true"><tbody>${`<tr>${cells}</tr>`.repeat(rows)}</tbody></table>
+    </div><p><br></p>`);
+}
+
+function tablaDesdeNodo(node) {
+  return node?.closest?.(".rich-table-wrap") || null;
+}
+
+function celdaTablaDesdeSeleccion() {
+  const selection = window.getSelection();
+  if (!selection || !selection.rangeCount) return null;
+  let node = selection.getRangeAt(0).commonAncestorContainer;
+  if (node.nodeType === Node.TEXT_NODE) node = node.parentElement;
+  return node?.closest?.("td,th") || null;
+}
+
+function tablaActiva() {
+  return tablaDesdeNodo(celdaTablaDesdeSeleccion()) || richEditor()?.querySelector(".rich-table-wrap:last-of-type");
+}
+
+function modificarTabla(action, tableWrap = tablaActiva()) {
+  const table = tableWrap?.querySelector("table");
+  if (!table) return;
+  const rows = [...table.rows];
+  const selectedCell = celdaTablaDesdeSeleccion();
+  const selectedRow = selectedCell?.parentElement || rows[rows.length - 1];
+  const colIndex = selectedCell ? selectedCell.cellIndex : Math.max(0, (rows[0]?.cells.length || 1) - 1);
+  if (action === "delete") {
+    tableWrap.remove();
+    saveRichSelection();
+    return;
+  }
+  if (action === "add-row") {
+    const refRow = selectedRow || table.rows[table.rows.length - 1];
+    const cols = Math.max(1, refRow?.cells.length || rows[0]?.cells.length || 1);
+    const row = table.insertRow(refRow ? refRow.rowIndex + 1 : -1);
+    for (let i = 0; i < cols; i++) row.insertCell(i).innerHTML = "<br>";
+  }
+  if (action === "remove-row" && rows.length > 1 && selectedRow) {
+    table.deleteRow(selectedRow.rowIndex);
+  }
+  if (action === "add-col") {
+    rows.forEach(row => row.insertCell(Math.min(colIndex + 1, row.cells.length)).innerHTML = "<br>");
+  }
+  if (action === "remove-col" && rows[0]?.cells.length > 1) {
+    rows.forEach(row => row.deleteCell(Math.min(colIndex, row.cells.length - 1)));
+  }
+  saveRichSelection();
 }
 
 function insertarEmojiMensaje() {
@@ -2398,9 +2489,14 @@ function renderEquationPreview() {
   const preview = document.getElementById("equationPreview");
   const input = document.getElementById("equationInput");
   if (!preview || !input) return;
-  const latex = normalizarLatexPlantilla(input.value.trim() || "x^2+y^2=z^2");
+  const raw = input.value.trim();
+  const latex = normalizarLatexPlantilla(raw);
   if (input.value !== latex) input.value = latex;
   preview.textContent = "";
+  if (!latex) {
+    preview.innerHTML = `<span class="mini-help">Escribe una ecuación o elige una plantilla.</span>`;
+    return;
+  }
   try {
     if (window.katex) katex.render(latex, preview, { throwOnError: false, displayMode: true });
     else preview.textContent = latex;
@@ -2411,12 +2507,18 @@ function renderEquationPreview() {
 
 function abrirEditorEcuacion() {
   document.getElementById("equationOverlay")?.classList.remove("hidden");
+  document.getElementById("equationInput")?.focus();
   renderEquationPreview();
 }
 
 function insertarEcuacion(displayMode = false) {
   const input = document.getElementById("equationInput");
-  const latex = normalizarLatexPlantilla(input?.value.trim() || "x^2+y^2=z^2");
+  const latex = normalizarLatexPlantilla(input?.value.trim() || "");
+  if (!latex) {
+    renderEquationPreview();
+    input?.focus();
+    return;
+  }
   const temp = document.createElement(displayMode ? "div" : "span");
   temp.className = displayMode ? "math-block" : "math-inline";
   temp.dataset.latex = latex;
@@ -2427,8 +2529,11 @@ function insertarEcuacion(displayMode = false) {
   } catch {
     temp.textContent = latex;
   }
-  insertarHtmlEnEditor(temp.outerHTML + (displayMode ? "<p><br></p>" : " "));
+  const wrapTag = displayMode ? "div" : "span";
+  const html = `<${wrapTag} class="math-wrap ${displayMode ? "math-wrap-block" : "math-wrap-inline"}" contenteditable="false">${temp.outerHTML}<button class="rich-remove-btn math-remove" type="button" data-rich-control="delete-equation" title="Eliminar ecuación">×</button></${wrapTag}>${displayMode ? "<p><br></p>" : "&nbsp;"}`;
+  insertarHtmlEnEditor(html);
   document.getElementById("equationOverlay")?.classList.add("hidden");
+  enfocarEditorDespuesDeInsercion();
 }
 
 function renderEmojiPicker(filter = "") {
@@ -5266,6 +5371,16 @@ document.getElementById("messageBody")?.addEventListener("focus", () => {
   saveRichSelection();
   updateRichToolbarState();
 });
+document.getElementById("messageBody")?.addEventListener("pointerdown", e => {
+  const control = e.target.closest?.("[data-rich-control]");
+  if (control) return;
+  const editor = e.currentTarget;
+  setTimeout(() => {
+    editor.focus();
+    saveRichSelection();
+    updateRichToolbarState();
+  }, 0);
+});
 document.getElementById("messageBody")?.addEventListener("touchend", () => setTimeout(() => {
   saveRichSelection();
   updateRichToolbarState();
@@ -5299,6 +5414,26 @@ document.querySelectorAll("[data-rich-color]").forEach(input => {
 });
 document.querySelectorAll("[data-rich-insert]").forEach(btn => {
   btn.addEventListener("click", () => ejecutarInsercionRica(btn.dataset.richInsert));
+});
+document.querySelectorAll("[data-table-action]").forEach(btn => {
+  btn.addEventListener("click", () => modificarTabla(btn.dataset.tableAction));
+});
+document.getElementById("messageBody")?.addEventListener("click", e => {
+  const deleteTable = e.target.closest?.("[data-rich-control='delete-table']");
+  if (deleteTable) {
+    modificarTabla("delete", tablaDesdeNodo(deleteTable));
+    return;
+  }
+  const tableAction = e.target.closest?.("[data-rich-control='table-action']");
+  if (tableAction) {
+    modificarTabla(tableAction.dataset.tableAction, tablaDesdeNodo(tableAction));
+    return;
+  }
+  const deleteEquation = e.target.closest?.("[data-rich-control='delete-equation']");
+  if (deleteEquation) {
+    deleteEquation.closest(".math-wrap")?.remove();
+    saveRichSelection();
+  }
 });
 document.getElementById("btnPreviewMessage")?.addEventListener("click", abrirVistaPreviaMensaje);
 document.getElementById("btnCloseMessagePreview")?.addEventListener("click", () => document.getElementById("messagePreviewOverlay")?.classList.add("hidden"));

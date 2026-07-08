@@ -1110,13 +1110,13 @@
         <label>Mensaje
           <div class="message-editor rich-editor">
             <div class="message-menu-bar" aria-label="Menú del editor">
-              <button type="button" data-rich-panel="editar">Editar</button>
+              <button class="active" type="button" data-rich-panel="editar">Editar</button>
               <button type="button" data-rich-panel="insertar">Insertar</button>
-              <button class="active" type="button" data-rich-panel="formato">Formato</button>
+              <button type="button" data-rich-panel="formato">Formato</button>
               <button type="button" data-rich-panel="tabla">Tabla</button>
               <button type="button" data-rich-panel="matematicas">Matemáticas</button>
             </div>
-            <div class="message-toolbar" data-active-panel="formato" aria-label="Herramientas de formato">
+            <div class="message-toolbar" data-active-panel="editar" aria-label="Herramientas de formato">
               <button class="toolbar-essential" type="button" data-rich-command="bold" data-rich-group="formato" title="Negrita"><strong>B</strong></button>
               <button class="toolbar-essential" type="button" data-rich-command="italic" data-rich-group="formato" title="Cursiva"><em>I</em></button>
               <button class="toolbar-essential" type="button" data-rich-command="underline" data-rich-group="formato" title="Subrayado"><u>U</u></button>
@@ -1150,6 +1150,11 @@
               <button class="toolbar-advanced" type="button" data-rich-insert="video" data-rich-group="insertar" title="Video">▶ Video</button>
               <button class="toolbar-essential" type="button" data-rich-insert="emoji" data-rich-group="insertar" title="Emoji">😊 Emoji</button>
               <button class="toolbar-advanced" type="button" data-rich-insert="table" data-rich-group="tabla" title="Tabla">▦ Insertar tabla</button>
+              <button class="toolbar-advanced" type="button" data-table-action="add-row" data-rich-group="tabla" title="Agregar fila">+ Fila</button>
+              <button class="toolbar-advanced" type="button" data-table-action="remove-row" data-rich-group="tabla" title="Quitar fila">- Fila</button>
+              <button class="toolbar-advanced" type="button" data-table-action="add-col" data-rich-group="tabla" title="Agregar columna">+ Columna</button>
+              <button class="toolbar-advanced" type="button" data-table-action="remove-col" data-rich-group="tabla" title="Quitar columna">- Columna</button>
+              <button class="toolbar-advanced" type="button" data-table-action="delete" data-rich-group="tabla" title="Eliminar tabla">× Tabla</button>
               <button class="toolbar-essential" type="button" data-rich-insert="equation" data-rich-group="matematicas" title="Insertar ecuación">∑ Ecuación</button>
               <button class="toolbar-essential" type="button" id="btnPreviewMessage" data-rich-group="editar" title="Vista previa">👁 Vista previa</button>
               <button class="toolbar-advanced" type="button" data-rich-command="selectAll" data-rich-group="editar" title="Seleccionar todo">Seleccionar todo</button>
@@ -1219,7 +1224,7 @@
         <button type="button" data-eq-template="\pi">π</button>
         <button type="button" data-eq-template="\infty">∞</button>
       </div>
-      <input class="admin-input" id="equationInput" type="text" value="x^2+y^2=z^2" aria-label="Ecuación" />
+      <input class="admin-input" id="equationInput" type="text" value="x^2+y^2=z^2" placeholder="Escribe LaTeX, por ejemplo: \sqrt{}" aria-label="Ecuación" />
       <div class="equation-preview" id="equationPreview"></div>
       <div class="result-actions">
         <button class="btn btn-outline" id="btnInsertInlineEquation" type="button">Insertar en línea</button>

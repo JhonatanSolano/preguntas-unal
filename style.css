@@ -1482,6 +1482,53 @@ body.admin-mode .admin-exit-dock {
   border-collapse: collapse;
   margin: .75rem 0;
 }
+.rich-table-wrap {
+  position: relative;
+  margin: .85rem 0;
+  padding: 2.35rem .55rem .55rem;
+  border: 1px dashed rgba(8, 129, 151, .45);
+  border-radius: 12px;
+  background: #fbfdff;
+  overflow-x: auto;
+}
+.rich-table-tools {
+  position: absolute;
+  top: .35rem;
+  left: .45rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .25rem;
+  max-width: calc(100% - 3rem);
+}
+.rich-table-tools button,
+.rich-remove-btn {
+  border: 1px solid var(--c-border);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--c-navy);
+  cursor: pointer;
+  font-size: .76rem;
+  font-weight: 900;
+  line-height: 1;
+  padding: .32rem .5rem;
+  box-shadow: 0 6px 14px rgba(6,52,95,.08);
+}
+.rich-table-tools button:hover,
+.rich-remove-btn:hover {
+  border-color: var(--c-teal-deep);
+  background: var(--c-blue-lt);
+}
+.rich-remove-btn {
+  position: absolute;
+  top: .32rem;
+  right: .35rem;
+  z-index: 2;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
 .rich-table td,
 .rich-table th,
 .rich-message-area td,
@@ -1506,6 +1553,28 @@ body.admin-mode .admin-exit-dock {
   display: block;
   text-align: center;
   margin: .8rem 0;
+}
+.math-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: .2rem;
+  padding-right: 1.15rem;
+  vertical-align: middle;
+}
+.math-wrap-block {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  margin: .8rem auto;
+  padding: .35rem 1.4rem .35rem .35rem;
+}
+.math-remove {
+  top: -.55rem;
+  right: -.55rem;
+  width: 22px;
+  height: 22px;
+  font-size: .8rem;
 }
 .teacher-message-compose .btn {
   width: fit-content;
