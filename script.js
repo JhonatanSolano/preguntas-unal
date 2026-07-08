@@ -2042,6 +2042,9 @@ function resetRichEditorDefaults() {
   if (!editor) return;
   editor.style.textAlign = "left";
   savedRichSelection = null;
+  document.querySelectorAll("[data-rich-select]").forEach(select => {
+    select.value = "";
+  });
   ["bold", "italic", "underline", "strikeThrough"].forEach(command => {
     try {
       if (document.queryCommandState(command)) document.execCommand(command, false, null);
@@ -5397,7 +5400,6 @@ document.querySelectorAll("[data-rich-command]").forEach(btn => {
 document.querySelectorAll("[data-rich-select]").forEach(select => {
   select.addEventListener("change", e => {
     if (e.target.value) execRich(e.target.dataset.richSelect, e.target.value);
-    e.target.value = "";
   });
 });
 document.querySelectorAll("[data-rich-color]").forEach(input => {
