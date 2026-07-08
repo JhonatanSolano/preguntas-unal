@@ -1987,6 +1987,21 @@ function limpiarPreviewAdjuntos(containerId) {
   if (cont) cont.innerHTML = "";
 }
 
+function accionEliminarAdjunto(inputId, containerId, index, label) {
+  return `<button class="attachment-remove-btn" type="button" data-remove-attachment="${index}" data-input-id="${inputId}" data-preview-id="${containerId}">${label}</button>`;
+}
+
+function quitarAdjuntoSeleccionado(inputId, containerId, index) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  const dt = new DataTransfer();
+  [...(input.files || [])].forEach((file, idx) => {
+    if (idx !== Number(index)) dt.items.add(file);
+  });
+  input.files = dt.files;
+  renderPreviewAdjuntos(inputId, containerId);
+}
+
 function renderPreviewAdjuntos(inputId, containerId) {
   const input = document.getElementById(inputId);
   const cont = document.getElementById(containerId);
@@ -1995,7 +2010,7 @@ function renderPreviewAdjuntos(inputId, containerId) {
   const files = [...(input.files || [])];
   if (!files.length) return;
   const urls = [];
-  cont.innerHTML = files.map(file => {
+  cont.innerHTML = files.map((file, index) => {
     const url = URL.createObjectURL(file);
     urls.push(url);
     const name = escapeHtml(file.name);
@@ -2006,6 +2021,10 @@ function renderPreviewAdjuntos(inputId, containerId) {
           <a href="${url}" target="_blank" rel="noopener"><img src="${url}" alt="${name}" /></a>
           <strong>${name}</strong>
           <span>${size}</span>
+          <div class="attachment-preview-actions">
+            <a href="${url}" target="_blank" rel="noopener">Abrir imagen</a>
+            ${accionEliminarAdjunto(inputId, containerId, index, "Eliminar imagen")}
+          </div>
         </article>`;
     }
     if (esPdfAdjunto(file)) {
@@ -2013,7 +2032,10 @@ function renderPreviewAdjuntos(inputId, containerId) {
         <article class="attachment-preview-card attachment-preview-pdf">
           <iframe src="${url}" title="${name}"></iframe>
           <strong>${name}</strong>
-          <a href="${url}" target="_blank" rel="noopener">Abrir PDF</a>
+          <div class="attachment-preview-actions">
+            <a href="${url}" target="_blank" rel="noopener">Abrir PDF</a>
+            ${accionEliminarAdjunto(inputId, containerId, index, "Eliminar PDF")}
+          </div>
         </article>`;
     }
     return `
@@ -2021,7 +2043,10 @@ function renderPreviewAdjuntos(inputId, containerId) {
         <div class="file-badge">${esWordAdjunto(file) ? "DOC" : "ARCH"}</div>
         <strong>${name}</strong>
         <span>${size}</span>
-        <a href="${url}" target="_blank" rel="noopener">Abrir archivo</a>
+        <div class="attachment-preview-actions">
+          <a href="${url}" target="_blank" rel="noopener">Abrir archivo</a>
+          ${accionEliminarAdjunto(inputId, containerId, index, "Eliminar archivo")}
+        </div>
       </article>`;
   }).join("");
   attachmentPreviewUrls.set(containerId, urls);
@@ -5497,6 +5522,11 @@ document.getElementById("messageAttachments")?.addEventListener("change", () => 
 });
 document.getElementById("messageReplyAttachments")?.addEventListener("change", () => {
   renderPreviewAdjuntos("messageReplyAttachments", "messageReplyAttachmentPreview");
+});
+document.addEventListener("click", e => {
+  const btn = e.target.closest("[data-remove-attachment]");
+  if (!btn) return;
+  quitarAdjuntoSeleccionado(btn.dataset.inputId, btn.dataset.previewId, btn.dataset.removeAttachment);
 });
 document.querySelectorAll("[data-rich-insert]").forEach(btn => {
   btn.addEventListener("click", () => ejecutarInsercionRica(btn.dataset.richInsert));

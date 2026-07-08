@@ -1844,6 +1844,35 @@ body.admin-mode .admin-exit-dock {
   color: var(--c-blue);
   font-weight: 800;
 }
+.attachment-preview-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .45rem;
+  align-items: center;
+}
+.attachment-preview-actions a,
+.attachment-remove-btn {
+  border: 1px solid var(--c-border);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--c-blue);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 900;
+  line-height: 1.1;
+  padding: .4rem .7rem;
+  text-decoration: none;
+}
+.attachment-remove-btn {
+  color: #b42318;
+  border-color: rgba(180, 35, 24, .32);
+}
+.attachment-remove-btn:hover,
+.attachment-remove-btn:focus-visible {
+  background: #fff1f0;
+  border-color: #b42318;
+  outline: none;
+}
 .file-badge {
   display: grid;
   place-items: center;
