@@ -4151,6 +4151,32 @@ body.landing-menu-open {
   color: var(--c-navy);
   font-weight: 800;
 }
+.teacher-rich-field {
+  display: grid;
+  gap: .5rem;
+  margin-bottom: 1rem;
+}
+.teacher-rich-field .question-builder-heading label {
+  margin: 0;
+}
+.teacher-inline-preview {
+  min-height: 48px;
+  padding: .7rem .8rem;
+  overflow-x: auto;
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  color: var(--c-text);
+  background: #fff;
+  white-space: pre-wrap;
+}
+.teacher-inline-preview.empty {
+  color: var(--c-muted);
+  font-size: .85rem;
+  font-style: italic;
+}
+.teacher-inline-preview .katex-display {
+  margin: .35rem 0;
+}
 .question-equation-editor {
   display: grid;
   gap: .65rem;
@@ -4211,6 +4237,38 @@ body.landing-menu-open {
   grid-template-columns: 34px minmax(0, 1fr);
   align-items: center;
   margin: 0;
+}
+.teacher-option-editor {
+  position: relative;
+  display: grid;
+  gap: .4rem;
+  padding: .7rem;
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  background: #fff;
+}
+.teacher-option-editor > button {
+  position: absolute;
+  top: .95rem;
+  right: .95rem;
+  z-index: 2;
+  display: inline-flex;
+  width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 8px;
+  color: #fff;
+  background: var(--c-teal-deep);
+  font-weight: 900;
+  cursor: pointer;
+}
+.teacher-option-editor .admin-input {
+  padding-right: 3rem;
+}
+.teacher-option-editor .teacher-inline-preview {
+  min-height: 42px;
 }
 .teacher-options-grid label span {
   display: inline-flex;

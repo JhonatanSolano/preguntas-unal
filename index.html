@@ -10,7 +10,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="style.css?v=20260709-1" />
+  <link rel="stylesheet" href="style.css?v=20260709-2" />
 </head>
 <body class="group-locked">
   <div class="welcome-splash hidden" id="welcomeSplash" aria-live="polite">
@@ -574,9 +574,14 @@
             </label>
           </div>
 
-          <label>Enunciado
-            <textarea id="teacherQuestionText" class="admin-input" rows="4" placeholder="Escribe el enunciado completo de la pregunta"></textarea>
-          </label>
+          <div class="teacher-rich-field">
+            <div class="question-builder-heading">
+              <label for="teacherQuestionText">Enunciado</label>
+              <button class="btn btn-outline" type="button" data-inline-equation-target="teacherQuestionText">Insertar ecuación en línea</button>
+            </div>
+            <textarea id="teacherQuestionText" class="admin-input" rows="4" placeholder="Escribe texto y agrega ecuaciones donde las necesites"></textarea>
+            <div class="teacher-inline-preview" data-field-preview="teacherQuestionText"></div>
+          </div>
 
           <div class="question-equation-editor">
             <div class="question-builder-heading">
@@ -600,10 +605,26 @@
           <fieldset class="teacher-options-fieldset">
             <legend>Opciones de respuesta</legend>
             <div class="teacher-options-grid">
-              <label><span>A</span><input id="teacherOptionA" class="admin-input" type="text" placeholder="Opción A" /></label>
-              <label><span>B</span><input id="teacherOptionB" class="admin-input" type="text" placeholder="Opción B" /></label>
-              <label><span>C</span><input id="teacherOptionC" class="admin-input" type="text" placeholder="Opción C" /></label>
-              <label><span>D</span><input id="teacherOptionD" class="admin-input" type="text" placeholder="Opción D" /></label>
+              <div class="teacher-option-editor">
+                <label><span>A</span><input id="teacherOptionA" class="admin-input" type="text" placeholder="Texto o ecuación para la opción A" /></label>
+                <button type="button" data-inline-equation-target="teacherOptionA" aria-label="Insertar ecuación en opción A">∑</button>
+                <div class="teacher-inline-preview" data-field-preview="teacherOptionA"></div>
+              </div>
+              <div class="teacher-option-editor">
+                <label><span>B</span><input id="teacherOptionB" class="admin-input" type="text" placeholder="Texto o ecuación para la opción B" /></label>
+                <button type="button" data-inline-equation-target="teacherOptionB" aria-label="Insertar ecuación en opción B">∑</button>
+                <div class="teacher-inline-preview" data-field-preview="teacherOptionB"></div>
+              </div>
+              <div class="teacher-option-editor">
+                <label><span>C</span><input id="teacherOptionC" class="admin-input" type="text" placeholder="Texto o ecuación para la opción C" /></label>
+                <button type="button" data-inline-equation-target="teacherOptionC" aria-label="Insertar ecuación en opción C">∑</button>
+                <div class="teacher-inline-preview" data-field-preview="teacherOptionC"></div>
+              </div>
+              <div class="teacher-option-editor">
+                <label><span>D</span><input id="teacherOptionD" class="admin-input" type="text" placeholder="Texto o ecuación para la opción D" /></label>
+                <button type="button" data-inline-equation-target="teacherOptionD" aria-label="Insertar ecuación en opción D">∑</button>
+                <div class="teacher-inline-preview" data-field-preview="teacherOptionD"></div>
+              </div>
             </div>
           </fieldset>
 
@@ -617,9 +638,14 @@
             </select>
           </label>
 
-          <label>Explicación que verá el estudiante
-            <textarea id="teacherQuestionExplanation" class="admin-input" rows="5" placeholder="Explica el procedimiento y por qué esa opción es correcta"></textarea>
-          </label>
+          <div class="teacher-rich-field">
+            <div class="question-builder-heading">
+              <label for="teacherQuestionExplanation">Explicación que verá el estudiante</label>
+              <button class="btn btn-outline" type="button" data-inline-equation-target="teacherQuestionExplanation">Insertar ecuación en línea</button>
+            </div>
+            <textarea id="teacherQuestionExplanation" class="admin-input" rows="5" placeholder="Explica el procedimiento y combina texto con ecuaciones"></textarea>
+            <div class="teacher-inline-preview" data-field-preview="teacherQuestionExplanation"></div>
+          </div>
 
           <div class="question-equation-editor">
             <div class="question-builder-heading">
@@ -1517,6 +1543,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260709-1"></script>
+  <script type="module" src="script.js?v=20260709-2"></script>
 </body>
 </html>

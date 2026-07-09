@@ -1802,6 +1802,35 @@ function renderQuestionLatexPreview(inputId, previewId) {
   }
 }
 
+function insertIntoTextField(field, text, cursorInsideTemplate = false) {
+  if (!field) return;
+  const start = Number.isInteger(field.selectionStart) ? field.selectionStart : field.value.length;
+  const end = Number.isInteger(field.selectionEnd) ? field.selectionEnd : start;
+  field.setRangeText(text, start, end, "end");
+  let cursor = start + text.length;
+  if (cursorInsideTemplate) {
+    const firstEmptyGroup = text.indexOf("{}");
+    if (firstEmptyGroup >= 0) cursor = start + firstEmptyGroup + 1;
+    else {
+      const firstParenthesis = text.indexOf("()");
+      if (firstParenthesis >= 0) cursor = start + firstParenthesis + 1;
+    }
+  }
+  field.setSelectionRange?.(cursor, cursor);
+  field.focus();
+  field.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
+function renderTeacherInlinePreview(fieldId) {
+  const field = document.getElementById(fieldId);
+  const preview = document.querySelector(`[data-field-preview="${fieldId}"]`);
+  if (!field || !preview) return;
+  const value = field.value.trim();
+  preview.classList.toggle("empty", !value);
+  preview.textContent = value || "La vista previa aparecerá aquí.";
+  if (value) reRenderKatex(preview);
+}
+
 function teacherQuestionDraft() {
   const correctRaw = document.getElementById("teacherCorrectOption")?.value ?? "";
   return {
@@ -1891,6 +1920,14 @@ function resetTeacherQuestionBuilder() {
   teacherQuestionImageFile = null;
   document.getElementById("teacherQuestionImagePreview")?.classList.add("hidden");
   document.getElementById("teacherQuestionLivePreview")?.classList.add("hidden");
+  [
+    "teacherQuestionText",
+    "teacherOptionA",
+    "teacherOptionB",
+    "teacherOptionC",
+    "teacherOptionD",
+    "teacherQuestionExplanation"
+  ].forEach(renderTeacherInlinePreview);
   renderQuestionLatexPreview("teacherQuestionLatex", "teacherQuestionEquationPreview");
   renderQuestionLatexPreview("teacherExplanationLatex", "teacherExplanationEquationPreview");
 }
@@ -2001,6 +2038,14 @@ async function initializeTeacherQuestionBuilder() {
       .map(bank => `<option value="${bank}">${NOMBRES_BANCOS[bank]}</option>`)
       .join("");
   }
+  [
+    "teacherQuestionText",
+    "teacherOptionA",
+    "teacherOptionB",
+    "teacherOptionC",
+    "teacherOptionD",
+    "teacherQuestionExplanation"
+  ].forEach(renderTeacherInlinePreview);
   try {
     await cargarPreguntasDocente(usuarioActual.uid);
     renderTeacherCreatedQuestions();
@@ -3029,6 +3074,7 @@ function abrirEditorEcuacion(target = "message") {
       : null;
   const equationInput = document.getElementById("equationInput");
   if (targetInput && equationInput) equationInput.value = targetInput.value || "";
+  else if (target.startsWith("inline-field:") && equationInput) equationInput.value = "";
   document.getElementById("equationOverlay")?.classList.remove("hidden");
   document.getElementById("equationInput")?.focus();
   renderEquationPreview();
@@ -3055,6 +3101,16 @@ function insertarEcuacion(displayMode = false) {
     document.getElementById("equationOverlay")?.classList.add("hidden");
     equationInsertTarget = "message";
     target?.focus();
+    return;
+  }
+  if (equationInsertTarget.startsWith("inline-field:")) {
+    const fieldId = equationInsertTarget.slice("inline-field:".length);
+    const field = document.getElementById(fieldId);
+    const wrapped = displayMode ? `\\[${latex}\\]` : `\\(${latex}\\)`;
+    insertIntoTextField(field, wrapped);
+    renderTeacherInlinePreview(fieldId);
+    document.getElementById("equationOverlay")?.classList.add("hidden");
+    equationInsertTarget = "message";
     return;
   }
   const temp = document.createElement(displayMode ? "div" : "span");
@@ -6083,14 +6139,29 @@ document.getElementById("equationPalette")?.addEventListener("click", e => {
   const btn = e.target.closest("[data-eq-template]");
   const input = document.getElementById("equationInput");
   if (!btn || !input) return;
-  input.value = normalizarLatexPlantilla(btn.dataset.eqTemplate);
-  input.focus();
+  const template = normalizarLatexPlantilla(btn.dataset.eqTemplate);
+  insertIntoTextField(input, template, true);
   renderEquationPreview();
 });
 document.getElementById("btnInsertInlineEquation")?.addEventListener("click", () => insertarEcuacion(false));
 document.getElementById("btnInsertBlockEquation")?.addEventListener("click", () => insertarEcuacion(true));
 document.getElementById("btnBuildQuestionEquation")?.addEventListener("click", () => abrirEditorEcuacion("teacher-question"));
 document.getElementById("btnBuildExplanationEquation")?.addEventListener("click", () => abrirEditorEcuacion("teacher-explanation"));
+document.querySelectorAll("[data-inline-equation-target]").forEach(button => {
+  button.addEventListener("click", () => {
+    abrirEditorEcuacion(`inline-field:${button.dataset.inlineEquationTarget}`);
+  });
+});
+[
+  "teacherQuestionText",
+  "teacherOptionA",
+  "teacherOptionB",
+  "teacherOptionC",
+  "teacherOptionD",
+  "teacherQuestionExplanation"
+].forEach(fieldId => {
+  document.getElementById(fieldId)?.addEventListener("input", () => renderTeacherInlinePreview(fieldId));
+});
 document.getElementById("teacherQuestionLatex")?.addEventListener("input", () => {
   renderQuestionLatexPreview("teacherQuestionLatex", "teacherQuestionEquationPreview");
 });
