@@ -2701,6 +2701,428 @@ body.admin-mode .admin-exit-dock {
   }
 }
 
+/* Landing 2026: navegación lateral y presentación pública */
+.public-home {
+  max-width: 1180px;
+}
+.landing-nav {
+  top: .7rem;
+  min-height: 68px;
+  padding: .7rem .8rem .7rem 1rem;
+  border-radius: 16px;
+  border-color: rgba(6, 52, 95, .12);
+}
+.landing-nav > .brand-lockup {
+  min-width: 0;
+}
+.landing-nav > .brand-lockup strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.landing-nav .landing-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+}
+.landing-nav .landing-menu-toggle {
+  display: inline-flex;
+  flex: 0 0 48px;
+  width: 48px;
+  height: 48px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border-radius: 10px;
+  background: var(--c-teal-deep);
+  box-shadow: 0 8px 20px rgba(15, 143, 157, .2);
+}
+.landing-menu-toggle span {
+  display: block;
+  width: 23px;
+  height: 3px;
+  border-radius: 3px;
+  background: #fff;
+}
+.landing-nav .landing-menu {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 102;
+  display: flex;
+  width: min(360px, 88vw);
+  height: 100dvh;
+  padding: 1rem;
+  flex-direction: column;
+  align-items: stretch;
+  gap: .35rem;
+  overflow-y: auto;
+  background: #fff;
+  border-left: 1px solid var(--c-border);
+  box-shadow: -24px 0 60px rgba(6, 52, 95, .18);
+  transform: translateX(105%);
+  visibility: hidden;
+  transition: transform .28s ease, visibility .28s;
+}
+.landing-nav.open .landing-menu {
+  transform: translateX(0);
+  visibility: visible;
+}
+.landing-menu-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  margin-bottom: .7rem;
+  padding-bottom: .9rem;
+  border-bottom: 1px solid var(--c-border);
+}
+.landing-menu-head .brand-lockup {
+  min-width: 0;
+}
+.landing-menu-close {
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 50%;
+  color: var(--c-navy);
+  background: var(--c-blue-lt);
+  font-size: 1.7rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.landing-nav .landing-menu > a:not(.brand-lockup) {
+  width: 100%;
+  padding: .82rem .9rem;
+  border-radius: 8px;
+  color: var(--c-navy);
+  font-size: 1rem;
+  text-align: left;
+}
+.landing-nav .landing-menu > a:not(.brand-lockup):hover {
+  background: var(--c-blue-lt);
+  color: var(--c-teal-deep);
+}
+.landing-nav .landing-menu .btn {
+  width: 100%;
+  max-width: none;
+  margin-top: .55rem;
+}
+.landing-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 101;
+  display: block;
+  border: 0;
+  background: rgba(6, 26, 43, .48);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .28s ease, visibility .28s;
+}
+.landing-nav.open + .landing-menu-backdrop {
+  opacity: 1;
+  visibility: visible;
+}
+body.landing-menu-open {
+  overflow: hidden;
+}
+.landing-hero {
+  position: relative;
+  overflow: hidden;
+  min-height: 610px;
+  background: #eef9fa;
+  border-color: rgba(15, 143, 157, .22);
+}
+.landing-hero::before {
+  content: "x²  π  √  ∑  ∞  f(x)  Δ  θ";
+  position: absolute;
+  right: 2rem;
+  bottom: .3rem;
+  color: rgba(6, 52, 95, .055);
+  font-family: Georgia, serif;
+  font-size: clamp(2rem, 6vw, 5rem);
+  font-weight: 900;
+  letter-spacing: .08em;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.hero-copy {
+  position: relative;
+  z-index: 2;
+}
+.hero-logo {
+  width: min(190px, 54vw);
+}
+.public-hero h1 {
+  max-width: 650px;
+  font-size: clamp(2.5rem, 6vw, 4.6rem);
+}
+.math-showcase {
+  min-height: 430px;
+  border: 1px solid rgba(15, 143, 157, .2);
+  border-radius: 22px;
+  background: #06345f;
+  box-shadow: 0 28px 60px rgba(6, 52, 95, .2);
+}
+.math-showcase::after {
+  content: "";
+  position: absolute;
+  inset: 24px;
+  border: 1px solid rgba(255,255,255,.13);
+  border-radius: 16px;
+  pointer-events: none;
+}
+.math-orbit {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 230px;
+  height: 230px;
+  border: 1px dashed rgba(23, 183, 183, .5);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+.math-symbol {
+  position: absolute;
+  z-index: 1;
+  color: rgba(255,255,255,.18);
+  font-family: Georgia, serif;
+  font-size: 4rem;
+  font-weight: 900;
+}
+.symbol-one { top: 7%; left: 7%; }
+.symbol-two { right: 8%; bottom: 8%; }
+.symbol-three { left: 42%; bottom: 4%; }
+.formula-card,
+.mini-dashboard {
+  z-index: 2;
+  border-radius: 8px;
+}
+.formula-card.primary {
+  top: 24%;
+  left: 6%;
+  max-width: 78%;
+  background: #fff;
+}
+.formula-card:nth-of-type(3) {
+  top: 55%;
+  right: 4%;
+}
+.formula-card:nth-of-type(4) {
+  bottom: 7%;
+  left: 6%;
+}
+.mini-dashboard {
+  right: 7%;
+  top: 7%;
+}
+.landing-section {
+  padding-block: 2rem;
+}
+.landing-highlights article {
+  position: relative;
+  overflow: hidden;
+  min-height: 210px;
+  border-radius: 8px;
+  transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
+}
+.landing-highlights article:hover {
+  transform: translateY(-4px);
+  border-color: rgba(15, 143, 157, .4);
+  box-shadow: var(--shadow-md);
+}
+.feature-icon {
+  border-radius: 8px;
+  color: #fff;
+  background: var(--c-teal-deep);
+  font-family: Georgia, serif;
+  font-weight: 900;
+}
+.process-section {
+  padding: 2rem;
+  border-radius: 22px;
+  background: #06345f;
+}
+.process-section .section-kicker,
+.process-section h2 {
+  color: #fff;
+}
+.process-section .timeline-grid article {
+  border: 0;
+  border-radius: 8px;
+}
+.audience-grid article:first-child {
+  border-top: 5px solid var(--c-teal-deep);
+}
+.audience-grid article:last-child {
+  border-top: 5px solid #1e6ca1;
+}
+.cta-band {
+  padding: 2.4rem 1.4rem;
+  border-radius: 22px;
+  background: #e7f7f5;
+}
+.cta-formula {
+  display: inline-block;
+  margin-bottom: .65rem;
+  color: var(--c-teal-deep);
+  font-family: Georgia, serif;
+  font-weight: 900;
+}
+.public-footer {
+  margin: 2rem 0 0;
+  padding: 2rem;
+  border: 0;
+  border-radius: 22px 22px 0 0;
+  color: rgba(255,255,255,.76);
+  background: #06345f;
+}
+.footer-brand {
+  display: flex;
+  align-items: center;
+  gap: .8rem;
+  text-align: left;
+}
+.footer-brand img {
+  width: 58px;
+  height: 58px;
+  padding: .3rem;
+  border-radius: 12px;
+  background: #fff;
+}
+.footer-brand div {
+  display: grid;
+}
+.footer-brand strong,
+.footer-columns strong {
+  color: #fff;
+}
+.footer-brand span {
+  color: rgba(255,255,255,.7);
+}
+.footer-columns {
+  grid-template-columns: .8fr 1fr 1.6fr;
+  padding-block: 1.4rem;
+  border-block: 1px solid rgba(255,255,255,.14);
+}
+.public-footer a,
+.footer-columns span {
+  color: rgba(255,255,255,.75);
+}
+.public-footer a:hover {
+  color: #6ee7df;
+}
+.footer-pending-link {
+  opacity: .75;
+}
+.footer-social {
+  display: flex;
+  justify-content: center;
+  gap: .75rem;
+}
+.footer-social a {
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255,255,255,.28);
+  border-radius: 50%;
+  color: #fff;
+  font-family: Arial, sans-serif;
+  font-size: 1.15rem;
+  font-weight: 900;
+  transition: background var(--transition), transform var(--transition);
+}
+.footer-social a:hover {
+  background: var(--c-teal-deep);
+  transform: translateY(-2px);
+}
+.footer-bottom {
+  display: grid;
+  gap: .15rem;
+}
+
+@media (max-width: 600px) {
+  .landing-nav {
+    position: sticky;
+    display: flex;
+    align-items: center;
+    border-radius: 14px;
+  }
+  .landing-nav > .brand-lockup strong {
+    max-width: 150px;
+    font-size: .8rem;
+    white-space: normal;
+    line-height: 1.15;
+  }
+  .landing-nav .landing-nav-actions {
+    display: flex !important;
+    width: auto;
+    margin-left: auto;
+    flex-direction: row;
+  }
+  .landing-nav-actions .btn {
+    display: none;
+  }
+  .landing-nav .landing-menu {
+    display: flex;
+    width: min(330px, 88vw);
+  }
+  .landing-nav .landing-menu .landing-menu-head {
+    display: flex;
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+  }
+  .landing-nav.open .landing-menu {
+    display: flex;
+  }
+  .landing-nav .landing-menu > a,
+  .landing-nav .landing-menu .btn {
+    width: 100%;
+    text-align: left;
+  }
+  .landing-hero {
+    min-height: 0;
+    padding: 2rem 1.1rem;
+  }
+  .public-hero h1 {
+    font-size: 2.65rem;
+  }
+  .math-showcase {
+    min-height: 330px;
+  }
+  .formula-card.primary {
+    top: 26%;
+    font-size: 1rem;
+  }
+  .formula-card:nth-of-type(3) {
+    top: 57%;
+  }
+  .formula-card:nth-of-type(4) {
+    left: 4%;
+    bottom: 5%;
+  }
+  .mini-dashboard {
+    right: 5%;
+  }
+  .process-section {
+    padding: 1.25rem 1rem;
+  }
+  .landing-highlights article {
+    min-height: 0;
+  }
+  .public-footer {
+    padding: 1.5rem 1.1rem;
+  }
+  .footer-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ══════════════════════════════════
    ESTADOS POST-EVALUACIÓN en tarjetas
 ══════════════════════════════════ */

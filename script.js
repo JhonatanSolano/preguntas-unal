@@ -3480,7 +3480,17 @@ function mostrarEntradaGrupo() {
 }
 
 function toggleLandingMenu() {
-  document.querySelector(".landing-nav")?.classList.toggle("open");
+  const nav = document.querySelector(".landing-nav");
+  const nextOpen = !nav?.classList.contains("open");
+  nav?.classList.toggle("open", nextOpen);
+  document.body.classList.toggle("landing-menu-open", nextOpen);
+  document.getElementById("btnLandingMenu")?.setAttribute("aria-expanded", String(nextOpen));
+}
+
+function cerrarLandingMenu() {
+  document.querySelector(".landing-nav")?.classList.remove("open");
+  document.body.classList.remove("landing-menu-open");
+  document.getElementById("btnLandingMenu")?.setAttribute("aria-expanded", "false");
 }
 
 function saludoBienvenida(nombre = "", genero = "") {
@@ -5432,11 +5442,17 @@ document.getElementById("btnShowLoginNav")?.addEventListener("click", mostrarLog
 document.getElementById("btnShowLoginBottom")?.addEventListener("click", mostrarLoginCard);
 document.getElementById("btnShowRegister")?.addEventListener("click", mostrarRegisterCard);
 document.getElementById("btnShowRegisterNav")?.addEventListener("click", mostrarRegisterCard);
+document.getElementById("btnShowRegisterNav")?.addEventListener("click", cerrarLandingMenu);
 document.getElementById("btnShowRegisterBottom")?.addEventListener("click", mostrarRegisterCard);
 document.getElementById("btnAuthClose")?.addEventListener("click", cerrarAuthCard);
 document.getElementById("btnLandingMenu")?.addEventListener("click", toggleLandingMenu);
+document.getElementById("btnLandingMenuClose")?.addEventListener("click", cerrarLandingMenu);
+document.getElementById("landingMenuBackdrop")?.addEventListener("click", cerrarLandingMenu);
 document.querySelectorAll(".landing-nav a").forEach(link => {
-  link.addEventListener("click", () => document.querySelector(".landing-nav")?.classList.remove("open"));
+  link.addEventListener("click", cerrarLandingMenu);
+});
+document.querySelectorAll(".footer-pending-link, .footer-social a").forEach(link => {
+  link.addEventListener("click", event => event.preventDefault());
 });
 document.getElementById("btnForgotUser")?.addEventListener("click", abrirPanelRecuperarUsuario);
 document.getElementById("btnRecoverUserClose")?.addEventListener("click", volverLoginDesdeRecuperacion);
