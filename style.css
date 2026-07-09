@@ -3169,6 +3169,16 @@ body.landing-menu-open {
   bottom: 28%;
   animation-delay: -4.8s;
 }
+.equation-quadratic {
+  top: 20%;
+  left: 36%;
+  animation-delay: -5.5s;
+}
+.equation-angle-sum {
+  right: 4%;
+  bottom: 7%;
+  animation-delay: -6.2s;
+}
 @keyframes equationFloat {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-9px); }
@@ -3431,18 +3441,23 @@ body.landing-menu-open {
     font-size: 2.65rem;
   }
   .math-showcase {
-    min-height: 460px;
+    min-height: 520px;
   }
   .landing-equation {
     padding: .5rem .6rem;
     font-size: .72rem;
   }
   .landing-equation small { font-size: .5rem; }
-  .equation-euler { top: 7%; left: 4%; font-size: .95rem; }
-  .equation-gauss { top: 30%; right: 3%; }
+  .equation-euler { top: 6%; left: 4%; font-size: .95rem; }
+  .equation-quadratic { top: 22%; left: 4%; }
+  .equation-gauss { top: 37%; right: 3%; }
+  .equation-identity { top: 54%; left: 4%; }
+  .equation-calculus { right: 3%; bottom: 31%; }
   .equation-fourier { left: 3%; bottom: 5%; }
-  .equation-identity { top: 57%; left: 4%; }
-  .equation-calculus { right: 3%; bottom: 22%; }
+  .equation-angle-sum {
+    right: 3%;
+    bottom: 17%;
+  }
   .math-core {
     top: 49%;
     width: 88px;
