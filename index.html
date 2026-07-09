@@ -10,7 +10,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=20260708-2" />
 </head>
 <body class="group-locked">
   <div class="welcome-splash hidden" id="welcomeSplash" aria-live="polite">
@@ -52,6 +52,24 @@
     </nav>
     <button class="landing-menu-backdrop" id="landingMenuBackdrop" type="button" aria-label="Cerrar menú"></button>
 
+    <aside class="android-promo" id="androidPromo" aria-label="Aplicación para Android">
+      <button class="android-promo-close" id="btnAndroidPromoClose" type="button" aria-label="Cerrar aviso">×</button>
+      <img src="assets/icon-180.png" alt="" />
+      <div>
+        <strong>Matemáticas En Tu Bolsillo para Android</strong>
+        <span>Tu aprendizaje, tus aulas y tus resultados también en el móvil.</span>
+      </div>
+      <span class="google-play-badge" aria-label="Próximamente en Google Play">
+        <svg viewBox="0 0 32 36" aria-hidden="true">
+          <path class="play-cyan" d="M2 2l17 17L2 34z"></path>
+          <path class="play-green" d="M2 2l21 12-4 5z"></path>
+          <path class="play-yellow" d="M19 19l4 3L2 34z"></path>
+          <path class="play-red" d="M23 14l7 4-7 4-4-3z"></path>
+        </svg>
+        <span><small>PRÓXIMAMENTE EN</small>Google Play</span>
+      </span>
+    </aside>
+
     <section class="public-hero landing-hero" aria-labelledby="publicTitle">
       <div class="hero-copy">
         <img class="hero-logo" src="assets/logo.png" alt="Logo de Matemáticas En Tu Bolsillo" />
@@ -68,11 +86,22 @@
       </div>
       <div class="math-showcase" aria-hidden="true">
         <div class="math-stage-grid"></div>
-        <div class="landing-equation equation-euler">\(e^{i\pi}+1=0\)</div>
-        <div class="landing-equation equation-gauss">\(\displaystyle\int_{-\infty}^{\infty}e^{-x^2}\,dx=\sqrt{\pi}\)</div>
-        <div class="landing-equation equation-fourier">\(f(x)=\displaystyle\sum_{n=-\infty}^{\infty}c_n e^{inx}\)</div>
-        <div class="landing-equation equation-identity">\(\sin^2\theta+\cos^2\theta=1\)</div>
-        <div class="landing-equation equation-calculus">\(\displaystyle\int_a^b f'(x)\,dx=f(b)-f(a)\)</div>
+        <div class="math-core"><span>π</span><i></i><b></b></div>
+        <div class="landing-equation equation-euler" data-equation-name="Identidad de Euler">
+          <small>Identidad de Euler</small>\(e^{i\pi}+1=0\)
+        </div>
+        <div class="landing-equation equation-gauss" data-equation-name="Integral de Gauss">
+          <small>Integral de Gauss</small>\(\displaystyle\int_{-\infty}^{\infty}e^{-x^2}\,dx=\sqrt{\pi}\)
+        </div>
+        <div class="landing-equation equation-fourier" data-equation-name="Serie de Fourier">
+          <small>Serie de Fourier</small>\(f(x)=\displaystyle\sum_{n=-\infty}^{\infty}c_n e^{inx}\)
+        </div>
+        <div class="landing-equation equation-identity" data-equation-name="Identidad pitagórica">
+          <small>Identidad pitagórica</small>\(\sin^2\theta+\cos^2\theta=1\)
+        </div>
+        <div class="landing-equation equation-calculus" data-equation-name="Teorema fundamental">
+          <small>Teorema fundamental</small>\(\displaystyle\int_a^b f'(x)\,dx=f(b)-f(a)\)
+        </div>
         <div class="mini-dashboard">
           <span>Tu progreso</span>
           <strong>86%</strong>
@@ -1389,6 +1418,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260707-1"></script>
+  <script type="module" src="script.js?v=20260708-2"></script>
 </body>
 </html>

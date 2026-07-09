@@ -3493,6 +3493,31 @@ function cerrarLandingMenu() {
   document.getElementById("btnLandingMenu")?.setAttribute("aria-expanded", "false");
 }
 
+function activarEscenaMatematica() {
+  const stage = document.querySelector(".math-showcase");
+  if (!stage) return;
+  stage.addEventListener("pointermove", event => {
+    if (event.pointerType === "touch") return;
+    const rect = stage.getBoundingClientRect();
+    const x = ((event.clientX - rect.left) / rect.width - .5) * 2;
+    const y = ((event.clientY - rect.top) / rect.height - .5) * 2;
+    stage.style.setProperty("--math-tilt-x", `${(-y * 3).toFixed(2)}deg`);
+    stage.style.setProperty("--math-tilt-y", `${(x * 4).toFixed(2)}deg`);
+  });
+  stage.addEventListener("pointerleave", () => {
+    stage.style.setProperty("--math-tilt-x", "0deg");
+    stage.style.setProperty("--math-tilt-y", "0deg");
+  });
+  stage.querySelectorAll(".landing-equation").forEach(card => {
+    card.addEventListener("click", () => {
+      stage.querySelectorAll(".landing-equation").forEach(item => {
+        if (item !== card) item.classList.remove("active");
+      });
+      card.classList.toggle("active");
+    });
+  });
+}
+
 function saludoBienvenida(nombre = "", genero = "") {
   const primero = nombre.trim().split(/\s+/)[0] || "";
   const base = genero === "Femenino" ? "¡Bienvenida nuevamente" : "¡Bienvenido nuevamente";
@@ -5473,6 +5498,14 @@ document.getElementById("btnAuthClose")?.addEventListener("click", cerrarAuthCar
 document.getElementById("btnLandingMenu")?.addEventListener("click", toggleLandingMenu);
 document.getElementById("btnLandingMenuClose")?.addEventListener("click", cerrarLandingMenu);
 document.getElementById("landingMenuBackdrop")?.addEventListener("click", cerrarLandingMenu);
+document.getElementById("btnAndroidPromoClose")?.addEventListener("click", () => {
+  document.getElementById("androidPromo")?.classList.add("hidden");
+  sessionStorage.setItem("androidPromoDismissed", "1");
+});
+if (sessionStorage.getItem("androidPromoDismissed") === "1") {
+  document.getElementById("androidPromo")?.classList.add("hidden");
+}
+activarEscenaMatematica();
 document.querySelectorAll(".landing-nav a").forEach(link => {
   link.addEventListener("click", cerrarLandingMenu);
 });
