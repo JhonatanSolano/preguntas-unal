@@ -221,6 +221,23 @@ body {
   text-align: right;
   overflow-wrap: anywhere;
 }
+.payment-save-method {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  gap: .65rem;
+  margin: .75rem 0;
+  padding: .8rem;
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--c-muted);
+  font-size: .92rem;
+}
+.payment-save-method input {
+  margin-top: .18rem;
+  accent-color: var(--c-teal-deep);
+}
 .payment-carousel-actions {
   display: flex;
   justify-content: flex-end;
@@ -5012,6 +5029,37 @@ body.landing-menu-open {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
 }
+.billing-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .55rem;
+  margin: 0 0 1rem;
+  padding: .45rem;
+  border: 1px solid var(--c-border);
+  border-radius: 999px;
+  background: var(--c-blue-lt);
+}
+.billing-tabs button {
+  flex: 1 1 180px;
+  min-height: 42px;
+  border: 0;
+  border-radius: 999px;
+  color: var(--c-navy);
+  background: transparent;
+  font-weight: 900;
+  cursor: pointer;
+}
+.billing-tabs button.active {
+  color: #fff;
+  background: linear-gradient(135deg, var(--c-navy), var(--c-teal));
+  box-shadow: 0 10px 22px rgba(0, 65, 103, .18);
+}
+.billing-tab-panel {
+  display: none;
+}
+.billing-tab-panel.active {
+  display: block;
+}
 .billing-card {
   min-width: 0;
   padding: clamp(1rem, 3vw, 1.4rem);
@@ -5055,24 +5103,37 @@ body.landing-menu-open {
   border-left: 3px solid var(--c-cyan);
   background: var(--c-blue-lt);
 }
-.billing-payment-row {
+.billing-payment-row,
+.billing-history-row {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
   align-items: center;
   gap: .75rem;
   padding: .75rem;
   border: 1px solid var(--c-border);
   border-radius: 8px;
 }
-.billing-payment-row div {
+.billing-history {
+  display: grid;
+  gap: .7rem;
+}
+.billing-history-row {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  background: #fff;
+}
+.billing-payment-row div,
+.billing-history-row div {
   display: grid;
   min-width: 0;
 }
 .billing-payment-row strong,
-.billing-payment-row small {
+.billing-payment-row small,
+.billing-history-row strong,
+.billing-history-row small {
   overflow-wrap: anywhere;
 }
-.billing-payment-row small {
+.billing-payment-row small,
+.billing-history-row small {
   color: var(--c-muted);
 }
 .billing-payment-icon {
@@ -5151,14 +5212,22 @@ body.landing-menu-open {
   .billing-grid {
     grid-template-columns: 1fr;
   }
+  .billing-tabs {
+    border-radius: 8px;
+  }
+  .billing-tabs button {
+    flex-basis: 100%;
+  }
   .billing-dates p {
     display: grid;
     gap: .2rem;
   }
-  .billing-payment-row {
+  .billing-payment-row,
+  .billing-history-row {
     grid-template-columns: auto minmax(0, 1fr);
   }
-  .billing-payment-row .btn {
+  .billing-payment-row .btn,
+  .billing-history-row .btn {
     grid-column: 1 / -1;
     width: 100%;
   }

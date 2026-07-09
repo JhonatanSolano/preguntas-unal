@@ -1,4 +1,5 @@
 const admin = require("firebase-admin");
+const crypto = require("crypto");
 const { onRequest } = require("firebase-functions/v2/https");
 const { onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
@@ -8,6 +9,28 @@ admin.initializeApp();
 
 const geminiApiKey = defineSecret("GEMINI_API_KEY");
 const resendApiKey = defineSecret("RESEND_API_KEY");
+const wompiPublicKey = defineSecret("WOMPI_PUBLIC_KEY");
+const wompiPrivateKey = defineSecret("WOMPI_PRIVATE_KEY");
+const wompiIntegritySecret = defineSecret("WOMPI_INTEGRITY_SECRET");
+const wompiEventsSecret = defineSecret("WOMPI_EVENTS_SECRET");
+
+const WOMPI_CHECKOUT_URL = "https://checkout.wompi.co/p/";
+const APP_URL = "https://matematicasentubolsillo.com/";
+
+const BILLING_PLANS = {
+  "student-monthly": {
+    role: "student",
+    name: "Plan Estudiante mensual",
+    amountCOP: null,
+    benefits: ["Exámenes", "Estadísticas", "Mensajería académica", "Asesor IA"]
+  },
+  "teacher-monthly": {
+    role: "teacher",
+    name: "Plan Profesor mensual",
+    amountCOP: null,
+    benefits: ["Aulas", "Bancos de preguntas", "Mensajería", "Métricas", "Asesor IA"]
+  }
+};
 
 const SYSTEM_PROMPT = String.raw`
 Eres "Asesor IA", un tutor experto de Matemáticas En Tu Bolsillo para estudiantes que preparan matemáticas, admisión UNAL e ICFES Saber 11. Explica con rigor, claridad y pasos verificables.
@@ -19,6 +42,58 @@ function setCors(res) {
   res.set("Access-Control-Allow-Origin", "*");
   res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
   res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+}
+
+async function requireAuth(req) {
+  const header = String(req.get("Authorization") || "");
+  const match = header.match(/^Bearer\s+(.+)$/i);
+  if (!match) throw new Error("AUTH_REQUIRED");
+  return admin.auth().verifyIdToken(match[1]);
+}
+
+function sha256(value) {
+  return crypto.createHash("sha256").update(String(value)).digest("hex");
+}
+
+function addMonths(date, months = 1) {
+  const next = new Date(date);
+  next.setMonth(next.getMonth() + months);
+  return next;
+}
+
+function priceToCents(amountCOP) {
+  const amount = Number(amountCOP);
+  if (!Number.isFinite(amount) || amount <= 0) return null;
+  return Math.round(amount * 100);
+}
+
+function getByPath(obj, path) {
+  return String(path || "").split(".").reduce((acc, key) => acc?.[key], obj);
+}
+
+function verifyWompiEventSignature(body, secret) {
+  const checksum = body?.signature?.checksum;
+  const properties = Array.isArray(body?.signature?.properties) ? body.signature.properties : [];
+  if (!checksum || !properties.length || !secret) return false;
+  const concatenated = properties.map(prop => {
+    const value = getByPath(body.data, prop);
+    return value === undefined || value === null ? "" : String(value);
+  }).join("") + secret;
+  return sha256(concatenated) === checksum;
+}
+
+function buildWompiCheckoutUrl({ publicKey, integritySecret, reference, amountInCents, customerEmail }) {
+  const currency = "COP";
+  const signature = sha256(`${reference}${amountInCents}${currency}${integritySecret}`);
+  const url = new URL(WOMPI_CHECKOUT_URL);
+  url.searchParams.set("public-key", publicKey);
+  url.searchParams.set("currency", currency);
+  url.searchParams.set("amount-in-cents", String(amountInCents));
+  url.searchParams.set("reference", reference);
+  url.searchParams.set("signature:integrity", signature);
+  url.searchParams.set("redirect-url", `${APP_URL}?payment_reference=${encodeURIComponent(reference)}`);
+  if (customerEmail) url.searchParams.set("customer-email", customerEmail);
+  return url.toString();
 }
 
 function normalizeLatex(text) {
@@ -405,5 +480,310 @@ exports.sendSubscriptionRenewalReminders = onSchedule({
       read: false,
       createdAt: admin.firestore.FieldValue.serverTimestamp()
     });
+  }
+});
+
+exports.createPaymentIntent = onRequest({
+  region: "us-central1",
+  secrets: [wompiPublicKey, wompiPrivateKey, wompiIntegritySecret]
+}, async (req, res) => {
+  setCors(res);
+  if (req.method === "OPTIONS") return res.status(204).send("");
+  if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
+
+  let decoded;
+  try {
+    decoded = await requireAuth(req);
+  } catch (err) {
+    return res.status(401).json({ error: "Debes iniciar sesión para pagar." });
+  }
+
+  const body = req.body || {};
+  const planId = String(body.planId || "").trim();
+  const plan = BILLING_PLANS[planId];
+  const userRole = String(body.role || "").trim();
+  const paymentMethod = String(body.paymentMethod || "pse").trim();
+  const providerPaymentMethod = String(body.providerPaymentMethod || "").trim() || (paymentMethod === "pse" ? "PSE" : "CARD");
+  const savePaymentMethod = body.savePaymentMethod === true;
+  const acceptRecurring = body.acceptRecurring === true;
+  const acceptTerms = body.acceptTerms === true;
+
+  if (!plan) return res.status(400).json({ error: "Plan inválido." });
+  if (plan.role !== userRole) return res.status(400).json({ error: "El plan no corresponde al tipo de cuenta." });
+  if (!acceptTerms) return res.status(400).json({ error: "Debes aceptar las condiciones del servicio." });
+  if (savePaymentMethod && !acceptRecurring) {
+    return res.status(400).json({ error: "Para guardar un método debes autorizar la renovación automática." });
+  }
+
+  const db = admin.firestore();
+  const reference = `MB-${decoded.uid.slice(0, 8).toUpperCase()}-${Date.now()}`;
+  const amountInCents = priceToCents(plan.amountCOP);
+  const intentRef = db.collection("paymentIntents").doc(reference);
+  const baseIntent = {
+    uid: decoded.uid,
+    email: decoded.email || "",
+    planId,
+    planName: plan.name,
+    role: userRole,
+    provider: "Wompi",
+    paymentMethod,
+    providerPaymentMethod,
+    savePaymentMethod,
+    acceptRecurring,
+    acceptTerms,
+    amountCOP: plan.amountCOP,
+    amountInCents,
+    currency: "COP",
+    reference,
+    status: "configuration_pending",
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+  };
+
+  const publicKey = wompiPublicKey.value();
+  const privateKey = wompiPrivateKey.value();
+  const integritySecret = wompiIntegritySecret.value();
+  const configured = !!(publicKey && privateKey && integritySecret && amountInCents);
+  if (!configured) {
+    await intentRef.set(baseIntent, { merge: true });
+    await db.collection("billingRequests").add({
+      uid: decoded.uid,
+      email: decoded.email || "",
+      type: "payment-intent",
+      status: "configuration_pending",
+      planId,
+      paymentMethod,
+      savePaymentMethod,
+      reference,
+      createdAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+    return res.status(200).json({
+      ready: false,
+      reference,
+      message: "El módulo de pagos está listo, pero falta configurar precios y credenciales Sandbox de Wompi para habilitar cobros reales."
+    });
+  }
+
+  const checkoutUrl = buildWompiCheckoutUrl({
+    publicKey,
+    integritySecret,
+    reference,
+    amountInCents,
+    customerEmail: decoded.email || ""
+  });
+  await intentRef.set({
+    ...baseIntent,
+    status: "pending",
+    checkoutUrl
+  }, { merge: true });
+  await db.collection("billingEvents").add({
+    type: "payment-intent-created",
+    uid: decoded.uid,
+    email: decoded.email || "",
+    reference,
+    planId,
+    paymentMethod,
+    createdAt: admin.firestore.FieldValue.serverTimestamp()
+  });
+  return res.status(200).json({ ready: true, reference, checkoutUrl });
+});
+
+exports.wompiWebhook = onRequest({
+  region: "us-central1",
+  secrets: [wompiEventsSecret]
+}, async (req, res) => {
+  if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
+  const secret = wompiEventsSecret.value();
+  if (!verifyWompiEventSignature(req.body || {}, secret)) {
+    return res.status(401).json({ error: "Firma inválida." });
+  }
+
+  const db = admin.firestore();
+  const event = req.body || {};
+  const transaction = event?.data?.transaction || event?.data || {};
+  const reference = transaction.reference || transaction.payment_link_id || event.reference;
+  const transactionId = transaction.id || event.id || reference;
+  const status = String(transaction.status || "").toUpperCase();
+  const intentSnap = reference ? await db.collection("paymentIntents").doc(reference).get() : null;
+  const intent = intentSnap?.exists ? intentSnap.data() : null;
+
+  await db.collection("billingEvents").add({
+    provider: "Wompi",
+    eventType: event.event || event.type || "unknown",
+    transactionId,
+    reference: reference || "",
+    status,
+    raw: event,
+    receivedAt: admin.firestore.FieldValue.serverTimestamp()
+  });
+
+  if (!intent) {
+    return res.status(200).json({ ok: true, ignored: "intent-not-found" });
+  }
+
+  const transactionPayload = {
+    uid: intent.uid,
+    email: intent.email || "",
+    provider: "Wompi",
+    transactionId,
+    reference,
+    planId: intent.planId,
+    planName: intent.planName,
+    paymentMethod: intent.paymentMethod,
+    paymentMethodLabel: intent.paymentMethod === "pse" ? "PSE" : "Tarjeta",
+    amountInCents: transaction.amount_in_cents || intent.amountInCents,
+    amountCOP: (transaction.amount_in_cents || intent.amountInCents || 0) / 100,
+    currency: transaction.currency || "COP",
+    status,
+    receiptUrl: transaction.receipt_url || transaction.redirect_url || "",
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    paidAt: status === "APPROVED" ? admin.firestore.FieldValue.serverTimestamp() : null
+  };
+  await db.collection("billingTransactions").doc(String(transactionId || reference)).set(transactionPayload, { merge: true });
+  await db.collection("paymentIntents").doc(reference).set({
+    status,
+    transactionId,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+  }, { merge: true });
+
+  if (status === "APPROVED") {
+    const now = new Date();
+    const expiresAt = addMonths(now, 1);
+    const userUpdate = {
+      subscriptionStatus: "active",
+      subscriptionPlan: intent.planName,
+      subscriptionStartedAt: admin.firestore.Timestamp.fromDate(now),
+      subscriptionExpiresAt: admin.firestore.Timestamp.fromDate(expiresAt),
+      subscriptionAmountCOP: transactionPayload.amountCOP,
+      subscriptionAutoRenew: intent.savePaymentMethod === true,
+      subscriptionPaymentPaused: intent.savePaymentMethod !== true,
+      subscriptionNextBillingAt: intent.savePaymentMethod === true ? admin.firestore.Timestamp.fromDate(expiresAt) : null,
+      paymentProvider: "Wompi",
+      lastPaymentId: String(transactionId || reference),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    };
+    const sourceId = transaction.payment_source_id || transaction.payment_source?.id;
+    if (sourceId && intent.savePaymentMethod === true) {
+      userUpdate.paymentSourceId = String(sourceId);
+      userUpdate.paymentMethods = admin.firestore.FieldValue.arrayUnion({
+        id: String(sourceId),
+        provider: "Wompi",
+        type: "card",
+        brand: transaction.payment_method?.extra?.brand || transaction.payment_method_type || "Tarjeta",
+        last4: transaction.payment_method?.extra?.last_four || transaction.payment_method?.extra?.last4 || "••••",
+        isDefault: true,
+        createdAt: admin.firestore.Timestamp.fromDate(now)
+      });
+    }
+    await db.collection("users").doc(intent.uid).set(userUpdate, { merge: true });
+    await db.collection("notifications").add({
+      targetUid: intent.uid,
+      targetEmail: intent.email || "",
+      type: "billing",
+      title: "Pago aprobado",
+      body: `Tu pago de ${intent.planName} fue aprobado. Tu suscripción está activa.`,
+      read: false,
+      createdAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+  }
+
+  if (["DECLINED", "ERROR", "VOIDED"].includes(status)) {
+    await db.collection("notifications").add({
+      targetUid: intent.uid,
+      targetEmail: intent.email || "",
+      type: "billing",
+      title: "Pago no aprobado",
+      body: "La pasarela no aprobó tu pago. Revisa el método de pago e intenta nuevamente.",
+      read: false,
+      createdAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+  }
+
+  return res.status(200).json({ ok: true });
+});
+
+exports.processBillingRequest = onDocumentWritten({
+  region: "us-central1",
+  document: "billingRequests/{requestId}"
+}, async event => {
+  const before = event.data.before.exists ? event.data.before.data() : null;
+  const after = event.data.after.exists ? event.data.after.data() : null;
+  if (!after || after.status !== "pending" || before?.status === after.status) return;
+  const uid = after.uid;
+  if (!uid) return;
+  const db = admin.firestore();
+  const userRef = db.collection("users").doc(uid);
+  const userSnap = await userRef.get();
+  if (!userSnap.exists) {
+    await event.data.after.ref.set({
+      status: "failed",
+      error: "Usuario no encontrado",
+      processedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+    return;
+  }
+  const user = userSnap.data();
+  try {
+    const methods = Array.isArray(user.paymentMethods) ? user.paymentMethods : [];
+    const update = { updatedAt: admin.firestore.FieldValue.serverTimestamp() };
+    let message = "";
+
+    if (after.type === "pause-renewal") {
+      update.subscriptionPaymentPaused = true;
+      update.subscriptionAutoRenew = false;
+      message = "Renovación automática suspendida.";
+    } else if (after.type === "resume-renewal") {
+      if (!methods.length && !user.paymentSourceId) {
+        throw new Error("No hay método tokenizado para reactivar la renovación.");
+      }
+      update.subscriptionPaymentPaused = false;
+      update.subscriptionAutoRenew = true;
+      message = "Renovación automática reactivada.";
+    } else if (after.type === "remove-payment-method") {
+      if (methods.length < 2) throw new Error("No se puede eliminar el único método de pago.");
+      const nextMethods = methods.filter(method => method.id !== after.paymentMethodId);
+      if (nextMethods.length === methods.length) throw new Error("Método de pago no encontrado.");
+      if (!nextMethods.some(method => method.isDefault)) nextMethods[0].isDefault = true;
+      update.paymentMethods = nextMethods;
+      if (user.paymentSourceId === after.paymentMethodId) update.paymentSourceId = nextMethods.find(method => method.isDefault)?.id || "";
+      message = "Método de pago eliminado.";
+    } else if (after.type === "set-default-payment-method") {
+      const nextMethods = methods.map(method => ({
+        ...method,
+        isDefault: method.id === after.paymentMethodId
+      }));
+      if (!nextMethods.some(method => method.isDefault)) throw new Error("Método de pago no encontrado.");
+      update.paymentMethods = nextMethods;
+      update.paymentSourceId = after.paymentMethodId;
+      message = "Método principal actualizado.";
+    } else if (after.type === "upgrade-plan") {
+      message = "Solicitud de cambio de plan registrada.";
+    } else if (after.type === "payment-intent") {
+      message = "Intención de pago registrada. Pendiente de configuración de pasarela.";
+    } else {
+      throw new Error("Tipo de solicitud no soportado.");
+    }
+
+    if (Object.keys(update).length > 1) await userRef.set(update, { merge: true });
+    await event.data.after.ref.set({
+      status: after.type === "payment-intent" ? "configuration_pending" : "processed",
+      processedAt: admin.firestore.FieldValue.serverTimestamp(),
+      message
+    }, { merge: true });
+    if (message && after.type !== "payment-intent") {
+      await db.collection("billingEvents").add({
+        uid,
+        email: after.email || user.email || "",
+        type: after.type,
+        message,
+        createdAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+    }
+  } catch (err) {
+    await event.data.after.ref.set({
+      status: "failed",
+      error: err.message || "No se pudo procesar la solicitud.",
+      processedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
   }
 });

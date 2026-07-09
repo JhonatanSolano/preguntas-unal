@@ -38,6 +38,8 @@ service cloud.firestore {
         "subscriptionPaymentPaused",
         "paymentProvider",
         "paymentMethods",
+        "paymentCustomerId",
+        "paymentSourceId",
         "lastPaymentId",
         "classAccessBlocked",
         "blockedClassId"
@@ -94,6 +96,8 @@ service cloud.firestore {
           "subscriptionPaymentPaused",
           "paymentProvider",
           "paymentMethods",
+          "paymentCustomerId",
+          "paymentSourceId",
           "lastPaymentId"
         ])
       );
@@ -261,9 +265,27 @@ service cloud.firestore {
           "pause-renewal",
           "resume-renewal",
           "remove-payment-method",
-          "upgrade-plan"
+          "set-default-payment-method",
+          "upgrade-plan",
+          "payment-intent"
         ];
       allow update, delete: if isPlatformOwner();
+    }
+
+    match /billingTransactions/{transactionId} {
+      allow read: if isPlatformOwner() ||
+        (signedIn() && resource.data.uid == request.auth.uid);
+      allow create, update, delete: if isPlatformOwner();
+    }
+
+    match /paymentIntents/{intentId} {
+      allow read: if isPlatformOwner() ||
+        (signedIn() && resource.data.uid == request.auth.uid);
+      allow create, update, delete: if isPlatformOwner();
+    }
+
+    match /billingEvents/{eventId} {
+      allow read, write: if isPlatformOwner();
     }
 
     match /recoveryContacts/{phoneId} {

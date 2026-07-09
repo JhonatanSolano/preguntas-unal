@@ -64,7 +64,7 @@ const APP_CONFIG = {
   payments: {
     provider: "Wompi",
     checkoutReady: false,
-    checkoutEndpoint: "",
+    checkoutEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/createPaymentIntent",
     studentPriceCOP: null,
     teacherPriceCOP: null
   }
@@ -95,6 +95,7 @@ let unsubscribeClassMembership = null;
 let unsubscribeNotifications = null;
 let unsubscribeMessages = null;
 let unsubscribeReplies = null;
+let unsubscribeBillingHistory = null;
 let renderizandoAdminStudents = false;
 let classMembershipValid = true;
 let registroEnCurso = false;
@@ -119,6 +120,8 @@ let teacherQuestions = [];
 let teacherQuestionImageFile = null;
 let paymentStep = 0;
 let selectedPaymentMethod = "pse";
+let billingHistoryItems = [];
+let activeBillingTab = "subscription";
 let messageHistoryClassId = "";
 let recoverAttemptCount = 0;
 let seccionActual = "inicio";
@@ -631,8 +634,13 @@ function nombreMetodoPago(method = selectedPaymentMethod) {
   return {
     pse: "PSE · débito bancario",
     "credit-card": "Tarjeta de crédito",
-    "debit-card": "Tarjeta débito"
+    "debit-card": "Tarjeta débito",
+    card: "Tarjeta guardada"
   }[method] || "PSE";
+}
+
+function tipoMetodoWompi(method = selectedPaymentMethod) {
+  return method === "pse" ? "PSE" : "CARD";
 }
 
 function renderPasoPago() {
@@ -678,9 +686,11 @@ function renderSubscriptionPanel() {
   const email = document.getElementById("paymentSummaryEmail");
   const plan = document.getElementById("paymentSummaryPlan");
   const method = document.getElementById("paymentSummaryMethod");
+  const taxes = document.getElementById("paymentSummaryTaxes");
   if (email) email.textContent = usuarioActual?.email || "—";
   if (plan) plan.textContent = `Plan ${role} · ${price}`;
   if (method) method.textContent = nombreMetodoPago();
+  if (taxes) taxes.textContent = "Incluidos cuando aplique según la pasarela y la normativa colombiana.";
   document.getElementById("paymentCarousel")?.classList.toggle("hidden", active);
   renderPasoPago();
 }
@@ -733,6 +743,58 @@ function metodosPagoPerfil() {
     : [];
 }
 
+function estadoPagoLegible(status = "") {
+  return {
+    APPROVED: "Aprobado",
+    DECLINED: "Rechazado",
+    ERROR: "Error",
+    VOIDED: "Anulado",
+    PENDING: "Pendiente",
+    pending: "Pendiente",
+    approved: "Aprobado",
+    declined: "Rechazado",
+    failed: "Fallido"
+  }[status] || status || "Pendiente";
+}
+
+function renderBillingTabs() {
+  document.querySelectorAll("[data-billing-tab]").forEach(button => {
+    button.classList.toggle("active", button.dataset.billingTab === activeBillingTab);
+  });
+  document.querySelectorAll("[data-billing-panel]").forEach(panel => {
+    panel.classList.toggle("active", panel.dataset.billingPanel === activeBillingTab);
+  });
+}
+
+function renderBillingHistory() {
+  const container = document.getElementById("billingHistory");
+  if (!container) return;
+  if (!billingHistoryItems.length) {
+    container.innerHTML = `<p class="mini-help">Aún no hay pagos registrados.</p>`;
+    return;
+  }
+  container.innerHTML = billingHistoryItems.map(item => {
+    const amount = formatoPrecioCOP(item.amountInCents ? Number(item.amountInCents) / 100 : item.amountCOP);
+    const date = fechaFacturacion(item.paidAt || item.createdAt);
+    const method = item.paymentMethodLabel || nombreMetodoPago(String(item.paymentMethod || "").toLowerCase());
+    const status = estadoPagoLegible(item.status);
+    const reference = item.reference || item.transactionId || item.id || "—";
+    return `
+      <article class="billing-history-row">
+        <div>
+          <strong>${escapeHtml(item.planName || item.planId || "Plan")}</strong>
+          <small>${escapeHtml(date)} · ${escapeHtml(method)}</small>
+        </div>
+        <div>
+          <strong>${escapeHtml(amount)}</strong>
+          <small>${escapeHtml(status)} · Ref. ${escapeHtml(reference)}</small>
+        </div>
+        ${item.receiptUrl ? `<a class="btn btn-outline" href="${escapeHtml(item.receiptUrl)}" target="_blank" rel="noopener">Comprobante</a>` : `<button class="btn btn-outline" type="button" disabled>Sin comprobante</button>`}
+      </article>
+    `;
+  }).join("");
+}
+
 function renderBillingPanel() {
   const active = suscripcionActiva();
   const plan = perfilActual?.subscriptionPlan || (active ? `Plan ${esProfesor() ? "Profesor" : "Estudiante"}` : "Sin suscripción activa");
@@ -754,9 +816,13 @@ function renderBillingPanel() {
   const started = document.getElementById("billingStartedAt");
   const expires = document.getElementById("billingExpiresAt");
   const next = document.getElementById("billingNextCharge");
+  const amountElement = document.getElementById("billingAmount");
+  const autoRenew = document.getElementById("billingAutoRenew");
   if (started) started.textContent = fechaFacturacion(perfilActual?.subscriptionStartedAt);
   if (expires) expires.textContent = fechaFacturacion(perfilActual?.subscriptionExpiresAt);
   if (next) next.textContent = paused ? "Suspendido" : fechaFacturacion(nextBilling);
+  if (amountElement) amountElement.textContent = amount;
+  if (autoRenew) autoRenew.textContent = active ? (paused ? "Desactivada" : "Activada") : "—";
   const renewal = document.getElementById("billingRenewalCopy");
   if (renewal) {
     renewal.textContent = active && !paused
@@ -781,13 +847,16 @@ function renderBillingPanel() {
             <span class="billing-payment-icon">${escapeHtml((method.brand || method.type || "Pago").slice(0, 8))}</span>
             <div>
               <strong>${escapeHtml(method.label || `${method.brand || method.type || "Método"} terminada en ${method.last4 || "••••"}`)}</strong>
-              <small>${method.isDefault ? "Método principal" : "Método alternativo"}</small>
+              <small>${method.isDefault ? "Método principal" : "Método alternativo"} · ${escapeHtml(method.provider || APP_CONFIG.payments.provider)}</small>
             </div>
+            <button class="btn btn-outline" type="button" data-default-payment-method="${escapeHtml(method.id)}" ${method.isDefault ? "disabled" : ""}>Principal</button>
             <button class="btn btn-outline" type="button" data-remove-payment-method="${escapeHtml(method.id)}" ${methods.length < 2 ? "disabled" : ""}>Eliminar</button>
           </div>
         `).join("")
       : `<p class="mini-help">No tienes formas de pago guardadas.</p>`;
   }
+  renderBillingTabs();
+  renderBillingHistory();
 }
 
 async function registrarSolicitudFacturacion(type, extra = {}) {
@@ -802,6 +871,51 @@ async function registrarSolicitudFacturacion(type, extra = {}) {
     createdAt: serverTimestamp()
   });
   return true;
+}
+
+async function solicitarIntencionPago(payload) {
+  if (!usuarioActual) throw new Error("Debes iniciar sesión.");
+  const endpoint = APP_CONFIG.payments.checkoutEndpoint;
+  if (!endpoint) throw new Error("No hay endpoint de pagos configurado.");
+  const idToken = await usuarioActual.getIdToken();
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${idToken}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || "No fue posible iniciar el pago.");
+  return data;
+}
+
+function escucharHistorialFacturacion() {
+  if (unsubscribeBillingHistory) {
+    unsubscribeBillingHistory();
+    unsubscribeBillingHistory = null;
+  }
+  billingHistoryItems = [];
+  if (!usuarioActual) {
+    renderBillingHistory();
+    return;
+  }
+  const q = query(collection(db, "billingTransactions"), where("uid", "==", usuarioActual.uid));
+  unsubscribeBillingHistory = onSnapshot(q, snap => {
+    billingHistoryItems = snap.docs
+      .map(docSnap => ({ id: docSnap.id, ...docSnap.data() }))
+      .sort((a, b) => {
+        const dateA = (a.createdAt?.toMillis?.() || new Date(a.createdAt || 0).getTime() || 0);
+        const dateB = (b.createdAt?.toMillis?.() || new Date(b.createdAt || 0).getTime() || 0);
+        return dateB - dateA;
+      });
+    renderBillingPanel();
+  }, error => {
+    console.error("No se pudo cargar historial de facturación", error);
+    billingHistoryItems = [];
+    renderBillingHistory();
+  });
 }
 
 function requiereSeleccionRol(perfil = perfilActual) {
@@ -6723,23 +6837,62 @@ document.getElementById("btnPaymentNext")?.addEventListener("click", () => {
   paymentStep = Math.min(2, paymentStep + 1);
   renderPasoPago();
 });
-document.getElementById("btnStartSecureCheckout")?.addEventListener("click", () => {
+document.getElementById("btnStartSecureCheckout")?.addEventListener("click", async () => {
   const status = document.getElementById("paymentStatus");
-  const configured = APP_CONFIG.payments.checkoutReady &&
-    APP_CONFIG.payments.checkoutEndpoint &&
-    Number(precioSuscripcion()) > 0;
-  if (!configured) {
+  const acceptTerms = document.getElementById("paymentAcceptTerms")?.checked;
+  const saveMethod = document.getElementById("paymentSaveMethod")?.checked;
+  if (!acceptTerms) {
     if (status) {
-      status.textContent = "El pago seguro está preparado. Falta configurar el precio y las credenciales comerciales de la pasarela para habilitar cobros reales.";
+      status.textContent = "Debes aceptar las condiciones del servicio y la política de privacidad antes de continuar.";
       status.className = "bank-status error";
     }
     return;
   }
-  const checkoutUrl = new URL(APP_CONFIG.payments.checkoutEndpoint);
-  checkoutUrl.searchParams.set("email", usuarioActual?.email || "");
-  checkoutUrl.searchParams.set("role", rolUsuario());
-  checkoutUrl.searchParams.set("method", selectedPaymentMethod);
-  window.location.assign(checkoutUrl.toString());
+  if (status) {
+    status.textContent = "Preparando pago seguro...";
+    status.className = "bank-status";
+  }
+  try {
+    if (!APP_CONFIG.payments.checkoutReady || !Number(precioSuscripcion())) {
+      await registrarSolicitudFacturacion("payment-intent", {
+        planId: esProfesor() ? "teacher-monthly" : "student-monthly",
+        paymentMethod: selectedPaymentMethod,
+        providerPaymentMethod: tipoMetodoWompi(),
+        savePaymentMethod: !!saveMethod,
+        acceptRecurring: !!saveMethod,
+        source: "subscription-carousel"
+      });
+      if (status) {
+        status.textContent = "El módulo de pagos quedó preparado. Falta configurar precios y credenciales Sandbox de Wompi para habilitar cobros reales.";
+        status.className = "bank-status error";
+      }
+      return;
+    }
+    const result = await solicitarIntencionPago({
+      planId: esProfesor() ? "teacher-monthly" : "student-monthly",
+      role: rolUsuario(),
+      paymentMethod: selectedPaymentMethod,
+      providerPaymentMethod: tipoMetodoWompi(),
+      savePaymentMethod: !!saveMethod,
+      acceptRecurring: !!saveMethod,
+      acceptTerms: true,
+      source: "subscription-carousel"
+    });
+    if (result.checkoutUrl) {
+      window.location.assign(result.checkoutUrl);
+      return;
+    }
+    if (status) {
+      status.textContent = result.message || "El flujo de pago quedó preparado. Falta configurar las credenciales Sandbox y precios para cobrar en Wompi.";
+      status.className = result.ready === false ? "bank-status error" : "bank-status success";
+    }
+  } catch (error) {
+    console.error(error);
+    if (status) {
+      status.textContent = error.message || "No fue posible iniciar el pago.";
+      status.className = "bank-status error";
+    }
+  }
 });
 document.getElementById("btnUpgradePlan")?.addEventListener("click", () => {
   paymentStep = 0;
@@ -6748,6 +6901,16 @@ document.getElementById("btnUpgradePlan")?.addEventListener("click", () => {
 document.getElementById("btnAddPaymentMethod")?.addEventListener("click", () => {
   paymentStep = 1;
   activarNav("suscripcion");
+});
+document.getElementById("btnPayFromBilling")?.addEventListener("click", () => {
+  paymentStep = 0;
+  activarNav("suscripcion");
+});
+document.querySelectorAll("[data-billing-tab]").forEach(button => {
+  button.addEventListener("click", () => {
+    activeBillingTab = button.dataset.billingTab || "subscription";
+    renderBillingPanel();
+  });
 });
 document.getElementById("billingPauseToggle")?.addEventListener("change", async event => {
   const status = document.getElementById("billingActionStatus");
@@ -6778,7 +6941,25 @@ document.getElementById("billingPauseToggle")?.addEventListener("change", async 
   }
 });
 document.getElementById("billingPaymentMethods")?.addEventListener("click", async event => {
+  const defaultButton = event.target.closest("[data-default-payment-method]");
   const button = event.target.closest("[data-remove-payment-method]");
+  if (defaultButton) {
+    const status = document.getElementById("billingActionStatus");
+    try {
+      await registrarSolicitudFacturacion("set-default-payment-method", { paymentMethodId: defaultButton.dataset.defaultPaymentMethod });
+      if (status) {
+        status.textContent = "Solicitud registrada. El método principal se actualizará cuando la pasarela confirme el cambio.";
+        status.className = "bank-status success";
+      }
+    } catch (error) {
+      console.error(error);
+      if (status) {
+        status.textContent = "No fue posible registrar la solicitud.";
+        status.className = "bank-status error";
+      }
+    }
+    return;
+  }
   if (!button) return;
   const methods = metodosPagoPerfil();
   const status = document.getElementById("billingActionStatus");
@@ -7027,6 +7208,9 @@ onAuthStateChanged(auth, async user => {
     unsubscribeAdminStudents = null;
     if (unsubscribeClassMembership) unsubscribeClassMembership();
     unsubscribeClassMembership = null;
+    if (unsubscribeBillingHistory) unsubscribeBillingHistory();
+    unsubscribeBillingHistory = null;
+    billingHistoryItems = [];
     detenerListenersComunicacion();
     classMembershipValid = true;
     document.getElementById("advisorWidget")?.classList.add("hidden");
@@ -7047,6 +7231,7 @@ onAuthStateChanged(auth, async user => {
   if (user.providerData?.some(provider => provider.providerId === "google.com")) {
     await guardarDatosGoogleIniciales(user);
   }
+  escucharHistorialFacturacion();
   await prepararSesionAutenticada();
 });
 

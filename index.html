@@ -10,7 +10,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="style.css?v=20260709-9" />
+  <link rel="stylesheet" href="style.css?v=20260709-10" />
 </head>
 <body class="group-locked">
   <div class="welcome-splash hidden" id="welcomeSplash" aria-live="polite">
@@ -158,7 +158,7 @@
         <article>
           <span class="feature-icon" aria-hidden="true">$</span>
           <strong>Suscripción y pagos seguros</strong>
-          <p>Acceso mediante suscripción con checkout externo preparado para PSE, tarjetas débito y crédito.</p>
+          <p>Facturación por plan, historial de pagos y checkout externo preparado para PSE, tarjetas débito y crédito sin almacenar datos financieros sensibles.</p>
         </article>
       </div>
     </section>
@@ -169,10 +169,10 @@
       <div class="timeline-grid">
         <article><span>1</span><strong>Crear una cuenta</strong><p>Registro con Google o correo Gmail y contraseña segura.</p></article>
         <article><span>2</span><strong>Completar el perfil</strong><p>Datos personales y teléfono verificable para una cuenta más segura.</p></article>
-        <article><span>3</span><strong>Entrar al aula</strong><p>Código único o invitación directa enviada por el profesor.</p></article>
-        <article><span>4</span><strong>Resolver ejercicios</strong><p>Pruebas cronometradas, intentos controlados y preguntas sin responder como incorrectas.</p></article>
-        <article><span>5</span><strong>Consultar resultados</strong><p>Indicadores de precisión, tiempo, nota y desempeño por intento.</p></article>
-        <article><span>6</span><strong>Mejorar continuamente</strong><p>Comparación de avances por banco, aula y nivel.</p></article>
+        <article><span>3</span><strong>Activar suscripción</strong><p>Pago manual o renovación automática autorizada, con historial y comprobantes en Facturación.</p></article>
+        <article><span>4</span><strong>Entrar al aula</strong><p>Código único o invitación directa enviada por el profesor.</p></article>
+        <article><span>5</span><strong>Resolver ejercicios</strong><p>Pruebas cronometradas, intentos controlados y preguntas sin responder como incorrectas.</p></article>
+        <article><span>6</span><strong>Mejorar continuamente</strong><p>Resultados, métricas y comparaciones por banco, aula y nivel.</p></article>
       </div>
     </section>
 
@@ -185,6 +185,7 @@
           <li>Ruta por diagnóstico, nivel medio y examen final.</li>
           <li>Resultados organizados por intentos.</li>
           <li>Asesor IA, mensajes, estadísticas y soporte integrado.</li>
+          <li>Panel de suscripción, métodos de pago e historial de facturación.</li>
         </ul>
       </article>
       <article id="profesores">
@@ -195,6 +196,7 @@
           <li>Permisos por aula y nivel.</li>
           <li>Métricas por estudiante y aula.</li>
           <li>Editor de mensajes, adjuntos y apoyo del Asesor IA.</li>
+          <li>Gestión de plan, renovación y métodos de pago desde Facturación.</li>
         </ul>
       </article>
     </section>
@@ -598,7 +600,16 @@
               <p><span>Cuenta</span><strong id="paymentSummaryEmail">—</strong></p>
               <p><span>Plan</span><strong id="paymentSummaryPlan">—</strong></p>
               <p><span>Medio seleccionado</span><strong id="paymentSummaryMethod">PSE</strong></p>
+              <p><span>Impuestos</span><strong id="paymentSummaryTaxes">Incluidos cuando aplique</strong></p>
             </div>
+            <label class="payment-save-method">
+              <input id="paymentSaveMethod" type="checkbox" />
+              <span>Guardar este método para futuros pagos y activar renovación automática mensual.</span>
+            </label>
+            <label class="payment-save-method">
+              <input id="paymentAcceptTerms" type="checkbox" />
+              <span>Acepto la política de privacidad, condiciones del servicio y, si guardo el método, autorizo la renovación automática.</span>
+            </label>
             <button class="btn btn-primary" id="btnStartSecureCheckout" type="button">Continuar al pago seguro</button>
             <p class="bank-status" id="paymentStatus"></p>
           </section>
@@ -623,54 +634,90 @@
         <span class="billing-status" id="billingStatusBadge">Sin plan activo</span>
       </header>
 
-      <div class="billing-grid">
-        <article class="billing-card billing-plan-card">
-          <span class="billing-label">Plan actual</span>
-          <h3 id="billingPlanName">Sin suscripción activa</h3>
-          <p id="billingPlanSummary">Activa un plan para desbloquear las funciones académicas.</p>
-          <div class="billing-dates">
-            <p><span>Fecha de suscripción</span><strong id="billingStartedAt">—</strong></p>
-            <p><span>Fecha de vencimiento</span><strong id="billingExpiresAt">—</strong></p>
-            <p><span>Próximo cobro</span><strong id="billingNextCharge">—</strong></p>
-          </div>
-          <p class="billing-renewal-copy" id="billingRenewalCopy">No hay una renovación programada.</p>
-          <button class="btn btn-primary" id="btnUpgradePlan" type="button">Mejorar plan</button>
-        </article>
+      <div class="billing-tabs" role="tablist" aria-label="Opciones de facturación">
+        <button class="active" type="button" data-billing-tab="subscription">Suscripción</button>
+        <button type="button" data-billing-tab="methods">Métodos de pago</button>
+        <button type="button" data-billing-tab="history">Historial</button>
+      </div>
 
+      <div class="billing-tab-panel active" data-billing-panel="subscription">
+        <div class="billing-grid">
+          <article class="billing-card billing-plan-card">
+            <span class="billing-label">Plan actual</span>
+            <h3 id="billingPlanName">Sin suscripción activa</h3>
+            <p id="billingPlanSummary">Activa un plan para desbloquear las funciones académicas.</p>
+            <div class="billing-dates">
+              <p><span>Fecha de suscripción</span><strong id="billingStartedAt">—</strong></p>
+              <p><span>Fecha de vencimiento</span><strong id="billingExpiresAt">—</strong></p>
+              <p><span>Próximo cobro</span><strong id="billingNextCharge">—</strong></p>
+              <p><span>Valor mensual</span><strong id="billingAmount">—</strong></p>
+              <p><span>Renovación automática</span><strong id="billingAutoRenew">—</strong></p>
+            </div>
+            <p class="billing-renewal-copy" id="billingRenewalCopy">No hay una renovación programada.</p>
+            <button class="btn btn-primary" id="btnUpgradePlan" type="button">Cambiar o mejorar plan</button>
+          </article>
+
+          <article class="billing-card">
+            <span class="billing-label">Beneficios</span>
+            <h3>Lo que incluye tu plan</h3>
+            <ul class="billing-benefits" id="billingBenefits"></ul>
+          </article>
+
+          <article class="billing-card billing-controls">
+            <span class="billing-label">Renovación</span>
+            <h3>Administrar suscripción</h3>
+            <p id="billingPauseHelp">Puedes suspender la renovación automática antes de la fecha de cobro.</p>
+            <label class="billing-toggle">
+              <input id="billingPauseToggle" type="checkbox" />
+              <span></span>
+              Suspender próximo pago automático
+            </label>
+            <p class="billing-warning">
+              Si la suspensión continúa hasta el vencimiento, el plan terminará y se bloquearán sus beneficios.
+              Tus datos y resultados se conservarán según la Política de privacidad.
+            </p>
+            <p class="bank-status" id="billingActionStatus"></p>
+          </article>
+        </div>
+      </div>
+
+      <div class="billing-tab-panel" data-billing-panel="methods">
+        <div class="billing-grid">
+          <article class="billing-card">
+            <div class="billing-card-title">
+              <div>
+                <span class="billing-label">Métodos de pago</span>
+                <h3>Formas de pago guardadas</h3>
+              </div>
+              <button class="btn btn-outline" id="btnAddPaymentMethod" type="button">Agregar método</button>
+            </div>
+            <div class="billing-payment-methods" id="billingPaymentMethods">
+              <p class="mini-help">No tienes formas de pago guardadas.</p>
+            </div>
+            <p class="mini-help">Solo verás marca, últimos cuatro dígitos y token seguro de la pasarela. Matemáticas En Tu Bolsillo nunca almacena números completos de tarjeta ni CVV.</p>
+          </article>
+
+          <article class="billing-card">
+            <span class="billing-label">Pago manual</span>
+            <h3>PSE, tarjeta crédito o débito</h3>
+            <p>Para pagar o agregar un nuevo método, inicia un checkout seguro desde Suscripción. PSE no se guarda como renovación automática; las tarjetas solo se guardan si autorizas expresamente la tokenización.</p>
+            <button class="btn btn-primary" id="btnPayFromBilling" type="button">Ir a pagar</button>
+          </article>
+        </div>
+      </div>
+
+      <div class="billing-tab-panel" data-billing-panel="history">
         <article class="billing-card">
           <div class="billing-card-title">
             <div>
-              <span class="billing-label">Métodos de pago</span>
-              <h3>Formas de pago guardadas</h3>
+              <span class="billing-label">Historial de facturación</span>
+              <h3>Pagos y comprobantes</h3>
             </div>
-            <button class="btn btn-outline" id="btnAddPaymentMethod" type="button">Agregar método</button>
           </div>
-          <div class="billing-payment-methods" id="billingPaymentMethods">
-            <p class="mini-help">No tienes formas de pago guardadas.</p>
+          <div class="billing-history" id="billingHistory">
+            <p class="mini-help">Aún no hay pagos registrados.</p>
           </div>
-          <p class="mini-help">Por seguridad, Matemáticas En Tu Bolsillo no almacena números completos de tarjeta ni códigos de seguridad.</p>
-        </article>
-
-        <article class="billing-card">
-          <span class="billing-label">Beneficios</span>
-          <h3>Lo que incluye tu plan</h3>
-          <ul class="billing-benefits" id="billingBenefits"></ul>
-        </article>
-
-        <article class="billing-card billing-controls">
-          <span class="billing-label">Renovación</span>
-          <h3>Administrar suscripción</h3>
-          <p id="billingPauseHelp">Puedes suspender la renovación automática antes de la fecha de cobro.</p>
-          <label class="billing-toggle">
-            <input id="billingPauseToggle" type="checkbox" />
-            <span></span>
-            Suspender próximo pago automático
-          </label>
-          <p class="billing-warning">
-            Si la suspensión continúa hasta el vencimiento, el plan terminará y se bloquearán sus beneficios.
-            Tus datos y resultados se conservarán según la Política de privacidad.
-          </p>
-          <p class="bank-status" id="billingActionStatus"></p>
+          <p class="mini-help">El comprobante se genera cuando la pasarela confirma el pago. Las facturas formales se descargarán aquí cuando estén disponibles.</p>
         </article>
       </div>
     </section>
@@ -1678,6 +1725,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260709-9"></script>
+  <script type="module" src="script.js?v=20260709-10"></script>
 </body>
 </html>
