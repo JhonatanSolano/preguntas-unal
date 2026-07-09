@@ -4477,7 +4477,26 @@ function ajustarWhatsappAlBorde() {
     : window.innerWidth - rect.width - margen;
   widget.style.left = `${Math.max(margen, x)}px`;
   widget.style.right = "auto";
+  evitarSolapamientoWhatsapp();
   ajustarLadoWhatsapp();
+}
+
+function evitarSolapamientoWhatsapp() {
+  const widget = document.getElementById("whatsappWidget");
+  const topButton = document.getElementById("btnBackToTop");
+  if (!widget || !topButton || !topButton.classList.contains("visible")) return;
+  const widgetRect = widget.getBoundingClientRect();
+  const topRect = topButton.getBoundingClientRect();
+  const overlaps = !(
+    widgetRect.right < topRect.left - 10 ||
+    widgetRect.left > topRect.right + 10 ||
+    widgetRect.bottom < topRect.top - 10 ||
+    widgetRect.top > topRect.bottom + 10
+  );
+  if (overlaps) {
+    widget.style.top = `${Math.max(10, topRect.top - widgetRect.height - 14)}px`;
+    widget.style.bottom = "auto";
+  }
 }
 
 function activarArrastreWhatsapp() {
@@ -5459,6 +5478,15 @@ document.querySelectorAll(".landing-nav a").forEach(link => {
 });
 document.querySelectorAll(".footer-pending-link, .footer-social a").forEach(link => {
   link.addEventListener("click", event => event.preventDefault());
+});
+const btnBackToTop = document.getElementById("btnBackToTop");
+window.addEventListener("scroll", () => {
+  const visible = window.scrollY > Math.min(560, window.innerHeight * .7);
+  btnBackToTop?.classList.toggle("visible", visible);
+  if (visible) evitarSolapamientoWhatsapp();
+}, { passive: true });
+btnBackToTop?.addEventListener("click", () => {
+  window.scrollTo({ top: 0, behavior: "smooth" });
 });
 document.getElementById("btnWhatsappClose")?.addEventListener("click", cerrarWhatsappWidget);
 document.addEventListener("pointerdown", event => {

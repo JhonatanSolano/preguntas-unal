@@ -2938,14 +2938,80 @@ body.landing-menu-open {
   background: #06345f;
   box-shadow: 0 28px 60px rgba(6, 52, 95, .2);
 }
-.math-showcase-image {
-  display: block;
-  width: 100%;
-  height: 100%;
-  aspect-ratio: 3 / 2;
-  object-fit: contain;
+.math-stage-grid {
+  position: absolute;
+  inset: 0;
   border-radius: inherit;
-  background: #176ca2;
+  background-image:
+    linear-gradient(rgba(255,255,255,.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.055) 1px, transparent 1px);
+  background-size: 38px 38px;
+}
+.math-stage-grid::before,
+.math-stage-grid::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+.math-stage-grid::before {
+  inset: 12% 8%;
+  border: 1px solid rgba(77, 220, 218, .28);
+  border-radius: 50%;
+  transform: rotate(-12deg);
+}
+.math-stage-grid::after {
+  left: 10%;
+  right: 10%;
+  top: 50%;
+  border-top: 1px solid rgba(255,255,255,.22);
+}
+.landing-equation {
+  position: absolute;
+  z-index: 2;
+  padding: .65rem .85rem;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 8px;
+  color: #fff;
+  background: rgba(4, 40, 73, .82);
+  box-shadow: 0 14px 28px rgba(0,0,0,.18);
+  backdrop-filter: blur(7px);
+  animation: equationFloat 7s ease-in-out infinite;
+  white-space: nowrap;
+}
+.landing-equation .katex {
+  color: inherit;
+  font-size: 1.05em;
+}
+.equation-euler {
+  top: 10%;
+  left: 7%;
+  font-size: 1.3rem;
+}
+.equation-gauss {
+  top: 37%;
+  right: 4%;
+  animation-delay: -1.4s;
+}
+.equation-fourier {
+  bottom: 9%;
+  left: 5%;
+  animation-delay: -2.6s;
+}
+.equation-identity {
+  top: 58%;
+  left: 12%;
+  color: #06345f;
+  background: rgba(224, 250, 248, .94);
+  animation-delay: -3.7s;
+}
+.equation-calculus {
+  right: 5%;
+  bottom: 28%;
+  animation-delay: -4.8s;
+}
+@keyframes equationFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-9px); }
 }
 .mini-dashboard {
   z-index: 2;
@@ -3065,21 +3131,76 @@ body.landing-menu-open {
   height: 44px;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(255,255,255,.28);
+  border: 4px solid rgba(255,255,255,.9);
   border-radius: 50%;
   color: #fff;
   font-family: Arial, sans-serif;
   font-size: 1.15rem;
   font-weight: 900;
-  transition: background var(--transition), transform var(--transition);
+  box-shadow: 0 4px 0 rgba(255,255,255,.22), 0 7px 18px rgba(0,0,0,.25);
+  transition: transform var(--transition), box-shadow var(--transition);
 }
 .footer-social a:hover {
-  background: var(--c-teal-deep);
-  transform: translateY(-2px);
+  transform: translateY(-3px) scale(1.04);
+  box-shadow: 0 5px 0 rgba(255,255,255,.28), 0 10px 24px rgba(0,0,0,.3);
+}
+.footer-social .social-facebook {
+  background: #1877f2;
+  font-size: 1.55rem;
+}
+.footer-social .social-instagram {
+  background: #d62976;
+}
+.social-instagram svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+.social-instagram .social-dot {
+  fill: currentColor;
+  stroke: none;
+}
+.footer-social .social-x {
+  color: #fff;
+  background: #111;
+  font-size: 1.25rem;
 }
 .footer-bottom {
   display: grid;
   gap: .15rem;
+}
+.back-to-top {
+  position: fixed;
+  left: clamp(1rem, 3vw, 1.6rem);
+  bottom: clamp(1rem, 3vw, 1.6rem);
+  z-index: 89;
+  display: inline-flex;
+  width: 54px;
+  height: 54px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255,255,255,.65);
+  border-radius: 50%;
+  color: #fff;
+  background: var(--c-navy);
+  box-shadow: 0 14px 30px rgba(6,52,95,.3);
+  font-size: 1.7rem;
+  cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(18px);
+  transition: opacity .22s ease, transform .22s ease, visibility .22s;
+}
+.back-to-top.visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+.back-to-top:hover {
+  background: var(--c-teal-deep);
+  transform: translateY(-2px);
 }
 
 @media (max-width: 600px) {
@@ -3132,7 +3253,15 @@ body.landing-menu-open {
   .math-showcase {
     min-height: 330px;
   }
-  .math-showcase-image { min-height: 330px; }
+  .landing-equation {
+    padding: .5rem .6rem;
+    font-size: .76rem;
+  }
+  .equation-euler { top: 11%; left: 5%; font-size: 1rem; }
+  .equation-gauss { top: 35%; right: 3%; }
+  .equation-fourier { left: 3%; bottom: 7%; }
+  .equation-identity { top: 58%; left: 7%; }
+  .equation-calculus { right: 3%; bottom: 27%; }
   .mini-dashboard {
     right: 5%;
   }

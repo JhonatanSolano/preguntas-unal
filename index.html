@@ -67,7 +67,12 @@
         </div>
       </div>
       <div class="math-showcase" aria-hidden="true">
-        <img class="math-showcase-image" src="assets/math-landing.png" alt="" />
+        <div class="math-stage-grid"></div>
+        <div class="landing-equation equation-euler">\(e^{i\pi}+1=0\)</div>
+        <div class="landing-equation equation-gauss">\(\displaystyle\int_{-\infty}^{\infty}e^{-x^2}\,dx=\sqrt{\pi}\)</div>
+        <div class="landing-equation equation-fourier">\(f(x)=\displaystyle\sum_{n=-\infty}^{\infty}c_n e^{inx}\)</div>
+        <div class="landing-equation equation-identity">\(\sin^2\theta+\cos^2\theta=1\)</div>
+        <div class="landing-equation equation-calculus">\(\displaystyle\int_a^b f'(x)\,dx=f(b)-f(a)\)</div>
         <div class="mini-dashboard">
           <span>Tu progreso</span>
           <strong>86%</strong>
@@ -378,16 +383,24 @@
         </div>
       </div>
       <div class="footer-social" aria-label="Redes sociales">
-        <a href="#" aria-label="Facebook, próximamente" title="Facebook próximamente">f</a>
-        <a href="#" aria-label="Instagram, próximamente" title="Instagram próximamente">◎</a>
-        <a href="#" aria-label="X, próximamente" title="X próximamente">X</a>
-        <a href="#" aria-label="Correo de soporte, próximamente" title="Correo de soporte próximamente">@</a>
+        <a class="social-facebook" href="#" aria-label="Facebook, próximamente" title="Facebook próximamente">f</a>
+        <a class="social-instagram" href="#" aria-label="Instagram, próximamente" title="Instagram próximamente">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="3.5" y="3.5" width="17" height="17" rx="5"></rect>
+            <circle cx="12" cy="12" r="4"></circle>
+            <circle class="social-dot" cx="17.5" cy="6.8" r="1"></circle>
+          </svg>
+        </a>
+        <a class="social-x" href="#" aria-label="X, próximamente" title="X próximamente">X</a>
       </div>
       <div class="footer-bottom">
         <p>© 2026 Matemáticas En Tu Bolsillo. Todos los derechos reservados.</p>
         <p>Creador: Jhonatan Alejandro Solano Mendoza</p>
       </div>
     </footer>
+    <button class="back-to-top" id="btnBackToTop" type="button" aria-label="Volver al inicio" title="Volver al inicio">
+      <span aria-hidden="true">↑</span>
+    </button>
   </main>
 
   <!-- ══════════════════ ENCABEZADO ══════════════════ -->
