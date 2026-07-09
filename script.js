@@ -4776,17 +4776,19 @@ async function renderAdminStudentsByClass() {
 
 function renderStudentRow(est) {
   const fecha = est.registeredLabel || est.createdLabel || "—";
+  const bloqueado = est.status === "bloqueado";
   const opciones = adminClases.map(aula =>
     `<option value="${aula.id}" ${est.classId === aula.id || est.grupo === aula.id ? "selected" : ""}>${aula.name}</option>`
   ).join("");
   return `
-    <div class="student-row" data-student-row data-search="${(est.name || "")} ${est.email}">
+    <div class="student-row ${bloqueado ? "student-blocked" : ""}" data-student-row data-search="${(est.name || "")} ${est.email}">
       <div>
         <strong>${est.name || "Nombre pendiente"}</strong>
         <span>${est.email}</span>
-        <small>Registro: ${fecha} · Estado: ${est.status || "pendiente"}</small>
+        <small>Registro: ${fecha} · Estado: ${bloqueado ? "Bloqueado" : (est.status || "pendiente")}</small>
       </div>
       <select class="admin-input" data-student-group="${est.id}" aria-label="Cambiar aula">${opciones}</select>
+      <button class="btn ${bloqueado ? "btn-primary" : "btn-outline"}" data-toggle-student-block="${est.id}" data-blocked="${bloqueado}" type="button">${bloqueado ? "Desbloquear estudiante" : "Bloquear estudiante"}</button>
       <button class="btn btn-outline" data-delete-student="${est.id}" type="button">Eliminar</button>
     </div>
   `;
@@ -4887,6 +4889,20 @@ async function prepararSesionAutenticada() {
       await limpiarAulaLocalYRemota("Ya no perteneces a esa aula. Ingresa un nuevo código para continuar.");
       return;
     }
+    if (matriculaSnap.data().status === "bloqueado" || perfilActual?.classAccessBlocked === true) {
+      classMembershipValid = false;
+      detenerListenersComunicacion();
+      document.body.classList.remove("group-locked");
+      aplicarModoUsuario();
+      activarNav("perfil");
+      const status = document.getElementById("profileStatus");
+      if (status) {
+        status.textContent = "Tu acceso a esta aula está bloqueado por el profesor.";
+        status.className = "bank-status error";
+      }
+      escucharMembresiaClase(aulaId);
+      return;
+    }
     classMembershipValid = true;
     localStorage.setItem(STORAGE_GRUPO, grupoActivo);
     localStorage.setItem(STORAGE_CLASE_ACTIVA, claseActiva);
@@ -4955,6 +4971,13 @@ async function validarClaseIngreso(codigoClase = document.getElementById("claseC
       document.getElementById("grupoWarn").classList.add("error");
       return null;
     }
+    const membershipId = `${clase.id}_${safeEmailId(usuarioActual?.email || "")}`;
+    const membershipSnap = await getDoc(doc(db, "classStudents", membershipId));
+    if (membershipSnap.exists() && membershipSnap.data().status === "bloqueado") {
+      mostrarWarn("Tu acceso a esta aula está bloqueado por el profesor. Comunícate con él para solicitar el desbloqueo.");
+      document.getElementById("grupoWarn")?.classList.add("error");
+      return null;
+    }
     clasePendienteIngreso = clase;
     limpiarWarn();
     return clase;
@@ -4971,6 +4994,10 @@ async function sincronizarRegistroEstudianteClase(classId, grupo, extra = {}) {
   const ref = doc(db, "classStudents", `${classId}_${safeEmailId(usuarioActual.email)}`);
   const ownerUid = extra.ownerUid || claseActualInfo?.ownerUid || perfilActual?.classOwnerUid || "";
   const ownerEmail = extra.ownerEmail || claseActualInfo?.ownerEmail || perfilActual?.classOwnerEmail || "";
+  const existing = await getDoc(ref);
+  if (existing.exists() && existing.data().status === "bloqueado") {
+    throw new Error("STUDENT_BLOCKED");
+  }
   await setDoc(ref, {
     classId,
     className: claseActualInfo?.name || perfilActual?.className || "",
@@ -5103,9 +5130,29 @@ function escucharMembresiaClase(classId) {
   if (unsubscribeClassMembership) unsubscribeClassMembership();
   if (!usuarioActual?.email || !classId || modoAdmin) return;
   const id = `${classId}_${safeEmailId(usuarioActual.email)}`;
-  unsubscribeClassMembership = onSnapshot(doc(db, "classStudents", id), snap => {
+  unsubscribeClassMembership = onSnapshot(doc(db, "classStudents", id), async snap => {
     if (snap.exists()) {
+      if (snap.data().status === "bloqueado") {
+        classMembershipValid = false;
+        limpiarIntentoActivo();
+        detenerListenersComunicacion();
+        aplicarModoUsuario();
+        activarNav("perfil");
+        const status = document.getElementById("profileStatus");
+        if (status) {
+          status.textContent = "Tu acceso a esta aula fue bloqueado por el profesor.";
+          status.className = "bank-status error";
+        }
+        return;
+      }
+      const estabaBloqueado = !classMembershipValid;
       classMembershipValid = true;
+      if (estabaBloqueado) {
+        await cargarPerfilUsuario().catch(() => {});
+        iniciarListenersComunicacion();
+        aplicarModoUsuario();
+        activarNav("inicio");
+      }
       return;
     }
     if (grupoActivo === classId) {
@@ -6239,6 +6286,30 @@ async function eliminarEstudianteRegistrado(id) {
   await renderAdminStudentsByClass();
 }
 
+async function alternarBloqueoEstudiante(id, bloqueadoActual) {
+  const ref = doc(db, "classStudents", id);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
+  const estudiante = snap.data();
+  const bloquear = !bloqueadoActual;
+  const accion = bloquear ? "bloquear" : "desbloquear";
+  if (!confirm(`¿Deseas ${accion} a ${estudiante.name || estudiante.email} en esta aula?`)) return;
+  if (estudiante.userUid) {
+    await updateDoc(doc(db, "users", estudiante.userUid), {
+      classAccessBlocked: bloquear,
+      blockedClassId: bloquear ? estudiante.classId : "",
+      updatedAt: serverTimestamp()
+    }).catch(error => console.warn("No se pudo sincronizar el bloqueo en el perfil.", error));
+  }
+  await updateDoc(ref, {
+    status: bloquear ? "bloqueado" : "activo",
+    blockedAt: bloquear ? serverTimestamp() : null,
+    blockedByUid: bloquear ? usuarioActual.uid : "",
+    updatedAt: serverTimestamp()
+  });
+  await renderAdminStudentsByClass();
+}
+
 async function eliminarDatosCuentaActual() {
   if (!usuarioActual) return;
   const uid = usuarioActual.uid;
@@ -6810,6 +6881,14 @@ document.getElementById("adminStudentsByClass")?.addEventListener("click", e => 
   const deleteClassBtn = e.target.closest("[data-delete-class]");
   if (deleteClassBtn) {
     eliminarClaseAdmin(deleteClassBtn.dataset.deleteClass);
+    return;
+  }
+  const blockBtn = e.target.closest("[data-toggle-student-block]");
+  if (blockBtn) {
+    alternarBloqueoEstudiante(
+      blockBtn.dataset.toggleStudentBlock,
+      blockBtn.dataset.blocked === "true"
+    );
     return;
   }
   const btn = e.target.closest("[data-delete-student]");

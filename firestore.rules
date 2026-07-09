@@ -38,8 +38,21 @@ service cloud.firestore {
         "subscriptionPaymentPaused",
         "paymentProvider",
         "paymentMethods",
-        "lastPaymentId"
+        "lastPaymentId",
+        "classAccessBlocked",
+        "blockedClassId"
       ]);
+    }
+
+    function hasClassAccess(classId) {
+      return isPlatformOwner() || (
+        signedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        (
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get("classAccessBlocked", false) != true ||
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get("blockedClassId", "") != classId
+        )
+      );
     }
 
     function ownsClass(classId) {
@@ -59,7 +72,8 @@ service cloud.firestore {
     function learnsFrom(ownerUid) {
       return signedIn() &&
         exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.classOwnerUid == ownerUid;
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.classOwnerUid == ownerUid &&
+        hasClassAccess(get(/databases/$(database)/documents/users/$(request.auth.uid)).data.classId);
     }
 
     match /users/{uid} {
@@ -143,9 +157,20 @@ service cloud.firestore {
 
     match /classStudents/{studentId} {
       allow read: if hasActiveSubscription();
-      allow create, update: if hasActiveSubscription() && (
+      allow create: if hasActiveSubscription() && (
         (isAdmin() && ownsClass(request.resource.data.classId)) ||
-        joinsExistingClass(request.resource.data.classId)
+        (
+          joinsExistingClass(request.resource.data.classId) &&
+          request.resource.data.status == "activo"
+        )
+      );
+      allow update: if hasActiveSubscription() && (
+        (isAdmin() && ownsClass(request.resource.data.classId)) ||
+        (
+          resource.data.status != "bloqueado" &&
+          request.resource.data.status == resource.data.status &&
+          joinsExistingClass(request.resource.data.classId)
+        )
       );
       allow delete: if hasActiveSubscription() && (
         (isAdmin() && ownsClass(resource.data.classId)) ||
@@ -172,9 +197,11 @@ service cloud.firestore {
 
     match /classMessages/{messageId} {
       allow read: if hasActiveSubscription() && (
-        isAdmin() ||
         resource.data.ownerUid == request.auth.uid ||
-        request.auth.token.email in resource.data.toEmails
+        (
+          request.auth.token.email in resource.data.toEmails &&
+          hasClassAccess(resource.data.classId)
+        )
       );
       allow create: if hasActiveSubscription() && isAdmin() &&
         ownsClass(request.resource.data.classId);
@@ -189,7 +216,8 @@ service cloud.firestore {
         resource.data.fromUid == request.auth.uid ||
         (
           exists(/databases/$(database)/documents/classMessages/$(resource.data.messageId)) &&
-          request.auth.token.email in get(/databases/$(database)/documents/classMessages/$(resource.data.messageId)).data.toEmails
+          request.auth.token.email in get(/databases/$(database)/documents/classMessages/$(resource.data.messageId)).data.toEmails &&
+          hasClassAccess(resource.data.classId)
         )
       );
       allow create: if hasActiveSubscription() &&
@@ -199,7 +227,10 @@ service cloud.firestore {
         request.resource.data.classId == get(/databases/$(database)/documents/classMessages/$(request.resource.data.messageId)).data.classId &&
         (
           request.resource.data.ownerUid == request.auth.uid ||
-          request.auth.token.email in get(/databases/$(database)/documents/classMessages/$(request.resource.data.messageId)).data.toEmails
+          (
+            request.auth.token.email in get(/databases/$(database)/documents/classMessages/$(request.resource.data.messageId)).data.toEmails &&
+            hasClassAccess(request.resource.data.classId)
+          )
         );
       allow update, delete: if hasActiveSubscription() &&
         resource.data.fromUid == request.auth.uid;

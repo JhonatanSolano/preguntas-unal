@@ -13,6 +13,14 @@ service firebase.storage {
       );
     }
 
+    function hasClassAccess(classId) {
+      return signedIn() && (
+        request.auth.token.email == "solanojhonatan2000@gmail.com" ||
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.get("classAccessBlocked", false) != true ||
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.get("blockedClassId", "") != classId
+      );
+    }
+
     function validAttachment() {
       return request.resource == null ||
         (request.resource.size < 8 * 1024 * 1024 &&
@@ -62,7 +70,10 @@ service firebase.storage {
     function canReadMessage(messageId) {
       return hasActiveSubscription() && (
         message(messageId).ownerUid == request.auth.uid ||
-        request.auth.token.email in message(messageId).toEmails
+        (
+          request.auth.token.email in message(messageId).toEmails &&
+          hasClassAccess(message(messageId).classId)
+        )
       );
     }
 
@@ -70,7 +81,10 @@ service firebase.storage {
       return hasActiveSubscription() && (
         reply(replyId).ownerUid == request.auth.uid ||
         reply(replyId).fromUid == request.auth.uid ||
-        request.auth.token.email in message(reply(replyId).messageId).toEmails
+        (
+          request.auth.token.email in message(reply(replyId).messageId).toEmails &&
+          hasClassAccess(reply(replyId).classId)
+        )
       );
     }
 

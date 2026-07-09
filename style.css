@@ -4041,13 +4041,21 @@ body.landing-menu-open {
 }
 .student-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 170px auto;
+  grid-template-columns: minmax(0, 1fr) 170px auto auto;
   gap: .7rem;
   align-items: center;
   padding: .85rem;
   border: 1px solid var(--c-border);
   border-radius: var(--radius-md);
   background: #fff;
+}
+.student-row.student-blocked {
+  border-color: #e8a1a7;
+  background: #fff7f7;
+}
+.student-row.student-blocked small {
+  color: var(--c-red);
+  font-weight: 800;
 }
 .student-row strong,
 .student-row span,
