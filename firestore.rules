@@ -31,7 +31,13 @@ service cloud.firestore {
         "subscriptionStatus",
         "subscriptionExpiresAt",
         "subscriptionPlan",
+        "subscriptionStartedAt",
+        "subscriptionNextBillingAt",
+        "subscriptionAmountCOP",
+        "subscriptionAutoRenew",
+        "subscriptionPaymentPaused",
         "paymentProvider",
+        "paymentMethods",
         "lastPaymentId"
       ]);
     }
@@ -57,7 +63,9 @@ service cloud.firestore {
     }
 
     match /users/{uid} {
-      allow read: if isAdmin() || (signedIn() && request.auth.uid == uid);
+      allow read: if isPlatformOwner() ||
+        (signedIn() && request.auth.uid == uid) ||
+        (isAdmin() && resource.data.classOwnerUid == request.auth.uid);
       allow create: if isPlatformOwner() || (
         signedIn() &&
         request.auth.uid == uid &&
@@ -65,15 +73,26 @@ service cloud.firestore {
           "subscriptionStatus",
           "subscriptionExpiresAt",
           "subscriptionPlan",
+          "subscriptionStartedAt",
+          "subscriptionNextBillingAt",
+          "subscriptionAmountCOP",
+          "subscriptionAutoRenew",
+          "subscriptionPaymentPaused",
           "paymentProvider",
+          "paymentMethods",
           "lastPaymentId"
         ])
       );
       allow update: if isPlatformOwner() || (
-        (isAdmin() || (signedIn() && request.auth.uid == uid)) &&
+        (
+          (signedIn() && request.auth.uid == uid) ||
+          (isAdmin() && resource.data.classOwnerUid == request.auth.uid)
+        ) &&
         protectsSubscriptionFields()
       );
-      allow delete: if isAdmin() || (signedIn() && request.auth.uid == uid);
+      allow delete: if isPlatformOwner() ||
+        (signedIn() && request.auth.uid == uid) ||
+        (isAdmin() && resource.data.classOwnerUid == request.auth.uid);
     }
 
     match /studentState/{uid} {
@@ -198,6 +217,22 @@ service cloud.firestore {
         resource.data.targetEmail == request.auth.token.email
       );
       allow delete: if isAdmin();
+    }
+
+    match /billingRequests/{requestId} {
+      allow read: if isPlatformOwner() ||
+        (signedIn() && resource.data.uid == request.auth.uid);
+      allow create: if signedIn() &&
+        request.resource.data.uid == request.auth.uid &&
+        request.resource.data.email == request.auth.token.email &&
+        request.resource.data.status == "pending" &&
+        request.resource.data.type in [
+          "pause-renewal",
+          "resume-renewal",
+          "remove-payment-method",
+          "upgrade-plan"
+        ];
+      allow update, delete: if isPlatformOwner();
     }
 
     match /recoveryContacts/{phoneId} {

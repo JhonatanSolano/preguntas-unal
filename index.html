@@ -10,7 +10,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="style.css?v=20260709-4" />
+  <link rel="stylesheet" href="style.css?v=20260709-5" />
 </head>
 <body class="group-locked">
   <div class="welcome-splash hidden" id="welcomeSplash" aria-live="polite">
@@ -508,6 +508,7 @@
     <button class="drawer-link" data-section="asesorIA" type="button">Asesor IA</button>
     <button class="drawer-link" data-section="suscripcion" type="button">Suscripción</button>
     <button class="drawer-link" data-section="configuracion" type="button">Configuración</button>
+    <button class="drawer-link" data-section="facturacion" type="button">Facturación</button>
     <button class="drawer-link" data-section="soporte" type="button">Soporte</button>
     <button class="drawer-link danger" id="btnDrawerSalirApp" type="button">Cerrar sesión</button>
   </aside>
@@ -607,6 +608,71 @@
     </section>
   </main>
 
+  <!-- ══════════════════ FACTURACIÓN ══════════════════ -->
+  <main class="main-content hidden" id="sectionFacturacion">
+    <section class="billing-shell">
+      <header class="billing-heading">
+        <div>
+          <span class="section-kicker">Cuenta y pagos</span>
+          <h2>Facturación</h2>
+          <p>Consulta tu plan, próxima renovación y formas de pago vinculadas.</p>
+        </div>
+        <span class="billing-status" id="billingStatusBadge">Sin plan activo</span>
+      </header>
+
+      <div class="billing-grid">
+        <article class="billing-card billing-plan-card">
+          <span class="billing-label">Plan actual</span>
+          <h3 id="billingPlanName">Sin suscripción activa</h3>
+          <p id="billingPlanSummary">Activa un plan para desbloquear las funciones académicas.</p>
+          <div class="billing-dates">
+            <p><span>Fecha de suscripción</span><strong id="billingStartedAt">—</strong></p>
+            <p><span>Fecha de vencimiento</span><strong id="billingExpiresAt">—</strong></p>
+            <p><span>Próximo cobro</span><strong id="billingNextCharge">—</strong></p>
+          </div>
+          <p class="billing-renewal-copy" id="billingRenewalCopy">No hay una renovación programada.</p>
+          <button class="btn btn-primary" id="btnUpgradePlan" type="button">Mejorar plan</button>
+        </article>
+
+        <article class="billing-card">
+          <div class="billing-card-title">
+            <div>
+              <span class="billing-label">Métodos de pago</span>
+              <h3>Formas de pago guardadas</h3>
+            </div>
+            <button class="btn btn-outline" id="btnAddPaymentMethod" type="button">Agregar método</button>
+          </div>
+          <div class="billing-payment-methods" id="billingPaymentMethods">
+            <p class="mini-help">No tienes formas de pago guardadas.</p>
+          </div>
+          <p class="mini-help">Por seguridad, Matemáticas En Tu Bolsillo no almacena números completos de tarjeta ni códigos de seguridad.</p>
+        </article>
+
+        <article class="billing-card">
+          <span class="billing-label">Beneficios</span>
+          <h3>Lo que incluye tu plan</h3>
+          <ul class="billing-benefits" id="billingBenefits"></ul>
+        </article>
+
+        <article class="billing-card billing-controls">
+          <span class="billing-label">Renovación</span>
+          <h3>Administrar suscripción</h3>
+          <p id="billingPauseHelp">Puedes suspender la renovación automática antes de la fecha de cobro.</p>
+          <label class="billing-toggle">
+            <input id="billingPauseToggle" type="checkbox" />
+            <span></span>
+            Suspender próximo pago automático
+          </label>
+          <p class="billing-warning">
+            Si la suspensión continúa hasta el vencimiento, el plan terminará y se bloquearán sus beneficios.
+            Tus datos y resultados se conservarán según la Política de privacidad.
+          </p>
+          <p class="bank-status" id="billingActionStatus"></p>
+        </article>
+      </div>
+    </section>
+  </main>
+
   <!-- ══════════════════ EXÁMENES ══════════════════ -->
   <main class="main-content hidden" id="sectionExamenes">
     <div class="start-screen exams-hub">
@@ -662,7 +728,7 @@
             <div class="teacher-inline-preview" data-field-preview="teacherQuestionText"></div>
           </div>
 
-          <label class="teacher-image-picker">Insertar imagen
+          <label class="teacher-image-picker">Imagen del ejercicio (opcional)
             <input id="teacherQuestionImage" type="file" accept="image/jpeg,image/png,image/webp,image/gif" />
           </label>
           <div class="teacher-question-image-preview hidden" id="teacherQuestionImagePreview">
@@ -1609,6 +1675,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260709-4"></script>
+  <script type="module" src="script.js?v=20260709-5"></script>
 </body>
 </html>

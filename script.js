@@ -127,8 +127,8 @@ const attachmentPreviewUrls = new Map();
 const EMOJIS_MENSAJE = [
   ["😀", "feliz sonrisa alegre"], ["😃", "sonrisa feliz"], ["😄", "risa feliz"], ["😁", "sonrisa grande"], ["😆", "risa"], ["😅", "risa sudor"], ["😂", "llorando risa fuerte"], ["🤣", "carcajada llorando fuerte"], ["😭", "cara llorando fuerte"], ["😉", "guiño"], ["😘", "beso"], ["😗", "beso"], ["😙", "beso feliz"], ["😚", "beso tierno"], ["🥰", "amor cariño"], ["😍", "enamorado corazones"], ["🤩", "estrella emoción"], ["🥳", "celebración fiesta"], ["🤔", "pensando duda"], ["🙄", "ojos arriba"], ["🙂", "sonrisa suave"], ["🥲", "sonrisa lágrima"], ["🥺", "tierno triste"], ["😊", "feliz amable"], ["😌", "tranquilo"], ["😔", "triste"], ["😇", "ángel"], ["😈", "diablo"], ["⭐", "estrella"], ["👍", "bien pulgar"], ["❤️", "corazón amor"]
 ];
-const SECCIONES_ESTUDIANTE = new Set(["inicio", "perfil", "examenes", "diagnostico", "nivel1", "examen", "estadisticas", "mensajes", "asesorIA", "suscripcion", "configuracion", "soporte"]);
-const SECCIONES_PROFESOR = new Set(["admin", "perfil", "examenes", "adminMetricas", "mensajes", "asesorIA", "suscripcion", "configuracion", "soporte"]);
+const SECCIONES_ESTUDIANTE = new Set(["inicio", "perfil", "examenes", "diagnostico", "nivel1", "examen", "estadisticas", "mensajes", "asesorIA", "suscripcion", "configuracion", "facturacion", "soporte"]);
+const SECCIONES_PROFESOR = new Set(["admin", "perfil", "examenes", "adminMetricas", "mensajes", "asesorIA", "suscripcion", "configuracion", "facturacion", "soporte"]);
 const PHONE_CODE_DURATION_MS = 2 * 60 * 1000;
 const MAX_PROFILE_PHOTO_INPUT_MB = 12;
 const MAX_MESSAGE_ATTACHMENT_MB = 8;
@@ -693,6 +693,113 @@ function aplicarEstadoSuscripcion() {
   });
   document.getElementById("advisorWidget")?.classList.toggle("hidden", !usuarioActual || !active);
   renderSubscriptionPanel();
+}
+
+function fechaFacturacion(value) {
+  if (!value) return "—";
+  const date = typeof value?.toDate === "function" ? value.toDate() : new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("es-CO", {
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+  }).format(date);
+}
+
+function beneficiosPlan() {
+  if (!suscripcionActiva()) {
+    return ["Perfil personal y acceso general limitado", "Conservación de la información de la cuenta"];
+  }
+  return esProfesor()
+    ? [
+        "Creación y administración de aulas",
+        "Bancos, exámenes y preguntas personalizadas",
+        "Mensajería y seguimiento académico",
+        "Métricas por aula y Asesor IA"
+      ]
+    : [
+        "Exámenes y bancos habilitados por el profesor",
+        "Dos intentos y resultados persistentes",
+        "Estadísticas de aprendizaje",
+        "Mensajería académica y Asesor IA"
+      ];
+}
+
+function metodosPagoPerfil() {
+  return Array.isArray(perfilActual?.paymentMethods)
+    ? perfilActual.paymentMethods.filter(method => method && method.id)
+    : [];
+}
+
+function renderBillingPanel() {
+  const active = suscripcionActiva();
+  const plan = perfilActual?.subscriptionPlan || (active ? `Plan ${esProfesor() ? "Profesor" : "Estudiante"}` : "Sin suscripción activa");
+  const amount = formatoPrecioCOP(perfilActual?.subscriptionAmountCOP || precioSuscripcion());
+  const nextBilling = perfilActual?.subscriptionNextBillingAt || perfilActual?.subscriptionExpiresAt;
+  const paused = perfilActual?.subscriptionPaymentPaused === true || perfilActual?.subscriptionAutoRenew === false;
+  const badge = document.getElementById("billingStatusBadge");
+  if (badge) {
+    badge.textContent = active ? (paused ? "Renovación suspendida" : "Plan activo") : "Sin plan activo";
+    badge.classList.toggle("active", active && !paused);
+    badge.classList.toggle("paused", active && paused);
+  }
+  const planName = document.getElementById("billingPlanName");
+  const summary = document.getElementById("billingPlanSummary");
+  if (planName) planName.textContent = plan;
+  if (summary) summary.textContent = active
+    ? `Suscripción para ${esProfesor() ? "profesores" : "estudiantes"} con acceso a las herramientas académicas del plan.`
+    : "Activa un plan para desbloquear las funciones académicas.";
+  const started = document.getElementById("billingStartedAt");
+  const expires = document.getElementById("billingExpiresAt");
+  const next = document.getElementById("billingNextCharge");
+  if (started) started.textContent = fechaFacturacion(perfilActual?.subscriptionStartedAt);
+  if (expires) expires.textContent = fechaFacturacion(perfilActual?.subscriptionExpiresAt);
+  if (next) next.textContent = paused ? "Suspendido" : fechaFacturacion(nextBilling);
+  const renewal = document.getElementById("billingRenewalCopy");
+  if (renewal) {
+    renewal.textContent = active && !paused
+      ? `Tu plan se renovará automáticamente el ${fechaFacturacion(nextBilling)}. Se te cobrará ${amount} al mes.`
+      : active
+        ? `La renovación automática está suspendida. Si no la reactivas antes del ${fechaFacturacion(perfilActual?.subscriptionExpiresAt)}, perderás los beneficios del plan.`
+        : "No hay una renovación programada.";
+  }
+  const benefits = document.getElementById("billingBenefits");
+  if (benefits) benefits.innerHTML = beneficiosPlan().map(item => `<li>${escapeHtml(item)}</li>`).join("");
+  const toggle = document.getElementById("billingPauseToggle");
+  if (toggle) {
+    toggle.checked = paused;
+    toggle.disabled = !active;
+  }
+  const methods = metodosPagoPerfil();
+  const methodsContainer = document.getElementById("billingPaymentMethods");
+  if (methodsContainer) {
+    methodsContainer.innerHTML = methods.length
+      ? methods.map(method => `
+          <div class="billing-payment-row">
+            <span class="billing-payment-icon">${escapeHtml((method.brand || method.type || "Pago").slice(0, 8))}</span>
+            <div>
+              <strong>${escapeHtml(method.label || `${method.brand || method.type || "Método"} terminada en ${method.last4 || "••••"}`)}</strong>
+              <small>${method.isDefault ? "Método principal" : "Método alternativo"}</small>
+            </div>
+            <button class="btn btn-outline" type="button" data-remove-payment-method="${escapeHtml(method.id)}" ${methods.length < 2 ? "disabled" : ""}>Eliminar</button>
+          </div>
+        `).join("")
+      : `<p class="mini-help">No tienes formas de pago guardadas.</p>`;
+  }
+}
+
+async function registrarSolicitudFacturacion(type, extra = {}) {
+  if (!usuarioActual) return false;
+  const requestRef = doc(collection(db, "billingRequests"));
+  await setDoc(requestRef, {
+    uid: usuarioActual.uid,
+    email: usuarioActual.email || "",
+    type,
+    status: "pending",
+    ...extra,
+    createdAt: serverTimestamp()
+  });
+  return true;
 }
 
 function requiereSeleccionRol(perfil = perfilActual) {
@@ -1551,6 +1658,7 @@ function mostrarSeccion(sec) {
   if (sec !== "examenes") limpiarBorradorPreguntaProfesor();
   document.getElementById("sectionInicio").classList.toggle("hidden", sec !== "inicio");
   document.getElementById("sectionSuscripcion")?.classList.toggle("hidden", sec !== "suscripcion");
+  document.getElementById("sectionFacturacion")?.classList.toggle("hidden", sec !== "facturacion");
   document.getElementById("sectionExamenes").classList.toggle("hidden", sec !== "examenes");
   document.getElementById("sectionDiagnostico").classList.toggle("hidden", sec !== "diagnostico");
   document.getElementById("sectionNivel").classList.toggle("hidden", !sec.startsWith("nivel"));
@@ -1573,6 +1681,7 @@ function mostrarSeccion(sec) {
   if (sec === "mensajes") renderMessagesPanel();
   if (sec === "asesorIA") renderAsesorInfo();
   if (sec === "suscripcion") renderSubscriptionPanel();
+  if (sec === "facturacion") renderBillingPanel();
   if (sec === "admin") renderAdminWelcome();
   if (sec === "adminMetricas") {
     document.getElementById("adminMetricsPanel").hidden = false;
@@ -6498,6 +6607,69 @@ document.getElementById("btnStartSecureCheckout")?.addEventListener("click", () 
   checkoutUrl.searchParams.set("role", rolUsuario());
   checkoutUrl.searchParams.set("method", selectedPaymentMethod);
   window.location.assign(checkoutUrl.toString());
+});
+document.getElementById("btnUpgradePlan")?.addEventListener("click", () => {
+  paymentStep = 0;
+  activarNav("suscripcion");
+});
+document.getElementById("btnAddPaymentMethod")?.addEventListener("click", () => {
+  paymentStep = 1;
+  activarNav("suscripcion");
+});
+document.getElementById("billingPauseToggle")?.addEventListener("change", async event => {
+  const status = document.getElementById("billingActionStatus");
+  const pause = event.target.checked;
+  if (!suscripcionActiva()) {
+    event.target.checked = false;
+    if (status) {
+      status.textContent = "No tienes una suscripción activa para administrar.";
+      status.className = "bank-status error";
+    }
+    return;
+  }
+  try {
+    await registrarSolicitudFacturacion(pause ? "pause-renewal" : "resume-renewal");
+    if (status) {
+      status.textContent = pause
+        ? "Solicitud de suspensión registrada. Se aplicará cuando la pasarela de pagos la confirme."
+        : "Solicitud de reactivación registrada. Se aplicará cuando la pasarela de pagos la confirme.";
+      status.className = "bank-status success";
+    }
+  } catch (error) {
+    console.error(error);
+    event.target.checked = !pause;
+    if (status) {
+      status.textContent = "No fue posible registrar la solicitud. Intenta nuevamente.";
+      status.className = "bank-status error";
+    }
+  }
+});
+document.getElementById("billingPaymentMethods")?.addEventListener("click", async event => {
+  const button = event.target.closest("[data-remove-payment-method]");
+  if (!button) return;
+  const methods = metodosPagoPerfil();
+  const status = document.getElementById("billingActionStatus");
+  if (methods.length < 2) {
+    if (status) {
+      status.textContent = "Agrega otra forma de pago antes de eliminar la única disponible.";
+      status.className = "bank-status error";
+    }
+    return;
+  }
+  if (!confirm("¿Deseas solicitar la eliminación de esta forma de pago?")) return;
+  try {
+    await registrarSolicitudFacturacion("remove-payment-method", { paymentMethodId: button.dataset.removePaymentMethod });
+    if (status) {
+      status.textContent = "Solicitud registrada. El método se eliminará cuando la pasarela confirme el cambio.";
+      status.className = "bank-status success";
+    }
+  } catch (error) {
+    console.error(error);
+    if (status) {
+      status.textContent = "No fue posible registrar la solicitud.";
+      status.className = "bank-status error";
+    }
+  }
 });
 document.getElementById("btnCloseMessageDetail")?.addEventListener("click", () => {
   activeMessageId = "";
