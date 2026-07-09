@@ -51,6 +51,235 @@ body {
   min-height: 100vh;
   overflow-x: hidden;
 }
+
+/* Suscripción y pago */
+.subscription-shell {
+  width: min(100%, 960px);
+  margin: 0 auto;
+  display: grid;
+  gap: 1rem;
+}
+.subscription-heading,
+.subscription-status-card,
+.payment-carousel {
+  background: #fff;
+  border: 1px solid #d7e4ec;
+  border-radius: 8px;
+}
+.subscription-heading {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: clamp(1rem, 3vw, 1.6rem);
+}
+.subscription-heading img {
+  width: 68px;
+  height: 68px;
+  object-fit: contain;
+}
+.subscription-heading h2,
+.payment-slide h3 {
+  margin: .2rem 0 .45rem;
+}
+.section-kicker,
+.payment-slide-kicker {
+  color: #087f8c;
+  font-size: .78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.subscription-status-card {
+  display: flex;
+  align-items: center;
+  gap: .9rem;
+  padding: 1rem 1.2rem;
+  background: #fff7e8;
+  border-color: #efcb7b;
+}
+.subscription-status-card.active {
+  background: #e8f8f3;
+  border-color: #70c9ae;
+}
+.subscription-status-card > span {
+  display: grid;
+  place-items: center;
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #fff;
+  color: #075c77;
+  font-size: 1.3rem;
+  font-weight: 900;
+}
+.subscription-status-card p {
+  margin: .25rem 0 0;
+}
+.payment-carousel {
+  padding: clamp(1rem, 3vw, 1.6rem);
+  overflow: hidden;
+}
+.payment-steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.4rem;
+}
+.payment-steps span {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 2px solid #bdd1dc;
+  border-radius: 50%;
+  color: #56707f;
+  font-weight: 800;
+}
+.payment-steps span.active,
+.payment-steps span.complete {
+  color: #fff;
+  border-color: #087f8c;
+  background: #087f8c;
+}
+.payment-steps i {
+  width: min(12vw, 90px);
+  height: 2px;
+  background: #bdd1dc;
+}
+.payment-slide {
+  display: none;
+  min-height: 330px;
+}
+.payment-slide.active {
+  display: block;
+  animation: payment-in .25s ease;
+}
+@keyframes payment-in {
+  from { opacity: 0; transform: translateX(12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.subscription-plan {
+  display: grid;
+  gap: .4rem;
+  padding: 1.1rem;
+  border-left: 4px solid #12a9a4;
+  background: #edf8f8;
+}
+.subscription-price {
+  color: #063a5b;
+  font-size: 1.15rem;
+  font-weight: 900;
+}
+.subscription-benefits {
+  display: grid;
+  gap: .55rem;
+  padding-left: 1.25rem;
+}
+.payment-method-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .75rem;
+}
+.payment-method {
+  display: grid;
+  gap: .3rem;
+  min-height: 145px;
+  padding: 1rem;
+  border: 2px solid #d7e4ec;
+  border-radius: 8px;
+  background: #fff;
+  color: #123a51;
+  text-align: left;
+  cursor: pointer;
+}
+.payment-method.active {
+  border-color: #0a969c;
+  box-shadow: 0 0 0 3px rgba(10, 150, 156, .12);
+}
+.payment-method > span {
+  color: #087f8c;
+  font-weight: 900;
+}
+.payment-method small,
+.payment-security-note {
+  color: #5b7180;
+}
+.payment-summary {
+  display: grid;
+  gap: .65rem;
+  margin: 1rem 0;
+}
+.payment-summary p {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0;
+  padding: .85rem 0;
+  border-bottom: 1px solid #dce7ed;
+}
+.payment-summary strong {
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.payment-carousel-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: .7rem;
+  margin-top: 1rem;
+}
+.drawer-link.subscription-disabled {
+  opacity: .48;
+}
+.drawer-link.subscription-disabled::after {
+  content: "Bloqueado";
+  margin-left: auto;
+  font-size: .68rem;
+}
+
+/* Historial de mensajes por aula */
+.message-history-filter {
+  display: grid;
+  gap: .45rem;
+  margin: 1rem 0;
+}
+.message-class-history {
+  width: 100%;
+  max-width: none;
+}
+.message-class-thread-list {
+  display: grid;
+  gap: .7rem;
+  padding: 0 1rem 1rem;
+}
+
+@media (max-width: 640px) {
+  .subscription-heading {
+    align-items: flex-start;
+  }
+  .subscription-heading img {
+    width: 52px;
+    height: 52px;
+  }
+  .payment-method-grid {
+    grid-template-columns: 1fr;
+  }
+  .payment-method {
+    min-height: 0;
+  }
+  .payment-summary p {
+    display: grid;
+  }
+  .payment-summary strong {
+    text-align: left;
+  }
+  .payment-carousel-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .payment-carousel-actions .btn:only-child {
+    grid-column: 2;
+  }
+}
 .brand-lockup,
 .drawer-brand {
   display: inline-flex;

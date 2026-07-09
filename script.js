@@ -60,7 +60,14 @@ const APP_CONFIG = {
   recaptchaSiteKey: "6LcmOT0tAAAAAPfwCOhqA1nzfz3YOx8McE_mpFEZ",
   asesorEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/generateAiResponse",
   passwordResetEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/sendPasswordResetEmailCustom",
-  emailVerificationEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/sendEmailVerificationCustom"
+  emailVerificationEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/sendEmailVerificationCustom",
+  payments: {
+    provider: "Wompi",
+    checkoutReady: false,
+    checkoutEndpoint: "",
+    studentPriceCOP: null,
+    teacherPriceCOP: null
+  }
 };
 
 const app = initializeApp(firebaseConfig);
@@ -110,6 +117,9 @@ let activeMessageId = "";
 let equationInsertTarget = "message";
 let teacherQuestions = [];
 let teacherQuestionImageFile = null;
+let paymentStep = 0;
+let selectedPaymentMethod = "pse";
+let messageHistoryClassId = "";
 let recoverAttemptCount = 0;
 let seccionActual = "inicio";
 let savedRichSelection = null;
@@ -117,8 +127,8 @@ const attachmentPreviewUrls = new Map();
 const EMOJIS_MENSAJE = [
   ["😀", "feliz sonrisa alegre"], ["😃", "sonrisa feliz"], ["😄", "risa feliz"], ["😁", "sonrisa grande"], ["😆", "risa"], ["😅", "risa sudor"], ["😂", "llorando risa fuerte"], ["🤣", "carcajada llorando fuerte"], ["😭", "cara llorando fuerte"], ["😉", "guiño"], ["😘", "beso"], ["😗", "beso"], ["😙", "beso feliz"], ["😚", "beso tierno"], ["🥰", "amor cariño"], ["😍", "enamorado corazones"], ["🤩", "estrella emoción"], ["🥳", "celebración fiesta"], ["🤔", "pensando duda"], ["🙄", "ojos arriba"], ["🙂", "sonrisa suave"], ["🥲", "sonrisa lágrima"], ["🥺", "tierno triste"], ["😊", "feliz amable"], ["😌", "tranquilo"], ["😔", "triste"], ["😇", "ángel"], ["😈", "diablo"], ["⭐", "estrella"], ["👍", "bien pulgar"], ["❤️", "corazón amor"]
 ];
-const SECCIONES_ESTUDIANTE = new Set(["inicio", "perfil", "examenes", "diagnostico", "nivel1", "examen", "estadisticas", "mensajes", "asesorIA", "configuracion", "soporte"]);
-const SECCIONES_PROFESOR = new Set(["admin", "perfil", "examenes", "adminMetricas", "mensajes", "asesorIA", "configuracion", "soporte"]);
+const SECCIONES_ESTUDIANTE = new Set(["inicio", "perfil", "examenes", "diagnostico", "nivel1", "examen", "estadisticas", "mensajes", "asesorIA", "suscripcion", "configuracion", "soporte"]);
+const SECCIONES_PROFESOR = new Set(["admin", "perfil", "examenes", "adminMetricas", "mensajes", "asesorIA", "suscripcion", "configuracion", "soporte"]);
 const PHONE_CODE_DURATION_MS = 2 * 60 * 1000;
 const MAX_PROFILE_PHOTO_INPUT_MB = 12;
 const MAX_MESSAGE_ATTACHMENT_MB = 8;
@@ -567,6 +577,122 @@ function rolUsuario(perfil = perfilActual) {
 
 function esProfesor(perfil = perfilActual) {
   return rolUsuario(perfil) === "teacher";
+}
+
+function esPropietarioPlataforma() {
+  return usuarioActual?.email?.toLowerCase() === ADMIN_EMAIL;
+}
+
+function suscripcionActiva(perfil = perfilActual) {
+  if (esPropietarioPlataforma()) return true;
+  if (perfil?.subscriptionStatus !== "active") return false;
+  const expiresAt = perfil?.subscriptionExpiresAt;
+  if (!expiresAt) return true;
+  const expiryMs = typeof expiresAt?.toMillis === "function"
+    ? expiresAt.toMillis()
+    : new Date(expiresAt).getTime();
+  return !Number.isFinite(expiryMs) || expiryMs > Date.now();
+}
+
+function seccionRequiereSuscripcion(section) {
+  return new Set([
+    "examenes", "diagnostico", "nivel1", "examen", "estadisticas",
+    "adminMetricas", "mensajes", "asesorIA", "configuracion"
+  ]).has(section);
+}
+
+function exigirSuscripcion(mensaje = "Activa tu suscripción para usar esta función.") {
+  if (suscripcionActiva()) return true;
+  activarNav("suscripcion");
+  const status = document.getElementById("paymentStatus");
+  if (status) {
+    status.textContent = mensaje;
+    status.className = "bank-status error";
+  }
+  return false;
+}
+
+function precioSuscripcion() {
+  return esProfesor() ? APP_CONFIG.payments.teacherPriceCOP : APP_CONFIG.payments.studentPriceCOP;
+}
+
+function formatoPrecioCOP(value) {
+  if (!Number.isFinite(Number(value)) || Number(value) <= 0) return "Precio por definir";
+  return new Intl.NumberFormat("es-CO", {
+    style: "currency",
+    currency: "COP",
+    maximumFractionDigits: 0
+  }).format(Number(value));
+}
+
+function nombreMetodoPago(method = selectedPaymentMethod) {
+  return {
+    pse: "PSE · débito bancario",
+    "credit-card": "Tarjeta de crédito",
+    "debit-card": "Tarjeta débito"
+  }[method] || "PSE";
+}
+
+function renderPasoPago() {
+  document.querySelectorAll("[data-payment-slide]").forEach(slide => {
+    slide.classList.toggle("active", Number(slide.dataset.paymentSlide) === paymentStep);
+  });
+  document.querySelectorAll("[data-payment-step-dot]").forEach(dot => {
+    const step = Number(dot.dataset.paymentStepDot);
+    dot.classList.toggle("active", step === paymentStep);
+    dot.classList.toggle("complete", step < paymentStep);
+  });
+  const previous = document.getElementById("btnPaymentPrevious");
+  const next = document.getElementById("btnPaymentNext");
+  if (previous) previous.hidden = paymentStep === 0;
+  if (next) next.hidden = paymentStep === 2;
+}
+
+function renderSubscriptionPanel() {
+  const active = suscripcionActiva();
+  const role = esProfesor() ? "Profesor" : "Estudiante";
+  const price = formatoPrecioCOP(precioSuscripcion());
+  const title = document.getElementById("subscriptionStatusTitle");
+  const text = document.getElementById("subscriptionStatusText");
+  const icon = document.getElementById("subscriptionStatusIcon");
+  if (title) title.textContent = active ? "Suscripción activa" : "Suscripción pendiente";
+  if (text) {
+    text.textContent = active
+      ? "Tienes acceso completo a las herramientas incluidas en tu cuenta."
+      : "Tu perfil está disponible, pero las funciones académicas permanecen bloqueadas.";
+  }
+  if (icon) icon.textContent = active ? "✓" : "◷";
+  document.getElementById("subscriptionStatusCard")?.classList.toggle("active", active);
+  const planName = document.getElementById("subscriptionPlanName");
+  const planDescription = document.getElementById("subscriptionPlanDescription");
+  if (planName) planName.textContent = `Plan ${role}`;
+  if (planDescription) {
+    planDescription.textContent = esProfesor()
+      ? "Aulas, preguntas, mensajería, métricas y Asesor IA."
+      : "Exámenes, resultados, mensajería y Asesor IA.";
+  }
+  const priceLabel = document.querySelector(".subscription-price");
+  if (priceLabel) priceLabel.textContent = price;
+  const email = document.getElementById("paymentSummaryEmail");
+  const plan = document.getElementById("paymentSummaryPlan");
+  const method = document.getElementById("paymentSummaryMethod");
+  if (email) email.textContent = usuarioActual?.email || "—";
+  if (plan) plan.textContent = `Plan ${role} · ${price}`;
+  if (method) method.textContent = nombreMetodoPago();
+  document.getElementById("paymentCarousel")?.classList.toggle("hidden", active);
+  renderPasoPago();
+}
+
+function aplicarEstadoSuscripcion() {
+  const active = suscripcionActiva();
+  document.body.classList.toggle("subscription-locked", !active);
+  document.querySelectorAll(".drawer-link[data-section]").forEach(button => {
+    const locked = !active && seccionRequiereSuscripcion(button.dataset.section);
+    button.classList.toggle("subscription-disabled", locked);
+    button.setAttribute("aria-disabled", String(locked));
+  });
+  document.getElementById("advisorWidget")?.classList.toggle("hidden", !usuarioActual || !active);
+  renderSubscriptionPanel();
 }
 
 function requiereSeleccionRol(perfil = perfilActual) {
@@ -1424,6 +1550,7 @@ function mostrarSeccion(sec) {
   if (sec !== "mensajes") limpiarBorradorMensajeProfesor();
   if (sec !== "examenes") limpiarBorradorPreguntaProfesor();
   document.getElementById("sectionInicio").classList.toggle("hidden", sec !== "inicio");
+  document.getElementById("sectionSuscripcion")?.classList.toggle("hidden", sec !== "suscripcion");
   document.getElementById("sectionExamenes").classList.toggle("hidden", sec !== "examenes");
   document.getElementById("sectionDiagnostico").classList.toggle("hidden", sec !== "diagnostico");
   document.getElementById("sectionNivel").classList.toggle("hidden", !sec.startsWith("nivel"));
@@ -1445,6 +1572,7 @@ function mostrarSeccion(sec) {
   if (sec === "configuracion") renderConfiguracion();
   if (sec === "mensajes") renderMessagesPanel();
   if (sec === "asesorIA") renderAsesorInfo();
+  if (sec === "suscripcion") renderSubscriptionPanel();
   if (sec === "admin") renderAdminWelcome();
   if (sec === "adminMetricas") {
     document.getElementById("adminMetricsPanel").hidden = false;
@@ -1514,6 +1642,16 @@ function confirmarCambioSeccion(secDestino = "") {
 
 function activarNav(sec) {
   if (!confirmarCambioSeccion(sec)) return false;
+  if (!suscripcionActiva() && seccionRequiereSuscripcion(sec)) {
+    sec = "suscripcion";
+    setTimeout(() => {
+      const status = document.getElementById("paymentStatus");
+      if (status) {
+        status.textContent = "Activa tu suscripción para desbloquear esta sección.";
+        status.className = "bank-status error";
+      }
+    }, 0);
+  }
   if (!modoAdmin && !aulaActualValida() && ["diagnostico", "nivel1", "examen"].includes(sec)) {
     sec = "examenes";
     setTimeout(() => {
@@ -1541,6 +1679,7 @@ function seccionRestaurable() {
   const guardada = localStorage.getItem(STORAGE_SECCION_ACTIVA) || "";
   const permitidas = modoAdmin ? SECCIONES_PROFESOR : SECCIONES_ESTUDIANTE;
   if (!permitidas.has(guardada)) return fallback;
+  if (!suscripcionActiva() && seccionRequiereSuscripcion(guardada)) return "suscripcion";
   if (!modoAdmin && !aulaActualValida() && ["diagnostico", "nivel1", "examen", "estadisticas"].includes(guardada)) {
     return "configuracion";
   }
@@ -1555,10 +1694,10 @@ function cerrarAccordions() {
 
 function aplicarModoUsuario() {
   document.body.classList.toggle("admin-mode", modoAdmin);
-  document.getElementById("advisorWidget")?.classList.toggle("hidden", !usuarioActual);
   actualizarGrupoActualPanel();
   actualizarBienvenida();
   actualizarDrawer();
+  aplicarEstadoSuscripcion();
 }
 
 function actualizarGrupoActualPanel() {
@@ -1724,18 +1863,23 @@ function preguntasMaestrasPara(level, bank) {
     .map((question, index) => convertirPreguntaDoc({ ...question, _questionSource: "master" }, index + 1));
 }
 
-function preguntasDocentePara(level, bank) {
+function preguntasDocentePara(level, bank, classId = claseActiva || adminClaseActiva || "") {
   return teacherQuestions
-    .filter(question => question.level === level && question.bank === bank && question.active !== false)
+    .filter(question =>
+      question.level === level &&
+      question.bank === bank &&
+      question.active !== false &&
+      (!question.classId || question.classId === classId)
+    )
     .sort((a, b) => Number(a.createdAtMs || 0) - Number(b.createdAtMs || 0))
     .map((question, index) => convertirPreguntaDoc({ ...question, _questionSource: "teacher" }, index + 1));
 }
 
-function combinarPreguntasNivel(level, bank = bancoActivo) {
+function combinarPreguntasNivel(level, bank = bancoActivo, classId = claseActiva || adminClaseActiva || "") {
   const limite = level === "diagnostico" ? 15 : 10;
   const priority = [
     ...preguntasMaestrasPara(level, bank),
-    ...preguntasDocentePara(level, bank),
+    ...preguntasDocentePara(level, bank, classId),
     ...preguntasBaseNivel(level, bank)
   ];
   return priority.slice(0, limite).map((question, index) => ({ ...question, id: index + 1 }));
@@ -1869,7 +2013,11 @@ function renderTeacherInlinePreview(fieldId) {
 
 function teacherQuestionDraft() {
   const correctRaw = document.getElementById("teacherCorrectOption")?.value ?? "";
+  const classId = document.getElementById("teacherQuestionClass")?.value || "";
+  const selectedClass = aulaPorId(classId);
   return {
+    classId,
+    className: selectedClass?.name || "",
     level: document.getElementById("teacherQuestionLevel")?.value || "diagnostico",
     bank: document.getElementById("teacherQuestionBank")?.value || "principal",
     questionText: document.getElementById("teacherQuestionText")?.value.trim() || "",
@@ -1882,6 +2030,7 @@ function teacherQuestionDraft() {
 }
 
 function validateTeacherQuestion(data) {
+  if (!data.classId || !aulaPorId(data.classId)) return "Selecciona el aula que recibirá esta pregunta.";
   if (!data.questionText && !data.questionLatex && !teacherQuestionImageFile) {
     return "Escribe un enunciado, agrega una ecuación o selecciona una imagen.";
   }
@@ -1904,6 +2053,7 @@ function validateTeacherQuestion(data) {
     teacherQuestions.filter(question =>
       question.level === data.level &&
       question.bank === data.bank &&
+      question.classId === data.classId &&
       question.active !== false
     ).length;
   if (occupied >= limit) {
@@ -1971,6 +2121,7 @@ function resetTeacherQuestionBuilder() {
 async function saveTeacherQuestion() {
   const status = document.getElementById("teacherQuestionStatus");
   if (!modoAdmin || !usuarioActual) return;
+  if (!exigirSuscripcion("Activa tu suscripción para crear preguntas.")) return;
   const data = teacherQuestionDraft();
   const validation = validateTeacherQuestion(data);
   if (validation) {
@@ -2039,7 +2190,7 @@ function renderTeacherCreatedQuestions() {
       return `
         <article class="teacher-created-question">
           <div>
-            <span>${escapeHtml(NOMBRES_BANCOS[question.bank] || question.bank)} · ${escapeHtml(NIVELES_META[question.level]?.titulo || (question.level === "diagnostico" ? "Diagnóstico" : "Examen Final"))}</span>
+            <span>${escapeHtml(question.className || nombreAulaPorId(question.classId) || "Todas las aulas")} · ${escapeHtml(NOMBRES_BANCOS[question.bank] || question.bank)} · ${escapeHtml(NIVELES_META[question.level]?.titulo || (question.level === "diagnostico" ? "Diagnóstico" : "Examen Final"))}</span>
             <strong>${normalized.pregunta || "Pregunta con contenido visual"}</strong>
           </div>
           ${question.imageUrl ? `<img src="${escapeHtml(question.imageUrl)}" alt="Imagen de la pregunta" />` : ""}
@@ -2069,10 +2220,17 @@ async function initializeTeacherQuestionBuilder() {
   if (!builder || !modoAdmin || !usuarioActual) return;
   builder.classList.remove("hidden");
   const bankSelect = document.getElementById("teacherQuestionBank");
+  const classSelect = document.getElementById("teacherQuestionClass");
   if (bankSelect && !bankSelect.options.length) {
     bankSelect.innerHTML = BANCOS_DISPONIBLES
       .map(bank => `<option value="${bank}">${NOMBRES_BANCOS[bank]}</option>`)
       .join("");
+  }
+  if (classSelect) {
+    classSelect.innerHTML = adminClases.length
+      ? adminClases.map(classroom => `<option value="${classroom.id}">${escapeHtml(classroom.name)} (${escapeHtml(classroom.code || "")})</option>`).join("")
+      : `<option value="">Primero crea un aula</option>`;
+    classSelect.value = adminClaseActiva || adminClases[0]?.id || "";
   }
   [
     "teacherQuestionText",
@@ -2151,6 +2309,10 @@ function renderAdminWelcome() {
 }
 
 function renderConfiguracion() {
+  if (!suscripcionActiva()) {
+    exigirSuscripcion("La configuración académica se habilita al activar tu suscripción.");
+    return;
+  }
   document.querySelector(".student-settings")?.classList.toggle("hidden", modoAdmin);
   document.getElementById("adminSettingsPanel")?.classList.toggle("hidden", !modoAdmin);
   actualizarEstadoNotificaciones();
@@ -2246,7 +2408,7 @@ function detenerListenersComunicacion() {
 }
 
 function iniciarListenersComunicacion() {
-  if (!usuarioActual?.email) return;
+  if (!usuarioActual?.email || !suscripcionActiva()) return;
   detenerListenersComunicacion();
   const email = usuarioActual.email.toLowerCase();
   unsubscribeNotifications = onSnapshot(
@@ -2390,19 +2552,47 @@ function renderMessagesPanel() {
       : `<option value="">Sin aulas creadas</option>`;
     select.value = adminClaseActiva || adminClases[0]?.id || "";
   }
-  if (!internalMessages.length) {
+  const historySelect = document.getElementById("messageHistoryClassSelect");
+  const availableClasses = modoAdmin
+    ? adminClases.map(classroom => ({ id: classroom.id, name: classroom.name }))
+    : Array.from(new Map(internalMessages.map(message => [
+        message.classId,
+        { id: message.classId, name: message.className || "Aula" }
+      ])).values()).filter(classroom => classroom.id);
+  if (historySelect) {
+    historySelect.innerHTML = availableClasses.length
+      ? availableClasses.map(classroom => `<option value="${classroom.id}">${escapeHtml(classroom.name)}</option>`).join("")
+      : `<option value="">Sin conversaciones</option>`;
+    if (!availableClasses.some(classroom => classroom.id === messageHistoryClassId)) {
+      messageHistoryClassId = modoAdmin
+        ? (adminClaseActiva || availableClasses[0]?.id || "")
+        : (claseActiva || availableClasses[0]?.id || "");
+    }
+    historySelect.value = messageHistoryClassId;
+  }
+  const visibleMessages = messageHistoryClassId
+    ? internalMessages.filter(message => message.classId === messageHistoryClassId)
+    : internalMessages;
+  if (!visibleMessages.length) {
     list.innerHTML = `<p class="mini-help">Aún no hay mensajes.</p>`;
     return;
   }
-  list.innerHTML = internalMessages.map(msg => `
-    <article class="message-thread-card">
-      <button type="button" data-open-message="${msg.id}">
-        <strong>${escapeHtml(msg.subject || "Sin asunto")}</strong>
-        <span>${escapeHtml(msg.className || "Aula")} · ${escapeHtml(msg.fromName || msg.teacherName || "Profesor")}</span>
-        <small>${escapeHtml((msg.body || "").slice(0, 130))}</small>
-      </button>
-    </article>
-  `).join("");
+  const className = visibleMessages[0]?.className || availableClasses.find(classroom => classroom.id === messageHistoryClassId)?.name || "Aula";
+  list.innerHTML = `
+    <details class="accordion-card message-class-history" open>
+      <summary>${escapeHtml(className)} · ${visibleMessages.length} mensaje(s)</summary>
+      <div class="message-class-thread-list">
+        ${visibleMessages.map(msg => `
+          <article class="message-thread-card">
+            <button type="button" data-open-message="${msg.id}">
+              <strong>${escapeHtml(msg.subject || "Sin asunto")}</strong>
+              <span>${escapeHtml(msg.className || "Aula")} · ${escapeHtml(msg.fromName || msg.teacherName || "Profesor")}</span>
+              <small>${escapeHtml((msg.body || "").slice(0, 130))}</small>
+            </button>
+          </article>
+        `).join("")}
+      </div>
+    </details>`;
 }
 
 function renderAttachments(attachments = []) {
@@ -2808,6 +2998,7 @@ async function abrirDetalleMensaje(messageId) {
 
 async function enviarMensajeAula() {
   const status = document.getElementById("messageComposeStatus");
+  if (!exigirSuscripcion("Activa tu suscripción para enviar mensajes al aula.")) return;
   const classId = document.getElementById("messageClassSelect")?.value || adminClaseActiva;
   const clase = aulaPorId(classId);
   const subject = document.getElementById("messageSubject")?.value.trim() || "";
@@ -2871,6 +3062,7 @@ async function enviarMensajeAula() {
 
 async function responderMensaje(e) {
   e.preventDefault();
+  if (!exigirSuscripcion("Activa tu suscripción para responder mensajes.")) return;
   const status = document.getElementById("messageReplyStatus");
   const msg = internalMessages.find(m => m.id === activeMessageId);
   const body = document.getElementById("messageReplyBody")?.value.trim() || "";
@@ -4276,6 +4468,7 @@ async function buscarClasePorCodigo(code) {
 
 async function crearClaseAdmin() {
   const status = document.getElementById("adminClassStatus");
+  if (!exigirSuscripcion("Activa tu suscripción para crear aulas.")) return;
   const btn = document.getElementById("btnCreateClass");
   const name = document.getElementById("adminClassName")?.value.trim();
   if (!name) {
@@ -4510,15 +4703,23 @@ async function prepararSesionAutenticada() {
     localStorage.setItem(STORAGE_GRUPO, grupoActivo);
     document.body.classList.remove("group-locked");
     aplicarModoUsuario();
-    iniciarListenersComunicacion();
-    activarNav(seccionRestaurable());
+    if (suscripcionActiva()) {
+      iniciarListenersComunicacion();
+      cargarClasesAdmin().catch(err => console.warn("No se pudieron cargar clases admin.", err));
+    }
+    activarNav(suscripcionActiva() ? seccionRestaurable() : "suscripcion");
     guardarPerfilUsuario({ role: "teacher", isAdmin: true, grupo: "admin" }).catch(err => console.warn("No se pudo guardar perfil admin.", err));
-    cargarClasesAdmin().catch(err => console.warn("No se pudieron cargar clases admin.", err));
     return;
   }
 
   await cargarEstadoRemoto();
   await mostrarSplashBienvenida();
+  if (!suscripcionActiva()) {
+    document.body.classList.remove("group-locked");
+    aplicarModoUsuario();
+    activarNav("suscripcion");
+    return;
+  }
   iniciarListenersComunicacion();
 
   if (await aceptarInvitacionPendiente()) {
@@ -4575,6 +4776,7 @@ async function entrarGrupo() {
     mostrarWarn("Primero inicia sesión o regístrate.");
     return;
   }
+  if (!exigirSuscripcion("Necesitas una suscripción activa antes de ingresar a un aula.")) return;
   const codigoClase = document.getElementById("claseCodigo").value.trim();
   const clase = await validarClaseIngreso(codigoClase);
   if (!clase) {
@@ -5195,6 +5397,7 @@ function contextoAsesor(mode = advisorMode) {
 async function enviarMensajeAsesor(text) {
   const input = String(text || "").trim();
   if (!input || advisorLoading) return;
+  if (!exigirSuscripcion("Activa tu suscripción para conversar con el Asesor IA.")) return;
   abrirAsesorIA();
   advisorMessages.push({ id: `${Date.now()}-user`, sender: "user", text: input });
   renderAsesorMessages();
@@ -5241,6 +5444,7 @@ async function enviarMensajeAsesor(text) {
 }
 
 function abrirAsesorIA() {
+  if (!exigirSuscripcion("Activa tu suscripción para conversar con el Asesor IA.")) return;
   cargarEstadoAsesor();
   renderAsesorQuickReplies();
   renderAsesorMessages();
@@ -5631,6 +5835,7 @@ async function verificarCodigoTelefono() {
 
 async function estudianteCambiarClase() {
   const status = document.getElementById("settingsClassStatus");
+  if (!exigirSuscripcion("Necesitas una suscripción activa para ingresar o cambiar de aula.")) return;
   if (pruebaActivaActual()) {
     status.textContent = "No es posible cambiar de aula porque el estudiante se encuentra realizando un examen.";
     return;
@@ -6255,6 +6460,45 @@ document.getElementById("messageThreadList")?.addEventListener("click", e => {
   const btn = e.target.closest("[data-open-message]");
   if (btn) abrirDetalleMensaje(btn.dataset.openMessage);
 });
+document.getElementById("messageHistoryClassSelect")?.addEventListener("change", event => {
+  messageHistoryClassId = event.target.value;
+  renderMessagesPanel();
+});
+document.querySelectorAll("[data-payment-method]").forEach(button => {
+  button.addEventListener("click", () => {
+    selectedPaymentMethod = button.dataset.paymentMethod;
+    document.querySelectorAll("[data-payment-method]").forEach(item => {
+      item.classList.toggle("active", item === button);
+    });
+    renderSubscriptionPanel();
+  });
+});
+document.getElementById("btnPaymentPrevious")?.addEventListener("click", () => {
+  paymentStep = Math.max(0, paymentStep - 1);
+  renderPasoPago();
+});
+document.getElementById("btnPaymentNext")?.addEventListener("click", () => {
+  paymentStep = Math.min(2, paymentStep + 1);
+  renderPasoPago();
+});
+document.getElementById("btnStartSecureCheckout")?.addEventListener("click", () => {
+  const status = document.getElementById("paymentStatus");
+  const configured = APP_CONFIG.payments.checkoutReady &&
+    APP_CONFIG.payments.checkoutEndpoint &&
+    Number(precioSuscripcion()) > 0;
+  if (!configured) {
+    if (status) {
+      status.textContent = "El pago seguro está preparado. Falta configurar el precio y las credenciales comerciales de la pasarela para habilitar cobros reales.";
+      status.className = "bank-status error";
+    }
+    return;
+  }
+  const checkoutUrl = new URL(APP_CONFIG.payments.checkoutEndpoint);
+  checkoutUrl.searchParams.set("email", usuarioActual?.email || "");
+  checkoutUrl.searchParams.set("role", rolUsuario());
+  checkoutUrl.searchParams.set("method", selectedPaymentMethod);
+  window.location.assign(checkoutUrl.toString());
+});
 document.getElementById("btnCloseMessageDetail")?.addEventListener("click", () => {
   activeMessageId = "";
   document.getElementById("messageDetailOverlay")?.classList.add("hidden");
@@ -6383,6 +6627,11 @@ document.getElementById("btnDrawerHome")?.addEventListener("click", () => {
 });
 document.querySelectorAll(".drawer-link[data-section]").forEach(btn => {
   btn.addEventListener("click", () => {
+    if (!suscripcionActiva() && seccionRequiereSuscripcion(btn.dataset.section)) {
+      exigirSuscripcion("Activa tu suscripción para desbloquear esta sección.");
+      cerrarDrawer();
+      return;
+    }
     if (activarNav(btn.dataset.section)) cerrarDrawer();
   });
 });

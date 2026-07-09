@@ -6,6 +6,13 @@ service firebase.storage {
       return request.auth != null;
     }
 
+    function hasActiveSubscription() {
+      return signedIn() && (
+        request.auth.token.email == "solanojhonatan2000@gmail.com" ||
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.subscriptionStatus == "active"
+      );
+    }
+
     function validAttachment() {
       return request.resource == null ||
         (request.resource.size < 8 * 1024 * 1024 &&
@@ -37,7 +44,7 @@ service firebase.storage {
     }
 
     function canReadTeacherQuestion(questionId) {
-      return signedIn() && (
+      return hasActiveSubscription() && (
         teacherQuestion(questionId).ownerUid == request.auth.uid ||
         firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.classOwnerUid ==
           teacherQuestion(questionId).ownerUid
@@ -53,14 +60,14 @@ service firebase.storage {
     }
 
     function canReadMessage(messageId) {
-      return signedIn() && (
+      return hasActiveSubscription() && (
         message(messageId).ownerUid == request.auth.uid ||
         request.auth.token.email in message(messageId).toEmails
       );
     }
 
     function canReadReply(replyId) {
-      return signedIn() && (
+      return hasActiveSubscription() && (
         reply(replyId).ownerUid == request.auth.uid ||
         reply(replyId).fromUid == request.auth.uid ||
         request.auth.token.email in message(reply(replyId).messageId).toEmails
@@ -69,21 +76,21 @@ service firebase.storage {
 
     match /classMessages/{messageId}/{fileName} {
       allow read: if canReadMessage(messageId);
-      allow write: if signedIn() &&
+      allow write: if hasActiveSubscription() &&
         message(messageId).ownerUid == request.auth.uid &&
         validAttachment();
     }
 
     match /messageReplies/{replyId}/{fileName} {
       allow read: if canReadReply(replyId);
-      allow write: if signedIn() &&
+      allow write: if hasActiveSubscription() &&
         reply(replyId).fromUid == request.auth.uid &&
         validAttachment();
     }
 
     match /teacherQuestions/{ownerUid}/{questionId}/{fileName} {
       allow read: if canReadTeacherQuestion(questionId);
-      allow write: if signedIn() &&
+      allow write: if hasActiveSubscription() &&
         request.auth.uid == ownerUid &&
         teacherQuestion(questionId).ownerUid == request.auth.uid &&
         validQuestionImage();

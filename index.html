@@ -10,7 +10,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="style.css?v=20260709-3" />
+  <link rel="stylesheet" href="style.css?v=20260709-4" />
 </head>
 <body class="group-locked">
   <div class="welcome-splash hidden" id="welcomeSplash" aria-live="polite">
@@ -127,7 +127,7 @@
         <article>
           <span class="feature-icon" aria-hidden="true">∑</span>
           <strong>Bancos y exámenes</strong>
-          <p>Evaluaciones por nivel, dos intentos controlados, cronómetro y resultados persistentes.</p>
+          <p>Evaluaciones por nivel, dos intentos controlados, cronómetro, resultados persistentes y preguntas propias del profesor.</p>
         </article>
         <article>
           <span class="feature-icon" aria-hidden="true">↗</span>
@@ -153,6 +153,11 @@
           <span class="feature-icon" aria-hidden="true">✓</span>
           <strong>Información sincronizada</strong>
           <p>Perfiles, avances y resultados disponibles de forma segura desde móvil, tablet o computador.</p>
+        </article>
+        <article>
+          <span class="feature-icon" aria-hidden="true">$</span>
+          <strong>Suscripción y pagos seguros</strong>
+          <p>Acceso mediante suscripción con checkout externo preparado para PSE, tarjetas débito y crédito.</p>
         </article>
       </div>
     </section>
@@ -501,6 +506,7 @@
     <button class="drawer-link admin-only" data-section="adminMetricas" type="button">Métricas y estadísticas</button>
     <button class="drawer-link" data-section="mensajes" type="button">Mensajes</button>
     <button class="drawer-link" data-section="asesorIA" type="button">Asesor IA</button>
+    <button class="drawer-link" data-section="suscripcion" type="button">Suscripción</button>
     <button class="drawer-link" data-section="configuracion" type="button">Configuración</button>
     <button class="drawer-link" data-section="soporte" type="button">Soporte</button>
     <button class="drawer-link danger" id="btnDrawerSalirApp" type="button">Cerrar sesión</button>
@@ -526,6 +532,76 @@
         <div class="result-actions">
           <button class="btn btn-outline" id="btnBancoAnterior" type="button">← Ver banco anterior</button>
           <button class="btn btn-primary" id="btnBancoSiguiente" type="button">Pasar al siguiente banco</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ══════════════════ SUSCRIPCIÓN ══════════════════ -->
+  <main class="main-content hidden" id="sectionSuscripcion">
+    <section class="subscription-shell">
+      <div class="subscription-heading">
+        <img src="assets/icon-180.png" alt="" />
+        <div>
+          <span class="section-kicker">Acceso premium</span>
+          <h2>Activa tu suscripción</h2>
+          <p id="subscriptionIntro">Elige cómo deseas pagar para desbloquear todas las herramientas de la plataforma.</p>
+        </div>
+      </div>
+      <div class="subscription-status-card" id="subscriptionStatusCard">
+        <span id="subscriptionStatusIcon">◷</span>
+        <div>
+          <strong id="subscriptionStatusTitle">Suscripción pendiente</strong>
+          <p id="subscriptionStatusText">Tu perfil está disponible, pero las funciones académicas permanecen bloqueadas.</p>
+        </div>
+      </div>
+      <div class="payment-carousel" id="paymentCarousel">
+        <div class="payment-steps" aria-label="Proceso de suscripción">
+          <span class="active" data-payment-step-dot="0">1</span><i></i>
+          <span data-payment-step-dot="1">2</span><i></i>
+          <span data-payment-step-dot="2">3</span>
+        </div>
+        <div class="payment-track" id="paymentTrack">
+          <section class="payment-slide active" data-payment-slide="0">
+            <span class="payment-slide-kicker">Paso 1</span>
+            <h3>Tu acceso a Matemáticas En Tu Bolsillo</h3>
+            <div class="subscription-plan">
+              <strong id="subscriptionPlanName">Plan personal</strong>
+              <p id="subscriptionPlanDescription">Acceso completo según tu tipo de cuenta.</p>
+              <span class="subscription-price">Precio por definir</span>
+            </div>
+            <ul class="subscription-benefits">
+              <li>Exámenes, bancos y estadísticas.</li>
+              <li>Mensajería académica y notificaciones.</li>
+              <li>Asesor IA y progreso sincronizado.</li>
+              <li>Gestión de aulas y preguntas para profesores.</li>
+            </ul>
+          </section>
+          <section class="payment-slide" data-payment-slide="1">
+            <span class="payment-slide-kicker">Paso 2</span>
+            <h3>Selecciona el medio de pago</h3>
+            <div class="payment-method-grid">
+              <button class="payment-method active" type="button" data-payment-method="pse"><span>PSE</span><strong>Débito bancario</strong><small>Transferencia desde tu banco</small></button>
+              <button class="payment-method" type="button" data-payment-method="credit-card"><span>VISA</span><strong>Tarjeta de crédito</strong><small>Checkout protegido por la pasarela</small></button>
+              <button class="payment-method" type="button" data-payment-method="debit-card"><span>DEBIT</span><strong>Tarjeta débito</strong><small>Pago seguro sin guardar tu tarjeta</small></button>
+            </div>
+            <p class="payment-security-note">Los datos financieros se ingresarán únicamente en el checkout certificado del proveedor de pagos.</p>
+          </section>
+          <section class="payment-slide" data-payment-slide="2">
+            <span class="payment-slide-kicker">Paso 3</span>
+            <h3>Revisa y continúa al pago</h3>
+            <div class="payment-summary">
+              <p><span>Cuenta</span><strong id="paymentSummaryEmail">—</strong></p>
+              <p><span>Plan</span><strong id="paymentSummaryPlan">—</strong></p>
+              <p><span>Medio seleccionado</span><strong id="paymentSummaryMethod">PSE</strong></p>
+            </div>
+            <button class="btn btn-primary" id="btnStartSecureCheckout" type="button">Continuar al pago seguro</button>
+            <p class="bank-status" id="paymentStatus"></p>
+          </section>
+        </div>
+        <div class="payment-carousel-actions">
+          <button class="btn btn-outline" id="btnPaymentPrevious" type="button">Anterior</button>
+          <button class="btn btn-primary" id="btnPaymentNext" type="button">Continuar</button>
         </div>
       </div>
     </section>
@@ -562,6 +638,9 @@
           </p>
 
           <div class="teacher-question-grid">
+            <label>Aula
+              <select id="teacherQuestionClass" class="admin-input"></select>
+            </label>
             <label>Nivel
               <select id="teacherQuestionLevel" class="admin-input">
                 <option value="diagnostico">Diagnóstico</option>
@@ -577,13 +656,13 @@
           <div class="teacher-rich-field">
             <div class="question-builder-heading">
               <label for="teacherQuestionText">Enunciado</label>
-              <button class="btn btn-outline" type="button" data-inline-equation-target="teacherQuestionText">Insertar ecuación en línea</button>
+              <button class="btn btn-outline" type="button" data-inline-equation-target="teacherQuestionText">Insertar ecuación</button>
             </div>
             <textarea id="teacherQuestionText" class="admin-input" rows="4" placeholder="Escribe texto y agrega ecuaciones donde las necesites"></textarea>
             <div class="teacher-inline-preview" data-field-preview="teacherQuestionText"></div>
           </div>
 
-          <label class="teacher-image-picker">Imagen del ejercicio (opcional)
+          <label class="teacher-image-picker">Insertar imagen
             <input id="teacherQuestionImage" type="file" accept="image/jpeg,image/png,image/webp,image/gif" />
           </label>
           <div class="teacher-question-image-preview hidden" id="teacherQuestionImagePreview">
@@ -630,7 +709,7 @@
           <div class="teacher-rich-field">
             <div class="question-builder-heading">
               <label for="teacherQuestionExplanation">Explicación que verá el estudiante</label>
-              <button class="btn btn-outline" type="button" data-inline-equation-target="teacherQuestionExplanation">Insertar ecuación en línea</button>
+              <button class="btn btn-outline" type="button" data-inline-equation-target="teacherQuestionExplanation">Insertar ecuación</button>
             </div>
             <textarea id="teacherQuestionExplanation" class="admin-input" rows="5" placeholder="Explica el procedimiento y combina texto con ecuaciones"></textarea>
             <div class="teacher-inline-preview" data-field-preview="teacherQuestionExplanation"></div>
@@ -1340,6 +1419,15 @@
         <button class="btn btn-primary" id="btnSendClassMessage" type="button">Enviar mensaje</button>
         <p class="bank-status" id="messageComposeStatus"></p>
       </section>
+      <section class="message-history-filter">
+        <div>
+          <span class="section-kicker">Chats anteriores</span>
+          <h3>Conversaciones por aula</h3>
+        </div>
+        <label>Selecciona un aula
+          <select id="messageHistoryClassSelect" class="admin-input"></select>
+        </label>
+      </section>
       <div class="message-thread-list" id="messageThreadList"></div>
     </div>
   </main>
@@ -1521,6 +1609,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260709-3"></script>
+  <script type="module" src="script.js?v=20260709-4"></script>
 </body>
 </html>

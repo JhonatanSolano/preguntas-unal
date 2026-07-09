@@ -13,6 +13,29 @@ service cloud.firestore {
       );
     }
 
+    function isPlatformOwner() {
+      return signedIn() &&
+        request.auth.token.email == "solanojhonatan2000@gmail.com";
+    }
+
+    function hasActiveSubscription() {
+      return isPlatformOwner() || (
+        signedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.subscriptionStatus == "active"
+      );
+    }
+
+    function protectsSubscriptionFields() {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+        "subscriptionStatus",
+        "subscriptionExpiresAt",
+        "subscriptionPlan",
+        "paymentProvider",
+        "lastPaymentId"
+      ]);
+    }
+
     function ownsClass(classId) {
       return isAdmin() &&
         exists(/databases/$(database)/documents/classes/$(classId)) &&
@@ -20,7 +43,7 @@ service cloud.firestore {
     }
 
     function joinsExistingClass(classId) {
-      return signedIn() &&
+      return hasActiveSubscription() &&
         exists(/databases/$(database)/documents/classes/$(classId)) &&
         request.resource.data.userUid == request.auth.uid &&
         request.resource.data.email == request.auth.token.email &&
@@ -34,27 +57,46 @@ service cloud.firestore {
     }
 
     match /users/{uid} {
-      allow read, write: if isAdmin() || (signedIn() && request.auth.uid == uid);
+      allow read: if isAdmin() || (signedIn() && request.auth.uid == uid);
+      allow create: if isPlatformOwner() || (
+        signedIn() &&
+        request.auth.uid == uid &&
+        !request.resource.data.keys().hasAny([
+          "subscriptionStatus",
+          "subscriptionExpiresAt",
+          "subscriptionPlan",
+          "paymentProvider",
+          "lastPaymentId"
+        ])
+      );
+      allow update: if isPlatformOwner() || (
+        (isAdmin() || (signedIn() && request.auth.uid == uid)) &&
+        protectsSubscriptionFields()
+      );
+      allow delete: if isAdmin() || (signedIn() && request.auth.uid == uid);
     }
 
     match /studentState/{uid} {
-      allow read, write: if isAdmin() || (signedIn() && request.auth.uid == uid);
+      allow read, write: if hasActiveSubscription() &&
+        (isAdmin() || (signedIn() && request.auth.uid == uid));
     }
 
     match /groupPermissions/{groupId} {
       allow read: if signedIn();
-      allow write: if isAdmin();
+      allow write: if hasActiveSubscription() && isAdmin();
     }
 
     match /classPermissions/{classId} {
       allow read: if signedIn();
-      allow write: if ownsClass(classId);
+      allow write: if hasActiveSubscription() && ownsClass(classId);
     }
 
     match /classes/{classId} {
       allow read: if signedIn();
-      allow create: if isAdmin() && request.resource.data.ownerUid == request.auth.uid;
-      allow update, delete: if isAdmin() && resource.data.ownerUid == request.auth.uid;
+      allow create: if hasActiveSubscription() && isAdmin() &&
+        request.resource.data.ownerUid == request.auth.uid;
+      allow update, delete: if hasActiveSubscription() && isAdmin() &&
+        resource.data.ownerUid == request.auth.uid;
     }
 
     match /countries/{document=**} {
@@ -63,56 +105,66 @@ service cloud.firestore {
     }
 
     match /teacherQuestions/{questionId} {
-      allow read: if signedIn() && (
+      allow read: if hasActiveSubscription() && (
         resource.data.ownerUid == request.auth.uid ||
         learnsFrom(resource.data.ownerUid)
       );
-      allow create: if isAdmin() &&
+      allow create: if hasActiveSubscription() && isAdmin() &&
         request.resource.data.ownerUid == request.auth.uid &&
         request.resource.data.options.size() == 4 &&
         request.resource.data.correctOption >= 0 &&
         request.resource.data.correctOption <= 3 &&
         request.resource.data.level in ["diagnostico", "nivel1", "examen"];
-      allow update: if isAdmin() &&
+      allow update: if hasActiveSubscription() && isAdmin() &&
         resource.data.ownerUid == request.auth.uid &&
         request.resource.data.ownerUid == resource.data.ownerUid;
-      allow delete: if isAdmin() && resource.data.ownerUid == request.auth.uid;
+      allow delete: if hasActiveSubscription() && isAdmin() &&
+        resource.data.ownerUid == request.auth.uid;
     }
 
     match /classStudents/{studentId} {
-      allow read: if signedIn();
-      allow create, update: if (isAdmin() && ownsClass(request.resource.data.classId)) ||
-        joinsExistingClass(request.resource.data.classId);
-      allow delete: if (isAdmin() && ownsClass(resource.data.classId)) ||
-        (signedIn() && resource.data.userUid == request.auth.uid);
+      allow read: if hasActiveSubscription();
+      allow create, update: if hasActiveSubscription() && (
+        (isAdmin() && ownsClass(request.resource.data.classId)) ||
+        joinsExistingClass(request.resource.data.classId)
+      );
+      allow delete: if hasActiveSubscription() && (
+        (isAdmin() && ownsClass(resource.data.classId)) ||
+        (signedIn() && resource.data.userUid == request.auth.uid)
+      );
     }
 
     match /classInvites/{inviteId} {
-      allow read: if signedIn() && (
+      allow read: if hasActiveSubscription() && (
         isAdmin() ||
         resource.data.email == request.auth.token.email ||
         resource.data.studentEmail == request.auth.token.email
       );
-      allow create, update: if (isAdmin() && ownsClass(request.resource.data.classId)) ||
+      allow create, update: if hasActiveSubscription() && (
+        (isAdmin() && ownsClass(request.resource.data.classId)) ||
         (signedIn() &&
           resource.data.email == request.auth.token.email &&
           request.resource.data.email == request.auth.token.email &&
-          request.resource.data.status in ["pending", "accepted"]);
-      allow delete: if isAdmin() && ownsClass(resource.data.classId);
+          request.resource.data.status in ["pending", "accepted"])
+      );
+      allow delete: if hasActiveSubscription() && isAdmin() &&
+        ownsClass(resource.data.classId);
     }
 
     match /classMessages/{messageId} {
-      allow read: if signedIn() && (
+      allow read: if hasActiveSubscription() && (
         isAdmin() ||
         resource.data.ownerUid == request.auth.uid ||
         request.auth.token.email in resource.data.toEmails
       );
-      allow create: if isAdmin() && ownsClass(request.resource.data.classId);
-      allow update, delete: if isAdmin() && resource.data.ownerUid == request.auth.uid;
+      allow create: if hasActiveSubscription() && isAdmin() &&
+        ownsClass(request.resource.data.classId);
+      allow update, delete: if hasActiveSubscription() && isAdmin() &&
+        resource.data.ownerUid == request.auth.uid;
     }
 
     match /messageReplies/{replyId} {
-      allow read: if signedIn() && (
+      allow read: if hasActiveSubscription() && (
         isAdmin() ||
         resource.data.ownerUid == request.auth.uid ||
         resource.data.fromUid == request.auth.uid ||
@@ -121,7 +173,7 @@ service cloud.firestore {
           request.auth.token.email in get(/databases/$(database)/documents/classMessages/$(resource.data.messageId)).data.toEmails
         )
       );
-      allow create: if signedIn() &&
+      allow create: if hasActiveSubscription() &&
         exists(/databases/$(database)/documents/classMessages/$(request.resource.data.messageId)) &&
         request.resource.data.fromUid == request.auth.uid &&
         request.resource.data.ownerUid == get(/databases/$(database)/documents/classMessages/$(request.resource.data.messageId)).data.ownerUid &&
@@ -130,17 +182,18 @@ service cloud.firestore {
           request.resource.data.ownerUid == request.auth.uid ||
           request.auth.token.email in get(/databases/$(database)/documents/classMessages/$(request.resource.data.messageId)).data.toEmails
         );
-      allow update, delete: if signedIn() && resource.data.fromUid == request.auth.uid;
+      allow update, delete: if hasActiveSubscription() &&
+        resource.data.fromUid == request.auth.uid;
     }
 
     match /notifications/{notificationId} {
-      allow read: if signedIn() && (
+      allow read: if hasActiveSubscription() && (
         isAdmin() ||
         resource.data.targetUid == request.auth.uid ||
         resource.data.targetEmail == request.auth.token.email
       );
-      allow create: if signedIn();
-      allow update: if signedIn() && (
+      allow create: if hasActiveSubscription();
+      allow update: if hasActiveSubscription() && (
         resource.data.targetUid == request.auth.uid ||
         resource.data.targetEmail == request.auth.token.email
       );
