@@ -27,6 +27,12 @@ service cloud.firestore {
         request.resource.data.ownerUid == get(/databases/$(database)/documents/classes/$(classId)).data.ownerUid;
     }
 
+    function learnsFrom(ownerUid) {
+      return signedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.classOwnerUid == ownerUid;
+    }
+
     match /users/{uid} {
       allow read, write: if isAdmin() || (signedIn() && request.auth.uid == uid);
     }
@@ -54,6 +60,23 @@ service cloud.firestore {
     match /countries/{document=**} {
       allow read: if true;
       allow write: if isAdmin();
+    }
+
+    match /teacherQuestions/{questionId} {
+      allow read: if signedIn() && (
+        resource.data.ownerUid == request.auth.uid ||
+        learnsFrom(resource.data.ownerUid)
+      );
+      allow create: if isAdmin() &&
+        request.resource.data.ownerUid == request.auth.uid &&
+        request.resource.data.options.size() == 4 &&
+        request.resource.data.correctOption >= 0 &&
+        request.resource.data.correctOption <= 3 &&
+        request.resource.data.level in ["diagnostico", "nivel1", "examen"];
+      allow update: if isAdmin() &&
+        resource.data.ownerUid == request.auth.uid &&
+        request.resource.data.ownerUid == resource.data.ownerUid;
+      allow delete: if isAdmin() && resource.data.ownerUid == request.auth.uid;
     }
 
     match /classStudents/{studentId} {

@@ -39,6 +39,7 @@ import {
   where
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 import {
+  deleteObject,
   getDownloadURL,
   getStorage,
   ref as storageRef,
@@ -106,6 +107,9 @@ let internalNotifications = [];
 let internalMessages = [];
 let internalReplies = [];
 let activeMessageId = "";
+let equationInsertTarget = "message";
+let teacherQuestions = [];
+let teacherQuestionImageFile = null;
 let recoverAttemptCount = 0;
 let seccionActual = "inicio";
 let savedRichSelection = null;
@@ -443,9 +447,10 @@ function claveResultado(clave, banco = bancoActivo) {
 }
 
 function metricasIntento(clave, intento) {
-  const preguntas = preguntasPorClave(clave);
-  const total = preguntas.length;
-  const correctas = preguntas.reduce((acc, q, i) => acc + (intento.respuestas?.[i] === q.correcta ? 1 : 0), 0);
+  const preguntas = intento.questionSnapshot?.length ? intento.questionSnapshot : preguntasPorClave(clave);
+  const answerKey = intento.answerKey?.length ? intento.answerKey : preguntas.map(question => question.correcta);
+  const total = Number(intento.total || answerKey.length || preguntas.length);
+  const correctas = answerKey.reduce((acc, correcta, i) => acc + (intento.respuestas?.[i] === correcta ? 1 : 0), 0);
   const incorrectas = total - correctas;
   const tiempoRestante = Math.max(0, intento.restante || 0);
   const tiempoEmpleado = DURACION_SEG - tiempoRestante;
@@ -482,6 +487,32 @@ const NOMBRES_BANCOS = Object.fromEntries(BANCOS_DISPONIBLES.map((banco, idx) =>
   banco,
   idx === 0 ? "Banco principal" : `Reserva ${idx}`
 ]));
+
+/* ════════════════════════════════════════════════════════
+   BANCO MAESTRO EDITABLE SOLO EN CÓDIGO
+   Jhonatan: agrega aquí preguntas globales con imágenes.
+   - level: "diagnostico", "nivel1" o "examen"
+   - bank: "principal" o "reserva1" ... "reserva10"
+   - imageUrl: ruta pública o relativa, por ejemplo "assets/geometria/triangulo-01.png"
+   Estas preguntas tienen prioridad sobre las preguntas base.
+════════════════════════════════════════════════════════ */
+const PREGUNTAS_MAESTRAS_CODIGO = [
+  /*
+  {
+    level: "nivel1",
+    bank: "principal",
+    pregunta: "Observa la figura y determina el valor de \\(x\\).",
+    formula: "",
+    imageUrl: "assets/geometria/ejemplo.png",
+    imageAlt: "Figura geométrica del ejercicio",
+    opciones: ["\\(20^\\circ\\)", "\\(30^\\circ\\)", "\\(40^\\circ\\)", "\\(50^\\circ\\)"],
+    correcta: 1,
+    explicacion: "La explicación completa puede incluir expresiones como \\(x+60^\\circ=90^\\circ\\)."
+  }
+  */
+];
+
+const BASE_QUESTION_CACHE = {};
 const ASESOR_QUICK_REPLIES = [
   ["Resolver pregunta", "Resolver una pregunta"],
   ["Ejercicios tipo examen", "Generar ejercicios tipo examen"],
@@ -731,15 +762,28 @@ function guardarResultadosSesion(syncRemoto = true) {
 
 function guardarResultadoSesion(clave, respuestas, restante) {
   const key = claveResultado(clave);
+  const preguntas = preguntasPorClave(clave).map(clonarPregunta);
   const intento = {
     respuestas,
     restante: Math.max(0, restante),
-    guardado: Date.now()
+    guardado: Date.now(),
+    total: preguntas.length,
+    answerKey: preguntas.map(question => question.correcta),
+    questionSnapshot: preguntas
   };
   const previos = resultadosSesion[key]?.intentos || [];
   resultadosSesion[key] = { intentos: [...previos, intento].slice(0, 2) };
   guardarResultadosSesion();
   notificarIntentoCompletado(clave, previos.length + 1);
+}
+
+function aplicarSnapshotIntento(clave, intento) {
+  if (!intento?.questionSnapshot?.length) return;
+  const questions = intento.questionSnapshot.map(clonarPregunta);
+  const base = claveBaseResultado(clave);
+  if (base === "diagnostico") PREGUNTAS.splice(0, PREGUNTAS.length, ...questions);
+  else if (base === "examen") PREGUNTAS_EXAMEN.splice(0, PREGUNTAS_EXAMEN.length, ...questions);
+  else PREGUNTAS_NIVELES.nivel1 = questions;
 }
 
 function nombreEvaluacion(clave) {
@@ -964,6 +1008,11 @@ function crearTarjetaPregunta(q, tipo = "diag") {
       <p class="q-text">${q.pregunta}</p>
     </div>
     ${q.formula ? `<div class="q-formula">${q.formula}</div>` : ""}
+    ${q.imageUrl ? `
+      <button class="question-image-button" type="button" data-question-image="${escapeHtml(q.imageUrl)}" aria-label="Ampliar imagen de la pregunta">
+        <img src="${escapeHtml(q.imageUrl)}" alt="${escapeHtml(q.imageAlt || "Imagen de apoyo para la pregunta")}" />
+      </button>
+    ` : ""}
     <div class="options-list" id="${prefijo}-opts-${q.id}"></div>
   `;
 
@@ -1325,6 +1374,7 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
         document.getElementById("resultsSectionExamen").hidden = true;
       }
       if (resultadoExamen && !examenIniciado) {
+        aplicarSnapshotIntento("examen", resultadoExamen);
         renderizarExamen();
         segsExamen = resultadoExamen.restante;
         evaluarYMostrarExamen(resultadoExamen.respuestas, { restaurando: true });
@@ -1356,6 +1406,7 @@ function actualizarEstadoDiagnostico() {
   btn.hidden = false;
   const resultadoDiag = resultadoActual("diagnostico");
   if (resultadoDiag && !intentoCoincide("diag", "diagnostico")) {
+    aplicarSnapshotIntento("diagnostico", resultadoDiag);
     renderizarPreguntas();
     segundosRestantes = resultadoDiag.restante;
     evaluarYMostrar(resultadoDiag.respuestas, { restaurando: true });
@@ -1518,16 +1569,20 @@ function renderExamenesHub() {
   const intro = document.getElementById("examsHubIntro");
   const studentHub = document.getElementById("studentExamHub");
   const adminPanel = document.getElementById("adminExamBankPanel");
+  const teacherBuilder = document.getElementById("teacherQuestionBuilder");
   if (modoAdmin) {
     if (locked) locked.hidden = true;
     if (intro) intro.textContent = "Consulta los bancos de preguntas organizados por banco y nivel.";
     studentHub?.classList.add("hidden");
     adminPanel?.classList.remove("hidden");
+    teacherBuilder?.classList.remove("hidden");
     renderAdminExamBanks();
+    initializeTeacherQuestionBuilder();
     return;
   }
   studentHub?.classList.remove("hidden");
   adminPanel?.classList.add("hidden");
+  teacherBuilder?.classList.add("hidden");
   const sinAula = !aulaActualValida();
   if (locked) {
     locked.hidden = !sinAula;
@@ -1580,15 +1635,120 @@ function preguntasNivelMedioParaBanco(banco, aulaId = adminClaseActiva || grupoA
   return PREGUNTAS_MEDIO_GRUPOS[`grupo${idx}`] || PREGUNTAS_MEDIO_GRUPOS.grupo1;
 }
 
+function clonarPregunta(question) {
+  return { ...question, opciones: [...(question.opciones || [])] };
+}
+
+function preguntasBaseNivel(level, bank = bancoActivo) {
+  if (level === "diagnostico") {
+    if (!BASE_QUESTION_CACHE.diagnostico) {
+      BASE_QUESTION_CACHE.diagnostico = PREGUNTAS
+        .filter(question => !question._questionSource)
+        .map(clonarPregunta);
+    }
+    return BASE_QUESTION_CACHE.diagnostico.map(clonarPregunta);
+  }
+  if (level === "examen") {
+    if (!BASE_QUESTION_CACHE.examen) {
+      BASE_QUESTION_CACHE.examen = PREGUNTAS_EXAMEN
+        .filter(question => !question._questionSource)
+        .map(clonarPregunta);
+    }
+    return BASE_QUESTION_CACHE.examen.map(clonarPregunta);
+  }
+  return preguntasNivelMedioParaBanco(bank).map(clonarPregunta);
+}
+
+function textoSeguroConSaltos(value = "") {
+  return escapeHtml(String(value || "").trim()).replace(/\n/g, "<br>");
+}
+
+function convertirPreguntaDoc(data, fallbackId = 1) {
+  const latex = String(data.questionLatex || "").trim();
+  const explanationLatex = String(data.explanationLatex || "").trim();
+  return {
+    id: fallbackId,
+    pregunta: textoSeguroConSaltos(data.questionText || data.pregunta || ""),
+    formula: latex ? `\\[${latex}\\]` : (data.formula || ""),
+    imageUrl: data.imageUrl || "",
+    imageAlt: String(data.imageAlt || "Imagen de apoyo para la pregunta"),
+    opciones: (data.options || data.opciones || []).map(option => textoSeguroConSaltos(option)),
+    correcta: Number(data.correctOption ?? data.correcta ?? 0),
+    explicacion: [
+      textoSeguroConSaltos(data.explanationText || data.explicacion || ""),
+      explanationLatex ? `\\[${explanationLatex}\\]` : ""
+    ].filter(Boolean).join("<br>"),
+    _questionSource: data._questionSource || "teacher"
+  };
+}
+
+function preguntasMaestrasPara(level, bank) {
+  return PREGUNTAS_MAESTRAS_CODIGO
+    .filter(question => question.level === level && (question.bank || "principal") === bank)
+    .map((question, index) => convertirPreguntaDoc({ ...question, _questionSource: "master" }, index + 1));
+}
+
+function preguntasDocentePara(level, bank) {
+  return teacherQuestions
+    .filter(question => question.level === level && question.bank === bank && question.active !== false)
+    .sort((a, b) => Number(a.createdAtMs || 0) - Number(b.createdAtMs || 0))
+    .map((question, index) => convertirPreguntaDoc({ ...question, _questionSource: "teacher" }, index + 1));
+}
+
+function combinarPreguntasNivel(level, bank = bancoActivo) {
+  const limite = level === "diagnostico" ? 15 : 10;
+  const priority = [
+    ...preguntasMaestrasPara(level, bank),
+    ...preguntasDocentePara(level, bank),
+    ...preguntasBaseNivel(level, bank)
+  ];
+  return priority.slice(0, limite).map((question, index) => ({ ...question, id: index + 1 }));
+}
+
+function aplicarPreguntasCombinadas(level, bank = bancoActivo) {
+  const combined = combinarPreguntasNivel(level, bank);
+  if (level === "diagnostico") PREGUNTAS.splice(0, PREGUNTAS.length, ...combined);
+  else if (level === "examen") PREGUNTAS_EXAMEN.splice(0, PREGUNTAS_EXAMEN.length, ...combined);
+  else PREGUNTAS_NIVELES.nivel1 = combined;
+  return combined;
+}
+
+function ownerUidPreguntasActual() {
+  if (modoAdmin) return usuarioActual?.uid || "";
+  return perfilActual?.classOwnerUid || claseActualInfo?.ownerUid || "";
+}
+
+async function cargarPreguntasDocente(ownerUid = ownerUidPreguntasActual()) {
+  if (!ownerUid || !usuarioActual) {
+    teacherQuestions = [];
+    return [];
+  }
+  const snap = await getDocs(query(collection(db, "teacherQuestions"), where("ownerUid", "==", ownerUid)));
+  teacherQuestions = snap.docs.map(questionDoc => ({ id: questionDoc.id, ...questionDoc.data() }));
+  return teacherQuestions;
+}
+
+async function prepararPreguntasActivas(level) {
+  try {
+    await cargarPreguntasDocente();
+  } catch (error) {
+    console.warn("No se pudieron cargar las preguntas personalizadas.", error);
+    teacherQuestions = [];
+  }
+  return aplicarPreguntasCombinadas(level, bancoActivo);
+}
+
 function renderQuestionPreviewList(preguntas) {
   return preguntas.map(q => `
     <details class="accordion-card question-preview">
       <summary>Pregunta ${q.id}</summary>
       <p>${q.pregunta || ""}</p>
       ${q.formula ? `<div class="q-formula">${q.formula}</div>` : ""}
+      ${q.imageUrl ? `<button class="question-image-button" type="button" data-question-image="${escapeHtml(q.imageUrl)}" aria-label="Ampliar imagen"><img src="${escapeHtml(q.imageUrl)}" alt="${escapeHtml(q.imageAlt || "Imagen de la pregunta")}" /></button>` : ""}
       <ol type="A">
         ${q.opciones.map((opcion, idx) => `<li class="${idx === q.correcta ? "correct-answer" : ""}">${opcion}</li>`).join("")}
       </ol>
+      <div class="question-preview-explanation"><strong>Explicación</strong><p>${q.explicacion || "Sin explicación."}</p></div>
     </details>
   `).join("");
 }
@@ -1606,7 +1766,9 @@ function renderAdminExamBanks() {
       <summary>${NOMBRES_BANCOS[banco]}</summary>
       <div class="admin-bank-levels">
         ${niveles.map(([clave, nombre, resolver]) => {
-          const preguntas = resolver(banco);
+          const preguntas = modoAdmin
+            ? combinarPreguntasNivel(clave, banco)
+            : resolver(banco);
           return `
             <details class="accordion-card admin-level-card">
               <summary>${nombre} · ${preguntas.length} preguntas</summary>
@@ -1620,6 +1782,232 @@ function renderAdminExamBanks() {
     </details>
   `).join("");
   reRenderKatex(cont);
+}
+
+function renderQuestionLatexPreview(inputId, previewId) {
+  const input = document.getElementById(inputId);
+  const preview = document.getElementById(previewId);
+  if (!input || !preview) return;
+  const latex = normalizarLatexPlantilla(input.value.trim());
+  if (!latex) {
+    preview.innerHTML = `<span class="mini-help">La ecuación aparecerá aquí.</span>`;
+    return;
+  }
+  preview.textContent = "";
+  try {
+    if (window.katex) katex.render(latex, preview, { throwOnError: false, displayMode: true });
+    else preview.textContent = latex;
+  } catch {
+    preview.textContent = latex;
+  }
+}
+
+function teacherQuestionDraft() {
+  const correctRaw = document.getElementById("teacherCorrectOption")?.value ?? "";
+  return {
+    level: document.getElementById("teacherQuestionLevel")?.value || "diagnostico",
+    bank: document.getElementById("teacherQuestionBank")?.value || "principal",
+    questionText: document.getElementById("teacherQuestionText")?.value.trim() || "",
+    questionLatex: normalizarLatexPlantilla(document.getElementById("teacherQuestionLatex")?.value.trim() || ""),
+    options: ["A", "B", "C", "D"].map(letter => document.getElementById(`teacherOption${letter}`)?.value.trim() || ""),
+    correctOption: correctRaw === "" ? -1 : Number(correctRaw),
+    explanationText: document.getElementById("teacherQuestionExplanation")?.value.trim() || "",
+    explanationLatex: normalizarLatexPlantilla(document.getElementById("teacherExplanationLatex")?.value.trim() || "")
+  };
+}
+
+function validateTeacherQuestion(data) {
+  if (!data.questionText && !data.questionLatex && !teacherQuestionImageFile) {
+    return "Escribe un enunciado, agrega una ecuación o selecciona una imagen.";
+  }
+  if (data.options.some(option => !option)) return "Completa las cuatro opciones de respuesta.";
+  if (!Number.isInteger(data.correctOption) || data.correctOption < 0 || data.correctOption > 3) {
+    return "Selecciona cuál de las cuatro opciones es correcta.";
+  }
+  if (!data.explanationText && !data.explanationLatex) {
+    return "Escribe la explicación que verá el estudiante.";
+  }
+  const allowedImageTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+  if (teacherQuestionImageFile && !allowedImageTypes.includes(teacherQuestionImageFile.type)) {
+    return "Solo puedes adjuntar imágenes JPG, PNG, WebP o GIF.";
+  }
+  if (teacherQuestionImageFile && teacherQuestionImageFile.size > 6 * 1024 * 1024) {
+    return "La imagen debe pesar máximo 6 MB.";
+  }
+  const limit = data.level === "diagnostico" ? 15 : 10;
+  const occupied = preguntasMaestrasPara(data.level, data.bank).length +
+    teacherQuestions.filter(question =>
+      question.level === data.level &&
+      question.bank === data.bank &&
+      question.active !== false
+    ).length;
+  if (occupied >= limit) {
+    return `Este banco ya completó sus ${limit} preguntas personalizadas. Elimina una antes de agregar otra.`;
+  }
+  return "";
+}
+
+function renderTeacherQuestionPreview() {
+  const preview = document.getElementById("teacherQuestionLivePreview");
+  const status = document.getElementById("teacherQuestionStatus");
+  if (!preview) return;
+  const data = teacherQuestionDraft();
+  const validation = validateTeacherQuestion(data);
+  if (validation) {
+    if (status) {
+      status.textContent = validation;
+      status.className = "bank-status error";
+    }
+    return;
+  }
+  const question = convertirPreguntaDoc({
+    ...data,
+    imageUrl: teacherQuestionImageFile ? URL.createObjectURL(teacherQuestionImageFile) : ""
+  }, 1);
+  preview.innerHTML = renderQuestionPreviewList([question]);
+  preview.classList.remove("hidden");
+  reRenderKatex(preview);
+  if (status) status.textContent = "";
+}
+
+function resetTeacherQuestionBuilder() {
+  [
+    "teacherQuestionText",
+    "teacherQuestionLatex",
+    "teacherOptionA",
+    "teacherOptionB",
+    "teacherOptionC",
+    "teacherOptionD",
+    "teacherQuestionExplanation",
+    "teacherExplanationLatex"
+  ].forEach(id => {
+    const field = document.getElementById(id);
+    if (field) field.value = "";
+  });
+  const correct = document.getElementById("teacherCorrectOption");
+  if (correct) correct.value = "";
+  const imageInput = document.getElementById("teacherQuestionImage");
+  if (imageInput) imageInput.value = "";
+  teacherQuestionImageFile = null;
+  document.getElementById("teacherQuestionImagePreview")?.classList.add("hidden");
+  document.getElementById("teacherQuestionLivePreview")?.classList.add("hidden");
+  renderQuestionLatexPreview("teacherQuestionLatex", "teacherQuestionEquationPreview");
+  renderQuestionLatexPreview("teacherExplanationLatex", "teacherExplanationEquationPreview");
+}
+
+async function saveTeacherQuestion() {
+  const status = document.getElementById("teacherQuestionStatus");
+  if (!modoAdmin || !usuarioActual) return;
+  const data = teacherQuestionDraft();
+  const validation = validateTeacherQuestion(data);
+  if (validation) {
+    status.textContent = validation;
+    status.className = "bank-status error";
+    return;
+  }
+  const button = document.getElementById("btnSaveTeacherQuestion");
+  button.disabled = true;
+  status.textContent = "Guardando pregunta...";
+  status.className = "bank-status";
+  const questionRef = doc(collection(db, "teacherQuestions"));
+  let storagePath = "";
+  try {
+    const payload = {
+      ...data,
+      ownerUid: usuarioActual.uid,
+      ownerEmail: (usuarioActual.email || "").toLowerCase(),
+      active: true,
+      imageUrl: "",
+      imagePath: "",
+      createdAt: serverTimestamp(),
+      createdAtMs: Date.now(),
+      updatedAt: serverTimestamp()
+    };
+    await setDoc(questionRef, payload);
+    if (teacherQuestionImageFile) {
+      const extension = teacherQuestionImageFile.name.split(".").pop()?.toLowerCase() || "jpg";
+      storagePath = `teacherQuestions/${usuarioActual.uid}/${questionRef.id}/question.${extension}`;
+      const imageRef = storageRef(storage, storagePath);
+      await uploadBytes(imageRef, teacherQuestionImageFile, {
+        contentType: teacherQuestionImageFile.type,
+        customMetadata: { ownerUid: usuarioActual.uid, questionId: questionRef.id }
+      });
+      const imageUrl = await getDownloadURL(imageRef);
+      await updateDoc(questionRef, { imageUrl, imagePath: storagePath, updatedAt: serverTimestamp() });
+    }
+    await cargarPreguntasDocente(usuarioActual.uid);
+    resetTeacherQuestionBuilder();
+    renderTeacherCreatedQuestions();
+    renderAdminExamBanks();
+    status.textContent = "Pregunta guardada correctamente.";
+    status.className = "bank-status success";
+  } catch (error) {
+    console.error("No se pudo guardar la pregunta.", error);
+    if (storagePath) await deleteObject(storageRef(storage, storagePath)).catch(() => {});
+    await deleteDoc(questionRef).catch(() => {});
+    status.textContent = "No se pudo guardar la pregunta. Revisa las reglas de Firebase e inténtalo de nuevo.";
+    status.className = "bank-status error";
+  } finally {
+    button.disabled = false;
+  }
+}
+
+function renderTeacherCreatedQuestions() {
+  const container = document.getElementById("teacherCreatedQuestions");
+  if (!container || !modoAdmin) return;
+  if (!teacherQuestions.length) {
+    container.innerHTML = `<p class="mini-help">Todavía no has creado preguntas propias.</p>`;
+    return;
+  }
+  container.innerHTML = teacherQuestions
+    .sort((a, b) => Number(b.createdAtMs || 0) - Number(a.createdAtMs || 0))
+    .map(question => {
+      const normalized = convertirPreguntaDoc(question, 1);
+      return `
+        <article class="teacher-created-question">
+          <div>
+            <span>${escapeHtml(NOMBRES_BANCOS[question.bank] || question.bank)} · ${escapeHtml(NIVELES_META[question.level]?.titulo || (question.level === "diagnostico" ? "Diagnóstico" : "Examen Final"))}</span>
+            <strong>${normalized.pregunta || "Pregunta con contenido visual"}</strong>
+          </div>
+          ${question.imageUrl ? `<img src="${escapeHtml(question.imageUrl)}" alt="Imagen de la pregunta" />` : ""}
+          <button class="btn btn-outline" type="button" data-delete-teacher-question="${question.id}">Eliminar</button>
+        </article>
+      `;
+    }).join("");
+}
+
+async function deleteTeacherQuestion(questionId) {
+  const question = teacherQuestions.find(item => item.id === questionId);
+  if (!question || !confirm("¿Deseas eliminar esta pregunta de forma permanente?")) return;
+  try {
+    if (question.imagePath) await deleteObject(storageRef(storage, question.imagePath)).catch(() => {});
+    await deleteDoc(doc(db, "teacherQuestions", questionId));
+    teacherQuestions = teacherQuestions.filter(item => item.id !== questionId);
+    renderTeacherCreatedQuestions();
+    renderAdminExamBanks();
+  } catch (error) {
+    console.error("No se pudo eliminar la pregunta.", error);
+    alert("No se pudo eliminar la pregunta. Revisa los permisos e intenta de nuevo.");
+  }
+}
+
+async function initializeTeacherQuestionBuilder() {
+  const builder = document.getElementById("teacherQuestionBuilder");
+  if (!builder || !modoAdmin || !usuarioActual) return;
+  builder.classList.remove("hidden");
+  const bankSelect = document.getElementById("teacherQuestionBank");
+  if (bankSelect && !bankSelect.options.length) {
+    bankSelect.innerHTML = BANCOS_DISPONIBLES
+      .map(bank => `<option value="${bank}">${NOMBRES_BANCOS[bank]}</option>`)
+      .join("");
+  }
+  try {
+    await cargarPreguntasDocente(usuarioActual.uid);
+    renderTeacherCreatedQuestions();
+    renderAdminExamBanks();
+  } catch (error) {
+    console.warn("No se pudieron consultar las preguntas del profesor.", error);
+  }
 }
 
 function continuarSinAula() {
@@ -2632,7 +3020,15 @@ function renderEquationPreview() {
   }
 }
 
-function abrirEditorEcuacion() {
+function abrirEditorEcuacion(target = "message") {
+  equationInsertTarget = target;
+  const targetInput = target === "teacher-question"
+    ? document.getElementById("teacherQuestionLatex")
+    : target === "teacher-explanation"
+      ? document.getElementById("teacherExplanationLatex")
+      : null;
+  const equationInput = document.getElementById("equationInput");
+  if (targetInput && equationInput) equationInput.value = targetInput.value || "";
   document.getElementById("equationOverlay")?.classList.remove("hidden");
   document.getElementById("equationInput")?.focus();
   renderEquationPreview();
@@ -2644,6 +3040,21 @@ function insertarEcuacion(displayMode = false) {
   if (!latex) {
     renderEquationPreview();
     input?.focus();
+    return;
+  }
+  if (equationInsertTarget === "teacher-question" || equationInsertTarget === "teacher-explanation") {
+    const targetId = equationInsertTarget === "teacher-question"
+      ? "teacherQuestionLatex"
+      : "teacherExplanationLatex";
+    const previewId = equationInsertTarget === "teacher-question"
+      ? "teacherQuestionEquationPreview"
+      : "teacherExplanationEquationPreview";
+    const target = document.getElementById(targetId);
+    if (target) target.value = latex;
+    renderQuestionLatexPreview(targetId, previewId);
+    document.getElementById("equationOverlay")?.classList.add("hidden");
+    equationInsertTarget = "message";
+    target?.focus();
     return;
   }
   const temp = document.createElement(displayMode ? "div" : "span");
@@ -2724,11 +3135,12 @@ actualizarProgreso();
 /* ────────────────────────────────────────────────────
    10. BOTÓN INICIAR DIAGNÓSTICO
 ──────────────────────────────────────────────────── */
-document.getElementById("btnIniciarDiag").addEventListener("click", () => {
+document.getElementById("btnIniciarDiag").addEventListener("click", async () => {
   if (!puedeIniciarIntento("diagnostico")) {
     alert("Ya usaste los 2 intentos permitidos para el diagnóstico.");
     return;
   }
+  await prepararPreguntasActivas("diagnostico");
   iniciarIntentoActivo("diag", "diagnostico", PREGUNTAS.length);
   // Generar preguntas en el momento de iniciar
   renderizarPreguntas();
@@ -3146,6 +3558,7 @@ function abrirNivel(clave) {
     document.getElementById("resultsSectionNivel").hidden = !nivelCompletadoVisible;
     if (!nivelIniciado && !nivelCompletadoVisible) resetTimerNivel();
     if (resultadoNivel && !nivelIniciado) {
+      aplicarSnapshotIntento(nivelActual, resultadoNivel);
       renderizarNivel();
       segsNivel = resultadoNivel.restante;
       evaluarYMostrarNivel(resultadoNivel.respuestas, { restaurando: true });
@@ -3306,11 +3719,12 @@ document.getElementById("btnNivelAnterior").addEventListener("click", () => {
   window.scrollTo({ top: 0, behavior: "smooth" });
 });
 
-document.getElementById("btnIniciarNivel").addEventListener("click", () => {
+document.getElementById("btnIniciarNivel").addEventListener("click", async () => {
   if (!puedeIniciarIntento(nivelActual)) {
     alert("Ya usaste los 2 intentos permitidos para este nivel.");
     return;
   }
+  await prepararPreguntasActivas("nivel1");
   iniciarIntentoActivo("nivel", nivelActual, PREGUNTAS_NIVELES[nivelActual].length);
   nivelIniciado = true;
   nivelCompletadoVisible = false;
@@ -4057,7 +4471,7 @@ async function prepararSesionAutenticada() {
   iniciarListenersComunicacion();
   activarNav(seccionRestaurable());
     actualizarEstadoDiagnostico();
-    restaurarIntentoActivo();
+    await restaurarIntentoActivo();
     return;
   }
 
@@ -5654,9 +6068,15 @@ document.getElementById("emojiGrid")?.addEventListener("click", e => {
   document.getElementById("emojiOverlay")?.classList.add("hidden");
 });
 document.getElementById("emojiSearch")?.addEventListener("input", e => renderEmojiPicker(e.target.value));
-document.getElementById("btnCloseEquationEditor")?.addEventListener("click", () => document.getElementById("equationOverlay")?.classList.add("hidden"));
+document.getElementById("btnCloseEquationEditor")?.addEventListener("click", () => {
+  document.getElementById("equationOverlay")?.classList.add("hidden");
+  equationInsertTarget = "message";
+});
 document.getElementById("equationOverlay")?.addEventListener("pointerdown", e => {
-  if (e.target.id === "equationOverlay") e.currentTarget.classList.add("hidden");
+  if (e.target.id === "equationOverlay") {
+    e.currentTarget.classList.add("hidden");
+    equationInsertTarget = "message";
+  }
 });
 document.getElementById("equationInput")?.addEventListener("input", renderEquationPreview);
 document.getElementById("equationPalette")?.addEventListener("click", e => {
@@ -5669,6 +6089,57 @@ document.getElementById("equationPalette")?.addEventListener("click", e => {
 });
 document.getElementById("btnInsertInlineEquation")?.addEventListener("click", () => insertarEcuacion(false));
 document.getElementById("btnInsertBlockEquation")?.addEventListener("click", () => insertarEcuacion(true));
+document.getElementById("btnBuildQuestionEquation")?.addEventListener("click", () => abrirEditorEcuacion("teacher-question"));
+document.getElementById("btnBuildExplanationEquation")?.addEventListener("click", () => abrirEditorEcuacion("teacher-explanation"));
+document.getElementById("teacherQuestionLatex")?.addEventListener("input", () => {
+  renderQuestionLatexPreview("teacherQuestionLatex", "teacherQuestionEquationPreview");
+});
+document.getElementById("teacherExplanationLatex")?.addEventListener("input", () => {
+  renderQuestionLatexPreview("teacherExplanationLatex", "teacherExplanationEquationPreview");
+});
+document.getElementById("teacherQuestionImage")?.addEventListener("change", event => {
+  const file = event.target.files?.[0] || null;
+  const status = document.getElementById("teacherQuestionStatus");
+  const allowedImageTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+  if (file && (!allowedImageTypes.includes(file.type) || file.size > 6 * 1024 * 1024)) {
+    teacherQuestionImageFile = null;
+    event.target.value = "";
+    status.textContent = "Selecciona una imagen JPG, PNG, WebP o GIF de máximo 6 MB.";
+    status.className = "bank-status error";
+    return;
+  }
+  teacherQuestionImageFile = file;
+  const preview = document.getElementById("teacherQuestionImagePreview");
+  const image = preview?.querySelector("img");
+  if (file && preview && image) {
+    image.src = URL.createObjectURL(file);
+    preview.classList.remove("hidden");
+  } else {
+    preview?.classList.add("hidden");
+  }
+});
+document.getElementById("btnRemoveTeacherQuestionImage")?.addEventListener("click", () => {
+  teacherQuestionImageFile = null;
+  const input = document.getElementById("teacherQuestionImage");
+  if (input) input.value = "";
+  document.getElementById("teacherQuestionImagePreview")?.classList.add("hidden");
+});
+document.getElementById("btnPreviewTeacherQuestion")?.addEventListener("click", renderTeacherQuestionPreview);
+document.getElementById("btnSaveTeacherQuestion")?.addEventListener("click", saveTeacherQuestion);
+document.getElementById("teacherCreatedQuestions")?.addEventListener("click", event => {
+  const button = event.target.closest("[data-delete-teacher-question]");
+  if (button) deleteTeacherQuestion(button.dataset.deleteTeacherQuestion);
+});
+document.addEventListener("click", event => {
+  const button = event.target.closest("[data-question-image]");
+  if (!button) return;
+  const overlay = document.getElementById("photoOverlay");
+  const image = document.getElementById("photoFullImage");
+  if (!overlay || !image) return;
+  image.src = button.dataset.questionImage;
+  overlay.classList.add("question-image-mode");
+  overlay.classList.remove("hidden");
+});
 document.getElementById("messageBody")?.addEventListener("input", () => {
   const status = document.getElementById("messageComposeStatus");
   if (status && status.textContent === "Mensaje enviado.") status.textContent = "";
@@ -5723,10 +6194,14 @@ document.getElementById("btnRemovePhoto")?.addEventListener("click", async () =>
   document.getElementById("profileStatus").textContent = "Foto eliminada.";
 });
 document.getElementById("profilePhotoPreview")?.addEventListener("click", () => {
+  document.getElementById("photoOverlay")?.classList.remove("question-image-mode");
   document.getElementById("photoFullImage").src = document.getElementById("profilePhotoPreview").src;
   document.getElementById("photoOverlay").classList.remove("hidden");
 });
-document.getElementById("btnClosePhotoOverlay")?.addEventListener("click", () => document.getElementById("photoOverlay").classList.add("hidden"));
+document.getElementById("btnClosePhotoOverlay")?.addEventListener("click", () => {
+  document.getElementById("photoOverlay")?.classList.add("hidden");
+  document.getElementById("photoOverlay")?.classList.remove("question-image-mode");
+});
 document.getElementById("btnSendPhoneCode")?.addEventListener("click", enviarCodigoTelefono);
 document.getElementById("btnVerifyPhoneCode")?.addEventListener("click", verificarCodigoTelefono);
 document.getElementById("btnSettingsChangeGroup")?.addEventListener("click", estudianteCambiarClase);
@@ -6169,11 +6644,12 @@ function reRenderKatex(el) {
 }
 
 /** Botón iniciar examen final */
-document.getElementById("btnIniciarExamen").addEventListener("click", () => {
+document.getElementById("btnIniciarExamen").addEventListener("click", async () => {
   if (!puedeIniciarIntento("examen")) {
     alert("Ya usaste los 2 intentos permitidos para el examen final.");
     return;
   }
+  await prepararPreguntasActivas("examen");
   iniciarIntentoActivo("examen", "examen", PREGUNTAS_EXAMEN.length);
   examenIniciado = true;
   examenCompletado = false;
@@ -6340,7 +6816,7 @@ document.getElementById("btnAllExamen").addEventListener("click", () => {
   document.getElementById("feedbackListExamen").scrollIntoView({ behavior: "smooth" });
 });
 
-function restaurarIntentoActivo() {
+async function restaurarIntentoActivo() {
   if (!intentoActivo) return;
   if (Date.now() - intentoActivo.ultimaActividad > INACTIVIDAD_MS) {
     limpiarIntentoActivo();
@@ -6350,6 +6826,7 @@ function restaurarIntentoActivo() {
   const restante = Math.max(0, Math.ceil((intentoActivo.vence - Date.now()) / 1000));
 
   if (intentoActivo.tipo === "diag") {
+    await prepararPreguntasActivas("diagnostico");
     activarNav("diagnostico");
     renderizarPreguntas();
     aplicarRespuestasGuardadas("diag", "diagnostico", PREGUNTAS);
@@ -6363,6 +6840,7 @@ function restaurarIntentoActivo() {
   }
 
   if (intentoActivo.tipo === "nivel" && PREGUNTAS_NIVELES[intentoActivo.clave]) {
+    await prepararPreguntasActivas("nivel1");
     nivelActual = intentoActivo.clave;
     activarNav(nivelActual);
     abrirNivel(nivelActual);
@@ -6381,6 +6859,7 @@ function restaurarIntentoActivo() {
   }
 
   if (intentoActivo.tipo === "examen") {
+    await prepararPreguntasActivas("examen");
     activarNav("examen");
     examenIniciado = true;
     examenCompletado = false;

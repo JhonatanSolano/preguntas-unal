@@ -21,6 +21,29 @@ service firebase.storage {
           ]);
     }
 
+    function validQuestionImage() {
+      return request.resource == null ||
+        (request.resource.size < 6 * 1024 * 1024 &&
+          request.resource.contentType in [
+            "image/jpeg",
+            "image/png",
+            "image/webp",
+            "image/gif"
+          ]);
+    }
+
+    function teacherQuestion(questionId) {
+      return firestore.get(/databases/(default)/documents/teacherQuestions/$(questionId)).data;
+    }
+
+    function canReadTeacherQuestion(questionId) {
+      return signedIn() && (
+        teacherQuestion(questionId).ownerUid == request.auth.uid ||
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.classOwnerUid ==
+          teacherQuestion(questionId).ownerUid
+      );
+    }
+
     function message(messageId) {
       return firestore.get(/databases/(default)/documents/classMessages/$(messageId)).data;
     }
@@ -56,6 +79,14 @@ service firebase.storage {
       allow write: if signedIn() &&
         reply(replyId).fromUid == request.auth.uid &&
         validAttachment();
+    }
+
+    match /teacherQuestions/{ownerUid}/{questionId}/{fileName} {
+      allow read: if canReadTeacherQuestion(questionId);
+      allow write: if signedIn() &&
+        request.auth.uid == ownerUid &&
+        teacherQuestion(questionId).ownerUid == request.auth.uid &&
+        validQuestionImage();
     }
 
     match /{allPaths=**} {

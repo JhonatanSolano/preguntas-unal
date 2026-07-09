@@ -10,7 +10,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="style.css?v=20260708-3" />
+  <link rel="stylesheet" href="style.css?v=20260709-1" />
 </head>
 <body class="group-locked">
   <div class="welcome-splash hidden" id="welcomeSplash" aria-live="polite">
@@ -553,6 +553,99 @@
         </button>
       </div>
       <div class="admin-exam-bank-panel hidden" id="adminExamBankPanel"></div>
+      <section class="teacher-question-builder hidden" id="teacherQuestionBuilder">
+        <details class="accordion-card teacher-builder-card">
+          <summary>Crear pregunta desde cero</summary>
+          <p>
+            La pregunta se agregará al banco y nivel seleccionados. Si el banco aún no completa su cupo,
+            se combinará con preguntas base para conservar 15 preguntas en diagnóstico y 10 en los demás niveles.
+          </p>
+
+          <div class="teacher-question-grid">
+            <label>Nivel
+              <select id="teacherQuestionLevel" class="admin-input">
+                <option value="diagnostico">Diagnóstico</option>
+                <option value="nivel1">Nivel Medio</option>
+                <option value="examen">Examen Final</option>
+              </select>
+            </label>
+            <label>Banco
+              <select id="teacherQuestionBank" class="admin-input"></select>
+            </label>
+          </div>
+
+          <label>Enunciado
+            <textarea id="teacherQuestionText" class="admin-input" rows="4" placeholder="Escribe el enunciado completo de la pregunta"></textarea>
+          </label>
+
+          <div class="question-equation-editor">
+            <div class="question-builder-heading">
+              <strong>Ecuación del enunciado</strong>
+              <button class="btn btn-outline" id="btnBuildQuestionEquation" type="button">Construir visualmente</button>
+            </div>
+            <input id="teacherQuestionLatex" class="admin-input" type="text" placeholder="Opcional: escribe LaTeX o usa el constructor visual" />
+            <div class="equation-preview compact" id="teacherQuestionEquationPreview">
+              <span class="mini-help">La ecuación aparecerá aquí.</span>
+            </div>
+          </div>
+
+          <label class="teacher-image-picker">Imagen del ejercicio (opcional)
+            <input id="teacherQuestionImage" type="file" accept="image/jpeg,image/png,image/webp,image/gif" />
+          </label>
+          <div class="teacher-question-image-preview hidden" id="teacherQuestionImagePreview">
+            <img alt="Vista previa de la imagen de la pregunta" />
+            <button class="btn btn-outline" id="btnRemoveTeacherQuestionImage" type="button">Eliminar imagen</button>
+          </div>
+
+          <fieldset class="teacher-options-fieldset">
+            <legend>Opciones de respuesta</legend>
+            <div class="teacher-options-grid">
+              <label><span>A</span><input id="teacherOptionA" class="admin-input" type="text" placeholder="Opción A" /></label>
+              <label><span>B</span><input id="teacherOptionB" class="admin-input" type="text" placeholder="Opción B" /></label>
+              <label><span>C</span><input id="teacherOptionC" class="admin-input" type="text" placeholder="Opción C" /></label>
+              <label><span>D</span><input id="teacherOptionD" class="admin-input" type="text" placeholder="Opción D" /></label>
+            </div>
+          </fieldset>
+
+          <label>Respuesta correcta
+            <select id="teacherCorrectOption" class="admin-input">
+              <option value="">Selecciona la opción correcta</option>
+              <option value="0">A</option>
+              <option value="1">B</option>
+              <option value="2">C</option>
+              <option value="3">D</option>
+            </select>
+          </label>
+
+          <label>Explicación que verá el estudiante
+            <textarea id="teacherQuestionExplanation" class="admin-input" rows="5" placeholder="Explica el procedimiento y por qué esa opción es correcta"></textarea>
+          </label>
+
+          <div class="question-equation-editor">
+            <div class="question-builder-heading">
+              <strong>Ecuación adicional para la explicación</strong>
+              <button class="btn btn-outline" id="btnBuildExplanationEquation" type="button">Construir visualmente</button>
+            </div>
+            <input id="teacherExplanationLatex" class="admin-input" type="text" placeholder="Opcional: expresión matemática de la explicación" />
+            <div class="equation-preview compact" id="teacherExplanationEquationPreview">
+              <span class="mini-help">La ecuación aparecerá aquí.</span>
+            </div>
+          </div>
+
+          <div class="teacher-question-actions">
+            <button class="btn btn-outline" id="btnPreviewTeacherQuestion" type="button">Vista previa</button>
+            <button class="btn btn-primary" id="btnSaveTeacherQuestion" type="button">Guardar pregunta</button>
+          </div>
+          <p class="bank-status" id="teacherQuestionStatus"></p>
+          <div class="teacher-question-live-preview hidden" id="teacherQuestionLivePreview"></div>
+        </details>
+
+        <details class="accordion-card teacher-builder-card">
+          <summary>Mis preguntas creadas</summary>
+          <p>Consulta o elimina las preguntas que has agregado a tus bancos.</p>
+          <div id="teacherCreatedQuestions" class="teacher-created-question-list"></div>
+        </details>
+      </section>
     </div>
   </main>
 
@@ -1424,6 +1517,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260708-3"></script>
+  <script type="module" src="script.js?v=20260709-1"></script>
 </body>
 </html>
