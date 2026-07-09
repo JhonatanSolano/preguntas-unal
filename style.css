@@ -539,7 +539,8 @@ body.admin-mode .admin-exit-dock {
   box-shadow: var(--shadow-sm);
   flex: 0 0 auto;
 }
-.section-back {
+.section-back,
+.section-forward {
   display: grid;
   place-items: center;
   flex: 0 0 auto;
@@ -554,12 +555,14 @@ body.admin-mode .admin-exit-dock {
   cursor: pointer;
   box-shadow: var(--shadow-sm);
 }
-.section-back:hover:not(:disabled) {
+.section-back:hover:not(:disabled),
+.section-forward:hover:not(:disabled) {
   color: #fff;
   border-color: var(--c-teal-deep);
   background: var(--c-teal-deep);
 }
-.section-back:disabled {
+.section-back:disabled,
+.section-forward:disabled {
   opacity: .38;
   cursor: not-allowed;
 }

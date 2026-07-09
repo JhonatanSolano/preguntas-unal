@@ -1,6 +1,7 @@
 const admin = require("firebase-admin");
 const { onRequest } = require("firebase-functions/v2/https");
 const { onDocumentWritten } = require("firebase-functions/v2/firestore");
+const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { defineSecret } = require("firebase-functions/params");
 
 admin.initializeApp();
@@ -298,7 +299,7 @@ exports.sendInternalNotificationEmail = onDocumentWritten({
 }, async event => {
   const before = event.data.before.exists ? event.data.before.data() : null;
   const after = event.data.after.exists ? event.data.after.data() : null;
-  if (!after || before || after.emailSentAt || after.type === "class-message") return;
+  if (!after || before || after.emailSentAt || ["class-message", "billing-reminder"].includes(after.type)) return;
   const targetEmail = after.targetEmail;
   if (!targetEmail) return;
   const users = await admin.firestore().collection("users").where("email", "==", targetEmail).limit(1).get();
@@ -320,4 +321,89 @@ exports.sendInternalNotificationEmail = onDocumentWritten({
     emailSentAt: admin.firestore.FieldValue.serverTimestamp(),
     emailStatus: "sent"
   }, { merge: true });
+});
+
+exports.sendSubscriptionRenewalReminders = onSchedule({
+  region: "us-central1",
+  schedule: "0 8 * * *",
+  timeZone: "America/Bogota",
+  secrets: [resendApiKey],
+  retryCount: 2
+}, async () => {
+  const db = admin.firestore();
+  const now = Date.now();
+  const windowStart = admin.firestore.Timestamp.fromMillis(now + (60 * 60 * 1000 * 60));
+  const windowEnd = admin.firestore.Timestamp.fromMillis(now + (60 * 60 * 1000 * 84));
+  const usersSnap = await db.collection("users")
+    .where("subscriptionNextBillingAt", ">=", windowStart)
+    .where("subscriptionNextBillingAt", "<", windowEnd)
+    .get();
+
+  for (const userDoc of usersSnap.docs) {
+    const user = userDoc.data();
+    if (
+      user.subscriptionStatus !== "active" ||
+      user.subscriptionAutoRenew === false ||
+      user.subscriptionPaymentPaused === true ||
+      !user.email
+    ) continue;
+
+    const billingDate = user.subscriptionNextBillingAt?.toDate?.();
+    if (!billingDate) continue;
+    const billingKey = billingDate.toISOString().slice(0, 10);
+    const logRef = db.collection("billingReminderLog").doc(`${userDoc.id}_${billingKey}`);
+    if ((await logRef.get()).exists) continue;
+
+    const formattedDate = new Intl.DateTimeFormat("es-CO", {
+      timeZone: "America/Bogota",
+      day: "numeric",
+      month: "long",
+      year: "numeric"
+    }).format(billingDate);
+    const amount = new Intl.NumberFormat("es-CO", {
+      style: "currency",
+      currency: "COP",
+      maximumFractionDigits: 0
+    }).format(Number(user.subscriptionAmountCOP || 0));
+    const plan = user.subscriptionPlan || "tu plan actual";
+    const html = `
+      <div style="font-family:Arial,sans-serif;line-height:1.6;color:#162838;max-width:640px;margin:auto;padding:24px">
+        <h1 style="color:#06345f">Tu suscripción se renovará pronto</h1>
+        <p>Hola ${escapeHtml(user.displayName || "")},</p>
+        <p>Este es un aviso informativo: el <strong>${escapeHtml(formattedDate)}</strong> se realizará el cobro automático de <strong>${escapeHtml(amount)}</strong> correspondiente a <strong>${escapeHtml(plan)}</strong>.</p>
+        <p>El cobro se realizará mediante tu forma de pago principal registrada.</p>
+        <div style="padding:16px;background:#fff6e5;border-left:4px solid #d99a20;margin:22px 0">
+          <strong>¿No deseas continuar?</strong>
+          <p style="margin-bottom:0">Entra a Matemáticas En Tu Bolsillo antes del día de cobro, abre <strong>Facturación</strong> y suspende o cancela la renovación de tu suscripción.</p>
+        </div>
+        <p style="margin:28px 0">
+          <a href="https://matematicasentubolsillo.com/" style="background:#0d9488;color:white;padding:14px 22px;border-radius:999px;text-decoration:none;font-weight:bold">Entrar a la app</a>
+        </p>
+        <p>Si ya suspendiste o cancelaste la renovación, puedes ignorar este mensaje.</p>
+        <p style="font-size:12px;color:#66788a">© Todos los derechos reservados. Matemáticas En Tu Bolsillo.</p>
+      </div>`;
+
+    await sendEmail({
+      to: user.email,
+      subject: `Aviso de renovación: cobro programado para el ${formattedDate}`,
+      html
+    });
+    await logRef.set({
+      uid: userDoc.id,
+      email: user.email,
+      billingDate: user.subscriptionNextBillingAt,
+      sentAt: admin.firestore.FieldValue.serverTimestamp(),
+      channel: "email",
+      status: "sent"
+    });
+    await db.collection("notifications").add({
+      targetUid: userDoc.id,
+      targetEmail: user.email,
+      type: "billing-reminder",
+      title: "Tu suscripción se renovará pronto",
+      body: `El ${formattedDate} se cobrará ${amount}. Si no deseas continuar, cancela la renovación desde Facturación antes del cobro.`,
+      read: false,
+      createdAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+  }
 });

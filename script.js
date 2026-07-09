@@ -123,6 +123,7 @@ let messageHistoryClassId = "";
 let recoverAttemptCount = 0;
 let seccionActual = "inicio";
 let historialSecciones = [];
+let historialAdelante = [];
 let savedRichSelection = null;
 const attachmentPreviewUrls = new Map();
 const EMOJIS_MENSAJE = [
@@ -1751,10 +1752,16 @@ function confirmarCambioSeccion(secDestino = "") {
 }
 
 function actualizarBotonVolver() {
-  const button = document.getElementById("btnSectionBack");
-  if (!button) return;
-  button.disabled = historialSecciones.length === 0;
-  button.setAttribute("aria-disabled", String(button.disabled));
+  const backButton = document.getElementById("btnSectionBack");
+  const forwardButton = document.getElementById("btnSectionForward");
+  if (backButton) {
+    backButton.disabled = historialSecciones.length === 0;
+    backButton.setAttribute("aria-disabled", String(backButton.disabled));
+  }
+  if (forwardButton) {
+    forwardButton.disabled = historialAdelante.length === 0;
+    forwardButton.setAttribute("aria-disabled", String(forwardButton.disabled));
+  }
 }
 
 function activarNav(sec, options = {}) {
@@ -1791,6 +1798,7 @@ function activarNav(sec, options = {}) {
     if (permitidas.has(seccionActual)) {
       historialSecciones.push(seccionActual);
       historialSecciones = historialSecciones.slice(-30);
+      historialAdelante = [];
     }
   }
   document.querySelectorAll(".nav-btn").forEach(b => b.classList.toggle("active", b.dataset.section === sec));
@@ -1803,8 +1811,31 @@ function volverSeccionAnterior() {
   while (historialSecciones.length) {
     const destino = historialSecciones.pop();
     if (!destino || destino === seccionActual) continue;
-    if (activarNav(destino, { fromHistory: true })) return;
+    const origen = seccionActual;
+    if (activarNav(destino, { fromHistory: true })) {
+      historialAdelante.push(origen);
+      historialAdelante = historialAdelante.slice(-30);
+      actualizarBotonVolver();
+      return;
+    }
     historialSecciones.push(destino);
+    break;
+  }
+  actualizarBotonVolver();
+}
+
+function avanzarSeccionSiguiente() {
+  while (historialAdelante.length) {
+    const destino = historialAdelante.pop();
+    if (!destino || destino === seccionActual) continue;
+    const origen = seccionActual;
+    if (activarNav(destino, { fromHistory: true })) {
+      historialSecciones.push(origen);
+      historialSecciones = historialSecciones.slice(-30);
+      actualizarBotonVolver();
+      return;
+    }
+    historialAdelante.push(destino);
     break;
   }
   actualizarBotonVolver();
@@ -6903,6 +6934,7 @@ document.getElementById("btnDrawerToggle")?.addEventListener("click", () => {
   else cerrarDrawer();
 });
 document.getElementById("btnSectionBack")?.addEventListener("click", volverSeccionAnterior);
+document.getElementById("btnSectionForward")?.addEventListener("click", avanzarSeccionSiguiente);
 document.getElementById("btnDrawerClose")?.addEventListener("click", cerrarDrawer);
 document.getElementById("drawerBackdrop")?.addEventListener("click", cerrarDrawer);
 document.getElementById("btnDrawerHome")?.addEventListener("click", () => {
@@ -6988,6 +7020,7 @@ onAuthStateChanged(auth, async user => {
   usuarioActual = user;
   if (!user) {
     historialSecciones = [];
+    historialAdelante = [];
     seccionActual = "inicio";
     actualizarBotonVolver();
     if (unsubscribeAdminStudents) unsubscribeAdminStudents();
