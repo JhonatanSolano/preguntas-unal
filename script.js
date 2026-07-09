@@ -1335,7 +1335,7 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
   btn.addEventListener("click", () => {
     const sec = btn.dataset.section;
     if (!sec) return;
-    if (!confirmarSalidaMensajes(sec)) return;
+    if (!confirmarCambioSeccion(sec)) return;
     const activa = pruebaActivaActual();
     if (activa && sec !== activa && sec !== "soporte") {
       activarNav(activa);
@@ -1422,6 +1422,7 @@ function mostrarSeccion(sec) {
   cerrarAccordions();
   if (sec !== "perfil") limpiarVerificacionTelefonoTemporal();
   if (sec !== "mensajes") limpiarBorradorMensajeProfesor();
+  if (sec !== "examenes") limpiarBorradorPreguntaProfesor();
   document.getElementById("sectionInicio").classList.toggle("hidden", sec !== "inicio");
   document.getElementById("sectionExamenes").classList.toggle("hidden", sec !== "examenes");
   document.getElementById("sectionDiagnostico").classList.toggle("hidden", sec !== "diagnostico");
@@ -1476,8 +1477,43 @@ function confirmarSalidaMensajes(secDestino = "") {
   return confirm("Tienes un mensaje sin enviar. Si sales de Mensajes se borrará el asunto, el contenido y los adjuntos escritos. ¿Deseas salir de todos modos?");
 }
 
+function hayBorradorPreguntaProfesor() {
+  if (!modoAdmin) return false;
+  const ids = [
+    "teacherQuestionText",
+    "teacherOptionA",
+    "teacherOptionB",
+    "teacherOptionC",
+    "teacherOptionD",
+    "teacherQuestionExplanation"
+  ];
+  const hasText = ids.some(id => document.getElementById(id)?.value.trim());
+  const hasCorrectAnswer = !!document.getElementById("teacherCorrectOption")?.value;
+  return !!(hasText || hasCorrectAnswer || teacherQuestionImageFile);
+}
+
+function limpiarBorradorPreguntaProfesor() {
+  if (!modoAdmin || !hayBorradorPreguntaProfesor()) return;
+  resetTeacherQuestionBuilder();
+}
+
+function confirmarSalidaPreguntaProfesor(secDestino = "") {
+  if (
+    seccionActual !== "examenes" ||
+    secDestino === "examenes" ||
+    !hayBorradorPreguntaProfesor()
+  ) return true;
+  return confirm(
+    "Tienes una pregunta sin guardar. Si sales de Exámenes, el enunciado, las opciones, la explicación, las ecuaciones y la imagen seleccionada se borrarán permanentemente. ¿Deseas salir de todos modos?"
+  );
+}
+
+function confirmarCambioSeccion(secDestino = "") {
+  return confirmarSalidaMensajes(secDestino) && confirmarSalidaPreguntaProfesor(secDestino);
+}
+
 function activarNav(sec) {
-  if (!confirmarSalidaMensajes(sec)) return false;
+  if (!confirmarCambioSeccion(sec)) return false;
   if (!modoAdmin && !aulaActualValida() && ["diagnostico", "nivel1", "examen"].includes(sec)) {
     sec = "examenes";
     setTimeout(() => {
@@ -5934,7 +5970,7 @@ document.getElementById("claseCodigo")?.addEventListener("keydown", (e) => {
 });
 
 async function salirApp() {
-  if (!confirmarSalidaMensajes("salir")) return;
+  if (!confirmarCambioSeccion("salir")) return;
   localStorage.removeItem(STORAGE_GRUPO);
   localStorage.removeItem(STORAGE_BANCO_ACTIVO);
   localStorage.removeItem(STORAGE_CLASE_ACTIVA);
@@ -6365,7 +6401,7 @@ document.querySelectorAll("[data-notification-toggle]").forEach(toggle => {
 });
 
 window.addEventListener("beforeunload", e => {
-  if (!hayBorradorMensajeProfesor()) return;
+  if (!hayBorradorMensajeProfesor() && !hayBorradorPreguntaProfesor()) return;
   e.preventDefault();
   e.returnValue = "";
 });

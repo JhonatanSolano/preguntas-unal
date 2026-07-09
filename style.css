@@ -491,7 +491,15 @@ body.admin-mode .admin-exit-dock {
   box-shadow: var(--shadow-sm);
 }
 .exams-hub {
-  max-width: 900px;
+  width: 100%;
+  max-width: none;
+}
+#sectionExamenes {
+  width: min(100%, 1240px);
+  max-width: 1240px;
+}
+body.admin-mode #sectionExamenes .exams-hub {
+  padding-inline: clamp(1.25rem, 3vw, 3rem);
 }
 .exam-hub-grid {
   display: grid;
@@ -534,6 +542,8 @@ body.admin-mode .admin-exit-dock {
 }
 .admin-exam-bank-panel {
   display: grid;
+  width: 100%;
+  min-width: 0;
   gap: .85rem;
   margin-top: 1.3rem;
   text-align: left;
@@ -541,6 +551,8 @@ body.admin-mode .admin-exit-dock {
 .admin-bank-levels,
 .question-preview-list {
   display: grid;
+  width: 100%;
+  min-width: 0;
   gap: .8rem;
 }
 .question-preview {
@@ -553,7 +565,25 @@ body.admin-mode .admin-exit-dock {
   margin: .4rem 0;
   color: var(--c-muted);
 }
+.question-preview > :not(summary) {
+  max-width: calc(100% - 2rem);
+}
+.question-preview .q-formula,
+.question-preview .katex-display {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.question-preview .question-image-button {
+  width: calc(100% - 2rem);
+  max-width: 920px;
+}
+.question-preview .question-image-button img {
+  width: 100%;
+  max-height: 620px;
+}
 .question-preview ol {
+  width: calc(100% - 2.6rem);
   margin: .6rem 0 0 1.3rem;
   padding: 0;
 }
