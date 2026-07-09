@@ -539,6 +539,30 @@ body.admin-mode .admin-exit-dock {
   box-shadow: var(--shadow-sm);
   flex: 0 0 auto;
 }
+.section-back {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 2.6rem;
+  height: 2.6rem;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  color: var(--c-navy);
+  background: #fff;
+  font-size: 1.35rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+}
+.section-back:hover:not(:disabled) {
+  color: #fff;
+  border-color: var(--c-teal-deep);
+  background: var(--c-teal-deep);
+}
+.section-back:disabled {
+  opacity: .38;
+  cursor: not-allowed;
+}
 .notification-bell {
   position: fixed;
   top: 1.2rem;

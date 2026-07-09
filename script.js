@@ -122,6 +122,7 @@ let selectedPaymentMethod = "pse";
 let messageHistoryClassId = "";
 let recoverAttemptCount = 0;
 let seccionActual = "inicio";
+let historialSecciones = [];
 let savedRichSelection = null;
 const attachmentPreviewUrls = new Map();
 const EMOJIS_MENSAJE = [
@@ -1749,7 +1750,14 @@ function confirmarCambioSeccion(secDestino = "") {
   return confirmarSalidaMensajes(secDestino) && confirmarSalidaPreguntaProfesor(secDestino);
 }
 
-function activarNav(sec) {
+function actualizarBotonVolver() {
+  const button = document.getElementById("btnSectionBack");
+  if (!button) return;
+  button.disabled = historialSecciones.length === 0;
+  button.setAttribute("aria-disabled", String(button.disabled));
+}
+
+function activarNav(sec, options = {}) {
   if (!confirmarCambioSeccion(sec)) return false;
   if (!suscripcionActiva() && seccionRequiereSuscripcion(sec)) {
     sec = "suscripcion";
@@ -1778,9 +1786,28 @@ function activarNav(sec) {
       if (status) status.textContent = "Primero debes pertenecer a una clase o aula. Ingresa el código cuando lo tengas.";
     }, 0);
   }
+  if (sec !== seccionActual && !options.fromHistory) {
+    const permitidas = modoAdmin ? SECCIONES_PROFESOR : SECCIONES_ESTUDIANTE;
+    if (permitidas.has(seccionActual)) {
+      historialSecciones.push(seccionActual);
+      historialSecciones = historialSecciones.slice(-30);
+    }
+  }
   document.querySelectorAll(".nav-btn").forEach(b => b.classList.toggle("active", b.dataset.section === sec));
   mostrarSeccion(sec);
+  actualizarBotonVolver();
   return true;
+}
+
+function volverSeccionAnterior() {
+  while (historialSecciones.length) {
+    const destino = historialSecciones.pop();
+    if (!destino || destino === seccionActual) continue;
+    if (activarNav(destino, { fromHistory: true })) return;
+    historialSecciones.push(destino);
+    break;
+  }
+  actualizarBotonVolver();
 }
 
 function seccionRestaurable() {
@@ -6796,6 +6823,7 @@ document.getElementById("btnDrawerToggle")?.addEventListener("click", () => {
   if (document.getElementById("sideDrawer").classList.contains("hidden")) abrirDrawer();
   else cerrarDrawer();
 });
+document.getElementById("btnSectionBack")?.addEventListener("click", volverSeccionAnterior);
 document.getElementById("btnDrawerClose")?.addEventListener("click", cerrarDrawer);
 document.getElementById("drawerBackdrop")?.addEventListener("click", cerrarDrawer);
 document.getElementById("btnDrawerHome")?.addEventListener("click", () => {
@@ -6880,6 +6908,9 @@ inicializarRegistroPerfil();
 onAuthStateChanged(auth, async user => {
   usuarioActual = user;
   if (!user) {
+    historialSecciones = [];
+    seccionActual = "inicio";
+    actualizarBotonVolver();
     if (unsubscribeAdminStudents) unsubscribeAdminStudents();
     unsubscribeAdminStudents = null;
     if (unsubscribeClassMembership) unsubscribeClassMembership();
