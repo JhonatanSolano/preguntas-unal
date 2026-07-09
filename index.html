@@ -67,18 +67,12 @@
         </div>
       </div>
       <div class="math-showcase" aria-hidden="true">
-        <div class="math-orbit"></div>
-        <div class="formula-card primary">x = −b ± √(b²−4ac) / 2a</div>
-        <div class="formula-card">∑ aprendizaje + práctica</div>
-        <div class="formula-card">sen² θ + cos² θ = 1</div>
+        <img class="math-showcase-image" src="assets/math-landing.png" alt="" />
         <div class="mini-dashboard">
           <span>Tu progreso</span>
           <strong>86%</strong>
           <div><i style="width:86%"></i></div>
         </div>
-        <span class="math-symbol symbol-one">π</span>
-        <span class="math-symbol symbol-two">√</span>
-        <span class="math-symbol symbol-three">∞</span>
       </div>
     </section>
 
@@ -336,11 +330,22 @@
         </svg>
       </button>
       <div class="whatsapp-card" id="whatsappCard" aria-live="polite">
-        <strong>Soporte por WhatsApp</strong>
-        <p>Resuelve dudas sobre planes, paquetes y acceso a Matemáticas En Tu Bolsillo.</p>
-        <a class="btn btn-primary"
-           href="https://wa.me/573112454282?text=Hola%2C%20quiero%20informaci%C3%B3n%20sobre%20los%20planes%20y%20paquetes%20de%20Matem%C3%A1ticas%20En%20Tu%20Bolsillo."
-           target="_blank" rel="noopener">Ir a WhatsApp</a>
+        <div class="whatsapp-card-head">
+          <span class="whatsapp-card-brand">
+            <svg viewBox="0 0 64 64" aria-hidden="true"><path d="M31.7 9.2c-12.5 0-22.6 9.8-22.6 21.9 0 4.1 1.2 8.1 3.4 11.6L9.3 54.8l12.5-3.1c3.1 1.6 6.5 2.4 9.9 2.4 12.5 0 22.6-9.8 22.6-21.9S44.2 9.2 31.7 9.2Zm0 39.9c-3.1 0-6.1-.8-8.7-2.4l-.9-.5-7.4 1.8 1.9-7.1-.6-.9c-1.9-2.7-2.9-5.8-2.9-9 0-9.3 8.3-16.9 18.5-16.9s18.5 7.6 18.5 16.9-8.2 18.1-18.4 18.1Z"/></svg>
+            <strong>WhatsApp</strong>
+          </span>
+          <button id="btnWhatsappClose" type="button" aria-label="Cerrar soporte">×</button>
+        </div>
+        <div class="whatsapp-card-body">
+          <div class="whatsapp-message">
+            <span>Hola</span>
+            <p>Bienvenido a Matemáticas En Tu Bolsillo. ¿Cómo podemos ayudarte?</p>
+          </div>
+          <a class="whatsapp-chat-link"
+             href="https://wa.me/573112454282?text=Hola%2C%20quiero%20informaci%C3%B3n%20sobre%20los%20planes%20y%20paquetes%20de%20Matem%C3%A1ticas%20En%20Tu%20Bolsillo."
+             target="_blank" rel="noopener">Abrir chat <span aria-hidden="true">›</span></a>
+        </div>
       </div>
     </div>
     <footer class="public-footer" id="contacto">

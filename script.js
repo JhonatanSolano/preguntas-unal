@@ -4454,6 +4454,12 @@ function toggleWhatsappWidget() {
   btn?.setAttribute("aria-expanded", String(abierto));
 }
 
+function cerrarWhatsappWidget() {
+  const widget = document.getElementById("whatsappWidget");
+  widget?.classList.remove("open");
+  document.getElementById("btnWhatsappInfo")?.setAttribute("aria-expanded", "false");
+}
+
 function ajustarLadoWhatsapp() {
   const widget = document.getElementById("whatsappWidget");
   if (!widget) return;
@@ -5453,6 +5459,13 @@ document.querySelectorAll(".landing-nav a").forEach(link => {
 });
 document.querySelectorAll(".footer-pending-link, .footer-social a").forEach(link => {
   link.addEventListener("click", event => event.preventDefault());
+});
+document.getElementById("btnWhatsappClose")?.addEventListener("click", cerrarWhatsappWidget);
+document.addEventListener("pointerdown", event => {
+  const widget = document.getElementById("whatsappWidget");
+  if (widget?.classList.contains("open") && !widget.contains(event.target)) {
+    cerrarWhatsappWidget();
+  }
 });
 document.getElementById("btnForgotUser")?.addEventListener("click", abrirPanelRecuperarUsuario);
 document.getElementById("btnRecoverUserClose")?.addEventListener("click", volverLoginDesdeRecuperacion);
