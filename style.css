@@ -643,7 +643,25 @@ body.admin-mode .admin-exit-dock {
   display: grid;
   align-content: start;
   gap: .65rem;
+  max-height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: scroll;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--c-teal-deep) var(--c-blue-lt);
   animation: drawerIn .22s ease;
+}
+.side-drawer::-webkit-scrollbar {
+  width: 9px;
+}
+.side-drawer::-webkit-scrollbar-track {
+  background: var(--c-blue-lt);
+}
+.side-drawer::-webkit-scrollbar-thumb {
+  border: 2px solid var(--c-blue-lt);
+  border-radius: 999px;
+  background: var(--c-teal-deep);
 }
 @keyframes drawerIn {
   from { transform: translateX(-100%); opacity: .5; }

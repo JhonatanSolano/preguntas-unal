@@ -6309,6 +6309,10 @@ document.getElementById("btnForgotPasswordBack")?.addEventListener("click", volv
 document.getElementById("btnRecoverPasswordClose")?.addEventListener("click", volverLoginDesdeRecuperacion);
 document.getElementById("btnShowLogin")?.addEventListener("click", mostrarLoginCard);
 document.getElementById("btnShowLoginNav")?.addEventListener("click", mostrarLoginCard);
+document.getElementById("btnShowLoginMenu")?.addEventListener("click", () => {
+  cerrarLandingMenu();
+  mostrarLoginCard();
+});
 document.getElementById("btnShowLoginBottom")?.addEventListener("click", mostrarLoginCard);
 document.getElementById("btnShowRegister")?.addEventListener("click", mostrarRegisterCard);
 document.getElementById("btnShowRegisterNav")?.addEventListener("click", mostrarRegisterCard);
