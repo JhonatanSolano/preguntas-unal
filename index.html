@@ -10,7 +10,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="style.css?v=20260710-12" />
+  <link rel="stylesheet" href="style.css?v=20260710-13" />
 </head>
 <body class="group-locked">
   <div class="welcome-splash hidden" id="welcomeSplash" aria-live="polite">
@@ -262,7 +262,8 @@
 
         <div class="auth-tabs" role="tablist" aria-label="Acceso">
           <button class="auth-tab active" id="tabLogin" type="button">Iniciar sesión</button>
-          <button class="auth-tab" id="tabRegister" type="button">Registrarse</button>
+          <button class="auth-tab" id="tabRegister" type="button">Registro estudiante independiente</button>
+          <button class="auth-tab" id="tabInstitutionRegister" type="button">Registro institucional</button>
         </div>
 
         <div class="auth-form" id="loginPanel">
@@ -281,13 +282,8 @@
         <div class="auth-form hidden" id="registerPanel">
         <input type="text" id="registerName" class="admin-input" placeholder="Nombre de usuario" autocomplete="name" />
         <input type="email" id="registerEmail" class="admin-input" placeholder="Correo @gmail.com" autocomplete="email" />
-        <select id="registerRole" class="admin-input" aria-label="Tipo de cuenta">
-          <option value="student" selected>Estudiante independiente</option>
-        </select>
-        <select id="registerAccountMode" class="admin-input" aria-label="Modalidad de acceso">
-          <option value="independent" selected>Independiente · paga su propio plan</option>
-        </select>
-        <button class="btn btn-outline" id="btnInstitutionFromRegister" type="button">Registrar institución educativa</button>
+        <input type="hidden" id="registerRole" value="student" />
+        <input type="hidden" id="registerAccountMode" value="independent" />
         <div class="profile-form-grid">
           <select id="registerPhoneCode" class="admin-input" aria-label="Indicador del país"></select>
           <input type="tel" id="registerPhone" class="admin-input" placeholder="Número de teléfono" autocomplete="tel" />
@@ -344,13 +340,14 @@
             <input type="text" id="institutionAdminName" class="admin-input" placeholder="Nombre del responsable" autocomplete="name" />
             <input type="email" id="institutionEmail" class="admin-input" placeholder="Correo institucional" autocomplete="email" />
           </div>
-          <div class="password-wrap">
-            <input type="password" id="institutionPassword" class="admin-input" placeholder="Contraseña institucional" autocomplete="new-password" />
-            <button class="password-toggle" type="button" data-toggle-password="institutionPassword" aria-label="Ver contraseña">👁</button>
-          </div>
+          <select id="institutionRole" class="admin-input" aria-label="Cargo en la institución">
+            <option value="">Cargo en la institución</option>
+            <option value="rector">Rector(a)</option>
+            <option value="coordinator">Coordinador(a)</option>
+          </select>
           <div class="profile-form-grid three">
             <select id="institutionCountry" class="admin-input" aria-label="País">
-              <option value="CO">🇨🇴 Colombia</option>
+              <option value="CO">Colombia</option>
             </select>
             <select id="institutionDepartment" class="admin-input" aria-label="Departamento"></select>
             <select id="institutionCity" class="admin-input" aria-label="Ciudad o municipio"></select>
@@ -379,6 +376,16 @@
             <option value="letters">Letras · 9A, 9B, 10A</option>
             <option value="numbers">Números · 9-1, 9-2, 10-1</option>
           </select>
+          <div class="password-wrap">
+            <input type="password" id="institutionPassword" class="admin-input" placeholder="Crear contraseña institucional" autocomplete="new-password" />
+            <button class="password-toggle" type="button" data-toggle-password="institutionPassword" aria-label="Ver contraseña">👁</button>
+          </div>
+          <div class="password-rules" id="institutionPasswordRules">
+            <p data-rule="length">Mínimo 8 caracteres</p>
+            <p data-rule="upper">Mínimo una mayúscula</p>
+            <p data-rule="numbers">Mínimo dos números</p>
+            <p data-rule="symbol">Mínimo un símbolo permitido: ! @ # $ % ^ & * ( ) _ + - = [ ] { } ; : , . ?</p>
+          </div>
           <p class="mini-help">Después de crear la cuenta institucional podrás cargar correos autorizados de profesores y estudiantes por grado. Quienes se registren con esos correos podrán usar la suscripción de la institución.</p>
           <button class="btn btn-primary" id="btnCreateInstitutionAccount" type="button">Crear cuenta institucional</button>
           <p class="bank-status" id="institutionStatus"></p>
@@ -1876,6 +1883,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260710-12"></script>
+  <script type="module" src="script.js?v=20260710-13"></script>
 </body>
 </html>

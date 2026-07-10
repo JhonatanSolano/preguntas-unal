@@ -145,8 +145,8 @@ const PROFILE_PHOTO_MAX_SIDE = 900;
 const PROFILE_PHOTO_QUALITY = 0.82;
 
 const PHONE_CODES = [
-  { code: "+57", label: "🇨🇴 Colombia (+57)", flag: "🇨🇴", country: "Colombia" },
-  { code: "+58", label: "🇻🇪 Venezuela (+58)", flag: "🇻🇪", country: "Venezuela" }
+  { code: "+57", label: "Colombia (+57)", flag: "", country: "Colombia" },
+  { code: "+58", label: "Venezuela (+58)", flag: "", country: "Venezuela" }
 ];
 
 const PLANES_COMERCIALES = {
@@ -4419,6 +4419,11 @@ function actualizarReglasPassword() {
   return valido;
 }
 
+function actualizarReglasPasswordInstitucion() {
+  const password = document.getElementById("institutionPassword")?.value || "";
+  return actualizarReglasPasswordEn("institutionPasswordRules", password);
+}
+
 function actualizarReglasPasswordEn(panelId, password) {
   const detalle = detallePassword(password || "");
   Object.entries(detalle).forEach(([regla, ok]) => {
@@ -4451,6 +4456,7 @@ function mostrarAuthInicial() {
   document.getElementById("registerPanel")?.classList.add("hidden");
   document.getElementById("tabLogin")?.classList.add("active");
   document.getElementById("tabRegister")?.classList.remove("active");
+  document.getElementById("tabInstitutionRegister")?.classList.remove("active");
   document.getElementById("btnGoogleLogin")?.closest(".auth-actions")?.classList.remove("hidden");
   document.getElementById("groupEntry")?.classList.add("hidden");
   document.getElementById("btnAuthClose")?.classList.remove("hidden");
@@ -4470,12 +4476,16 @@ function mostrarInstitutionInfo() {
   cerrarLandingMenu();
   document.getElementById("loginCard")?.classList.add("hidden");
   document.getElementById("faqCard")?.classList.add("hidden");
+  document.getElementById("tabLogin")?.classList.remove("active");
+  document.getElementById("tabRegister")?.classList.remove("active");
+  document.getElementById("tabInstitutionRegister")?.classList.add("active");
   document.getElementById("institutionInfoCard")?.classList.remove("hidden");
   inicializarFormularioInstitucional();
 }
 
 function cerrarInstitutionInfo() {
   document.getElementById("institutionInfoCard")?.classList.add("hidden");
+  document.getElementById("tabInstitutionRegister")?.classList.remove("active");
 }
 
 function mostrarFaqCard() {
@@ -4680,7 +4690,7 @@ async function actualizarColegiosInstitucion() {
   try {
     const schools = await cargarColegiosMunicipio(municipalityCode);
     school.innerHTML = `<option value="">Selecciona el colegio</option>` + schools.map(item =>
-      `<option value="${escapeHtml(item.dane)}" data-sector="${escapeHtml(item.sector)}" data-name="${escapeHtml(item.name)}">${escapeHtml(item.name)} · ${escapeHtml(item.sector)} · DANE ${escapeHtml(item.dane)}</option>`
+      `<option value="${escapeHtml(item.dane)}" data-sector="${escapeHtml(item.sector)}" data-name="${escapeHtml(item.name)}" data-type="${escapeHtml(item.establishmentType || "")}" data-campus-count="${escapeHtml(String(item.campusCount || ""))}">${escapeHtml(item.name)} · ${escapeHtml(item.sector)} · DANE ${escapeHtml(item.dane)}</option>`
     ).join("");
   } catch (err) {
     school.innerHTML = `<option value="">No se pudieron cargar colegios</option>`;
@@ -4704,6 +4714,7 @@ async function crearCuentaInstitucional() {
   const adminName = document.getElementById("institutionAdminName")?.value.trim() || "";
   const email = document.getElementById("institutionEmail")?.value.trim().toLowerCase() || "";
   const password = document.getElementById("institutionPassword")?.value || "";
+  const institutionRole = document.getElementById("institutionRole")?.value || "";
   const dept = document.getElementById("institutionDepartment");
   const city = document.getElementById("institutionCity");
   const school = document.getElementById("institutionSchool");
@@ -4714,7 +4725,8 @@ async function crearCuentaInstitucional() {
   const selectedCity = city?.selectedOptions?.[0];
   if (adminName.length < 3) return setStatus(statusId, "Escribe el nombre del responsable.", "error");
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setStatus(statusId, "Escribe un correo institucional válido.", "error");
-  if (!validarPassword(password)) return setStatus(statusId, "La contraseña debe cumplir mínimo 8 caracteres, una mayúscula, dos números y un símbolo.", "error");
+  if (!["rector", "coordinator"].includes(institutionRole)) return setStatus(statusId, "Selecciona si el cargo es Rector(a) o Coordinador(a).", "error");
+  if (!actualizarReglasPasswordInstitucion() || !validarPassword(password)) return setStatus(statusId, "La contraseña debe cumplir mínimo 8 caracteres, una mayúscula, dos números y un símbolo.", "error");
   if (!dept?.value || !city?.value || !school?.value) return setStatus(statusId, "Selecciona departamento, ciudad y colegio.", "error");
   if (daneTyped !== school.value) return setStatus(statusId, "El código DANE no coincide con el colegio seleccionado.", "error");
   if (!gradeMode) return setStatus(statusId, "Selecciona si los grupos se nombran por letra o número.", "error");
@@ -4735,6 +4747,8 @@ async function crearCuentaInstitucional() {
       institutionDane: school.value,
       institutionName: selectedSchool?.dataset.name || "",
       institutionSector: selectedSchool?.dataset.sector || "",
+      institutionType: selectedSchool?.dataset.type || "",
+      institutionCampusCount: Number(selectedSchool?.dataset.campusCount || 0),
       institutionDepartmentCode: dept.value,
       institutionDepartmentName: selectedDept?.textContent || "",
       institutionMunicipalityCode: city.value,
@@ -4745,6 +4759,7 @@ async function crearCuentaInstitucional() {
       ownerUid: cred.user.uid,
       ownerEmail: email,
       ownerName: adminName,
+      ownerRole: institutionRole,
       status: "pending-subscription",
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
@@ -4756,6 +4771,7 @@ async function crearCuentaInstitucional() {
       email,
       displayName: adminName,
       role: "owner",
+      institutionRole,
       status: "active",
       createdAt: serverTimestamp()
     }, { merge: true });
@@ -4827,10 +4843,8 @@ function optionGeo(item, selectedValue = "") {
   const value = item.id || item.code || item.codigo || item.name || item.nombre;
   const name = item.name || item.nombre || value;
   const code = item.code || item.codigo || item.iso2 || "";
-  const iso2 = item.iso2 || value;
-  const flag = iso2 === "CO" ? "🇨🇴 " : iso2 === "VE" ? "🇻🇪 " : "";
   const selected = value === selectedValue || name === selectedValue || code === selectedValue ? "selected" : "";
-  return `<option value="${value}" data-name="${name}" data-code="${code}" data-iso2="${item.iso2 || ""}" data-iso3="${item.iso3 || ""}" ${selected}>${flag}${name}</option>`;
+  return `<option value="${value}" data-name="${name}" data-code="${code}" data-iso2="${item.iso2 || ""}" data-iso3="${item.iso3 || ""}" ${selected}>${name}</option>`;
 }
 
 async function poblarUbicacion(prefix, valores = {}) {
@@ -6179,6 +6193,7 @@ function cambiarAuthMode(modo) {
   document.getElementById("recoverEmailPanel")?.classList.add("hidden");
   document.getElementById("tabLogin").classList.toggle("active", login);
   document.getElementById("tabRegister").classList.toggle("active", !login);
+  document.getElementById("tabInstitutionRegister")?.classList.remove("active");
   if (!login) inicializarRegistroPerfil();
   limpiarWarn();
 }
@@ -6817,6 +6832,7 @@ document.getElementById("btnShowRegisterNav")?.addEventListener("click", mostrar
 document.getElementById("btnShowRegisterNav")?.addEventListener("click", cerrarLandingMenu);
 document.getElementById("btnShowRegisterBottom")?.addEventListener("click", mostrarRegisterCard);
 document.getElementById("btnStudentPlanLanding")?.addEventListener("click", mostrarRegisterCard);
+document.getElementById("tabInstitutionRegister")?.addEventListener("click", mostrarInstitutionInfo);
 document.getElementById("btnInstitutionInfoHero")?.addEventListener("click", mostrarInstitutionInfo);
 document.getElementById("btnInstitutionPlanLanding")?.addEventListener("click", mostrarInstitutionInfo);
 document.getElementById("btnInstitutionFromRegister")?.addEventListener("click", mostrarInstitutionInfo);
@@ -6826,6 +6842,7 @@ document.getElementById("institutionDepartment")?.addEventListener("change", act
 document.getElementById("institutionCity")?.addEventListener("change", actualizarColegiosInstitucion);
 document.getElementById("institutionSchool")?.addEventListener("change", sincronizarColegioInstitucional);
 document.getElementById("btnCreateInstitutionAccount")?.addEventListener("click", crearCuentaInstitucional);
+document.getElementById("institutionPassword")?.addEventListener("input", actualizarReglasPasswordInstitucion);
 document.querySelectorAll("#institutionInfoCard input, #institutionInfoCard select").forEach(input => {
   input.addEventListener("keydown", event => {
     if (event.key === "Enter") {

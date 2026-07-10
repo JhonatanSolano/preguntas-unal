@@ -2475,7 +2475,7 @@ body.admin-mode #sectionExamenes .exams-hub {
 }
 .auth-tabs {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: .35rem;
   padding: .35rem;
   border: 1px solid var(--c-border);
@@ -2488,7 +2488,9 @@ body.admin-mode #sectionExamenes .exams-hub {
   padding: .7rem .9rem;
   background: transparent;
   color: var(--c-blue);
+  font-size: clamp(.72rem, 2.3vw, .88rem);
   font-weight: 800;
+  line-height: 1.15;
   cursor: pointer;
 }
 .auth-tab.active {
