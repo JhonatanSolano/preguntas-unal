@@ -175,6 +175,64 @@ body {
   gap: .55rem;
   padding-left: 1.25rem;
 }
+.checkout-plan-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .75rem;
+  margin: 1rem 0;
+}
+.checkout-plan-card {
+  display: grid;
+  gap: .25rem;
+  padding: .95rem;
+  border: 2px solid #d7e4ec;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--c-text);
+  text-align: left;
+  cursor: pointer;
+}
+.checkout-plan-card span {
+  color: var(--c-teal-deep);
+  font-size: .78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+.checkout-plan-card strong {
+  color: var(--c-navy);
+  font-size: 1.1rem;
+}
+.checkout-plan-card small {
+  color: var(--c-muted);
+}
+.checkout-plan-card.active {
+  border-color: var(--c-teal);
+  background: #ecfbfa;
+  box-shadow: 0 0 0 3px rgba(10, 150, 156, .12);
+}
+.checkout-layout {
+  display: grid;
+  grid-template-columns: minmax(220px, .8fr) minmax(0, 1.2fr);
+  gap: 1rem;
+  align-items: start;
+}
+.checkout-summary-card {
+  display: grid;
+  gap: .55rem;
+  min-height: 100%;
+  padding: 1.1rem;
+  border-radius: 8px;
+  background: linear-gradient(145deg, var(--c-navy), var(--c-teal-deep));
+  color: #fff;
+}
+.checkout-summary-card span,
+.checkout-summary-card small {
+  color: rgba(255,255,255,.78);
+}
+.checkout-summary-card strong {
+  font-size: clamp(1.7rem, 4vw, 2.4rem);
+  line-height: 1.1;
+}
 .payment-method-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -278,6 +336,10 @@ body {
     height: 52px;
   }
   .payment-method-grid {
+    grid-template-columns: 1fr;
+  }
+  .checkout-plan-grid,
+  .checkout-layout {
     grid-template-columns: 1fr;
   }
   .payment-method {
@@ -1176,6 +1238,41 @@ body.admin-mode #sectionExamenes .exams-hub {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: .9rem;
 }
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+.pricing-card {
+  display: grid;
+  align-content: start;
+  gap: .7rem;
+  padding: clamp(1rem, 3vw, 1.4rem);
+  border: 1.5px solid var(--c-border);
+  border-radius: var(--radius-md);
+  background: rgba(255,255,255,.92);
+  box-shadow: var(--shadow-sm);
+}
+.pricing-card.featured {
+  border-color: rgba(12, 166, 166, .45);
+  background: linear-gradient(180deg, #ffffff, #ecfbfa);
+}
+.pricing-card > span {
+  color: var(--c-teal-deep);
+  font-weight: 900;
+  text-transform: uppercase;
+  font-size: .75rem;
+}
+.pricing-card h3 {
+  margin: 0;
+  color: var(--c-navy);
+  font-size: clamp(1.45rem, 3vw, 2rem);
+}
+.pricing-card h3 small {
+  color: var(--c-muted);
+  font-family: var(--font-body);
+  font-size: .85rem;
+}
 .landing-grid article span {
   display: inline-flex;
   width: 34px;
@@ -1197,10 +1294,27 @@ body.admin-mode #sectionExamenes .exams-hub {
   display: grid;
   gap: .35rem;
 }
-.support-columns a {
+.support-columns a,
+.footer-faq-link {
   color: var(--c-blue);
   font-weight: 800;
   text-decoration: none;
+}
+.footer-faq-link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+.landing-menu-link {
+  border: 0;
+  background: transparent;
+  color: var(--c-navy);
+  text-align: left;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
 }
 .timeline-grid {
   display: grid;
@@ -3026,7 +3140,10 @@ body.admin-mode #sectionExamenes .exams-hub {
   .public-grid,
   .landing-highlights,
   .landing-grid,
+  .pricing-grid,
   .support-columns,
+  .support-email-grid,
+  .institution-plan-list,
   .timeline-grid,
   .audience-grid,
   .stats-strip,
@@ -3075,7 +3192,10 @@ body.admin-mode #sectionExamenes .exams-hub {
   .public-grid,
   .landing-highlights,
   .landing-grid,
+  .pricing-grid,
   .support-columns,
+  .support-email-grid,
+  .institution-plan-list,
   .timeline-grid,
   .audience-grid,
   .stats-strip,
@@ -4319,6 +4439,76 @@ body.landing-menu-open {
 }
 .support-panel { max-width: 620px; margin-inline: auto; }
 .support-link { text-decoration: none; }
+.support-email-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .8rem;
+  margin-top: 1rem;
+}
+.support-email-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: .65rem;
+  align-items: center;
+  padding: .85rem;
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  color: var(--c-text);
+  background: #fff;
+  text-decoration: none;
+}
+.support-email-card small {
+  color: var(--c-muted);
+  overflow-wrap: anywhere;
+}
+.gmail-icon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  color: #fff;
+  background: linear-gradient(135deg, #ea4335, #fbbc04 42%, #34a853 68%, #4285f4);
+  font-weight: 950;
+}
+.institution-gate,
+.faq-gate {
+  max-width: 760px;
+}
+.institution-plan-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .65rem;
+  margin: 1rem 0;
+}
+.institution-plan-list span {
+  padding: .7rem;
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  background: var(--c-blue-lt);
+  color: var(--c-navy);
+  font-weight: 850;
+}
+.faq-list {
+  display: grid;
+  gap: .65rem;
+  text-align: left;
+}
+.faq-list details {
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  background: #fff;
+  padding: .85rem 1rem;
+}
+.faq-list summary {
+  color: var(--c-navy);
+  font-weight: 900;
+  cursor: pointer;
+}
+.faq-list p {
+  margin: .65rem 0 0;
+  color: var(--c-muted);
+}
 
 /* Formulario bloqueado visualmente */
 .form-locked {

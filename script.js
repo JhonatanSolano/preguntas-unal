@@ -65,8 +65,12 @@ const APP_CONFIG = {
     provider: "Wompi",
     checkoutReady: false,
     checkoutEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/createPaymentIntent",
-    studentPriceCOP: null,
+    studentPriceCOP: 10000,
     teacherPriceCOP: null
+  },
+  support: {
+    email: "soporte@matematicasentubolsillo.com",
+    infoEmail: "info@matematicasentubolsillo.com"
   }
 };
 
@@ -141,9 +145,27 @@ const PROFILE_PHOTO_MAX_SIDE = 900;
 const PROFILE_PHOTO_QUALITY = 0.82;
 
 const PHONE_CODES = [
-  { code: "+57", label: "Colombia (+57)" },
-  { code: "+58", label: "Venezuela (+58)" }
+  { code: "+57", label: "🇨🇴 Colombia (+57)", flag: "🇨🇴", country: "Colombia" },
+  { code: "+58", label: "🇻🇪 Venezuela (+58)", flag: "🇻🇪", country: "Venezuela" }
 ];
+
+const PLANES_COMERCIALES = {
+  independentStudent: {
+    id: "student-monthly",
+    name: "Estudiante independiente",
+    priceCOP: 10000,
+    subtitle: "Para preparación individual ICFES, admisión UNAL y práctica personal.",
+    benefits: ["Acceso mensual individual", "Exámenes y estadísticas", "Mensajes y Asesor IA", "Sin institución asociada"]
+  },
+  institution: [
+    { range: "1 a 10 estudiantes", label: "Institución inicial" },
+    { range: "11 a 25 estudiantes", label: "Institución básica" },
+    { range: "26 a 60 estudiantes", label: "Institución media" },
+    { range: "61 a 100 estudiantes", label: "Institución avanzada" },
+    { range: "101 a 200 estudiantes", label: "Institución amplia" },
+    { range: "Más de 200 estudiantes", label: "Institución corporativa" }
+  ]
+};
 
 const GEO_COUNTRY_FALLBACK = [
   { id: "CO", name: "Colombia", iso2: "CO", iso3: "COL", phoneCode: "+57" },
@@ -675,11 +697,11 @@ function renderSubscriptionPanel() {
   document.getElementById("subscriptionStatusCard")?.classList.toggle("active", active);
   const planName = document.getElementById("subscriptionPlanName");
   const planDescription = document.getElementById("subscriptionPlanDescription");
-  if (planName) planName.textContent = `Plan ${role}`;
+  if (planName) planName.textContent = esProfesor() ? "Plan institucional para docentes" : "Plan estudiante independiente";
   if (planDescription) {
     planDescription.textContent = esProfesor()
-      ? "Aulas, preguntas, mensajería, métricas y Asesor IA."
-      : "Exámenes, resultados, mensajería y Asesor IA.";
+      ? "Para docentes autorizados por una institución. La institución administra cupos, profesores y estudiantes."
+      : "Acceso individual mensual para practicar, presentar exámenes, revisar métricas y usar el Asesor IA.";
   }
   const priceLabel = document.querySelector(".subscription-price");
   if (priceLabel) priceLabel.textContent = price;
@@ -691,6 +713,8 @@ function renderSubscriptionPanel() {
   if (plan) plan.textContent = `Plan ${role} · ${price}`;
   if (method) method.textContent = nombreMetodoPago();
   if (taxes) taxes.textContent = "Incluidos cuando aplique según la pasarela y la normativa colombiana.";
+  const bigPrice = document.getElementById("checkoutBigPrice");
+  if (bigPrice) bigPrice.textContent = price;
   document.getElementById("paymentCarousel")?.classList.toggle("hidden", active);
   renderPasoPago();
 }
@@ -4434,6 +4458,28 @@ function mostrarRegisterCard() {
   cambiarAuthMode("register");
 }
 
+function mostrarInstitutionInfo() {
+  cerrarLandingMenu();
+  document.getElementById("loginCard")?.classList.add("hidden");
+  document.getElementById("faqCard")?.classList.add("hidden");
+  document.getElementById("institutionInfoCard")?.classList.remove("hidden");
+}
+
+function cerrarInstitutionInfo() {
+  document.getElementById("institutionInfoCard")?.classList.add("hidden");
+}
+
+function mostrarFaqCard() {
+  cerrarLandingMenu();
+  document.getElementById("loginCard")?.classList.add("hidden");
+  document.getElementById("institutionInfoCard")?.classList.add("hidden");
+  document.getElementById("faqCard")?.classList.remove("hidden");
+}
+
+function cerrarFaqCard() {
+  document.getElementById("faqCard")?.classList.add("hidden");
+}
+
 function cerrarAuthCard() {
   if (usuarioActual && !grupoActivo) {
     mostrarEntradaGrupo();
@@ -4540,7 +4586,7 @@ function setStatus(id, msg, tipo = "ok") {
 function poblarPhoneCodes(selectId, value = "+57") {
   const select = document.getElementById(selectId);
   if (!select) return;
-  select.innerHTML = PHONE_CODES.map(item => `<option value="${item.code}">${item.label}</option>`).join("");
+  select.innerHTML = PHONE_CODES.map(item => `<option value="${item.code}" data-flag="${item.flag}" data-country="${item.country}">${item.label}</option>`).join("");
   select.value = value;
 }
 
@@ -5326,6 +5372,7 @@ async function registrarEmail() {
   const email = document.getElementById("registerEmail").value.trim().toLowerCase();
   const password = document.getElementById("registerPassword").value;
   const role = document.getElementById("registerRole")?.value || "";
+  const accountMode = document.getElementById("registerAccountMode")?.value || "";
   const perfilRegistro = perfilBasicoDesdeFormulario("register");
   if (nombre.length < 3) {
     mostrarWarn("Escribe un nombre de usuario de mínimo 3 caracteres.");
@@ -5337,6 +5384,14 @@ async function registrarEmail() {
   }
   if (!["teacher", "student"].includes(role)) {
     mostrarWarn("Selecciona si tu cuenta será de profesor o estudiante.");
+    return;
+  }
+  if (!accountMode) {
+    mostrarWarn("Selecciona si el acceso será independiente o institucional.");
+    return;
+  }
+  if (role === "teacher" && accountMode !== "institutional" && email !== ADMIN_EMAIL) {
+    mostrarWarn("Los profesores deben estar asociados a una institución autorizada.");
     return;
   }
   if (!actualizarReglasPassword() || !validarPassword(password)) {
@@ -5357,6 +5412,9 @@ async function registrarEmail() {
       displayName: nombre,
       role,
       tipoCuenta: role,
+      accountMode,
+      billingMode: accountMode,
+      institutionStatus: accountMode === "institutional" ? "pending-validation" : "",
       isAdmin: role === "teacher" || email === ADMIN_EMAIL,
       phoneVerified: false,
       ...perfilRegistro
@@ -6561,6 +6619,21 @@ document.getElementById("btnShowRegister")?.addEventListener("click", mostrarReg
 document.getElementById("btnShowRegisterNav")?.addEventListener("click", mostrarRegisterCard);
 document.getElementById("btnShowRegisterNav")?.addEventListener("click", cerrarLandingMenu);
 document.getElementById("btnShowRegisterBottom")?.addEventListener("click", mostrarRegisterCard);
+document.getElementById("btnStudentPlanLanding")?.addEventListener("click", mostrarRegisterCard);
+document.getElementById("btnInstitutionInfoHero")?.addEventListener("click", mostrarInstitutionInfo);
+document.getElementById("btnInstitutionPlanLanding")?.addEventListener("click", mostrarInstitutionInfo);
+document.getElementById("btnInstitutionFromRegister")?.addEventListener("click", mostrarInstitutionInfo);
+document.getElementById("btnInstitutionInfoClose")?.addEventListener("click", cerrarInstitutionInfo);
+document.getElementById("btnOpenFaqMenu")?.addEventListener("click", mostrarFaqCard);
+document.getElementById("btnOpenFaqBottom")?.addEventListener("click", mostrarFaqCard);
+document.getElementById("btnOpenFaqFooter")?.addEventListener("click", mostrarFaqCard);
+document.getElementById("btnFaqClose")?.addEventListener("click", cerrarFaqCard);
+document.getElementById("registerRole")?.addEventListener("change", event => {
+  const mode = document.getElementById("registerAccountMode");
+  if (!mode) return;
+  if (event.target.value === "teacher") mode.value = "institutional";
+  if (event.target.value === "student" && !mode.value) mode.value = "independent";
+});
 document.getElementById("btnAuthClose")?.addEventListener("click", cerrarAuthCard);
 document.getElementById("btnLandingMenu")?.addEventListener("click", toggleLandingMenu);
 document.getElementById("btnLandingMenuClose")?.addEventListener("click", cerrarLandingMenu);
@@ -6576,7 +6649,7 @@ activarEscenaMatematica();
 document.querySelectorAll(".landing-nav a").forEach(link => {
   link.addEventListener("click", cerrarLandingMenu);
 });
-document.querySelectorAll(".footer-pending-link, .footer-social a").forEach(link => {
+document.querySelectorAll(".footer-social a").forEach(link => {
   link.addEventListener("click", event => event.preventDefault());
 });
 const btnBackToTop = document.getElementById("btnBackToTop");
@@ -6827,6 +6900,19 @@ document.querySelectorAll("[data-payment-method]").forEach(button => {
       item.classList.toggle("active", item === button);
     });
     renderSubscriptionPanel();
+  });
+});
+document.querySelectorAll("[data-checkout-plan]").forEach(button => {
+  button.addEventListener("click", () => {
+    document.querySelectorAll("[data-checkout-plan]").forEach(item => item.classList.toggle("active", item === button));
+    if (button.dataset.checkoutPlan === "institutional") {
+      const status = document.getElementById("paymentStatus");
+      if (status) {
+        status.textContent = "Los planes institucionales se cotizan por cupos. Escríbenos a info@matematicasentubolsillo.com para activar el proceso.";
+        status.className = "bank-status";
+      }
+      mostrarInstitutionInfo();
+    }
   });
 });
 document.getElementById("btnPaymentPrevious")?.addEventListener("click", () => {

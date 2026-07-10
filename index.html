@@ -10,7 +10,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="style.css?v=20260709-10" />
+  <link rel="stylesheet" href="style.css?v=20260709-11" />
 </head>
 <body class="group-locked">
   <div class="welcome-splash hidden" id="welcomeSplash" aria-live="polite">
@@ -44,8 +44,10 @@
         <a href="#publicTitle">Inicio</a>
         <a href="#caracteristicas">Características</a>
         <a href="#como-funciona">Cómo funciona</a>
+        <a href="#planes">Planes</a>
         <a href="#estudiantes">Estudiantes</a>
         <a href="#profesores">Profesores</a>
+        <button class="landing-menu-link" id="btnOpenFaqMenu" type="button">Preguntas frecuentes</button>
         <a href="#contacto">Contacto</a>
         <button class="btn btn-primary" id="btnShowLoginMenu" type="button">Iniciar sesión</button>
         <button class="btn btn-outline" id="btnShowRegisterNav" type="button">Crear cuenta</button>
@@ -82,6 +84,7 @@
         </p>
         <div class="public-actions">
           <button class="btn btn-primary" id="btnShowRegister" type="button">Crear cuenta</button>
+          <button class="btn btn-outline" id="btnInstitutionInfoHero" type="button">Soy institución</button>
           <button class="btn btn-outline" id="btnShowLogin" type="button">Iniciar sesión</button>
         </div>
       </div>
@@ -160,6 +163,31 @@
           <strong>Suscripción y pagos seguros</strong>
           <p>Facturación por plan, historial de pagos y checkout externo preparado para PSE, tarjetas débito y crédito sin almacenar datos financieros sensibles.</p>
         </article>
+        <article>
+          <span class="feature-icon" aria-hidden="true">🏫</span>
+          <strong>Modalidad institucional</strong>
+          <p>Colegios con docentes, estudiantes y grados de 9.º, 10.º y 11.º pueden operar por cupos institucionales.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="landing-section pricing-section" id="planes">
+      <span class="section-kicker">Planes</span>
+      <h2>Dos formas de acceder a la plataforma.</h2>
+      <p class="section-lead">Un estudiante independiente puede pagar su propio acceso. En colegios, la institución administra cupos, docentes y estudiantes.</p>
+      <div class="pricing-grid">
+        <article class="pricing-card featured">
+          <span>Estudiante independiente</span>
+          <h3>$10.000 COP <small>/ mes</small></h3>
+          <p>Ideal para estudiantes de 9.º a 11.º que se preparan por cuenta propia para ICFES, admisión UNAL u otros exámenes.</p>
+          <button class="btn btn-primary" id="btnStudentPlanLanding" type="button">Crear cuenta</button>
+        </article>
+        <article class="pricing-card">
+          <span>Colegios e instituciones</span>
+          <h3>Planes por cupos</h3>
+          <p>Rangos institucionales por cantidad total de estudiantes: 1-10, 11-25, 26-60, 61-100, 101-200 y más de 200.</p>
+          <button class="btn btn-outline" id="btnInstitutionPlanLanding" type="button">Solicitar información</button>
+        </article>
       </div>
     </section>
 
@@ -214,6 +242,7 @@
       <p>Crea tu cuenta y descubre una forma más clara de enseñar, practicar y avanzar en matemáticas.</p>
       <div class="public-actions">
         <button class="btn btn-primary" id="btnShowRegisterBottom" type="button">Crear cuenta</button>
+        <button class="btn btn-outline" id="btnOpenFaqBottom" type="button">Preguntas frecuentes</button>
         <button class="btn btn-outline" id="btnShowLoginBottom" type="button">Iniciar sesión</button>
       </div>
     </section>
@@ -254,9 +283,15 @@
         <input type="email" id="registerEmail" class="admin-input" placeholder="Correo @gmail.com" autocomplete="email" />
         <select id="registerRole" class="admin-input" aria-label="Tipo de cuenta">
           <option value="">Tipo de cuenta</option>
-          <option value="student">Estudiante</option>
-          <option value="teacher">Profesor</option>
+          <option value="student">Estudiante independiente</option>
+          <option value="teacher">Profesor de institución</option>
         </select>
+        <select id="registerAccountMode" class="admin-input" aria-label="Modalidad de acceso">
+          <option value="">Modalidad de acceso</option>
+          <option value="independent">Independiente · paga su propio plan</option>
+          <option value="institutional">Institucional · asociado a colegio</option>
+        </select>
+        <button class="btn btn-outline" id="btnInstitutionFromRegister" type="button">Registrar una institución</button>
         <div class="profile-form-grid">
           <select id="registerPhoneCode" class="admin-input" aria-label="Indicador del país"></select>
           <input type="tel" id="registerPhone" class="admin-input" placeholder="Número de teléfono" autocomplete="tel" />
@@ -299,6 +334,59 @@
         </div>
 
         <p class="warn-msg" id="grupoWarn" hidden>Revisa los datos ingresados.</p>
+      </div>
+    </div>
+
+    <div class="auth-shell hidden" id="institutionInfoCard" role="dialog" aria-modal="true" aria-labelledby="institutionInfoTitle">
+      <div class="start-screen group-gate auth-gate institution-gate">
+        <button class="auth-close" id="btnInstitutionInfoClose" type="button" aria-label="Cerrar">×</button>
+        <img class="auth-logo" src="assets/logo.png" alt="Matemáticas En Tu Bolsillo" />
+        <h2 id="institutionInfoTitle">Acceso para instituciones</h2>
+        <p>Esta modalidad es para colegios que desean administrar docentes, estudiantes y aulas de 9.º, 10.º y 11.º con cupos institucionales.</p>
+        <div class="institution-plan-list">
+          <span>1 a 10 estudiantes</span>
+          <span>11 a 25 estudiantes</span>
+          <span>26 a 60 estudiantes</span>
+          <span>61 a 100 estudiantes</span>
+          <span>101 a 200 estudiantes</span>
+          <span>Más de 200 estudiantes</span>
+        </div>
+        <p class="mini-help">La cuenta institucional validará NIT/NIP, nombre de la institución, ubicación, docentes autorizados y correos de estudiantes. El registro institucional completo quedará conectado a Firebase en la siguiente fase.</p>
+        <a class="btn btn-primary support-link" href="mailto:info@matematicasentubolsillo.com?subject=Solicitud%20de%20plan%20institucional%20Matem%C3%A1ticas%20En%20Tu%20Bolsillo">Solicitar plan institucional</a>
+      </div>
+    </div>
+
+    <div class="auth-shell hidden" id="faqCard" role="dialog" aria-modal="true" aria-labelledby="faqTitle">
+      <div class="start-screen group-gate auth-gate faq-gate">
+        <button class="auth-close" id="btnFaqClose" type="button" aria-label="Cerrar">×</button>
+        <img class="auth-logo" src="assets/logo.png" alt="Matemáticas En Tu Bolsillo" />
+        <h2 id="faqTitle">Preguntas frecuentes</h2>
+        <div class="faq-list">
+          <details open>
+            <summary>¿Para quién está diseñada la plataforma?</summary>
+            <p>Principalmente para estudiantes de 9.º, 10.º y 11.º que practican matemáticas, preparación ICFES y admisión a universidades como la Universidad Nacional.</p>
+          </details>
+          <details>
+            <summary>¿Cuánto cuesta el plan independiente?</summary>
+            <p>El acceso para estudiante independiente está planteado en $10.000 COP mensuales.</p>
+          </details>
+          <details>
+            <summary>¿Un colegio puede pagar por sus estudiantes?</summary>
+            <p>Sí. La modalidad institucional tendrá planes por cupos totales de estudiantes, docentes autorizados y aulas por grado.</p>
+          </details>
+          <details>
+            <summary>¿La app guarda datos de tarjeta?</summary>
+            <p>No. Los pagos se procesan con pasarela certificada. La app solo guardará tokens seguros cuando el usuario autorice renovar automáticamente.</p>
+          </details>
+          <details>
+            <summary>¿Puedo usar PSE?</summary>
+            <p>Sí, el módulo está preparado para PSE. PSE funcionará como pago manual; la renovación automática requiere un método tokenizable soportado por la pasarela.</p>
+          </details>
+          <details>
+            <summary>¿Cómo contacto soporte?</summary>
+            <p>Para ayuda técnica escribe a soporte@matematicasentubolsillo.com. Para instituciones o información comercial escribe a info@matematicasentubolsillo.com.</p>
+          </details>
+        </div>
       </div>
     </div>
 
@@ -410,6 +498,8 @@
           <a href="#publicTitle">Inicio</a>
           <a href="#caracteristicas">Características</a>
           <a href="#como-funciona">Cómo funciona</a>
+          <a href="#planes">Planes</a>
+          <button class="footer-faq-link" id="btnOpenFaqFooter" type="button">Preguntas frecuentes</button>
         </div>
         <div>
           <strong>Legal</strong>
@@ -419,7 +509,8 @@
         <div>
           <strong>Atención y soporte</strong>
           <a href="https://wa.me/573112454282?text=Hola%2C%20necesito%20soporte%20con%20Matem%C3%A1ticas%20En%20Tu%20Bolsillo.%20" target="_blank" rel="noopener">WhatsApp</a>
-          <a class="footer-pending-link" href="#" aria-label="Correo de soporte, próximamente" title="Correo de soporte próximamente">Correo de soporte</a>
+          <a href="mailto:soporte@matematicasentubolsillo.com">📧 soporte@matematicasentubolsillo.com</a>
+          <a href="mailto:info@matematicasentubolsillo.com">📧 info@matematicasentubolsillo.com</a>
           <span>Lunes a viernes · 8:00 a.m. a 6:00 p.m.</span>
           <span>Jornada continua</span>
           <span>Sábados · 8:00 a.m. a 1:00 p.m.</span>
@@ -572,9 +663,21 @@
             <span class="payment-slide-kicker">Paso 1</span>
             <h3>Tu acceso a Matemáticas En Tu Bolsillo</h3>
             <div class="subscription-plan">
-              <strong id="subscriptionPlanName">Plan personal</strong>
+              <strong id="subscriptionPlanName">Plan estudiante independiente</strong>
               <p id="subscriptionPlanDescription">Acceso completo según tu tipo de cuenta.</p>
               <span class="subscription-price">Precio por definir</span>
+            </div>
+            <div class="checkout-plan-grid" aria-label="Planes disponibles">
+              <button class="checkout-plan-card active" type="button" data-checkout-plan="student-monthly">
+                <span>Independiente</span>
+                <strong>$10.000 COP/mes</strong>
+                <small>Un estudiante, acceso mensual.</small>
+              </button>
+              <button class="checkout-plan-card" type="button" data-checkout-plan="institutional">
+                <span>Institucional</span>
+                <strong>Por cupos</strong>
+                <small>Para colegios con docentes y estudiantes autorizados.</small>
+              </button>
             </div>
             <ul class="subscription-benefits">
               <li>Exámenes, bancos y estadísticas.</li>
@@ -586,12 +689,21 @@
           <section class="payment-slide" data-payment-slide="1">
             <span class="payment-slide-kicker">Paso 2</span>
             <h3>Selecciona el medio de pago</h3>
-            <div class="payment-method-grid">
-              <button class="payment-method active" type="button" data-payment-method="pse"><span>PSE</span><strong>Débito bancario</strong><small>Transferencia desde tu banco</small></button>
-              <button class="payment-method" type="button" data-payment-method="credit-card"><span>VISA</span><strong>Tarjeta de crédito</strong><small>Checkout protegido por la pasarela</small></button>
-              <button class="payment-method" type="button" data-payment-method="debit-card"><span>DEBIT</span><strong>Tarjeta débito</strong><small>Pago seguro sin guardar tu tarjeta</small></button>
+            <div class="checkout-layout">
+              <aside class="checkout-summary-card">
+                <span>Suscríbete a Matemáticas En Tu Bolsillo</span>
+                <strong id="checkoutBigPrice">$10.000 COP</strong>
+                <small>Facturación mensual. El pago se confirma por pasarela.</small>
+              </aside>
+              <div>
+                <div class="payment-method-grid">
+                  <button class="payment-method active" type="button" data-payment-method="pse"><span>PSE</span><strong>Débito bancario</strong><small>Transferencia desde tu banco</small></button>
+                  <button class="payment-method" type="button" data-payment-method="credit-card"><span>VISA · MC · AMEX</span><strong>Tarjeta de crédito</strong><small>Checkout protegido por la pasarela</small></button>
+                  <button class="payment-method" type="button" data-payment-method="debit-card"><span>DÉBITO</span><strong>Tarjeta débito</strong><small>Pago seguro sin guardar tu tarjeta</small></button>
+                </div>
+                <p class="payment-security-note">Los datos financieros se ingresarán únicamente en el checkout certificado del proveedor de pagos.</p>
+              </div>
             </div>
-            <p class="payment-security-note">Los datos financieros se ingresarán únicamente en el checkout certificado del proveedor de pagos.</p>
           </section>
           <section class="payment-slide" data-payment-slide="2">
             <span class="payment-slide-kicker">Paso 3</span>
@@ -1463,6 +1575,18 @@
          target="_blank" rel="noopener">
         Abrir WhatsApp
       </a>
+      <div class="support-email-grid">
+        <a class="support-email-card" href="mailto:soporte@matematicasentubolsillo.com">
+          <span class="gmail-icon">M</span>
+          <strong>Soporte técnico</strong>
+          <small>soporte@matematicasentubolsillo.com</small>
+        </a>
+        <a class="support-email-card" href="mailto:info@matematicasentubolsillo.com">
+          <span class="gmail-icon">M</span>
+          <strong>Información y planes</strong>
+          <small>info@matematicasentubolsillo.com</small>
+        </a>
+      </div>
     </div>
   </main>
 
@@ -1725,6 +1849,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260709-10"></script>
+  <script type="module" src="script.js?v=20260709-11"></script>
 </body>
 </html>
