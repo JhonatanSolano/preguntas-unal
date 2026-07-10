@@ -63,6 +63,12 @@ service cloud.firestore {
         get(/databases/$(database)/documents/classes/$(classId)).data.ownerUid == request.auth.uid;
     }
 
+    function ownsInstitution(institutionId) {
+      return signedIn() &&
+        exists(/databases/$(database)/documents/institutions/$(institutionId)) &&
+        get(/databases/$(database)/documents/institutions/$(institutionId)).data.ownerUid == request.auth.uid;
+    }
+
     function joinsExistingClass(classId) {
       return hasActiveSubscription() &&
         exists(/databases/$(database)/documents/classes/$(classId)) &&
@@ -139,6 +145,37 @@ service cloud.firestore {
     match /countries/{document=**} {
       allow read: if true;
       allow write: if isAdmin();
+    }
+
+    match /institutions/{institutionId} {
+      allow read: if isPlatformOwner() ||
+        (signedIn() && resource.data.ownerUid == request.auth.uid);
+      allow create: if signedIn() &&
+        request.resource.data.ownerUid == request.auth.uid &&
+        request.resource.data.institutionDane == institutionId;
+      allow update, delete: if isPlatformOwner() ||
+        (signedIn() && resource.data.ownerUid == request.auth.uid);
+    }
+
+    match /institutionAdmins/{adminId} {
+      allow read: if isPlatformOwner() ||
+        (signedIn() && resource.data.uid == request.auth.uid) ||
+        ownsInstitution(resource.data.institutionDane);
+      allow create: if signedIn() &&
+        request.resource.data.uid == request.auth.uid &&
+        ownsInstitution(request.resource.data.institutionDane);
+      allow update, delete: if isPlatformOwner() ||
+        ownsInstitution(resource.data.institutionDane);
+    }
+
+    match /institutionMembers/{memberId} {
+      allow read: if isPlatformOwner() ||
+        (signedIn() && resource.data.email == request.auth.token.email) ||
+        ownsInstitution(resource.data.institutionDane);
+      allow create: if isPlatformOwner() ||
+        ownsInstitution(request.resource.data.institutionDane);
+      allow update, delete: if isPlatformOwner() ||
+        ownsInstitution(resource.data.institutionDane);
     }
 
     match /teacherQuestions/{questionId} {

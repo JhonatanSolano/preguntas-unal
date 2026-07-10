@@ -176,6 +176,10 @@ const geoCache = {
   regions: {},
   municipalities: {}
 };
+const institutionCatalogCache = {
+  index: null,
+  schoolsByMunicipality: {}
+};
 
 /* ════════════════════════════════════════════════════════
    Matemáticas En Tu Bolsillo · script.js
@@ -604,6 +608,10 @@ function rolUsuario(perfil = perfilActual) {
 
 function esProfesor(perfil = perfilActual) {
   return rolUsuario(perfil) === "teacher";
+}
+
+function esInstitucion(perfil = perfilActual) {
+  return rolUsuario(perfil) === "institution";
 }
 
 function esPropietarioPlataforma() {
@@ -4463,6 +4471,7 @@ function mostrarInstitutionInfo() {
   document.getElementById("loginCard")?.classList.add("hidden");
   document.getElementById("faqCard")?.classList.add("hidden");
   document.getElementById("institutionInfoCard")?.classList.remove("hidden");
+  inicializarFormularioInstitucional();
 }
 
 function cerrarInstitutionInfo() {
@@ -4590,6 +4599,189 @@ function poblarPhoneCodes(selectId, value = "+57") {
   select.value = value;
 }
 
+function normalizarTextoBusqueda(text = "") {
+  return String(text)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toUpperCase();
+}
+
+async function cargarIndiceInstituciones() {
+  if (institutionCatalogCache.index) return institutionCatalogCache.index;
+  const response = await fetch("assets/instituciones/index.json");
+  if (!response.ok) throw new Error("No se pudo cargar el catálogo de instituciones.");
+  institutionCatalogCache.index = await response.json();
+  return institutionCatalogCache.index;
+}
+
+async function cargarColegiosMunicipio(municipalityCode) {
+  if (!municipalityCode) return [];
+  if (institutionCatalogCache.schoolsByMunicipality[municipalityCode]) {
+    return institutionCatalogCache.schoolsByMunicipality[municipalityCode];
+  }
+  const response = await fetch(`assets/instituciones/${encodeURIComponent(municipalityCode)}.json`);
+  if (!response.ok) throw new Error("No se pudieron cargar los colegios del municipio.");
+  const schools = await response.json();
+  institutionCatalogCache.schoolsByMunicipality[municipalityCode] = schools;
+  return schools;
+}
+
+async function inicializarFormularioInstitucional() {
+  const dept = document.getElementById("institutionDepartment");
+  const city = document.getElementById("institutionCity");
+  const school = document.getElementById("institutionSchool");
+  if (!dept || !city || !school) return;
+  try {
+    const index = await cargarIndiceInstituciones();
+    dept.innerHTML = `<option value="">Departamento</option>` + index.map(item =>
+      `<option value="${escapeHtml(item.code)}">${escapeHtml(item.name)}</option>`
+    ).join("");
+    city.innerHTML = `<option value="">Ciudad o municipio</option>`;
+    school.innerHTML = `<option value="">Primero selecciona ciudad</option>`;
+  } catch (err) {
+    setStatus("institutionStatus", err.message || "No se pudo cargar el catálogo DANE.", "error");
+  }
+}
+
+async function actualizarCiudadesInstitucion() {
+  const dept = document.getElementById("institutionDepartment");
+  const city = document.getElementById("institutionCity");
+  const school = document.getElementById("institutionSchool");
+  const selectedDept = dept?.value || "";
+  const index = await cargarIndiceInstituciones();
+  const info = index.find(item => item.code === selectedDept);
+  city.innerHTML = `<option value="">Ciudad o municipio</option>` + (info?.municipalities || []).map(item =>
+    `<option value="${escapeHtml(item.code)}">${escapeHtml(item.name)} · ${item.count} colegios</option>`
+  ).join("");
+  school.innerHTML = `<option value="">Primero selecciona ciudad</option>`;
+  limpiarColegioInstitucional();
+}
+
+function limpiarColegioInstitucional() {
+  const ids = ["institutionName", "institutionSector"];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = "";
+  });
+}
+
+async function actualizarColegiosInstitucion() {
+  const city = document.getElementById("institutionCity");
+  const school = document.getElementById("institutionSchool");
+  if (!city || !school) return;
+  limpiarColegioInstitucional();
+  const municipalityCode = city.value;
+  if (!municipalityCode) {
+    school.innerHTML = `<option value="">Primero selecciona ciudad</option>`;
+    return;
+  }
+  school.innerHTML = `<option value="">Cargando colegios...</option>`;
+  try {
+    const schools = await cargarColegiosMunicipio(municipalityCode);
+    school.innerHTML = `<option value="">Selecciona el colegio</option>` + schools.map(item =>
+      `<option value="${escapeHtml(item.dane)}" data-sector="${escapeHtml(item.sector)}" data-name="${escapeHtml(item.name)}">${escapeHtml(item.name)} · ${escapeHtml(item.sector)} · DANE ${escapeHtml(item.dane)}</option>`
+    ).join("");
+  } catch (err) {
+    school.innerHTML = `<option value="">No se pudieron cargar colegios</option>`;
+    setStatus("institutionStatus", err.message || "No se pudieron cargar colegios.", "error");
+  }
+}
+
+function sincronizarColegioInstitucional() {
+  const school = document.getElementById("institutionSchool");
+  const selected = school?.selectedOptions?.[0];
+  const name = document.getElementById("institutionName");
+  const sector = document.getElementById("institutionSector");
+  const dane = document.getElementById("institutionDane");
+  if (name) name.value = selected?.dataset.name || "";
+  if (sector) sector.value = selected?.dataset.sector || "";
+  if (dane && school?.value) dane.value = school.value;
+}
+
+async function crearCuentaInstitucional() {
+  const statusId = "institutionStatus";
+  const adminName = document.getElementById("institutionAdminName")?.value.trim() || "";
+  const email = document.getElementById("institutionEmail")?.value.trim().toLowerCase() || "";
+  const password = document.getElementById("institutionPassword")?.value || "";
+  const dept = document.getElementById("institutionDepartment");
+  const city = document.getElementById("institutionCity");
+  const school = document.getElementById("institutionSchool");
+  const daneTyped = document.getElementById("institutionDane")?.value.trim() || "";
+  const gradeMode = document.getElementById("institutionGradeMode")?.value || "";
+  const selectedSchool = school?.selectedOptions?.[0];
+  const selectedDept = dept?.selectedOptions?.[0];
+  const selectedCity = city?.selectedOptions?.[0];
+  if (adminName.length < 3) return setStatus(statusId, "Escribe el nombre del responsable.", "error");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setStatus(statusId, "Escribe un correo institucional válido.", "error");
+  if (!validarPassword(password)) return setStatus(statusId, "La contraseña debe cumplir mínimo 8 caracteres, una mayúscula, dos números y un símbolo.", "error");
+  if (!dept?.value || !city?.value || !school?.value) return setStatus(statusId, "Selecciona departamento, ciudad y colegio.", "error");
+  if (daneTyped !== school.value) return setStatus(statusId, "El código DANE no coincide con el colegio seleccionado.", "error");
+  if (!gradeMode) return setStatus(statusId, "Selecciona si los grupos se nombran por letra o número.", "error");
+  const gradeCounts = {
+    "9": Number(document.getElementById("institutionGrade9Count")?.value || 0),
+    "10": Number(document.getElementById("institutionGrade10Count")?.value || 0),
+    "11": Number(document.getElementById("institutionGrade11Count")?.value || 0)
+  };
+  if (!gradeCounts["9"] && !gradeCounts["10"] && !gradeCounts["11"]) {
+    return setStatus(statusId, "Indica cuántos grupos tiene al menos un grado.", "error");
+  }
+  setStatus(statusId, "Creando cuenta institucional...");
+  try {
+    registroEnCurso = true;
+    const cred = await createUserWithEmailAndPassword(auth, email, password);
+    await updateProfile(cred.user, { displayName: adminName });
+    const institutionData = {
+      institutionDane: school.value,
+      institutionName: selectedSchool?.dataset.name || "",
+      institutionSector: selectedSchool?.dataset.sector || "",
+      institutionDepartmentCode: dept.value,
+      institutionDepartmentName: selectedDept?.textContent || "",
+      institutionMunicipalityCode: city.value,
+      institutionMunicipalityName: (selectedCity?.textContent || "").replace(/\s·\s\d+\scolegios$/i, ""),
+      institutionCountry: "Colombia",
+      gradeMode,
+      gradeCounts,
+      ownerUid: cred.user.uid,
+      ownerEmail: email,
+      ownerName: adminName,
+      status: "pending-subscription",
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    };
+    await setDoc(doc(db, "institutions", school.value), institutionData, { merge: true });
+    await setDoc(doc(db, "institutionAdmins", `${school.value}_${cred.user.uid}`), {
+      institutionDane: school.value,
+      uid: cred.user.uid,
+      email,
+      displayName: adminName,
+      role: "owner",
+      status: "active",
+      createdAt: serverTimestamp()
+    }, { merge: true });
+    await guardarPerfilUsuario({
+      uid: cred.user.uid,
+      email,
+      displayName: adminName,
+      role: "institution",
+      tipoCuenta: "institution",
+      accountMode: "institution",
+      isInstitutionAdmin: true,
+      isAdmin: false,
+      grupo: "",
+      ...institutionData
+    });
+    await enviarVerificacionEmailPersonalizada(email);
+    await signOut(auth);
+    registroEnCurso = false;
+    setStatus(statusId, "Cuenta institucional creada. Verifica el correo antes de iniciar sesión.", "ok");
+  } catch (err) {
+    registroEnCurso = false;
+    console.error(err);
+    setStatus(statusId, "No se pudo crear la cuenta institucional. Revisa el correo o intenta de nuevo.", "error");
+  }
+}
+
 function sortByName(items) {
   return [...items].sort((a, b) => String(a.name || a.nombre || "").localeCompare(String(b.name || b.nombre || ""), "es"));
 }
@@ -4635,8 +4827,10 @@ function optionGeo(item, selectedValue = "") {
   const value = item.id || item.code || item.codigo || item.name || item.nombre;
   const name = item.name || item.nombre || value;
   const code = item.code || item.codigo || item.iso2 || "";
+  const iso2 = item.iso2 || value;
+  const flag = iso2 === "CO" ? "🇨🇴 " : iso2 === "VE" ? "🇻🇪 " : "";
   const selected = value === selectedValue || name === selectedValue || code === selectedValue ? "selected" : "";
-  return `<option value="${value}" data-name="${name}" data-code="${code}" data-iso2="${item.iso2 || ""}" data-iso3="${item.iso3 || ""}" ${selected}>${name}</option>`;
+  return `<option value="${value}" data-name="${name}" data-code="${code}" data-iso2="${item.iso2 || ""}" data-iso3="${item.iso3 || ""}" ${selected}>${flag}${name}</option>`;
 }
 
 async function poblarUbicacion(prefix, valores = {}) {
@@ -5041,6 +5235,17 @@ async function prepararSesionAutenticada() {
     return;
   }
 
+  if (esInstitucion()) {
+    await mostrarSplashBienvenida();
+    modoAdmin = false;
+    grupoActivo = "institution";
+    localStorage.setItem(STORAGE_GRUPO, grupoActivo);
+    document.body.classList.remove("group-locked");
+    aplicarModoUsuario();
+    activarNav(suscripcionActiva() ? "facturacion" : "suscripcion");
+    return;
+  }
+
   await cargarEstadoRemoto();
   await mostrarSplashBienvenida();
   if (!suscripcionActiva()) {
@@ -5359,7 +5564,7 @@ async function loginEmail() {
     const cred = await signInWithEmailAndPassword(auth, email, password);
     if (requiereVerificacionEmail(cred.user) && cred.user.email?.toLowerCase() !== ADMIN_EMAIL) {
       await signOut(auth);
-      mostrarWarn("Debes verificar tu correo. Revisa Gmail y abre el enlace de verificación antes de iniciar sesión.");
+      mostrarWarn("Debes verificar tu correo. Abre el enlace de verificación antes de iniciar sesión.");
       return;
     }
   } catch (err) {
@@ -5371,8 +5576,8 @@ async function registrarEmail() {
   const nombre = document.getElementById("registerName").value.trim();
   const email = document.getElementById("registerEmail").value.trim().toLowerCase();
   const password = document.getElementById("registerPassword").value;
-  const role = document.getElementById("registerRole")?.value || "";
-  const accountMode = document.getElementById("registerAccountMode")?.value || "";
+  const role = "student";
+  const accountMode = "independent";
   const perfilRegistro = perfilBasicoDesdeFormulario("register");
   if (nombre.length < 3) {
     mostrarWarn("Escribe un nombre de usuario de mínimo 3 caracteres.");
@@ -5382,18 +5587,8 @@ async function registrarEmail() {
     mostrarWarn("Solo se permiten correos @gmail.com.");
     return;
   }
-  if (!["teacher", "student"].includes(role)) {
-    mostrarWarn("Selecciona si tu cuenta será de profesor o estudiante.");
-    return;
-  }
-  if (!accountMode) {
-    mostrarWarn("Selecciona si el acceso será independiente o institucional.");
-    return;
-  }
-  if (role === "teacher" && accountMode !== "institutional" && email !== ADMIN_EMAIL) {
-    mostrarWarn("Los profesores deben estar asociados a una institución autorizada.");
-    return;
-  }
+  document.getElementById("registerRole").value = role;
+  document.getElementById("registerAccountMode").value = accountMode;
   if (!actualizarReglasPassword() || !validarPassword(password)) {
     mostrarWarn("La contraseña debe tener mínimo 8 caracteres, una mayúscula, dos números y un símbolo permitido.");
     return;
@@ -5411,11 +5606,11 @@ async function registrarEmail() {
       email,
       displayName: nombre,
       role,
-      tipoCuenta: role,
+      tipoCuenta: "student",
       accountMode,
       billingMode: accountMode,
-      institutionStatus: accountMode === "institutional" ? "pending-validation" : "",
-      isAdmin: role === "teacher" || email === ADMIN_EMAIL,
+      institutionStatus: "",
+      isAdmin: email === ADMIN_EMAIL,
       phoneVerified: false,
       ...perfilRegistro
     });
@@ -5466,8 +5661,8 @@ async function guardarDatosGoogleIniciales(user) {
 
 async function recuperarPassword() {
   const email = (document.getElementById("forgotPasswordEmail")?.value || document.getElementById("loginEmail")?.value || "").trim().toLowerCase();
-  if (!email.endsWith("@gmail.com")) {
-    setStatus("forgotPasswordStatus", "Escribe tu correo Gmail registrado.", "error");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    setStatus("forgotPasswordStatus", "Escribe tu correo registrado.", "error");
     return;
   }
   try {
@@ -5522,13 +5717,15 @@ function mostrarSeleccionRol() {
 }
 
 async function guardarRolUsuario(role) {
-  if (!["teacher", "student"].includes(role)) return;
+  if (role !== "student") return;
   setStatus("roleChoiceStatus", "Guardando tipo de cuenta...");
   await guardarPerfilUsuario({
-    role,
-    tipoCuenta: role,
-    isAdmin: role === "teacher",
-    grupo: role === "teacher" ? "admin" : (grupoActivo || "")
+    role: "student",
+    tipoCuenta: "student",
+    accountMode: "independent",
+    billingMode: "independent",
+    isAdmin: false,
+    grupo: grupoActivo || ""
   });
   document.getElementById("roleChoiceCard")?.classList.add("hidden");
   await prepararSesionAutenticada();
@@ -6623,7 +6820,20 @@ document.getElementById("btnStudentPlanLanding")?.addEventListener("click", most
 document.getElementById("btnInstitutionInfoHero")?.addEventListener("click", mostrarInstitutionInfo);
 document.getElementById("btnInstitutionPlanLanding")?.addEventListener("click", mostrarInstitutionInfo);
 document.getElementById("btnInstitutionFromRegister")?.addEventListener("click", mostrarInstitutionInfo);
+document.getElementById("btnInstitutionFromRole")?.addEventListener("click", mostrarInstitutionInfo);
 document.getElementById("btnInstitutionInfoClose")?.addEventListener("click", cerrarInstitutionInfo);
+document.getElementById("institutionDepartment")?.addEventListener("change", actualizarCiudadesInstitucion);
+document.getElementById("institutionCity")?.addEventListener("change", actualizarColegiosInstitucion);
+document.getElementById("institutionSchool")?.addEventListener("change", sincronizarColegioInstitucional);
+document.getElementById("btnCreateInstitutionAccount")?.addEventListener("click", crearCuentaInstitucional);
+document.querySelectorAll("#institutionInfoCard input, #institutionInfoCard select").forEach(input => {
+  input.addEventListener("keydown", event => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      crearCuentaInstitucional();
+    }
+  });
+});
 document.getElementById("btnOpenFaqMenu")?.addEventListener("click", mostrarFaqCard);
 document.getElementById("btnOpenFaqBottom")?.addEventListener("click", mostrarFaqCard);
 document.getElementById("btnOpenFaqFooter")?.addEventListener("click", mostrarFaqCard);

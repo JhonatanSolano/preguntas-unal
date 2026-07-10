@@ -169,7 +169,7 @@ exports.sendPasswordResetEmailCustom = onRequest({ region: "us-central1", secret
   if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
 
   const email = String(req.body?.email || "").trim().toLowerCase();
-  if (!/^[^\s@]+@gmail\.com$/i.test(email)) {
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/i.test(email)) {
     return res.status(400).json({ error: "Correo inválido." });
   }
 
@@ -206,7 +206,7 @@ exports.sendEmailVerificationCustom = onRequest({ region: "us-central1", secrets
   if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
 
   const email = String(req.body?.email || "").trim().toLowerCase();
-  if (!/^[^\s@]+@gmail\.com$/i.test(email)) {
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/i.test(email)) {
     return res.status(400).json({ error: "Correo inválido." });
   }
 

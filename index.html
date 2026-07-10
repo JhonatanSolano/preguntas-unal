@@ -10,7 +10,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="style.css?v=20260709-11" />
+  <link rel="stylesheet" href="style.css?v=20260710-12" />
 </head>
 <body class="group-locked">
   <div class="welcome-splash hidden" id="welcomeSplash" aria-live="polite">
@@ -266,7 +266,7 @@
         </div>
 
         <div class="auth-form" id="loginPanel">
-          <input type="email" id="loginEmail" class="admin-input" placeholder="Correo @gmail.com" autocomplete="email" />
+          <input type="email" id="loginEmail" class="admin-input" placeholder="Correo electrónico" autocomplete="email" />
           <div class="password-wrap">
             <input type="password" id="loginPassword" class="admin-input" placeholder="Contraseña" autocomplete="current-password" />
             <button class="password-toggle" type="button" data-toggle-password="loginPassword" aria-label="Ver contraseña">👁</button>
@@ -282,16 +282,12 @@
         <input type="text" id="registerName" class="admin-input" placeholder="Nombre de usuario" autocomplete="name" />
         <input type="email" id="registerEmail" class="admin-input" placeholder="Correo @gmail.com" autocomplete="email" />
         <select id="registerRole" class="admin-input" aria-label="Tipo de cuenta">
-          <option value="">Tipo de cuenta</option>
-          <option value="student">Estudiante independiente</option>
-          <option value="teacher">Profesor de institución</option>
+          <option value="student" selected>Estudiante independiente</option>
         </select>
         <select id="registerAccountMode" class="admin-input" aria-label="Modalidad de acceso">
-          <option value="">Modalidad de acceso</option>
-          <option value="independent">Independiente · paga su propio plan</option>
-          <option value="institutional">Institucional · asociado a colegio</option>
+          <option value="independent" selected>Independiente · paga su propio plan</option>
         </select>
-        <button class="btn btn-outline" id="btnInstitutionFromRegister" type="button">Registrar una institución</button>
+        <button class="btn btn-outline" id="btnInstitutionFromRegister" type="button">Registrar institución educativa</button>
         <div class="profile-form-grid">
           <select id="registerPhoneCode" class="admin-input" aria-label="Indicador del país"></select>
           <input type="tel" id="registerPhone" class="admin-input" placeholder="Número de teléfono" autocomplete="tel" />
@@ -341,18 +337,52 @@
       <div class="start-screen group-gate auth-gate institution-gate">
         <button class="auth-close" id="btnInstitutionInfoClose" type="button" aria-label="Cerrar">×</button>
         <img class="auth-logo" src="assets/logo.png" alt="Matemáticas En Tu Bolsillo" />
-        <h2 id="institutionInfoTitle">Acceso para instituciones</h2>
-        <p>Esta modalidad es para colegios que desean administrar docentes, estudiantes y aulas de 9.º, 10.º y 11.º con cupos institucionales.</p>
-        <div class="institution-plan-list">
-          <span>1 a 10 estudiantes</span>
-          <span>11 a 25 estudiantes</span>
-          <span>26 a 60 estudiantes</span>
-          <span>61 a 100 estudiantes</span>
-          <span>101 a 200 estudiantes</span>
-          <span>Más de 200 estudiantes</span>
+        <h2 id="institutionInfoTitle">Registro institucional</h2>
+        <p>Este registro es únicamente para colegios. Debe realizarlo rectoría, coordinación o la persona autorizada para administrar docentes y estudiantes.</p>
+        <div class="institution-form">
+          <div class="profile-form-grid">
+            <input type="text" id="institutionAdminName" class="admin-input" placeholder="Nombre del responsable" autocomplete="name" />
+            <input type="email" id="institutionEmail" class="admin-input" placeholder="Correo institucional" autocomplete="email" />
+          </div>
+          <div class="password-wrap">
+            <input type="password" id="institutionPassword" class="admin-input" placeholder="Contraseña institucional" autocomplete="new-password" />
+            <button class="password-toggle" type="button" data-toggle-password="institutionPassword" aria-label="Ver contraseña">👁</button>
+          </div>
+          <div class="profile-form-grid three">
+            <select id="institutionCountry" class="admin-input" aria-label="País">
+              <option value="CO">🇨🇴 Colombia</option>
+            </select>
+            <select id="institutionDepartment" class="admin-input" aria-label="Departamento"></select>
+            <select id="institutionCity" class="admin-input" aria-label="Ciudad o municipio"></select>
+          </div>
+          <div class="profile-form-grid">
+            <select id="institutionSchool" class="admin-input" aria-label="Colegio"></select>
+            <input type="text" id="institutionDane" class="admin-input" placeholder="Código DANE del colegio" inputmode="numeric" />
+          </div>
+          <div class="profile-form-grid">
+            <input type="text" id="institutionName" class="admin-input" placeholder="Nombre del colegio" readonly />
+            <input type="text" id="institutionSector" class="admin-input" placeholder="Sector" readonly />
+          </div>
+          <div class="profile-form-grid three">
+            <select id="institutionGrade9Count" class="admin-input" aria-label="Cantidad de novenos">
+              <option value="">Novenos</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option>
+            </select>
+            <select id="institutionGrade10Count" class="admin-input" aria-label="Cantidad de décimos">
+              <option value="">Décimos</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option>
+            </select>
+            <select id="institutionGrade11Count" class="admin-input" aria-label="Cantidad de onces">
+              <option value="">Onces</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option>
+            </select>
+          </div>
+          <select id="institutionGradeMode" class="admin-input" aria-label="Modo de grupos">
+            <option value="">Los grupos se nombran con...</option>
+            <option value="letters">Letras · 9A, 9B, 10A</option>
+            <option value="numbers">Números · 9-1, 9-2, 10-1</option>
+          </select>
+          <p class="mini-help">Después de crear la cuenta institucional podrás cargar correos autorizados de profesores y estudiantes por grado. Quienes se registren con esos correos podrán usar la suscripción de la institución.</p>
+          <button class="btn btn-primary" id="btnCreateInstitutionAccount" type="button">Crear cuenta institucional</button>
+          <p class="bank-status" id="institutionStatus"></p>
         </div>
-        <p class="mini-help">La cuenta institucional validará NIT/NIP, nombre de la institución, ubicación, docentes autorizados y correos de estudiantes. El registro institucional completo quedará conectado a Firebase en la siguiente fase.</p>
-        <a class="btn btn-primary support-link" href="mailto:info@matematicasentubolsillo.com?subject=Solicitud%20de%20plan%20institucional%20Matem%C3%A1ticas%20En%20Tu%20Bolsillo">Solicitar plan institucional</a>
       </div>
     </div>
 
@@ -397,7 +427,7 @@
         <h2 id="recoverPasswordTitle">Restablecer contraseña</h2>
         <p>Escribe tu correo Gmail registrado. Te enviaremos un enlace seguro para cambiar tu contraseña.</p>
         <div class="auth-form" id="forgotPasswordPanel">
-          <input type="email" id="forgotPasswordEmail" class="admin-input" placeholder="Correo @gmail.com" autocomplete="email" />
+          <input type="email" id="forgotPasswordEmail" class="admin-input" placeholder="Correo registrado" autocomplete="email" />
           <button class="btn btn-primary" id="btnSendPasswordRecovery" type="button">Enviar recuperación</button>
           <p class="bank-status" id="forgotPasswordStatus"></p>
           <button class="btn btn-outline" id="btnForgotPasswordBack" type="button">Volver al inicio de sesión</button>
@@ -409,17 +439,14 @@
       <div class="start-screen group-gate auth-gate">
         <img class="auth-logo" src="assets/logo.png" alt="Matemáticas En Tu Bolsillo" />
         <h2 id="roleChoiceTitle">Elige tu tipo de cuenta</h2>
-        <p>Selecciona cómo usarás la plataforma. Esta elección define si entrarás como profesor o estudiante.</p>
+        <p>El acceso con Google queda reservado para estudiantes independientes. Profesores, estudiantes de colegio e instituciones deben registrarse con correo y contraseña.</p>
         <div class="role-choice-grid">
-          <button class="role-choice-card" data-role-choice="teacher" type="button">
-            <strong>Profesor</strong>
-            <span>Crear aulas, gestionar estudiantes, bancos, permisos y métricas.</span>
-          </button>
           <button class="role-choice-card" data-role-choice="student" type="button">
-            <strong>Estudiante</strong>
-            <span>Ingresar a un aula con código y presentar exámenes.</span>
+            <strong>Estudiante independiente</strong>
+            <span>Usar la plataforma con tu propio plan mensual y entrar a aulas autorizadas.</span>
           </button>
         </div>
+        <button class="btn btn-outline" id="btnInstitutionFromRole" type="button">Registrar institución educativa</button>
         <p class="bank-status" id="roleChoiceStatus"></p>
       </div>
     </div>
@@ -1849,6 +1876,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260709-11"></script>
+  <script type="module" src="script.js?v=20260710-12"></script>
 </body>
 </html>
