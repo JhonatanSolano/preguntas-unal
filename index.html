@@ -10,7 +10,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="style.css?v=20260710-13" />
+  <link rel="stylesheet" href="style.css?v=20260710-14" />
 </head>
 <body class="group-locked">
   <div class="welcome-splash hidden" id="welcomeSplash" aria-live="polite">
@@ -166,7 +166,7 @@
         <article>
           <span class="feature-icon" aria-hidden="true">🏫</span>
           <strong>Modalidad institucional</strong>
-          <p>Colegios con docentes, estudiantes y grados de 9.º, 10.º y 11.º pueden operar por cupos institucionales.</p>
+          <p>Colegios de Colombia con docentes, estudiantes y grados de 9.º, 10.º y 11.º pueden operar por cupos institucionales.</p>
         </article>
       </div>
     </section>
@@ -174,7 +174,7 @@
     <section class="landing-section pricing-section" id="planes">
       <span class="section-kicker">Planes</span>
       <h2>Dos formas de acceder a la plataforma.</h2>
-      <p class="section-lead">Un estudiante independiente puede pagar su propio acceso. En colegios, la institución administra cupos, docentes y estudiantes.</p>
+      <p class="section-lead">Un estudiante independiente de Colombia o Venezuela puede pagar su propio acceso. En colegios de Colombia, la institución administra cupos, docentes y estudiantes.</p>
       <div class="pricing-grid">
         <article class="pricing-card featured">
           <span>Estudiante independiente</span>
@@ -280,6 +280,7 @@
         </div>
 
         <div class="auth-form hidden" id="registerPanel">
+        <p class="mini-help">Este registro es para estudiantes independientes de Colombia o Venezuela. Los estudiantes independientes son administrados directamente por Jhonatan Solano, dueño y profesor de la app.</p>
         <input type="text" id="registerName" class="admin-input" placeholder="Nombre de usuario" autocomplete="name" />
         <input type="email" id="registerEmail" class="admin-input" placeholder="Correo @gmail.com" autocomplete="email" />
         <input type="hidden" id="registerRole" value="student" />
@@ -334,7 +335,7 @@
         <button class="auth-close" id="btnInstitutionInfoClose" type="button" aria-label="Cerrar">×</button>
         <img class="auth-logo" src="assets/logo.png" alt="Matemáticas En Tu Bolsillo" />
         <h2 id="institutionInfoTitle">Registro institucional</h2>
-        <p>Este registro es únicamente para colegios. Debe realizarlo rectoría, coordinación o la persona autorizada para administrar docentes y estudiantes.</p>
+        <p>Este registro es únicamente para colegios de Colombia. Debe realizarlo rectoría o coordinación para administrar docentes y estudiantes de la institución.</p>
         <div class="institution-form">
           <div class="profile-form-grid">
             <input type="text" id="institutionAdminName" class="admin-input" placeholder="Nombre del responsable" autocomplete="name" />
@@ -386,6 +387,7 @@
             <p data-rule="numbers">Mínimo dos números</p>
             <p data-rule="symbol">Mínimo un símbolo permitido: ! @ # $ % ^ & * ( ) _ + - = [ ] { } ; : , . ?</p>
           </div>
+          <p class="mini-help">Por ahora el registro institucional solo está disponible para Colombia, porque el catálogo de colegios proviene de SINEB/MEN. Venezuela queda disponible únicamente para estudiantes independientes.</p>
           <p class="mini-help">Después de crear la cuenta institucional podrás cargar correos autorizados de profesores y estudiantes por grado. Quienes se registren con esos correos podrán usar la suscripción de la institución.</p>
           <button class="btn btn-primary" id="btnCreateInstitutionAccount" type="button">Crear cuenta institucional</button>
           <p class="bank-status" id="institutionStatus"></p>
@@ -409,7 +411,7 @@
           </details>
           <details>
             <summary>¿Un colegio puede pagar por sus estudiantes?</summary>
-            <p>Sí. La modalidad institucional tendrá planes por cupos totales de estudiantes, docentes autorizados y aulas por grado.</p>
+            <p>Sí. La modalidad institucional está disponible para colegios de Colombia y tendrá planes por cupos totales de estudiantes, docentes autorizados y aulas por grado.</p>
           </details>
           <details>
             <summary>¿La app guarda datos de tarjeta?</summary>
@@ -1883,6 +1885,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260710-13"></script>
+  <script type="module" src="script.js?v=20260710-14"></script>
 </body>
 </html>

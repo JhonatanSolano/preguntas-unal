@@ -4715,6 +4715,7 @@ async function crearCuentaInstitucional() {
   const email = document.getElementById("institutionEmail")?.value.trim().toLowerCase() || "";
   const password = document.getElementById("institutionPassword")?.value || "";
   const institutionRole = document.getElementById("institutionRole")?.value || "";
+  const institutionCountry = document.getElementById("institutionCountry")?.value || "CO";
   const dept = document.getElementById("institutionDepartment");
   const city = document.getElementById("institutionCity");
   const school = document.getElementById("institutionSchool");
@@ -4726,6 +4727,7 @@ async function crearCuentaInstitucional() {
   if (adminName.length < 3) return setStatus(statusId, "Escribe el nombre del responsable.", "error");
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setStatus(statusId, "Escribe un correo institucional válido.", "error");
   if (!["rector", "coordinator"].includes(institutionRole)) return setStatus(statusId, "Selecciona si el cargo es Rector(a) o Coordinador(a).", "error");
+  if (institutionCountry !== "CO") return setStatus(statusId, "El registro institucional por ahora solo está disponible para colegios de Colombia.", "error");
   if (!actualizarReglasPasswordInstitucion() || !validarPassword(password)) return setStatus(statusId, "La contraseña debe cumplir mínimo 8 caracteres, una mayúscula, dos números y un símbolo.", "error");
   if (!dept?.value || !city?.value || !school?.value) return setStatus(statusId, "Selecciona departamento, ciudad y colegio.", "error");
   if (daneTyped !== school.value) return setStatus(statusId, "El código DANE no coincide con el colegio seleccionado.", "error");
