@@ -1,1 +1,20 @@
-[{"dane":"297001000481","name":"CENTRO EDUCATIVO RURAL DE IBACABA","departmentCode":"97","departmentName":"VAUPÉS","municipalityCode":"97889","municipalityName":"YAVARATÉ","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"NN","address":"RIO  VAUPES BAJO","phone":"","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"297889000093","name":"CENTRO EDUCATIVO RURAL DE TERESITA","departmentCode":"97","departmentName":"VAUPÉS","municipalityCode":"97889","municipalityName":"YAVARATÉ","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"NN","address":"TERESITA DE PIRAMIRI","phone":"0985221883","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"297889000077","name":"CENTRO EDUCATIVO RURAL DE WAINAMBI","departmentCode":"97","departmentName":"VAUPÉS","municipalityCode":"97889","municipalityName":"YAVARATÉ","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"NN","address":"CA¿O MACU PAPURI","phone":"","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"197889000111","name":"CENTRO EDUCATIVO RURAL DE YAVARATE","departmentCode":"97","departmentName":"VAUPÉS","municipalityCode":"97889","municipalityName":"YAVARATÉ","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"NN","address":"CL 11 3 45","phone":"","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"297001000139","name":"CENTRO EDUCATIVO RURAL SANTA INES DE PIRACUARA","departmentCode":"97","departmentName":"VAUPÉS","municipalityCode":"97889","municipalityName":"YAVARATÉ","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"NN","address":"CL 11 3 45","phone":"","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"297001002115","name":"I.E.D. DE MONFORTH","departmentCode":"97","departmentName":"VAUPÉS","municipalityCode":"97889","municipalityName":"YAVARATÉ","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"GABRIEL SANTACRUZ RESTREPO","address":"CORREGIMIENTO DE YAVARATE","phone":"3133550299","email":"monforth@sedvaupes.gov.co","zones":"RURAL","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22","campusCount":6,"calendar":"A","status":"ANTIGUO-ACTIVO"}]
+{
+  "dane": "297001002115",
+  "name": "",
+  "departmentCode": "97",
+  "departmentName": "VAUPÉS",
+  "municipalityCode": "97889",
+  "municipalityName": "YAVARATÉ",
+  "sector": "OFICIAL",
+  "establishmentType": "INSTITUCION EDUCATIVA",
+  "rectorName": "GABRIEL SANTACRUZ RESTREPO",
+  "address": "CORREGIMIENTO DE YAVARATE",
+  "phone": "3133550299",
+  "email": "monforth@sedvaupes.gov.co",
+  "zones": "",
+  "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+  "grades": "-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22",
+  "campusCount": "6",
+  "calendar": "A",
+  "status": "ANTIGUO-ACTIVO"
+}

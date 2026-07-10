@@ -1,1 +1,20 @@
-[{"dane":"294001001292","name":"C.E.  JOSE CARLOS GONZALEZ","departmentCode":"94","departmentName":"GUAINÍA","municipalityCode":"94888","municipalityName":"MORICHAL","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"MARCO ANTONIO NARIÑO","address":"IND COMUNIDAD DE LAGUNA MURE","phone":"5656658","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"294001000792","name":"C.E. JORGE ELIECER GAITAN","departmentCode":"94","departmentName":"GUAINÍA","municipalityCode":"94888","municipalityName":"MORICHAL","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"ALICIA PALLARES PEINADO","address":"IND COMUNIDAD DE PUERTO VALENCIA","phone":"5656658","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"294001001268","name":"C.E. LUIS CARLOS ZAMBRANO","departmentCode":"94","departmentName":"GUAINÍA","municipalityCode":"94888","municipalityName":"MORICHAL","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"CARLOS GUILLERMO RODRIGUEZ","address":"IND COMUNIDAD DE CAÑO NEGRO","phone":"5656658","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"294001000822","name":"I.E. ANTONIO FORERO - SEDE PRINCIPAL","departmentCode":"94","departmentName":"GUAINÍA","municipalityCode":"94888","municipalityName":"MORICHAL","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"SERGIO ESTEBAN GUAPACHA ARICAPA","address":"IND COMUNIDAD DE GARZA MORICHAL RIO INIRIDA","phone":"3002465602","email":"institucioneducativaantonioforero@sedguainia.gov.co","zones":"RURAL","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"0,1,2,3,4,5,6,7,8,9,10,11,21,22,23","campusCount":5,"calendar":"A","status":"ANTIGUO-ACTIVO"}]
+{
+  "dane": "294001000822",
+  "name": "",
+  "departmentCode": "94",
+  "departmentName": "GUAINÍA",
+  "municipalityCode": "94888",
+  "municipalityName": "MORICHAL",
+  "sector": "OFICIAL",
+  "establishmentType": "INSTITUCION EDUCATIVA",
+  "rectorName": "SERGIO ESTEBAN GUAPACHA ARICAPA",
+  "address": "IND COMUNIDAD DE GARZA MORICHAL RIO INIRIDA",
+  "phone": "3002465602",
+  "email": "institucioneducativaantonioforero@sedguainia.gov.co",
+  "zones": "",
+  "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+  "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21,22,23",
+  "campusCount": "5",
+  "calendar": "A",
+  "status": "ANTIGUO-ACTIVO"
+}

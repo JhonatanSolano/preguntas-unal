@@ -1,1 +1,42 @@
-[{"dane":"163111000162","name":"INSTITUCION EDUCATIVA INSTITUTO  BUENAVISTA","departmentCode":"63","departmentName":"QUINDIO","municipalityCode":"63111","municipalityName":"BUENAVISTA","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"NARDA EGILDA ROSAS MARTINEZ","address":"CL 3 7 35","phone":"3164123483","email":"rectoria@ieib.edu.co","zones":"URBANA","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26","campusCount":1,"calendar":"A","status":"ANTIGUO-ACTIVO"},{"dane":"263111000108","name":"INSTITUCION EDUCATIVA RIO VERDE BAJO","departmentCode":"63","departmentName":"QUINDIO","municipalityCode":"63111","municipalityName":"BUENAVISTA","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"JULIO CESAR SUAREZ GARCIA","address":"VDA RIO VERDE BAJO","phone":"3122791256","email":"rectoria@ierioverdebajo.edu.co","zones":"RURAL","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"0,1,2,3,4,5,6,7,8,9,10,11,21","campusCount":11,"calendar":"A","status":"ANTIGUO-ACTIVO"}]
+[
+  {
+    "dane": "163111000162",
+    "name": "",
+    "departmentCode": "63",
+    "departmentName": "QUINDIO",
+    "municipalityCode": "63111",
+    "municipalityName": "BUENAVISTA",
+    "sector": "OFICIAL",
+    "establishmentType": "INSTITUCION EDUCATIVA",
+    "rectorName": "NARDA EGILDA ROSAS MARTINEZ",
+    "address": "CL 3 7 35",
+    "phone": "3164123483",
+    "email": "rectoria@ieib.edu.co",
+    "zones": "",
+    "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+    "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
+    "campusCount": "1",
+    "calendar": "A",
+    "status": "ANTIGUO-ACTIVO"
+  },
+  {
+    "dane": "263111000108",
+    "name": "",
+    "departmentCode": "63",
+    "departmentName": "QUINDIO",
+    "municipalityCode": "63111",
+    "municipalityName": "BUENAVISTA",
+    "sector": "OFICIAL",
+    "establishmentType": "INSTITUCION EDUCATIVA",
+    "rectorName": "JULIO CESAR SUAREZ GARCIA",
+    "address": "VDA RIO VERDE BAJO",
+    "phone": "3122791256",
+    "email": "rectoria@ierioverdebajo.edu.co",
+    "zones": "",
+    "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+    "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21",
+    "campusCount": "11",
+    "calendar": "A",
+    "status": "ANTIGUO-ACTIVO"
+  }
+]

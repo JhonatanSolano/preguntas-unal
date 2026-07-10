@@ -1,1 +1,20 @@
-[{"dane":"215051000079","name":"CE PEÑAS BLANCAS","departmentCode":"15","departmentName":"BOYACÁ","municipalityCode":"15051","municipalityName":"ARCABUCO","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"FANNY ALICIA MONROY","address":"VDA PEÑAS BLANCAS","phone":"","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"215051000052","name":"CE QUIRVAQUIRA","departmentCode":"15","departmentName":"BOYACÁ","municipalityCode":"15051","municipalityName":"ARCABUCO","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"LUIS GOMEZ RINCON","address":"VDA QUIRVAQUIRA","phone":"","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"215051000109","name":"ESC ALCAPARROS","departmentCode":"15","departmentName":"BOYACÁ","municipalityCode":"15051","municipalityName":"ARCABUCO","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"MARINA RAMOS TUNARROSA","address":"VDA ALCAPARROS","phone":"","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"215051000117","name":"ESC CABECREAS","departmentCode":"15","departmentName":"BOYACÁ","municipalityCode":"15051","municipalityName":"ARCABUCO","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"LEOVIGILDO LOPEZ RUEDA","address":"VDA CABECERAS","phone":"","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"215051000087","name":"ESC MONTE SUAREZ","departmentCode":"15","departmentName":"BOYACÁ","municipalityCode":"15051","municipalityName":"ARCABUCO","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"WILLIAM MILTON RODRIGUEZ","address":"VDA MONTE SUAREZ","phone":"7400918","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"215051000168","name":"ESC QUEMADOS","departmentCode":"15","departmentName":"BOYACÁ","municipalityCode":"15051","municipalityName":"ARCABUCO","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"LIGIA YOLIMA NOVOA FAJARDO","address":"VDA QUEMADOS","phone":"","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"215051000176","name":"ESC QUIRVAQUIRA II","departmentCode":"15","departmentName":"BOYACÁ","municipalityCode":"15051","municipalityName":"ARCABUCO","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"CECILIA SANCHEZ DE PEREZ","address":"VDA QUIRVAQUIRA","phone":"","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"215051000061","name":"ESC RUPAVITA","departmentCode":"15","departmentName":"BOYACÁ","municipalityCode":"15051","municipalityName":"ARCABUCO","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"JORGE ANTONIO ACERO BERDUGO","address":"VDA RUPAVITA","phone":"","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"115051000155","name":"I.E. TECNICO ALEJANDRO DE HUMBOLDT","departmentCode":"15","departmentName":"BOYACÁ","municipalityCode":"15051","municipalityName":"ARCABUCO","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"GILBERTO CRUZ ACUÑA","address":"AV 3 # 9 - 46","phone":"7360017","email":"arcabucohumboldt@sedboyaca.gov.co","zones":"URBANA,RURAL","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26","campusCount":11,"calendar":"A","status":"ANTIGUO-ACTIVO"}]
+{
+  "dane": "115051000155",
+  "name": "",
+  "departmentCode": "15",
+  "departmentName": "BOYACÁ",
+  "municipalityCode": "15051",
+  "municipalityName": "ARCABUCO",
+  "sector": "OFICIAL",
+  "establishmentType": "INSTITUCION EDUCATIVA",
+  "rectorName": "GILBERTO CRUZ ACUÑA",
+  "address": "AV 3 # 9 - 46",
+  "phone": "7360017",
+  "email": "arcabucohumboldt@sedboyaca.gov.co",
+  "zones": "",
+  "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+  "grades": "-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
+  "campusCount": "11",
+  "calendar": "A",
+  "status": "ANTIGUO-ACTIVO"
+}

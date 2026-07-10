@@ -1,1 +1,42 @@
-[{"dane":"168867000087","name":"COLEGIO SAN JUAN NEPOMUCENO","departmentCode":"68","departmentName":"SANTANDER","municipalityCode":"68867","municipalityName":"VETAS","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"NIDIA RAMIREZ CARREÑO","address":"CARRERA 1 N¿ 4 - 50","phone":"3116786814","email":"colegiosanjuannepomucenovetas@santander.edu.co","zones":"URBANA,RURAL","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"0,1,2,3,4,5,6,7,8,9,10,11,21,22","campusCount":6,"calendar":"A","status":"ANTIGUO-ACTIVO"},{"dane":"468867000170","name":"INSTITUTO CRISTIANO DE PROMOCION CAMPESINA ICPROC","departmentCode":"68","departmentName":"SANTANDER","municipalityCode":"68867","municipalityName":"VETAS","sector":"NO OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"ALEXANDER DIAZ OSORIO","address":"CL 15 A 18 09","phone":"3124315188","email":"fundacionicproc@icproc.org.co","zones":"RURAL","levels":"MEDIA,BÁSICA SECUNDARIA","grades":"23,24,25,26","campusCount":1,"calendar":"A","status":"NUEVO-ACTIVO"}]
+[
+  {
+    "dane": "168867000087",
+    "name": "",
+    "departmentCode": "68",
+    "departmentName": "SANTANDER",
+    "municipalityCode": "68867",
+    "municipalityName": "VETAS",
+    "sector": "OFICIAL",
+    "establishmentType": "INSTITUCION EDUCATIVA",
+    "rectorName": "NIDIA RAMIREZ CARREÑO",
+    "address": "CARRERA 1 N¿ 4 - 50",
+    "phone": "3116786814",
+    "email": "colegiosanjuannepomucenovetas@santander.edu.co",
+    "zones": "",
+    "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+    "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21,22",
+    "campusCount": "6",
+    "calendar": "A",
+    "status": "ANTIGUO-ACTIVO"
+  },
+  {
+    "dane": "468867000170",
+    "name": "",
+    "departmentCode": "68",
+    "departmentName": "SANTANDER",
+    "municipalityCode": "68867",
+    "municipalityName": "VETAS",
+    "sector": "NO OFICIAL",
+    "establishmentType": "CENTRO EDUCATIVO",
+    "rectorName": "ALEXANDER DIAZ OSORIO",
+    "address": "CL 15 A 18 09",
+    "phone": "3124315188",
+    "email": "fundacionicproc@icproc.org.co",
+    "zones": "",
+    "levels": "MEDIA,BÁSICA SECUNDARIA",
+    "grades": "23,24,25,26",
+    "campusCount": "1",
+    "calendar": "A",
+    "status": "NUEVO-ACTIVO"
+  }
+]

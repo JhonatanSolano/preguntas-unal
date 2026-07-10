@@ -1,1 +1,42 @@
-[{"dane":"225324000064","name":"INSTITUCION EDUCATIVA DEPARTAMENTAL BUSCAVIDA","departmentCode":"25","departmentName":"CUNDINAMARCA","municipalityCode":"25324","municipalityName":"GUATAQUÍ","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"DANIEL ISAAC FLORIAN RAMIREZ.","address":"VEREDA BUSCAVIDA","phone":"3173791488","email":"iedbuscavida_guataqui@secundinamarca.edu.co","zones":"RURAL","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26","campusCount":4,"calendar":"A","status":"ANTIGUO-ACTIVO"},{"dane":"125324000094","name":"INSTITUCION EDUCATIVA DEPARTAMENTAL NICOLAS DE FEDERMAN","departmentCode":"25","departmentName":"CUNDINAMARCA","municipalityCode":"25324","municipalityName":"GUATAQUÍ","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"JOSE MAURICIO MARTINEZ GARCIA.","address":"CARRERA 2 N° 5-77 BARRIO CENTRO","phone":"3216946499 - 3115556426","email":"iednicolasdefederman_guataqui@secundinamarca.edu.co retoria.iednicolasfederman@gmail.com","zones":"URBANA,RURAL","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26","campusCount":4,"calendar":"A","status":"ANTIGUO-ACTIVO"}]
+[
+  {
+    "dane": "125324000094",
+    "name": "",
+    "departmentCode": "25",
+    "departmentName": "CUNDINAMARCA",
+    "municipalityCode": "25324",
+    "municipalityName": "GUATAQUÍ",
+    "sector": "OFICIAL",
+    "establishmentType": "INSTITUCION EDUCATIVA",
+    "rectorName": "JOSE MAURICIO MARTINEZ GARCIA.",
+    "address": "CARRERA 2 N° 5-77 BARRIO CENTRO",
+    "phone": "3216946499 - 3115556426",
+    "email": "iednicolasdefederman_guataqui@secundinamarca.edu.co retoria.iednicolasfederman@gmail.com",
+    "zones": "",
+    "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+    "grades": "-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
+    "campusCount": "4",
+    "calendar": "A",
+    "status": "ANTIGUO-ACTIVO"
+  },
+  {
+    "dane": "225324000064",
+    "name": "",
+    "departmentCode": "25",
+    "departmentName": "CUNDINAMARCA",
+    "municipalityCode": "25324",
+    "municipalityName": "GUATAQUÍ",
+    "sector": "OFICIAL",
+    "establishmentType": "INSTITUCION EDUCATIVA",
+    "rectorName": "DANIEL ISAAC FLORIAN RAMIREZ.",
+    "address": "VEREDA BUSCAVIDA",
+    "phone": "3173791488",
+    "email": "iedbuscavida_guataqui@secundinamarca.edu.co",
+    "zones": "",
+    "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+    "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
+    "campusCount": "4",
+    "calendar": "A",
+    "status": "ANTIGUO-ACTIVO"
+  }
+]

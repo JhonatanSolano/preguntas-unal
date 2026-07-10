@@ -1,1 +1,42 @@
-[{"dane":"215403000091","name":"CE SAN BERNARDO ALTO","departmentCode":"15","departmentName":"BOYACÁ","municipalityCode":"15403","municipalityName":"LA UVITA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"ALCIRA FLORES PAEZ","address":"VDA SAN BERNARDO","phone":"","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"215403000082","name":"CE SAN BERNARDO CENTRO","departmentCode":"15","departmentName":"BOYACÁ","municipalityCode":"15403","municipalityName":"LA UVITA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"MYRIAN RODRIGUEZ BERRIO","address":"VDA SAN BERNARDO","phone":"","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"215403000104","name":"ESC DE VARGAS","departmentCode":"15","departmentName":"BOYACÁ","municipalityCode":"15403","municipalityName":"LA UVITA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"CECILIA HERN{ANDEZ DE BERRIO","address":"VDA DE VARGAS","phone":"","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"215403000058","name":"ESC EL CARMEN","departmentCode":"15","departmentName":"BOYACÁ","municipalityCode":"15403","municipalityName":"LA UVITA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"COSTANZA ADRIANA QUI¿ONES YEPES","address":"VDA EL CARMEN","phone":"","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"215403000066","name":"ESC EL HATICO","departmentCode":"15","departmentName":"BOYACÁ","municipalityCode":"15403","municipalityName":"LA UVITA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"GUSTAVO VELASCO PARRA","address":"VDA EL HATICO","phone":"","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"215403000210","name":"ESC EL NOVILLERO","departmentCode":"15","departmentName":"BOYACÁ","municipalityCode":"15403","municipalityName":"LA UVITA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"DORA JULIA GALVIS CARRE¿O","address":"VDA SAN BERNARDO","phone":"","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"215403000155","name":"ESC EL TOTUMO","departmentCode":"15","departmentName":"BOYACÁ","municipalityCode":"15403","municipalityName":"LA UVITA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"PATRICIA ISABEL JAIME P{EREZ","address":"VDA SAN BERNARDO","phone":"","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"215403000074","name":"ESC SAN ANTONIO","departmentCode":"15","departmentName":"BOYACÁ","municipalityCode":"15403","municipalityName":"LA UVITA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"DORIS LEONOR LIZARAZO GELVES","address":"VDA SAN ANTONIO","phone":"","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"215403000139","name":"ESC SAN IGNACIO","departmentCode":"15","departmentName":"BOYACÁ","municipalityCode":"15403","municipalityName":"LA UVITA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"ROSA ELVIRA HERNANDEZ P¿REZ","address":"VDA SAN IGNACIO","phone":"","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"415403000197","name":"I.E. TECNICA AGROINDUSTRIAL CUSAGUI","departmentCode":"15","departmentName":"BOYACÁ","municipalityCode":"15403","municipalityName":"LA UVITA","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"JAIME ROLANDO VASQUEZ MEJIA","address":"VDA CUSAGUI","phone":"3115147139","email":"lauvitatecnicocusagui@sedboyaca.gov.co","zones":"RURAL","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26","campusCount":5,"calendar":"A","status":"ANTIGUO-ACTIVO"},{"dane":"115403000011","name":"I.E. TECNICA NUESTRA SEÑORA DE LAS MERCEDES","departmentCode":"15","departmentName":"BOYACÁ","municipalityCode":"15403","municipalityName":"LA UVITA","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"EDGAR DANIEL ESLAVA SANDOVAL","address":"KM 1 VIA AL CARMEN","phone":"3134904589","email":"lauvitalasmercedes@sedboyaca.gov.co","zones":"RURAL,URBANA","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26","campusCount":11,"calendar":"A","status":"ANTIGUO-ACTIVO"}]
+[
+  {
+    "dane": "115403000011",
+    "name": "",
+    "departmentCode": "15",
+    "departmentName": "BOYACÁ",
+    "municipalityCode": "15403",
+    "municipalityName": "LA UVITA",
+    "sector": "OFICIAL",
+    "establishmentType": "INSTITUCION EDUCATIVA",
+    "rectorName": "EDGAR DANIEL ESLAVA SANDOVAL",
+    "address": "KM 1 VIA AL CARMEN",
+    "phone": "3134904589",
+    "email": "lauvitalasmercedes@sedboyaca.gov.co",
+    "zones": "",
+    "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+    "grades": "-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
+    "campusCount": "11",
+    "calendar": "A",
+    "status": "ANTIGUO-ACTIVO"
+  },
+  {
+    "dane": "415403000197",
+    "name": "",
+    "departmentCode": "15",
+    "departmentName": "BOYACÁ",
+    "municipalityCode": "15403",
+    "municipalityName": "LA UVITA",
+    "sector": "OFICIAL",
+    "establishmentType": "INSTITUCION EDUCATIVA",
+    "rectorName": "JAIME ROLANDO VASQUEZ MEJIA",
+    "address": "VDA CUSAGUI",
+    "phone": "3115147139",
+    "email": "lauvitatecnicocusagui@sedboyaca.gov.co",
+    "zones": "",
+    "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+    "grades": "-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
+    "campusCount": "5",
+    "calendar": "A",
+    "status": "ANTIGUO-ACTIVO"
+  }
+]

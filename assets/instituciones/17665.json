@@ -1,1 +1,42 @@
-[{"dane":"217616000399","name":"INSTITUCION EDUCATIVA LA LIBERTAD","departmentCode":"17","departmentName":"CALDAS","municipalityCode":"17665","municipalityName":"SAN JOSÉ","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"RICARDO ANTONIO PATIÑO AGUIRRE","address":"VEREDA PAZ BAJA","phone":"","email":"ielalibertad@sedcaldas.gov.co","zones":"RURAL","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26","campusCount":16,"calendar":"A","status":"ANTIGUO-ACTIVO"},{"dane":"217616000372","name":"INSTITUCION EDUCATIVA SANTA TERESITA","departmentCode":"17","departmentName":"CALDAS","municipalityCode":"17665","municipalityName":"SAN JOSÉ","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"HERNAN DE JESUS MUÑOZ BEDOYA","address":"IND LA UNION","phone":"8608511","email":"iesantateresitasanjose@sedcaldas.gov.co","zones":"URBANA","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26,99","campusCount":2,"calendar":"A","status":"ANTIGUO-ACTIVO"}]
+[
+  {
+    "dane": "217616000372",
+    "name": "",
+    "departmentCode": "17",
+    "departmentName": "CALDAS",
+    "municipalityCode": "17665",
+    "municipalityName": "SAN JOSÉ",
+    "sector": "OFICIAL",
+    "establishmentType": "INSTITUCION EDUCATIVA",
+    "rectorName": "HERNAN DE JESUS MUÑOZ BEDOYA",
+    "address": "IND LA UNION",
+    "phone": "8608511",
+    "email": "iesantateresitasanjose@sedcaldas.gov.co",
+    "zones": "",
+    "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+    "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26,99",
+    "campusCount": "2",
+    "calendar": "A",
+    "status": "ANTIGUO-ACTIVO"
+  },
+  {
+    "dane": "217616000399",
+    "name": "",
+    "departmentCode": "17",
+    "departmentName": "CALDAS",
+    "municipalityCode": "17665",
+    "municipalityName": "SAN JOSÉ",
+    "sector": "OFICIAL",
+    "establishmentType": "INSTITUCION EDUCATIVA",
+    "rectorName": "RICARDO ANTONIO PATIÑO AGUIRRE",
+    "address": "VEREDA PAZ BAJA",
+    "phone": "",
+    "email": "ielalibertad@sedcaldas.gov.co",
+    "zones": "",
+    "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+    "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
+    "campusCount": "16",
+    "calendar": "A",
+    "status": "ANTIGUO-ACTIVO"
+  }
+]

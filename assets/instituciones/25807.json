@@ -1,1 +1,20 @@
-{"dane":"125807000257","name":"INSTITUCION EDUCATIVA DEPARTAMENTAL MONSEÑOR AGUSTIN GUTIERREZ","departmentCode":"25","departmentName":"CUNDINAMARCA","municipalityCode":"25807","municipalityName":"TIBIRITA","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"LUIS FERNANDO HERRERA JARAMILLO","address":"CALLE 4 NO. 3-74","phone":"8566008-3202549678 - 3103287125","email":"iedagustingutierrez_tibirita@secundinamarca.edu.co","zones":"URBANA,RURAL","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22","campusCount":12,"calendar":"A","status":"ANTIGUO-ACTIVO"}
+{
+  "dane": "125807000257",
+  "name": "",
+  "departmentCode": "25",
+  "departmentName": "CUNDINAMARCA",
+  "municipalityCode": "25807",
+  "municipalityName": "TIBIRITA",
+  "sector": "OFICIAL",
+  "establishmentType": "INSTITUCION EDUCATIVA",
+  "rectorName": "LUIS FERNANDO HERRERA JARAMILLO",
+  "address": "CALLE 4 NO. 3-74",
+  "phone": "8566008-3202549678 - 3103287125",
+  "email": "iedagustingutierrez_tibirita@secundinamarca.edu.co",
+  "zones": "",
+  "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+  "grades": "-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22",
+  "campusCount": "12",
+  "calendar": "A",
+  "status": "ANTIGUO-ACTIVO"
+}

@@ -1,1 +1,20 @@
-[{"dane":"294001000741","name":"C.E.  CAMILO TORRES","departmentCode":"94","departmentName":"GUAINÍA","municipalityCode":"94887","municipalityName":"PANA PANA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"MISAEL SANTANA SANCHEZ","address":"IND COMUNIDAD PUNTA TIGRE RIO ISANA","phone":"5656658","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"294001001381","name":"C.E. CEJAL CUYARI","departmentCode":"94","departmentName":"GUAINÍA","municipalityCode":"94887","municipalityName":"PANA PANA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"FREDY CAMICO REY","address":"IND COMUNIDAD DE CEJAL (CUYARI) RIO ISANA","phone":"5656658","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"294001001101","name":"I.E. ALVARO GOMEZ HURTADO","departmentCode":"94","departmentName":"GUAINÍA","municipalityCode":"94887","municipalityName":"PANA PANA","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"JUVENAL MARTÌNEZ URIBE","address":"IND COMUNIDAD CAMPO ALEGRE RIO ISANA","phone":"3003140306","email":"gomezhurtado@sedguainia.gov.co","zones":"RURAL","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25","campusCount":3,"calendar":"A","status":"ANTIGUO-ACTIVO"}]
+{
+  "dane": "294001001101",
+  "name": "",
+  "departmentCode": "94",
+  "departmentName": "GUAINÍA",
+  "municipalityCode": "94887",
+  "municipalityName": "PANA PANA",
+  "sector": "OFICIAL",
+  "establishmentType": "INSTITUCION EDUCATIVA",
+  "rectorName": "JUVENAL MARTÌNEZ URIBE",
+  "address": "IND COMUNIDAD CAMPO ALEGRE RIO ISANA",
+  "phone": "3003140306",
+  "email": "gomezhurtado@sedguainia.gov.co",
+  "zones": "",
+  "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+  "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25",
+  "campusCount": "3",
+  "calendar": "A",
+  "status": "ANTIGUO-ACTIVO"
+}

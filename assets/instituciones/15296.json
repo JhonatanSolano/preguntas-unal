@@ -1,1 +1,42 @@
-[{"dane":"215296000066","name":"CE CAPILLA","departmentCode":"15","departmentName":"BOYACÁ","municipalityCode":"15296","municipalityName":"GAMEZA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"LUZ DEL CARMEN PINTO","address":"VDA CAPILLA","phone":"","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"215296000121","name":"CE GUANTO","departmentCode":"15","departmentName":"BOYACÁ","municipalityCode":"15296","municipalityName":"GAMEZA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"ANA VICENTA RINCON","address":"VDA GUANTO","phone":"","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"215296000147","name":"ESC MOTUA","departmentCode":"15","departmentName":"BOYACÁ","municipalityCode":"15296","municipalityName":"GAMEZA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"MARIA TRINIDAD PEREZ COLMENARES","address":"VDA MOTUA","phone":"3105690629","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"215296000091","name":"ESC NIMISIA","departmentCode":"15","departmentName":"BOYACÁ","municipalityCode":"15296","municipalityName":"GAMEZA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"NESTOR VLADIMIR CERON","address":"VDA SATOBA","phone":"","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"215296000082","name":"ESC POTOSI","departmentCode":"15","departmentName":"BOYACÁ","municipalityCode":"15296","municipalityName":"GAMEZA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"ALVARO REYES MARTINEZ","address":"VDA POTOSI","phone":"","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"215296000074","name":"ESC SAN ANTONIO","departmentCode":"15","departmentName":"BOYACÁ","municipalityCode":"15296","municipalityName":"GAMEZA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"WALDO ROJAS CASTRO","address":"VDA SAN ANTONIO","phone":"","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"215296000104","name":"ESC SATOBA","departmentCode":"15","departmentName":"BOYACÁ","municipalityCode":"15296","municipalityName":"GAMEZA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"OSWALDO GRANADOS MARTINEZ","address":"VDA SATOBA","phone":"","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"215296000139","name":"ESC VILLA GIRON","departmentCode":"15","departmentName":"BOYACÁ","municipalityCode":"15296","municipalityName":"GAMEZA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"HENRY PEREZ COLMENARES","address":"VDA VILLAGIRON","phone":"","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"115296000011","name":"I.E. JUAN JOSE REYES PATRIA","departmentCode":"15","departmentName":"BOYACÁ","municipalityCode":"15296","municipalityName":"GAMEZA","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"MARIA ELENA BENAVIDES CICEROS","address":"CL 4 # 5A - 13","phone":"7778158","email":"gamezajuanjosereyespatria@sedboyaca.gov.co","zones":"RURAL,URBANA","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26","campusCount":8,"calendar":"A","status":"ANTIGUO-ACTIVO"},{"dane":"215296000058","name":"I.E. SAZA","departmentCode":"15","departmentName":"BOYACÁ","municipalityCode":"15296","municipalityName":"GAMEZA","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"FRANCISCO LARA RODRIGUEZ","address":"VDA SAZA","phone":"3156946463 - 3107584161","email":"gamezasaza@sedboyaca.gov.co","zones":"RURAL","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26","campusCount":5,"calendar":"A","status":"ANTIGUO-ACTIVO"}]
+[
+  {
+    "dane": "115296000011",
+    "name": "",
+    "departmentCode": "15",
+    "departmentName": "BOYACÁ",
+    "municipalityCode": "15296",
+    "municipalityName": "GAMEZA",
+    "sector": "OFICIAL",
+    "establishmentType": "INSTITUCION EDUCATIVA",
+    "rectorName": "MARIA ELENA BENAVIDES CICEROS",
+    "address": "CL 4 # 5A - 13",
+    "phone": "7778158",
+    "email": "gamezajuanjosereyespatria@sedboyaca.gov.co",
+    "zones": "",
+    "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+    "grades": "-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
+    "campusCount": "8",
+    "calendar": "A",
+    "status": "ANTIGUO-ACTIVO"
+  },
+  {
+    "dane": "215296000058",
+    "name": "",
+    "departmentCode": "15",
+    "departmentName": "BOYACÁ",
+    "municipalityCode": "15296",
+    "municipalityName": "GAMEZA",
+    "sector": "OFICIAL",
+    "establishmentType": "INSTITUCION EDUCATIVA",
+    "rectorName": "FRANCISCO LARA RODRIGUEZ",
+    "address": "VDA SAZA",
+    "phone": "3156946463 - 3107584161",
+    "email": "gamezasaza@sedboyaca.gov.co",
+    "zones": "",
+    "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+    "grades": "-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
+    "campusCount": "5",
+    "calendar": "A",
+    "status": "ANTIGUO-ACTIVO"
+  }
+]

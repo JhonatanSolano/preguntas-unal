@@ -1,1 +1,20 @@
-[{"dane":"252001002197","name":"CENTRO EDUCATIVO EL CHORRILLO","departmentCode":"52","departmentName":"NARIÑO","municipalityCode":"52480","municipalityName":"NARIÑO","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"EDMUNDO ARTURO GOMEZ GUERRERO","address":"EL CHORRILLO","phone":"7324510 - 3165314785","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"252001003568","name":"INSTITUCION EDUCATIVA JUAN PABLO II","departmentCode":"52","departmentName":"NARIÑO","municipalityCode":"52480","municipalityName":"NARIÑO","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"JAIME JESUS LOPEZ MARTINEZ","address":"IND NARIÑO","phone":"3205123517","email":"ie.juan.pablo2.narino@sednarino.gov.co","zones":"URBANA,RURAL","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26","campusCount":3,"calendar":"A","status":"ANTIGUO-ACTIVO"}]
+{
+  "dane": "252001003568",
+  "name": "",
+  "departmentCode": "52",
+  "departmentName": "NARIÑO",
+  "municipalityCode": "52480",
+  "municipalityName": "NARIÑO",
+  "sector": "OFICIAL",
+  "establishmentType": "INSTITUCION EDUCATIVA",
+  "rectorName": "JAIME JESUS LOPEZ MARTINEZ",
+  "address": "IND NARIÑO",
+  "phone": "3205123517",
+  "email": "ie.juan.pablo2.narino@sednarino.gov.co",
+  "zones": "",
+  "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+  "grades": "-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
+  "campusCount": "3",
+  "calendar": "A",
+  "status": "ANTIGUO-ACTIVO"
+}

@@ -1,1 +1,42 @@
-[{"dane":"325612000197","name":"GIMN CAMP LA SABIDURIA","departmentCode":"25","departmentName":"CUNDINAMARCA","municipalityCode":"25612","municipalityName":"RICAURTE","sector":"NO OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"ALVARO MEJIA MONROY","address":"IND VIA PANAMERICANA GIRARDOT RICAURTE","phone":"0918314746","email":"","zones":"URBANA","levels":"","grades":"","campusCount":1,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"125612000139","name":"INSTITUCION EDUCATIVA DEPARTAMENTAL ANTONIO RICAURTE","departmentCode":"25","departmentName":"CUNDINAMARCA","municipalityCode":"25612","municipalityName":"RICAURTE","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"NELLY SERRANO MONROY","address":"VIA A LA CAPILLA","phone":"3143946992","email":"iedantonioricaurte_ricaurte@secundinamarca.edu.co","zones":"RURAL,URBANA","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26","campusCount":15,"calendar":"A","status":"ANTIGUO-ACTIVO"},{"dane":"325612000201","name":"LICEO PEDAGOGICO PUERTO PEÑALISA","departmentCode":"25","departmentName":"CUNDINAMARCA","municipalityCode":"25612","municipalityName":"RICAURTE","sector":"NO OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"LAURA MARITZA OVIEDO MURILLO.","address":"KR 18 4 A 50","phone":"3185307012 - 3212166707","email":"rectoria@fundacionclubpuertopenalisa.org.co secretariaacademica@fundacionclubpuertopenalisa.org.co","zones":"URBANA","levels":"PREESCOLAR,BÁSICA PRIMARIA","grades":"-2,-1,0,1,2,3,4,5","campusCount":1,"calendar":"A","status":"ANTIGUO-ACTIVO"}]
+[
+  {
+    "dane": "125612000139",
+    "name": "",
+    "departmentCode": "25",
+    "departmentName": "CUNDINAMARCA",
+    "municipalityCode": "25612",
+    "municipalityName": "RICAURTE",
+    "sector": "OFICIAL",
+    "establishmentType": "INSTITUCION EDUCATIVA",
+    "rectorName": "NELLY SERRANO MONROY",
+    "address": "VIA A LA CAPILLA",
+    "phone": "3143946992",
+    "email": "iedantonioricaurte_ricaurte@secundinamarca.edu.co",
+    "zones": "",
+    "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+    "grades": "-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
+    "campusCount": "15",
+    "calendar": "A",
+    "status": "ANTIGUO-ACTIVO"
+  },
+  {
+    "dane": "325612000201",
+    "name": "",
+    "departmentCode": "25",
+    "departmentName": "CUNDINAMARCA",
+    "municipalityCode": "25612",
+    "municipalityName": "RICAURTE",
+    "sector": "NO OFICIAL",
+    "establishmentType": "CENTRO EDUCATIVO",
+    "rectorName": "LAURA MARITZA OVIEDO MURILLO.",
+    "address": "KR 18 4 A 50",
+    "phone": "3185307012 - 3212166707",
+    "email": "rectoria@fundacionclubpuertopenalisa.org.co secretariaacademica@fundacionclubpuertopenalisa.org.co",
+    "zones": "",
+    "levels": "PREESCOLAR,BÁSICA PRIMARIA",
+    "grades": "-2,-1,0,1,2,3,4,5",
+    "campusCount": "1",
+    "calendar": "A",
+    "status": "ANTIGUO-ACTIVO"
+  }
+]

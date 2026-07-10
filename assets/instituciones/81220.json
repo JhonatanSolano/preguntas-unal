@@ -1,1 +1,20 @@
-[{"dane":"281220000337","name":"CEAR EL AEROPUERTO","departmentCode":"81","departmentName":"ARAUCA","municipalityCode":"81220","municipalityName":"CRAVO NORTE","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"FRANKLIN CORREA RAMIREZ","address":"VDA EL AEROPUERTO","phone":"3133763593","email":"fracor75@yahoo.es","zones":"RURAL","levels":"","grades":"","campusCount":2,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"281220000426","name":"CEAR LOS PASADOS","departmentCode":"81","departmentName":"ARAUCA","municipalityCode":"81220","municipalityName":"CRAVO NORTE","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"JUAN GALINDEZ","address":"CRAVO NORTE","phone":"","email":"","zones":"RURAL","levels":"","grades":"","campusCount":1,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"281220000451","name":"CEAR POLICARPA SALAVARRIETA","departmentCode":"81","departmentName":"ARAUCA","municipalityCode":"81220","municipalityName":"CRAVO NORTE","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"LUIS DIAZ","address":"CRAVO","phone":"","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"281220000396","name":"COMUNIDADES INDIGENAS","departmentCode":"81","departmentName":"ARAUCA","municipalityCode":"81220","municipalityName":"CRAVO NORTE","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"WILSON DIAZ","address":"CRAVO","phone":"","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"181220000014","name":"IE JOSE ANTONIO GALAN","departmentCode":"81","departmentName":"ARAUCA","municipalityCode":"81220","municipalityName":"CRAVO NORTE","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"ANIBAL FABIAN SANCHEZ MORA","address":"KR 5 2 32","phone":"8889019","email":"rector.iejgalan@sedarauca.edu.co","zones":"RURAL,URBANA","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,14,21,22,23,24,25,26,99","campusCount":14,"calendar":"A","status":"ANTIGUO-ACTIVO"},{"dane":"181220000000","name":"SIN NOMBRE","departmentCode":"81","departmentName":"ARAUCA","municipalityCode":"81220","municipalityName":"CRAVO NORTE","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"SIN NOMBRE","address":"CRAVO","phone":"","email":"","zones":"URBANA","levels":"","grades":"","campusCount":1,"calendar":"A","status":"CIERRE DEFINITIVO"}]
+{
+  "dane": "181220000014",
+  "name": "",
+  "departmentCode": "81",
+  "departmentName": "ARAUCA",
+  "municipalityCode": "81220",
+  "municipalityName": "CRAVO NORTE",
+  "sector": "OFICIAL",
+  "establishmentType": "INSTITUCION EDUCATIVA",
+  "rectorName": "ANIBAL FABIAN SANCHEZ MORA",
+  "address": "KR 5 2 32",
+  "phone": "8889019",
+  "email": "rector.iejgalan@sedarauca.edu.co",
+  "zones": "",
+  "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+  "grades": "-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,14,21,22,23,24,25,26,99",
+  "campusCount": "14",
+  "calendar": "A",
+  "status": "ANTIGUO-ACTIVO"
+}

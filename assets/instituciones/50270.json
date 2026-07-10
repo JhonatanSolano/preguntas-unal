@@ -1,1 +1,20 @@
-[{"dane":"550270000001","name":"CENTRO EDUCATIVO MUNIICPAL DE ESTUDIOS BASICOS - CEMED","departmentCode":"50","departmentName":"META","municipalityCode":"50270","municipalityName":"EL DORADO","sector":"NO OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"FREDY ALEXANDER SANCHEZ","address":"CL 2 7 08","phone":"","email":"","zones":"URBANA","levels":"","grades":"","campusCount":1,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"250223000394","name":"INSTITUCION EDUCATIVA EL DORADO","departmentCode":"50","departmentName":"META","municipalityCode":"50270","municipalityName":"EL DORADO","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"ALEX ANDRES GARCIA MACHADO","address":"CALLE 2 #7- 8","phone":"3103358617- 3203859319","email":"rectoria@ieldorado.edu.co","zones":"RURAL,URBANA","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26","campusCount":12,"calendar":"A","status":"ANTIGUO-ACTIVO"}]
+{
+  "dane": "250223000394",
+  "name": "",
+  "departmentCode": "50",
+  "departmentName": "META",
+  "municipalityCode": "50270",
+  "municipalityName": "EL DORADO",
+  "sector": "OFICIAL",
+  "establishmentType": "INSTITUCION EDUCATIVA",
+  "rectorName": "ALEX ANDRES GARCIA MACHADO",
+  "address": "CALLE 2 #7- 8",
+  "phone": "3103358617- 3203859319",
+  "email": "rectoria@ieldorado.edu.co",
+  "zones": "",
+  "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+  "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
+  "campusCount": "12",
+  "calendar": "A",
+  "status": "ANTIGUO-ACTIVO"
+}

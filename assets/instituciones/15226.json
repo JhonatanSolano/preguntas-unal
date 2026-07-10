@@ -1,1 +1,20 @@
-[{"dane":"215226000051","name":"CE RURAL DE CUITIVA","departmentCode":"15","departmentName":"BOYACÁ","municipalityCode":"15226","municipalityName":"CUÍTIVA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"BERTHA MARINA PACHECO OCHOA","address":"VDA MACIAS","phone":"","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"215226000034","name":"ESC DE LLANO DE ALARCON","departmentCode":"15","departmentName":"BOYACÁ","municipalityCode":"15226","municipalityName":"CUÍTIVA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"LUIS ALEJANDRO CARDENAS PEREZ","address":"INSPECCION DE POLICIA","phone":"","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"215226000042","name":"ESC RUR CORDONCILLOS","departmentCode":"15","departmentName":"BOYACÁ","municipalityCode":"15226","municipalityName":"CUÍTIVA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"SAUL NI¿O CHAPARRO","address":"VDA CORDONCILLOS","phone":"","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"215226000247","name":"ESC RURAL LA VEGA","departmentCode":"15","departmentName":"BOYACÁ","municipalityCode":"15226","municipalityName":"CUÍTIVA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"CHIQUINQUIRA ESPINDOLA JIMENEZ","address":"VDA LA VEGA","phone":"","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"115226000056","name":"I.E. SANTO DOMINGO SAVIO","departmentCode":"15","departmentName":"BOYACÁ","municipalityCode":"15226","municipalityName":"CUÍTIVA","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"JOSE GUILLERMO BORDA GAMA","address":"KR 3 # 3 - 32","phone":"7707863","email":"cuitivasantodomingosavio@sedboyaca.gov.co","zones":"URBANA,RURAL","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26","campusCount":6,"calendar":"A","status":"ANTIGUO-ACTIVO"}]
+{
+  "dane": "115226000056",
+  "name": "",
+  "departmentCode": "15",
+  "departmentName": "BOYACÁ",
+  "municipalityCode": "15226",
+  "municipalityName": "CUÍTIVA",
+  "sector": "OFICIAL",
+  "establishmentType": "INSTITUCION EDUCATIVA",
+  "rectorName": "JOSE GUILLERMO BORDA GAMA",
+  "address": "KR 3 # 3 - 32",
+  "phone": "7707863",
+  "email": "cuitivasantodomingosavio@sedboyaca.gov.co",
+  "zones": "",
+  "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+  "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
+  "campusCount": "6",
+  "calendar": "A",
+  "status": "ANTIGUO-ACTIVO"
+}

@@ -1,1 +1,42 @@
-[{"dane":"225779000241","name":"ESCUELA RURAL EL TABLON","departmentCode":"25","departmentName":"CUNDINAMARCA","municipalityCode":"25779","municipalityName":"SUSA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"OLGA ELISABETH LANCHEROS","address":"VEREDA EL TABLON (VEREDA EL TABLON)","phone":"918559242","email":"INEDTISQUESUSA@YAHOO.COM","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"225779000101","name":"ESCUELA RURAL PAUNITA","departmentCode":"25","departmentName":"CUNDINAMARCA","municipalityCode":"25779","municipalityName":"SUSA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"MARGARITA CHAVEZ R.","address":"VEREDA PAUNITA","phone":"918559242","email":"INEDTISQUESUSA@YAHOO.COM","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"325779000270","name":"GIMNASIO SAN FRANCISCO DE ASIS","departmentCode":"25","departmentName":"CUNDINAMARCA","municipalityCode":"25779","municipalityName":"SUSA","sector":"NO OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"KARENTH VANESSA ANGEL ROBAYO","address":"IND CARRERA 3 NO 4 03 09","phone":"3223674554","email":"gimasiofranciscano22@gmail.com va8740400@gmail.com","zones":"URBANA","levels":"PREESCOLAR,BÁSICA PRIMARIA","grades":"-2,-1,0,1,2,3,4,5","campusCount":1,"calendar":"A","status":"ANTIGUO-ACTIVO"},{"dane":"125779000149","name":"INSTITUCION EDUCATIVA DEPARTAMENTAL TISQUESUSA","departmentCode":"25","departmentName":"CUNDINAMARCA","municipalityCode":"25779","municipalityName":"SUSA","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"EDGAR ALBERTO CASTRO.","address":"CRA 5 NO 10A-30","phone":"3132527204 ¿ 3224697279","email":"iedtisquesusa_susa@secundinamarca.edu.co","zones":"URBANA,RURAL","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26","campusCount":18,"calendar":"A","status":"ANTIGUO-ACTIVO"}]
+[
+  {
+    "dane": "125779000149",
+    "name": "",
+    "departmentCode": "25",
+    "departmentName": "CUNDINAMARCA",
+    "municipalityCode": "25779",
+    "municipalityName": "SUSA",
+    "sector": "OFICIAL",
+    "establishmentType": "INSTITUCION EDUCATIVA",
+    "rectorName": "EDGAR ALBERTO CASTRO.",
+    "address": "CRA 5 NO 10A-30",
+    "phone": "3132527204 ¿ 3224697279",
+    "email": "iedtisquesusa_susa@secundinamarca.edu.co",
+    "zones": "",
+    "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+    "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
+    "campusCount": "18",
+    "calendar": "A",
+    "status": "ANTIGUO-ACTIVO"
+  },
+  {
+    "dane": "325779000270",
+    "name": "",
+    "departmentCode": "25",
+    "departmentName": "CUNDINAMARCA",
+    "municipalityCode": "25779",
+    "municipalityName": "SUSA",
+    "sector": "NO OFICIAL",
+    "establishmentType": "CENTRO EDUCATIVO",
+    "rectorName": "KARENTH VANESSA ANGEL ROBAYO",
+    "address": "IND CARRERA 3 NO 4 03 09",
+    "phone": "3223674554",
+    "email": "gimasiofranciscano22@gmail.com va8740400@gmail.com",
+    "zones": "",
+    "levels": "PREESCOLAR,BÁSICA PRIMARIA",
+    "grades": "-2,-1,0,1,2,3,4,5",
+    "campusCount": "1",
+    "calendar": "A",
+    "status": "ANTIGUO-ACTIVO"
+  }
+]

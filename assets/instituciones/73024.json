@@ -1,1 +1,42 @@
-[{"dane":"473024000490","name":"BACHILLERATO AGROPECUARIO SAT PROHACIENDO","departmentCode":"73","departmentName":"TOLIMA","municipalityCode":"73024","municipalityName":"ALPUJARRA","sector":"NO OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"GONZALO GAITAN ARICA","address":"VDA LA ARADA","phone":"","email":"gongardi@yahoo.es","zones":"RURAL","levels":"","grades":"","campusCount":1,"calendar":"A","status":"CIERRE TEMPORAL"},{"dane":"373024000509","name":"FUNCOLOMBIA","departmentCode":"73","departmentName":"TOLIMA","municipalityCode":"73024","municipalityName":"ALPUJARRA","sector":"NO OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"LUZ MERY ANDRADE GONZALEZ","address":"IND CARRRERA 6A NO.7-100","phone":"","email":"","zones":"URBANA","levels":"","grades":"","campusCount":1,"calendar":"A","status":"CIERRE TEMPORAL"},{"dane":"173024000020","name":"INSTITUCION EDUCATIVA TECNICA FELISA SUAREZ DE ORTIZ","departmentCode":"73","departmentName":"TOLIMA","municipalityCode":"73024","municipalityName":"ALPUJARRA","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"PLUTARCO ROJAS HERNANDEZ","address":"CR 2 CLL 8 URB VILLA LUZ","phone":"6082261038","email":"alpujarra.ietfelisasuarezdeortiz@sedtolima.edu.co","zones":"RURAL,URBANA","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26","campusCount":13,"calendar":"A","status":"ANTIGUO-ACTIVO"},{"dane":"273024000482","name":"INSTITUCION EDUCATIVA TECNICA LA ARADA","departmentCode":"73","departmentName":"TOLIMA","municipalityCode":"73024","municipalityName":"ALPUJARRA","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"ALVARO JAVIER GOMEZ RODRIGUEZ","address":"IDP EL CARMEN","phone":"3203040767","email":"alpujarra.ietlaarada@sedtolima.edu.co","zones":"RURAL","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23","campusCount":9,"calendar":"A","status":"ANTIGUO-ACTIVO"}]
+[
+  {
+    "dane": "173024000020",
+    "name": "",
+    "departmentCode": "73",
+    "departmentName": "TOLIMA",
+    "municipalityCode": "73024",
+    "municipalityName": "ALPUJARRA",
+    "sector": "OFICIAL",
+    "establishmentType": "INSTITUCION EDUCATIVA",
+    "rectorName": "PLUTARCO ROJAS HERNANDEZ",
+    "address": "CR 2 CLL 8 URB VILLA LUZ",
+    "phone": "6082261038",
+    "email": "alpujarra.ietfelisasuarezdeortiz@sedtolima.edu.co",
+    "zones": "",
+    "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+    "grades": "-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
+    "campusCount": "13",
+    "calendar": "A",
+    "status": "ANTIGUO-ACTIVO"
+  },
+  {
+    "dane": "273024000482",
+    "name": "",
+    "departmentCode": "73",
+    "departmentName": "TOLIMA",
+    "municipalityCode": "73024",
+    "municipalityName": "ALPUJARRA",
+    "sector": "OFICIAL",
+    "establishmentType": "INSTITUCION EDUCATIVA",
+    "rectorName": "ALVARO JAVIER GOMEZ RODRIGUEZ",
+    "address": "IDP EL CARMEN",
+    "phone": "3203040767",
+    "email": "alpujarra.ietlaarada@sedtolima.edu.co",
+    "zones": "",
+    "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+    "grades": "-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23",
+    "campusCount": "9",
+    "calendar": "A",
+    "status": "ANTIGUO-ACTIVO"
+  }
+]

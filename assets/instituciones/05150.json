@@ -1,1 +1,20 @@
-[{"dane":"205310000141","name":"C. E. R. EL SALTO","departmentCode":"05","departmentName":"ANTIOQUIA","municipalityCode":"05150","municipalityName":"CAROLINA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"ROJO HERNANDEZ BERNARDA DEL SOCORRO","address":"CORREG. EL SALTO","phone":"862 92 03","email":"c.e.r.elsaltocarolina@tareanet.edu.co","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"205150000069","name":"C. E. R. JOSE JOAQUIN VELEZ","departmentCode":"05","departmentName":"ANTIOQUIA","municipalityCode":"05150","municipalityName":"CAROLINA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"EDGAR HOLGUIN LOPERA","address":"VDA. LA HERRADURA","phone":"863 44 35","email":"cerjjvelezcarolina@tareanet.edu.co","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"205150000107","name":"C. E. R. JOSE MARIA MENESES","departmentCode":"05","departmentName":"ANTIOQUIA","municipalityCode":"05150","municipalityName":"CAROLINA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"BARRIENTOS  RIOS DE ORREGO CRUZ NAZARENA (DOC.P.)","address":"VDA. MIRAFLORES","phone":"863 40 87 y 863 40 33","email":"cerjjmeneses@tareanet.edu.co","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"205150000051","name":"C. E. R. MARIA AUXILIADORA","departmentCode":"05","departmentName":"ANTIOQUIA","municipalityCode":"05150","municipalityName":"CAROLINA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"SALAZAR CASAS ADRIANA PATRICIA (DOC.P.)","address":"VDA. TENCHE","phone":"863 40 87 y 863 40 33","email":"cermauxiluiadora@tareanet.edu.co","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"205150000085","name":"C. E. R. MARIA DE J MADRIGAL","departmentCode":"05","departmentName":"ANTIOQUIA","municipalityCode":"05150","municipalityName":"CAROLINA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"VASQUEZ ECHAVARRIA MARIA ELENA (DOC.P.)","address":"VDA. CLARITAS","phone":"863 40 87 y 863 40 33","email":"cermjmadrigal@tareanet.edu.co","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"105150000099","name":"I. E. PBRO JULIO TAMAYO","departmentCode":"05","departmentName":"ANTIOQUIA","municipalityCode":"05150","municipalityName":"CAROLINA","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"EDISON ALBERTO JIMENEZ VALDES","address":"KR 52 B 52 159","phone":"8634142 - 3104703615","email":"presbiterojuliotamayo@gmail.com","zones":"RURAL,URBANA","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26","campusCount":6,"calendar":"A","status":"ANTIGUO-ACTIVO"}]
+{
+  "dane": "105150000099",
+  "name": "",
+  "departmentCode": "05",
+  "departmentName": "ANTIOQUIA",
+  "municipalityCode": "05150",
+  "municipalityName": "CAROLINA",
+  "sector": "OFICIAL",
+  "establishmentType": "INSTITUCION EDUCATIVA",
+  "rectorName": "EDISON ALBERTO JIMENEZ VALDES",
+  "address": "KR 52 B 52 159",
+  "phone": "8634142 - 3104703615",
+  "email": "presbiterojuliotamayo@gmail.com",
+  "zones": "",
+  "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+  "grades": "-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
+  "campusCount": "6",
+  "calendar": "A",
+  "status": "ANTIGUO-ACTIVO"
+}

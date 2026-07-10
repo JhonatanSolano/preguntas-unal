@@ -1,1 +1,42 @@
-[{"dane":"168549000124","name":"COLEGIO INTEGRADO PEDRO SANTOS","departmentCode":"68","departmentName":"SANTANDER","municipalityCode":"68549","municipalityName":"PINCHOTE","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"WILSON GOMEZ VERA","address":"CALLE 4 NO.  4 - 59","phone":"3176510867 - 3125819089 -3206753286","email":"colegiointegradopedrosantospinchote@santander.edu.co","zones":"RURAL,URBANA","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"0,1,2,3,4,5,6,7,8,9,10,11,21","campusCount":13,"calendar":"A","status":"ANTIGUO-ACTIVO"},{"dane":"468549000234","name":"INSTITUTO TECNICO PARA EL DESARROLLO RURAL IDEAR","departmentCode":"68","departmentName":"SANTANDER","municipalityCode":"68549","municipalityName":"PINCHOTE","sector":"NO OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"PBRO. LUIS ALBERTO RIVERA HERNANDEZ","address":"VDA CENTRO","phone":"7242295","email":"idearsangil@gmail.com","zones":"RURAL","levels":"MEDIA,BÁSICA SECUNDARIA","grades":"23,24,25,26","campusCount":1,"calendar":"A","status":"ANTIGUO-ACTIVO"}]
+[
+  {
+    "dane": "168549000124",
+    "name": "",
+    "departmentCode": "68",
+    "departmentName": "SANTANDER",
+    "municipalityCode": "68549",
+    "municipalityName": "PINCHOTE",
+    "sector": "OFICIAL",
+    "establishmentType": "INSTITUCION EDUCATIVA",
+    "rectorName": "WILSON GOMEZ VERA",
+    "address": "CALLE 4 NO.  4 - 59",
+    "phone": "3176510867 - 3125819089 -3206753286",
+    "email": "colegiointegradopedrosantospinchote@santander.edu.co",
+    "zones": "",
+    "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+    "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21",
+    "campusCount": "13",
+    "calendar": "A",
+    "status": "ANTIGUO-ACTIVO"
+  },
+  {
+    "dane": "468549000234",
+    "name": "",
+    "departmentCode": "68",
+    "departmentName": "SANTANDER",
+    "municipalityCode": "68549",
+    "municipalityName": "PINCHOTE",
+    "sector": "NO OFICIAL",
+    "establishmentType": "CENTRO EDUCATIVO",
+    "rectorName": "PBRO. LUIS ALBERTO RIVERA HERNANDEZ",
+    "address": "VDA CENTRO",
+    "phone": "7242295",
+    "email": "idearsangil@gmail.com",
+    "zones": "",
+    "levels": "MEDIA,BÁSICA SECUNDARIA",
+    "grades": "23,24,25,26",
+    "campusCount": "1",
+    "calendar": "A",
+    "status": "ANTIGUO-ACTIVO"
+  }
+]

@@ -1,1 +1,20 @@
-[{"dane":"225506000141","name":"ESCUELA RURAL EL TIMBRIO","departmentCode":"25","departmentName":"CUNDINAMARCA","municipalityCode":"25506","municipalityName":"VENECIA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"CESAR ANTONIO BAQUERO BAQUERO","address":"BUENOS AIRES","phone":"3208254182","email":"ceanbaba3@yahoo.es","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"225506000051","name":"ESCUELA RURAL QUEBRADAGRANDE","departmentCode":"25","departmentName":"CUNDINAMARCA","municipalityCode":"25506","municipalityName":"VENECIA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"CESAR ANTONIO BAQUERO BAQUERO","address":"QUEBRADAGRANDE","phone":"8681208","email":"ceanbaba@yahoo.es","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"125506000197","name":"INSTITUCION EDUCATIVA DEPARTAMENTAL VENECIA","departmentCode":"25","departmentName":"CUNDINAMARCA","municipalityCode":"25506","municipalityName":"VENECIA","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"MARLENE IBAÑEZ SUAREZ.","address":"CALLE 4 # 5-55","phone":"3106195829-3172620734","email":"iedvenecia_venecia@secundinamarca.edu.co","zones":"RURAL,URBANA","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,20,21,22,23,24,25,26","campusCount":19,"calendar":"A","status":"ANTIGUO-ACTIVO"}]
+{
+  "dane": "125506000197",
+  "name": "",
+  "departmentCode": "25",
+  "departmentName": "CUNDINAMARCA",
+  "municipalityCode": "25506",
+  "municipalityName": "VENECIA",
+  "sector": "OFICIAL",
+  "establishmentType": "INSTITUCION EDUCATIVA",
+  "rectorName": "MARLENE IBAÑEZ SUAREZ.",
+  "address": "CALLE 4 # 5-55",
+  "phone": "3106195829-3172620734",
+  "email": "iedvenecia_venecia@secundinamarca.edu.co",
+  "zones": "",
+  "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+  "grades": "-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,20,21,22,23,24,25,26",
+  "campusCount": "19",
+  "calendar": "A",
+  "status": "ANTIGUO-ACTIVO"
+}

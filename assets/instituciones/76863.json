@@ -1,1 +1,42 @@
-[{"dane":"276863000543","name":"INSTITUCION EDUCATIVA CARLOS HOLGUIN SARDI","departmentCode":"76","departmentName":"VALLE DEL CAUCA","municipalityCode":"76863","municipalityName":"VERSALLES","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"JAIR HOLMER GIRALDO SANCHEZ","address":"CORREGIMIENTO EL BALSAL","phone":"3214648310","email":"carlosholguin@sedvalledelcauca.gov.co","zones":"RURAL","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26","campusCount":15,"calendar":"A","status":"ANTIGUO-ACTIVO"},{"dane":"176863000336","name":"INSTITUCION EDUCATIVA LA INMACULADA","departmentCode":"76","departmentName":"VALLE DEL CAUCA","municipalityCode":"76863","municipalityName":"VERSALLES","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"ELIZABETH VILLANUEVA ARIAS","address":"CALLE 7 NO. 9 SN -110","phone":"3104627661","email":"inmaculadaversalles@sedvalledelcauca.gov.co tesoreriainmaculada@gmail.com","zones":"URBANA,RURAL","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26","campusCount":26,"calendar":"A","status":"ANTIGUO-ACTIVO"}]
+[
+  {
+    "dane": "176863000336",
+    "name": "",
+    "departmentCode": "76",
+    "departmentName": "VALLE DEL CAUCA",
+    "municipalityCode": "76863",
+    "municipalityName": "VERSALLES",
+    "sector": "OFICIAL",
+    "establishmentType": "INSTITUCION EDUCATIVA",
+    "rectorName": "ELIZABETH VILLANUEVA ARIAS",
+    "address": "CALLE 7 NO. 9 SN -110",
+    "phone": "3104627661",
+    "email": "inmaculadaversalles@sedvalledelcauca.gov.co tesoreriainmaculada@gmail.com",
+    "zones": "",
+    "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+    "grades": "-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
+    "campusCount": "26",
+    "calendar": "A",
+    "status": "ANTIGUO-ACTIVO"
+  },
+  {
+    "dane": "276863000543",
+    "name": "",
+    "departmentCode": "76",
+    "departmentName": "VALLE DEL CAUCA",
+    "municipalityCode": "76863",
+    "municipalityName": "VERSALLES",
+    "sector": "OFICIAL",
+    "establishmentType": "INSTITUCION EDUCATIVA",
+    "rectorName": "JAIR HOLMER GIRALDO SANCHEZ",
+    "address": "CORREGIMIENTO EL BALSAL",
+    "phone": "3214648310",
+    "email": "carlosholguin@sedvalledelcauca.gov.co",
+    "zones": "",
+    "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+    "grades": "-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
+    "campusCount": "15",
+    "calendar": "A",
+    "status": "ANTIGUO-ACTIVO"
+  }
+]

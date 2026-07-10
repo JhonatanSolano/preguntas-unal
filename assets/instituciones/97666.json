@@ -1,1 +1,20 @@
-[{"dane":"297001002166","name":"CENTRO EDUCATIVO RURAL BOCAS DEL TARAIRA","departmentCode":"97","departmentName":"VAUPÉS","municipalityCode":"97666","municipalityName":"TARAIRA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"NN","address":"RIO APAPORIS","phone":"","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"297666002175","name":"CENTRO EDUCATIVO RURAL BOCAS DEL UGA","departmentCode":"97","departmentName":"VAUPÉS","municipalityCode":"97666","municipalityName":"TARAIRA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"JOSE","address":"VDA. DEL UGA","phone":"0985642107","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"297666000032","name":"CENTRO EDUCATIVO RURAL PUERTO CURUPIRA","departmentCode":"97","departmentName":"VAUPÉS","municipalityCode":"97666","municipalityName":"TARAIRA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"NN","address":"RIO APAPORIS","phone":"","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"297666000041","name":"CENTRO EDUCATIVO RURAL RAFAEL NU¿EZ (PTO NUEVO)","departmentCode":"97","departmentName":"VAUPÉS","municipalityCode":"97666","municipalityName":"TARAIRA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"NN","address":"LA LIBERTAD APAPORIS","phone":"","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"297001002051","name":"I.E.D. DE TARAIRA","departmentCode":"97","departmentName":"VAUPÉS","municipalityCode":"97666","municipalityName":"TARAIRA","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"ARCEL DARIO RANGEL CÁRDENAS","address":"MUN.TARAIRA","phone":"3219717437","email":"taraira@sedvaupes.gov.co","zones":"URBANA,RURAL","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26","campusCount":12,"calendar":"A","status":"ANTIGUO-ACTIVO"}]
+{
+  "dane": "297001002051",
+  "name": "",
+  "departmentCode": "97",
+  "departmentName": "VAUPÉS",
+  "municipalityCode": "97666",
+  "municipalityName": "TARAIRA",
+  "sector": "OFICIAL",
+  "establishmentType": "INSTITUCION EDUCATIVA",
+  "rectorName": "ARCEL DARIO RANGEL CÁRDENAS",
+  "address": "MUN.TARAIRA",
+  "phone": "3219717437",
+  "email": "taraira@sedvaupes.gov.co",
+  "zones": "",
+  "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+  "grades": "-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
+  "campusCount": "12",
+  "calendar": "A",
+  "status": "ANTIGUO-ACTIVO"
+}

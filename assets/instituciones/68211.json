@@ -1,1 +1,42 @@
-[{"dane":"168211000161","name":"INSTITUTO TECNICO INDUSTRIAL SAN JUAN BOSCO","departmentCode":"68","departmentName":"SANTANDER","municipalityCode":"68211","municipalityName":"CONTRATACIÓN","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"PBRO. EDGAR HERNAN MACIAS TAPIAS","address":"CALLE 4 NO 2-38","phone":"3114447950 - 3104980076","email":"institutotecnicoindustrialsanjuanboscocontratacion@santander.edu.co","zones":"URBANA,RURAL","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,22,23,24","campusCount":11,"calendar":"A","status":"ANTIGUO-ACTIVO"},{"dane":"468211000256","name":"INSTITUTO TECNICO PARA EL DESARROLLO RURAL IDEAR","departmentCode":"68","departmentName":"SANTANDER","municipalityCode":"68211","municipalityName":"CONTRATACIÓN","sector":"NO OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"PBRO. ROBINSON POVEDA RIVERA","address":"CENTRO","phone":"7242543","email":"idearsangil@gmail.com","zones":"RURAL","levels":"MEDIA,BÁSICA SECUNDARIA","grades":"23,24,25,26","campusCount":1,"calendar":"A","status":"ANTIGUO-ACTIVO"}]
+[
+  {
+    "dane": "168211000161",
+    "name": "",
+    "departmentCode": "68",
+    "departmentName": "SANTANDER",
+    "municipalityCode": "68211",
+    "municipalityName": "CONTRATACIÓN",
+    "sector": "OFICIAL",
+    "establishmentType": "INSTITUCION EDUCATIVA",
+    "rectorName": "PBRO. EDGAR HERNAN MACIAS TAPIAS",
+    "address": "CALLE 4 NO 2-38",
+    "phone": "3114447950 - 3104980076",
+    "email": "institutotecnicoindustrialsanjuanboscocontratacion@santander.edu.co",
+    "zones": "",
+    "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+    "grades": "-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,22,23,24",
+    "campusCount": "11",
+    "calendar": "A",
+    "status": "ANTIGUO-ACTIVO"
+  },
+  {
+    "dane": "468211000256",
+    "name": "",
+    "departmentCode": "68",
+    "departmentName": "SANTANDER",
+    "municipalityCode": "68211",
+    "municipalityName": "CONTRATACIÓN",
+    "sector": "NO OFICIAL",
+    "establishmentType": "CENTRO EDUCATIVO",
+    "rectorName": "PBRO. ROBINSON POVEDA RIVERA",
+    "address": "CENTRO",
+    "phone": "7242543",
+    "email": "idearsangil@gmail.com",
+    "zones": "",
+    "levels": "MEDIA,BÁSICA SECUNDARIA",
+    "grades": "23,24,25,26",
+    "campusCount": "1",
+    "calendar": "A",
+    "status": "ANTIGUO-ACTIVO"
+  }
+]

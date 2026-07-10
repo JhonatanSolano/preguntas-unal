@@ -1,1 +1,42 @@
-[{"dane":"341660000595","name":"COLEGIO EMPRESARIAL DE LOS ANDES","departmentCode":"41","departmentName":"HUILA","municipalityCode":"41660","municipalityName":"SALADOBLANCO","sector":"NO OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"HECTOR AGUILAR PEREA","address":"CL 2 2 43","phone":"","email":"","zones":"URBANA","levels":"","grades":"","campusCount":1,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"241660000094","name":"INSTITUCION EDUCATIVA LA CABAÑA","departmentCode":"41","departmentName":"HUILA","municipalityCode":"41660","municipalityName":"SALADOBLANCO","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"JIMENEZ DIAZ JUAN CARLOS","address":"INSP LA CABA¿A","phone":"58684934","email":"cabana.saladoblanco@sedhuila.gov.co","zones":"RURAL","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26","campusCount":17,"calendar":"A","status":"ANTIGUO-ACTIVO"},{"dane":"341660000391","name":"INSTITUCION EDUCATIVA MISAEL PASTRANA BORRERO","departmentCode":"41","departmentName":"HUILA","municipalityCode":"41660","municipalityName":"SALADOBLANCO","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"SOTO LAVAO JORGE RODRIGO","address":"KM 1 VIA VDA EL ALTO","phone":"3142992986","email":"misaelpastrana.saladoblanco@sedhuila.gov.co","zones":"RURAL,URBANA","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"0,1,2,3,4,5,6,7,8,9,10,11,20,21,22,23,24,25,26","campusCount":23,"calendar":"A","status":"ANTIGUO-ACTIVO"}]
+[
+  {
+    "dane": "241660000094",
+    "name": "",
+    "departmentCode": "41",
+    "departmentName": "HUILA",
+    "municipalityCode": "41660",
+    "municipalityName": "SALADOBLANCO",
+    "sector": "OFICIAL",
+    "establishmentType": "INSTITUCION EDUCATIVA",
+    "rectorName": "JIMENEZ DIAZ JUAN CARLOS",
+    "address": "INSP LA CABA¿A",
+    "phone": "58684934",
+    "email": "cabana.saladoblanco@sedhuila.gov.co",
+    "zones": "",
+    "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+    "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
+    "campusCount": "17",
+    "calendar": "A",
+    "status": "ANTIGUO-ACTIVO"
+  },
+  {
+    "dane": "341660000391",
+    "name": "",
+    "departmentCode": "41",
+    "departmentName": "HUILA",
+    "municipalityCode": "41660",
+    "municipalityName": "SALADOBLANCO",
+    "sector": "OFICIAL",
+    "establishmentType": "INSTITUCION EDUCATIVA",
+    "rectorName": "SOTO LAVAO JORGE RODRIGO",
+    "address": "KM 1 VIA VDA EL ALTO",
+    "phone": "3142992986",
+    "email": "misaelpastrana.saladoblanco@sedhuila.gov.co",
+    "zones": "",
+    "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+    "grades": "0,1,2,3,4,5,6,7,8,9,10,11,20,21,22,23,24,25,26",
+    "campusCount": "23",
+    "calendar": "A",
+    "status": "ANTIGUO-ACTIVO"
+  }
+]

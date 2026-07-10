@@ -1,1 +1,42 @@
-[{"dane":"125793000160","name":"I.E.D. INTEGRADA DE TAUSA","departmentCode":"25","departmentName":"CUNDINAMARCA","municipalityCode":"25793","municipalityName":"TAUSA","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"GUILLERMO REAL HERNANDEZ","address":"CRA 4 NO. 4-31","phone":"8583124 - 3115668777","email":"iedintegrada_tausa@secundinamarca.edu.co","zones":"RURAL,URBANA","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26","campusCount":10,"calendar":"A","status":"ANTIGUO-ACTIVO"},{"dane":"225793000091","name":"INSTITUCIÓN EDUCATIVA DEPARTAMENTAL SAN ANTONIO","departmentCode":"25","departmentName":"CUNDINAMARCA","municipalityCode":"25793","municipalityName":"TAUSA","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"RICARDO CORTES RAMIREZ","address":"VDA SAN ANTONIO","phone":"3167515608","email":"iedsanantonio_tausa@secundinamarca.edu.co","zones":"RURAL","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"0,1,2,3,4,5,6,7,8,9,10,11","campusCount":7,"calendar":"A","status":"ANTIGUO-ACTIVO"}]
+[
+  {
+    "dane": "125793000160",
+    "name": "",
+    "departmentCode": "25",
+    "departmentName": "CUNDINAMARCA",
+    "municipalityCode": "25793",
+    "municipalityName": "TAUSA",
+    "sector": "OFICIAL",
+    "establishmentType": "INSTITUCION EDUCATIVA",
+    "rectorName": "GUILLERMO REAL HERNANDEZ",
+    "address": "CRA 4 NO. 4-31",
+    "phone": "8583124 - 3115668777",
+    "email": "iedintegrada_tausa@secundinamarca.edu.co",
+    "zones": "",
+    "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+    "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
+    "campusCount": "10",
+    "calendar": "A",
+    "status": "ANTIGUO-ACTIVO"
+  },
+  {
+    "dane": "225793000091",
+    "name": "",
+    "departmentCode": "25",
+    "departmentName": "CUNDINAMARCA",
+    "municipalityCode": "25793",
+    "municipalityName": "TAUSA",
+    "sector": "OFICIAL",
+    "establishmentType": "INSTITUCION EDUCATIVA",
+    "rectorName": "RICARDO CORTES RAMIREZ",
+    "address": "VDA SAN ANTONIO",
+    "phone": "3167515608",
+    "email": "iedsanantonio_tausa@secundinamarca.edu.co",
+    "zones": "",
+    "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+    "grades": "0,1,2,3,4,5,6,7,8,9,10,11",
+    "campusCount": "7",
+    "calendar": "A",
+    "status": "ANTIGUO-ACTIVO"
+  }
+]

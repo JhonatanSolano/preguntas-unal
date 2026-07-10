@@ -1,1 +1,42 @@
-[{"dane":"247605000067","name":"INSTITUCION EDUCATIVA DEPARTAMENTAL  BALDOMERO SANIN CANO","departmentCode":"47","departmentName":"MAGDALENA","municipalityCode":"47605","municipalityName":"REMOLINO","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"ROGER ENRIQUE PINZON GARCIA","address":"SAN RAFAEL","phone":"","email":"iedbaldomerosanincano@sedmagdalena.gov.co","zones":"RURAL","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"0,1,2,3,4,5,6,7,8,9,10,11,20,21,22,23,24,25,26","campusCount":7,"calendar":"A","status":"NUEVO-ACTIVO"},{"dane":"147605000151","name":"INSTITUCION EDUCATIVA DEPARTAMENTAL JUAN MANUEL RUDAS","departmentCode":"47","departmentName":"MAGDALENA","municipalityCode":"47605","municipalityName":"REMOLINO","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"JOSE DAVID ORTEGA GUERRERO","address":"CARRERA 3A ENTRE CALLES 16 Y 17.","phone":"","email":"iedjuanmanuelrudas@sedmagdalena.gov.co","zones":"URBANA,RURAL","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"-1,0,1,2,3,4,5,6,7,8,9,10,11,20,21,22,23,24,25,26","campusCount":10,"calendar":"A","status":"ANTIGUO-ACTIVO"}]
+[
+  {
+    "dane": "147605000151",
+    "name": "",
+    "departmentCode": "47",
+    "departmentName": "MAGDALENA",
+    "municipalityCode": "47605",
+    "municipalityName": "REMOLINO",
+    "sector": "OFICIAL",
+    "establishmentType": "INSTITUCION EDUCATIVA",
+    "rectorName": "JOSE DAVID ORTEGA GUERRERO",
+    "address": "CARRERA 3A ENTRE CALLES 16 Y 17.",
+    "phone": "",
+    "email": "iedjuanmanuelrudas@sedmagdalena.gov.co",
+    "zones": "",
+    "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+    "grades": "-1,0,1,2,3,4,5,6,7,8,9,10,11,20,21,22,23,24,25,26",
+    "campusCount": "10",
+    "calendar": "A",
+    "status": "ANTIGUO-ACTIVO"
+  },
+  {
+    "dane": "247605000067",
+    "name": "",
+    "departmentCode": "47",
+    "departmentName": "MAGDALENA",
+    "municipalityCode": "47605",
+    "municipalityName": "REMOLINO",
+    "sector": "OFICIAL",
+    "establishmentType": "INSTITUCION EDUCATIVA",
+    "rectorName": "ROGER ENRIQUE PINZON GARCIA",
+    "address": "SAN RAFAEL",
+    "phone": "",
+    "email": "iedbaldomerosanincano@sedmagdalena.gov.co",
+    "zones": "",
+    "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+    "grades": "0,1,2,3,4,5,6,7,8,9,10,11,20,21,22,23,24,25,26",
+    "campusCount": "7",
+    "calendar": "A",
+    "status": "NUEVO-ACTIVO"
+  }
+]

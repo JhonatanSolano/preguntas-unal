@@ -1,1 +1,20 @@
-[{"dane":"168522000050","name":"INSTITUTO TECNICO JOSE RUEDA","departmentCode":"68","departmentName":"SANTANDER","municipalityCode":"68522","municipalityName":"PALMAR","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"JORGE ALEXIS HERNANDEZ BARBOSA","address":"CARRERA 7 #4-61 VEREDA OROCO","phone":"3134941499-3132050361","email":"institutotecnicojoseruedapalmar@santander.edu.co","zones":"URBANA,RURAL","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26","campusCount":3,"calendar":"A","status":"ANTIGUO-ACTIVO"},{"dane":"268522000110","name":"INSTITUTO TECNICO PARA EL DESARROLLO RURAL IDEAR","departmentCode":"68","departmentName":"SANTANDER","municipalityCode":"68522","municipalityName":"PALMAR","sector":"NO OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"PBRO. ROBINSON POVEDA RIVERA","address":"CALLE 2 NO. 3-25","phone":"7242295","email":"IDEARSEPAS@SAT.EDU.CO","zones":"RURAL","levels":"","grades":"","campusCount":1,"calendar":"A","status":"CIERRE TEMPORAL"}]
+{
+  "dane": "168522000050",
+  "name": "",
+  "departmentCode": "68",
+  "departmentName": "SANTANDER",
+  "municipalityCode": "68522",
+  "municipalityName": "PALMAR",
+  "sector": "OFICIAL",
+  "establishmentType": "INSTITUCION EDUCATIVA",
+  "rectorName": "JORGE ALEXIS HERNANDEZ BARBOSA",
+  "address": "CARRERA 7 #4-61 VEREDA OROCO",
+  "phone": "3134941499-3132050361",
+  "email": "institutotecnicojoseruedapalmar@santander.edu.co",
+  "zones": "",
+  "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+  "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
+  "campusCount": "3",
+  "calendar": "A",
+  "status": "ANTIGUO-ACTIVO"
+}

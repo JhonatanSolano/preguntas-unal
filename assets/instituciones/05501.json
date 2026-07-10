@@ -1,1 +1,42 @@
-[{"dane":"205501000044","name":"C. E. R.  GUAYABO","departmentCode":"05","departmentName":"ANTIOQUIA","municipalityCode":"05501","municipalityName":"OLAYA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"LUIS EVELIO VILLA MUÑOZ","address":"VDA. EL GUAYABO","phone":"851 45 62","email":"cerguayaboolaya@tareanet.edu.co","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"205501000141","name":"C. E. R.  LA PLAYA","departmentCode":"05","departmentName":"ANTIOQUIA","municipalityCode":"05501","municipalityName":"OLAYA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"NORA ELENA GUTIERREZ GUERRA","address":"VDA. LA PLAYA","phone":"851 49 44","email":"cerplayaolaya@tareanet.edu.co","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"205501000010","name":"C. E. R. COMINAL","departmentCode":"05","departmentName":"ANTIOQUIA","municipalityCode":"05501","municipalityName":"OLAYA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"LUNA  DURANGO LUZ DORYS (DOC.P.)","address":"VDA. COMINAL","phone":"855 01 17","email":"cercominalolaya@tareanet.edu.co","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"205501000192","name":"C. E. R. LA COLCHONA","departmentCode":"05","departmentName":"ANTIOQUIA","municipalityCode":"05501","municipalityName":"OLAYA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"GONZALEZ  QUINTERO GLORIA NOHEMY (DOC.P.)","address":"VDA. COLCHONA","phone":"855 01 17","email":"cercolchonaolaya@tareanet.edu.co","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"205501000061","name":"C. E. R. PIÑONES","departmentCode":"05","departmentName":"ANTIOQUIA","municipalityCode":"05501","municipalityName":"OLAYA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"PEREZ GIRALDO WILSON JOSE (DOC.P.)","address":"VDA. PIÑONES","phone":"855 01 17","email":"cerpinonesolaya@tareanet.edu.co","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"205501000176","name":"C. E. R. QUEBRADA SECA","departmentCode":"05","departmentName":"ANTIOQUIA","municipalityCode":"05501","municipalityName":"OLAYA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"LUISA FERNANDA OSPINA GONZALEZ","address":"VDA. QUEBRADA SECA","phone":"855 01 17","email":"cerquebradasecaolaya@tareanet.edu.co","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"205501000087","name":"C. E. R. SUCRE","departmentCode":"05","departmentName":"ANTIOQUIA","municipalityCode":"05501","municipalityName":"OLAYA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"ACEVEDO HOYOS SOR MARIA","address":"CORREG. SUCRE","phone":"855 00 64","email":"cersucreolaya@tareanet.edu.co","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"405501000201","name":"CIER CENTRO EDUCATIVO","departmentCode":"05","departmentName":"ANTIOQUIA","municipalityCode":"05501","municipalityName":"OLAYA","sector":"NO OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"MIRIAN JIMENEZ PEREZ","address":"IND VDA PIÑONES","phone":"2600012","email":"","zones":"URBANA","levels":"MEDIA,BÁSICA SECUNDARIA","grades":"6,7,8,9,10,11","campusCount":1,"calendar":"A","status":"ANTIGUO-ACTIVO"},{"dane":"205501000133","name":"I. E.  LLANADAS","departmentCode":"05","departmentName":"ANTIOQUIA","municipalityCode":"05501","municipalityName":"OLAYA","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"SIN INFORMACION","address":"KR 11  10-74","phone":"855 10 15","email":"ierllanadasolaya@gmail.com","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"105501000198","name":"I. E. OLAYA","departmentCode":"05","departmentName":"ANTIOQUIA","municipalityCode":"05501","municipalityName":"OLAYA","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"ELKIN HUMBERTO CASTAÑO VELASQUEZ","address":"KR 11 4 19","phone":"8550079-3104703615","email":"ieolaya1996@gmail.com","zones":"RURAL,URBANA","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26","campusCount":10,"calendar":"A","status":"ANTIGUO-ACTIVO"},{"dane":"205501000028","name":"I. E. R. EL PENCAL","departmentCode":"05","departmentName":"ANTIOQUIA","municipalityCode":"05501","municipalityName":"OLAYA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"OSCAR TILMILLER ATEHORTUA CORREA","address":"VDA. EL PENCAL","phone":"855 01 17","email":"insedupen@tareanet.edu.co","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"405501000213","name":"INSTITUTO ARQUIDIOCESANO URBANO Y RURAL IAUR","departmentCode":"05","departmentName":"ANTIOQUIA","municipalityCode":"05501","municipalityName":"OLAYA","sector":"NO OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"SIN","address":"EL PENCAL","phone":"","email":"","zones":"URBANA","levels":"","grades":"","campusCount":1,"calendar":"A","status":"CIERRE DEFINITIVO"}]
+[
+  {
+    "dane": "105501000198",
+    "name": "",
+    "departmentCode": "05",
+    "departmentName": "ANTIOQUIA",
+    "municipalityCode": "05501",
+    "municipalityName": "OLAYA",
+    "sector": "OFICIAL",
+    "establishmentType": "INSTITUCION EDUCATIVA",
+    "rectorName": "ELKIN HUMBERTO CASTAÑO VELASQUEZ",
+    "address": "KR 11 4 19",
+    "phone": "8550079-3104703615",
+    "email": "ieolaya1996@gmail.com",
+    "zones": "",
+    "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+    "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
+    "campusCount": "10",
+    "calendar": "A",
+    "status": "ANTIGUO-ACTIVO"
+  },
+  {
+    "dane": "405501000201",
+    "name": "",
+    "departmentCode": "05",
+    "departmentName": "ANTIOQUIA",
+    "municipalityCode": "05501",
+    "municipalityName": "OLAYA",
+    "sector": "NO OFICIAL",
+    "establishmentType": "INSTITUCION EDUCATIVA",
+    "rectorName": "MIRIAN JIMENEZ PEREZ",
+    "address": "IND VDA PIÑONES",
+    "phone": "2600012",
+    "email": "",
+    "zones": "",
+    "levels": "MEDIA,BÁSICA SECUNDARIA",
+    "grades": "6,7,8,9,10,11",
+    "campusCount": "1",
+    "calendar": "A",
+    "status": "ANTIGUO-ACTIVO"
+  }
+]

@@ -1,1 +1,42 @@
-[{"dane":"291540000365","name":"ESC CARLOS ROJAS MORALES","departmentCode":"91","departmentName":"AMAZONAS","municipalityCode":"91540","municipalityName":"PUERTO NARIÑO","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"LUZ MARINA LEON BASTOS","address":"COM 12 DE OCTUBRE-PTO. NARIÑO","phone":"0985928190","email":"sistemas@sedamazonas.gov.co","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"291540000349","name":"ESC CRISTOBAL COLON","departmentCode":"91","departmentName":"AMAZONAS","municipalityCode":"91540","municipalityName":"PUERTO NARIÑO","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"EDILMA AHUE CAYETANO","address":"COM 7 DE AGOSTO-PTO. NARIÑO","phone":"0985928191","email":"sistemas@sedamazonas.gov.co","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"291540000179","name":"ESC GENERAL SANTANDER","departmentCode":"91","departmentName":"AMAZONAS","municipalityCode":"91540","municipalityName":"PUERTO NARIÑO","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"JENIFAN MACEDO FERREIRA","address":"VDA SAN JUAN DEL SOCO-PTO. NARIÑO","phone":"0985928190","email":"sistemas@sedamazonas.gov.co","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"291540000101","name":"ESC JOSE ANTONIO GALAN","departmentCode":"91","departmentName":"AMAZONAS","municipalityCode":"91540","municipalityName":"PUERTO NARIÑO","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"HECTOR JOSE RIVERA MARIN","address":"VDA SAN FRANCISCO-PTO. NARI¿O","phone":"0985928190","email":"sistemas@sedamazonas.gov.co","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"291540000195","name":"ESC LOZANO TORRIJOS","departmentCode":"91","departmentName":"AMAZONAS","municipalityCode":"91540","municipalityName":"PUERTO NARIÑO","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"ALFREDO BRAGA AHUANARI","address":"SAN JUAN DE ATACUARI-PTO. NARIÑO","phone":"0985928191","email":"sistemas@sedamazonas.gov.co","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"291001000165","name":"ESC MANUELA BELTRAN","departmentCode":"91","departmentName":"AMAZONAS","municipalityCode":"91540","municipalityName":"PUERTO NARIÑO","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"PAULO CESAR CERRON GARCIA","address":"BOYAHUAZU-PTO. NARIÑO","phone":"0985928191","email":"sistemas@sedamazonas.gov.co","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"291540000390","name":"ESC MARCELIANO E. CANYES","departmentCode":"91","departmentName":"AMAZONAS","municipalityCode":"91540","municipalityName":"PUERTO NARIÑO","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"RUBEN COELLO SIERRA","address":"SAN PEDRO DE TIPISCA-PTO. NARIÑO","phone":"0985928190","email":"sistemas@sedamazonas.gov.co","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"591540000907","name":"ESC REY SALOMON","departmentCode":"91","departmentName":"AMAZONAS","municipalityCode":"91540","municipalityName":"PUERTO NARIÑO","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"BRAULIO LEON MACEDO","address":"COM PUERTO RICO-PTO. NARIÑO","phone":"0985928191","email":"sistemas@sedamazonas.gov.co","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"291540000331","name":"ESC ROMUALDO DE PALMA","departmentCode":"91","departmentName":"AMAZONAS","municipalityCode":"91540","municipalityName":"PUERTO NARIÑO","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"ANGEL VICENTE COELLO AHUE","address":"SAN JOSE DE VILLA ANDREA-PTO. NARI¿O","phone":"0985928191","email":"sistemas@sedamazonas.gov.co","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"291540000209","name":"ESC SAN JOSE DE NARANJALES","departmentCode":"91","departmentName":"AMAZONAS","municipalityCode":"91540","municipalityName":"PUERTO NARIÑO","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"ANGEL AHUE GOMEZ","address":"VDA NARANJALES-PTO. NARI¿O","phone":"0985928191","email":"sistemas@sedamazonas.gov.co","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"191540000255","name":"I.E. COLEGIO TECNICO AGROPECUARIO JOSE CELESTINO MUTIS","departmentCode":"91","departmentName":"AMAZONAS","municipalityCode":"91540","municipalityName":"PUERTO NARIÑO","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"LORENA ISMENIA MARTINEZ GONZALEZ","address":"CL 4 5 49","phone":"3142666584","email":"josecelestinomutis@sedamazonas.gov.co","zones":"URBANA,RURAL","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26,99","campusCount":4,"calendar":"A","status":"ANTIGUO-ACTIVO"},{"dane":"191540000051","name":"I.E. INTERNADO SAN FRANCISCO DE LORETOYACO","departmentCode":"91","departmentName":"AMAZONAS","municipalityCode":"91540","municipalityName":"PUERTO NARIÑO","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"EDILBERTO SANGAMA HUANIRI","address":"MPIO PUERTO NARIÑO","phone":"3215157614","email":"franciscodeloretoyaco@sedamazonas.gov.co","zones":"RURAL","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"-1,0,1,2,3,4,5,6,7,8,9,10,11,21,99","campusCount":11,"calendar":"A","status":"ANTIGUO-ACTIVO"}]
+[
+  {
+    "dane": "191540000051",
+    "name": "",
+    "departmentCode": "91",
+    "departmentName": "AMAZONAS",
+    "municipalityCode": "91540",
+    "municipalityName": "PUERTO NARIÑO",
+    "sector": "OFICIAL",
+    "establishmentType": "INSTITUCION EDUCATIVA",
+    "rectorName": "EDILBERTO SANGAMA HUANIRI",
+    "address": "MPIO PUERTO NARIÑO",
+    "phone": "3215157614",
+    "email": "franciscodeloretoyaco@sedamazonas.gov.co",
+    "zones": "",
+    "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+    "grades": "-1,0,1,2,3,4,5,6,7,8,9,10,11,21,99",
+    "campusCount": "11",
+    "calendar": "A",
+    "status": "ANTIGUO-ACTIVO"
+  },
+  {
+    "dane": "191540000255",
+    "name": "",
+    "departmentCode": "91",
+    "departmentName": "AMAZONAS",
+    "municipalityCode": "91540",
+    "municipalityName": "PUERTO NARIÑO",
+    "sector": "OFICIAL",
+    "establishmentType": "INSTITUCION EDUCATIVA",
+    "rectorName": "LORENA ISMENIA MARTINEZ GONZALEZ",
+    "address": "CL 4 5 49",
+    "phone": "3142666584",
+    "email": "josecelestinomutis@sedamazonas.gov.co",
+    "zones": "",
+    "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+    "grades": "-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26,99",
+    "campusCount": "4",
+    "calendar": "A",
+    "status": "ANTIGUO-ACTIVO"
+  }
+]

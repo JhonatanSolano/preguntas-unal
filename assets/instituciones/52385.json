@@ -1,1 +1,42 @@
-[{"dane":"252385000013","name":"CENTRO EDUCATIVO BRISAS DEL TELEMBI","departmentCode":"52","departmentName":"NARIÑO","municipalityCode":"52385","municipalityName":"LA LLANADA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"CARLOS ALBERTO DELGADO CASTILLO","address":"EL REMATE","phone":"7287738","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"252385005392","name":"CENTRO EDUCATIVO DIVINO NIÑO JESUS LA FLORESTA","departmentCode":"52","departmentName":"NARIÑO","municipalityCode":"52385","municipalityName":"LA LLANADA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"ESCOBAR RUEDA FERNANDA BEATRIZ","address":"NO TIENE","phone":"3217199284","email":"ferchiescobar@gmail.com","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"252418000367","name":"CENTRO EDUCATIVO EL CAMPANARIO","departmentCode":"52","departmentName":"NARIÑO","municipalityCode":"52385","municipalityName":"LA LLANADA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"MARITZA REYES","address":"CAMPANARIO","phone":"7287738","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"252385000021","name":"CENTRO EDUCATIVO EL MACO","departmentCode":"52","departmentName":"NARIÑO","municipalityCode":"52385","municipalityName":"LA LLANADA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"ALEX ROSEE MERY CHAMORRO","address":"EL MACO","phone":"7287738","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"252418000103","name":"CENTRO EDUCATIVO EL PALMAR","departmentCode":"52","departmentName":"NARIÑO","municipalityCode":"52385","municipalityName":"LA LLANADA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"ELKIN FRANKLIN TORO SOLARTE","address":"EL PALMAR","phone":"3105223550","email":"ilkin.classic@outlook.com","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"252385005376","name":"CENTRO EDUCATIVO EL SASPI","departmentCode":"52","departmentName":"NARIÑO","municipalityCode":"52385","municipalityName":"LA LLANADA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"HERNANDO MARCO RODRIGUEZ ORTEGA","address":"EL SASPI","phone":"7287738","email":"jegavilanes@yahoo.es","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"252418000359","name":"CENTRO EDUCATIVO LA PALMA","departmentCode":"52","departmentName":"NARIÑO","municipalityCode":"52385","municipalityName":"LA LLANADA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"SUSANA MILENA ARTEAGA CHAUCANEZ","address":"LA PALMA","phone":"3113670381","email":"sussa78@gmail.com","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"252418000375","name":"CENTRO EDUCATIVO MARIA AUXILIADORA","departmentCode":"52","departmentName":"NARIÑO","municipalityCode":"52385","municipalityName":"LA LLANADA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"NELLY DORALBA MORALES","address":"LA FLORIDA","phone":"7287738","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"252385000005","name":"CENTRO EDUCATIVO SAN SEBASTIAN","departmentCode":"52","departmentName":"NARIÑO","municipalityCode":"52385","municipalityName":"LA LLANADA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"ALVAREZ ROMO ALBA LIBIA","address":"EL PRADO","phone":"3186931030","email":"albalibia1964@hotmail.com","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"252418000383","name":"CENTRO EDUCATIVO SANTA ROSA","departmentCode":"52","departmentName":"NARIÑO","municipalityCode":"52385","municipalityName":"LA LLANADA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"AMAIRA CLAUDIELA RIASCOS PORTILLO","address":"SANTA ROSA","phone":"7287738","email":"","zones":"RURAL","levels":"","grades":"","campusCount":1,"calendar":"A","status":"CIERRE TEMPORAL"},{"dane":"252385005422","name":"CENTRO EDUCATIVO SUMBIAMBI","departmentCode":"52","departmentName":"NARIÑO","municipalityCode":"52385","municipalityName":"LA LLANADA","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"JHON ANDRES ALOMIA","address":"SUMBIAMBI","phone":"7287738","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"252418000332","name":"INSTITUCION EDUCATIVA JUAN PABLO I","departmentCode":"52","departmentName":"NARIÑO","municipalityCode":"52385","municipalityName":"LA LLANADA","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"JAVIER ARMANDO LEON ERASO","address":"CLL 8 CRA 7","phone":"3166663031","email":"ie.juan.pablo1.llanada@sednarino.gov.co","zones":"RURAL,URBANA","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26","campusCount":5,"calendar":"A","status":"ANTIGUO-ACTIVO"},{"dane":"252385005468","name":"INSTITUCION EDUCATIVA TÉCNICO AGROPECUARIA RODRIGO LARA BONILLA","departmentCode":"52","departmentName":"NARIÑO","municipalityCode":"52385","municipalityName":"LA LLANADA","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"PABLO ANDRES SUAREZ","address":"EL VERGEL","phone":"3184078746 - 3176963098","email":"ie.rodrigo.Lara.llanada@sednarino.gov.co","zones":"RURAL","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26","campusCount":10,"calendar":"A","status":"ANTIGUO-ACTIVO"}]
+[
+  {
+    "dane": "252385005468",
+    "name": "",
+    "departmentCode": "52",
+    "departmentName": "NARIÑO",
+    "municipalityCode": "52385",
+    "municipalityName": "LA LLANADA",
+    "sector": "OFICIAL",
+    "establishmentType": "INSTITUCION EDUCATIVA",
+    "rectorName": "PABLO ANDRES SUAREZ",
+    "address": "EL VERGEL",
+    "phone": "3184078746 - 3176963098",
+    "email": "ie.rodrigo.Lara.llanada@sednarino.gov.co",
+    "zones": "",
+    "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+    "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
+    "campusCount": "10",
+    "calendar": "A",
+    "status": "ANTIGUO-ACTIVO"
+  },
+  {
+    "dane": "252418000332",
+    "name": "",
+    "departmentCode": "52",
+    "departmentName": "NARIÑO",
+    "municipalityCode": "52385",
+    "municipalityName": "LA LLANADA",
+    "sector": "OFICIAL",
+    "establishmentType": "INSTITUCION EDUCATIVA",
+    "rectorName": "JAVIER ARMANDO LEON ERASO",
+    "address": "CLL 8 CRA 7",
+    "phone": "3166663031",
+    "email": "ie.juan.pablo1.llanada@sednarino.gov.co",
+    "zones": "",
+    "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+    "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
+    "campusCount": "5",
+    "calendar": "A",
+    "status": "ANTIGUO-ACTIVO"
+  }
+]

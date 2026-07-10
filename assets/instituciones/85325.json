@@ -1,1 +1,20 @@
-{"dane":"185325000597","name":"INSTITUCION EDUCATIVA TECNICO FRANCISCO LUCEA","departmentCode":"85","departmentName":"CASANARE","municipalityCode":"85325","municipalityName":"SAN LUIS DE PALENQUE","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"EDGAR EDMUNDO BECERRA CHAPARRO","address":"CR 7 NO 3-17","phone":"6370090 - 311 2629670","email":"iefranciscolucea@sedcasanare.gov.co","zones":"RURAL,URBANA","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26","campusCount":36,"calendar":"A","status":"ANTIGUO-ACTIVO"}
+{
+  "dane": "185325000597",
+  "name": "",
+  "departmentCode": "85",
+  "departmentName": "CASANARE",
+  "municipalityCode": "85325",
+  "municipalityName": "SAN LUIS DE PALENQUE",
+  "sector": "OFICIAL",
+  "establishmentType": "INSTITUCION EDUCATIVA",
+  "rectorName": "EDGAR EDMUNDO BECERRA CHAPARRO",
+  "address": "CR 7 NO 3-17",
+  "phone": "6370090 - 311 2629670",
+  "email": "iefranciscolucea@sedcasanare.gov.co",
+  "zones": "",
+  "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+  "grades": "-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
+  "campusCount": "36",
+  "calendar": "A",
+  "status": "ANTIGUO-ACTIVO"
+}

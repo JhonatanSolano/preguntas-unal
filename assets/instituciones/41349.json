@@ -1,1 +1,20 @@
-{"dane":"141349000108","name":"INSTITUCION EDUCATIVA ROBERTO SUAZA MARQUINEZ","departmentCode":"41","departmentName":"HUILA","municipalityCode":"41349","municipalityName":"HOBO","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"BAUTISTA HERRERA HUGO ANCYR","address":"KR 2 CL 5","phone":"3023597575","email":"robertosuaza.hobo@sedhuila.gov.co","zones":"RURAL,URBANA","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26,99","campusCount":8,"calendar":"A","status":"ANTIGUO-ACTIVO"}
+{
+  "dane": "141349000108",
+  "name": "",
+  "departmentCode": "41",
+  "departmentName": "HUILA",
+  "municipalityCode": "41349",
+  "municipalityName": "HOBO",
+  "sector": "OFICIAL",
+  "establishmentType": "INSTITUCION EDUCATIVA",
+  "rectorName": "BAUTISTA HERRERA HUGO ANCYR",
+  "address": "KR 2 CL 5",
+  "phone": "3023597575",
+  "email": "robertosuaza.hobo@sedhuila.gov.co",
+  "zones": "",
+  "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+  "grades": "-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26,99",
+  "campusCount": "8",
+  "calendar": "A",
+  "status": "ANTIGUO-ACTIVO"
+}

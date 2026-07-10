@@ -1,1 +1,20 @@
-{"dane":"125339000261","name":"INSTITUCION EDUCATIVA DEPARTAMENTAL GUTIERREZ","departmentCode":"25","departmentName":"CUNDINAMARCA","municipalityCode":"25339","municipalityName":"GUTIÉRREZ","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"JIMMY ALEXANDER ORJUELA LASSO.","address":"CALLE 9 NO 6A-93.","phone":"3138219746 - 3134630851","email":"iedgutierrez_gutierrez@secundinamarca.edu.co","zones":"RURAL,URBANA","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA,PRIMERA INFANCIA","grades":"-3,-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26","campusCount":24,"calendar":"A","status":"ANTIGUO-ACTIVO"}
+{
+  "dane": "125339000261",
+  "name": "",
+  "departmentCode": "25",
+  "departmentName": "CUNDINAMARCA",
+  "municipalityCode": "25339",
+  "municipalityName": "GUTIÉRREZ",
+  "sector": "OFICIAL",
+  "establishmentType": "INSTITUCION EDUCATIVA",
+  "rectorName": "JIMMY ALEXANDER ORJUELA LASSO.",
+  "address": "CALLE 9 NO 6A-93.",
+  "phone": "3138219746 - 3134630851",
+  "email": "iedgutierrez_gutierrez@secundinamarca.edu.co",
+  "zones": "",
+  "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA,PRIMERA INFANCIA",
+  "grades": "-3,-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
+  "campusCount": "24",
+  "calendar": "A",
+  "status": "ANTIGUO-ACTIVO"
+}

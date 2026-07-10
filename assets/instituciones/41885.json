@@ -1,1 +1,20 @@
-[{"dane":"341885000021","name":"COL EL ROSARIO","departmentCode":"41","departmentName":"HUILA","municipalityCode":"41885","municipalityName":"YAGUARÁ","sector":"NO OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"MONJE AGUIRRE AYLENN YOLETH","address":"KR 4 3 47","phone":"3017204232","email":"","zones":"URBANA","levels":"","grades":"","campusCount":1,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"341885000225","name":"COL SANTO DOMINGO SABIO","departmentCode":"41","departmentName":"HUILA","municipalityCode":"41885","municipalityName":"YAGUARÁ","sector":"NO OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"DIEGO FERNANDO GARZON LLANOS","address":"KR 3 2 23","phone":"8383086","email":"","zones":"URBANA","levels":"","grades":"","campusCount":1,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"341885000233","name":"COLEGIO LICEO EMPRESARIAL AMERICANO","departmentCode":"41","departmentName":"HUILA","municipalityCode":"41885","municipalityName":"YAGUARÁ","sector":"NO OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"CARVAJAL PERDOMO RICARDO","address":"KR 4 1 50","phone":"3107542168","email":"","zones":"URBANA","levels":"BÁSICA SECUNDARIA","grades":"6,7","campusCount":1,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"141885000048","name":"INSTITUCION EDUCATIVA AMELIA PERDOMO DE GARCIA","departmentCode":"41","departmentName":"HUILA","municipalityCode":"41885","municipalityName":"YAGUARÁ","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"ORTIZ ALBA LUZ","address":"KR 8 2 40","phone":"3134212934 - 3102024493","email":"ameliaperdomo.yaguara@sedhuila.gov.co","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"141885000013","name":"INSTITUCION EDUCATIVA ANA ELISA CUENCA LARA","departmentCode":"41","departmentName":"HUILA","municipalityCode":"41885","municipalityName":"YAGUARÁ","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"QUIMBAYA CUELLAR LINA MARIA","address":"CALLE 3 Nº 9-180","phone":"3206783743","email":"anaelisa.yaguara@sedhuila.gov.co","zones":"RURAL,URBANA","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"0,1,2,3,4,5,6,7,8,9,10,11,20,21,22,23,24,25,26","campusCount":10,"calendar":"A","status":"ANTIGUO-ACTIVO"}]
+{
+  "dane": "141885000013",
+  "name": "",
+  "departmentCode": "41",
+  "departmentName": "HUILA",
+  "municipalityCode": "41885",
+  "municipalityName": "YAGUARÁ",
+  "sector": "OFICIAL",
+  "establishmentType": "INSTITUCION EDUCATIVA",
+  "rectorName": "QUIMBAYA CUELLAR LINA MARIA",
+  "address": "CALLE 3 Nº 9-180",
+  "phone": "3206783743",
+  "email": "anaelisa.yaguara@sedhuila.gov.co",
+  "zones": "",
+  "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+  "grades": "0,1,2,3,4,5,6,7,8,9,10,11,20,21,22,23,24,25,26",
+  "campusCount": "10",
+  "calendar": "A",
+  "status": "ANTIGUO-ACTIVO"
+}

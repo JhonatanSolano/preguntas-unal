@@ -1,1 +1,20 @@
-{"dane":"125871000163","name":"INSTITUCIÓN EDUCATIVA DEPARTAMENTAL MISAEL GOMEZ","departmentCode":"25","departmentName":"CUNDINAMARCA","municipalityCode":"25871","municipalityName":"VILLAGÓMEZ","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"DURLEY BERNAL SUAREZ.","address":"CALLE 6 # 3-10","phone":"3138878225","email":"iedmisaelgomez_villagomez@secundinamarca.edu.co","zones":"RURAL,URBANA","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"0,1,2,3,4,5,6,7,8,9,10,11,20,21,22,23,24,25,26","campusCount":14,"calendar":"A","status":"ANTIGUO-ACTIVO"}
+{
+  "dane": "125871000163",
+  "name": "",
+  "departmentCode": "25",
+  "departmentName": "CUNDINAMARCA",
+  "municipalityCode": "25871",
+  "municipalityName": "VILLAGÓMEZ",
+  "sector": "OFICIAL",
+  "establishmentType": "INSTITUCION EDUCATIVA",
+  "rectorName": "DURLEY BERNAL SUAREZ.",
+  "address": "CALLE 6 # 3-10",
+  "phone": "3138878225",
+  "email": "iedmisaelgomez_villagomez@secundinamarca.edu.co",
+  "zones": "",
+  "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+  "grades": "0,1,2,3,4,5,6,7,8,9,10,11,20,21,22,23,24,25,26",
+  "campusCount": "14",
+  "calendar": "A",
+  "status": "ANTIGUO-ACTIVO"
+}

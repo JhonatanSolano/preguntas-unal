@@ -1,1 +1,42 @@
-[{"dane":"270230000031","name":"C.E. EL CIELO","departmentCode":"70","departmentName":"SUCRE","municipalityCode":"70230","municipalityName":"CHALÁN","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"EUNICE OLIVERA BELTRAN","address":"VDA. EL CIELO","phone":"3226956025 - 3136137966","email":"ce.elcielo@sucre.edu.co","zones":"RURAL","levels":"PREESCOLAR,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"0,1,2,3,4,5,20,21,22,23,24","campusCount":7,"calendar":"A","status":"ANTIGUO-ACTIVO"},{"dane":"270230000023","name":"C.E. NUEVO MANZANAREZ","departmentCode":"70","departmentName":"SUCRE","municipalityCode":"70230","municipalityName":"CHALÁN","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"MANUEL MONTERROZA VASQUEZ","address":"VDA. MANZANAREZ","phone":"320 540 95 09","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"270230000104","name":"CENTRO EDUCATIVO JONEY","departmentCode":"70","departmentName":"SUCRE","municipalityCode":"70230","municipalityName":"CHALÁN","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"MANUEL MONTERROZA BASQUEZ","address":"VEREDA EL JONEY","phone":"320-5409509","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"270230000066","name":"CENTRO EDUCATIVO LA ESTRELLA","departmentCode":"70","departmentName":"SUCRE","municipalityCode":"70230","municipalityName":"CHALÁN","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"MANUEL MONTERROZA BASQUEZ","address":"VEREDA LA ESTRELLA","phone":"320-5409509","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"270230000082","name":"CENTRO EDUCATIVO LOS COMUNEROS","departmentCode":"70","departmentName":"SUCRE","municipalityCode":"70230","municipalityName":"CHALÁN","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"MANUEL MONTERROZA BASQUEZ","address":"VEREDA DESBARRANCADO","phone":"320-5409509","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"270230000015","name":"CENTRO EDUCATIVO POLICARPA SALAVARRIETA","departmentCode":"70","departmentName":"SUCRE","municipalityCode":"70230","municipalityName":"CHALÁN","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"EUNICE OLIVERA BELTRAN","address":"VEREDA ALEMANIA","phone":"0","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"270230000040","name":"CENTRO EDUCATIVO SAN RAFAEL","departmentCode":"70","departmentName":"SUCRE","municipalityCode":"70230","municipalityName":"CHALÁN","sector":"OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"EUNICE OLIVERA BELTRAN","address":"CORREG LA CEIBA","phone":"0","email":"","zones":"","levels":"","grades":"","campusCount":0,"calendar":"A","status":"CIERRE DEFINITIVO"},{"dane":"170230000053","name":"I.E. CHALAN","departmentCode":"70","departmentName":"SUCRE","municipalityCode":"70230","municipalityName":"CHALÁN","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"ALFONSO CABALLERO LAMBRA¿O","address":"IND  CALLE 6 NO. 5-78","phone":"3226505539 3106068282","email":"ie.chalan@sucre.edu.co","zones":"URBANA","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26","campusCount":4,"calendar":"A","status":"ANTIGUO-ACTIVO"},{"dane":"570230000001","name":"INST EDU MIGUEL DE CERVANTES SAAVEDRA (SEDE CHALAN)","departmentCode":"70","departmentName":"SUCRE","municipalityCode":"70230","municipalityName":"CHALÁN","sector":"NO OFICIAL","establishmentType":"CENTRO EDUCATIVO","rectorName":"CRISTINA LOBO URIBE","address":"IND CHALAN - CLL REAL","phone":"2822808","email":"","zones":"URBANA","levels":"","grades":"","campusCount":1,"calendar":"A","status":"CIERRE DEFINITIVO"}]
+[
+  {
+    "dane": "170230000053",
+    "name": "",
+    "departmentCode": "70",
+    "departmentName": "SUCRE",
+    "municipalityCode": "70230",
+    "municipalityName": "CHALÁN",
+    "sector": "OFICIAL",
+    "establishmentType": "INSTITUCION EDUCATIVA",
+    "rectorName": "ALFONSO CABALLERO LAMBRA¿O",
+    "address": "IND  CALLE 6 NO. 5-78",
+    "phone": "3226505539 3106068282",
+    "email": "ie.chalan@sucre.edu.co",
+    "zones": "",
+    "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+    "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
+    "campusCount": "4",
+    "calendar": "A",
+    "status": "ANTIGUO-ACTIVO"
+  },
+  {
+    "dane": "270230000031",
+    "name": "",
+    "departmentCode": "70",
+    "departmentName": "SUCRE",
+    "municipalityCode": "70230",
+    "municipalityName": "CHALÁN",
+    "sector": "OFICIAL",
+    "establishmentType": "CENTRO EDUCATIVO",
+    "rectorName": "EUNICE OLIVERA BELTRAN",
+    "address": "VDA. EL CIELO",
+    "phone": "3226956025 - 3136137966",
+    "email": "ce.elcielo@sucre.edu.co",
+    "zones": "",
+    "levels": "PREESCOLAR,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+    "grades": "0,1,2,3,4,5,20,21,22,23,24",
+    "campusCount": "7",
+    "calendar": "A",
+    "status": "ANTIGUO-ACTIVO"
+  }
+]

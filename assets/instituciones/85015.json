@@ -1,1 +1,20 @@
-{"dane":"185015000104","name":"INSTITUCION EDUCATIVA JOSE ANTONIO GALAN","departmentCode":"85","departmentName":"CASANARE","municipalityCode":"85015","municipalityName":"CHAMEZA","sector":"OFICIAL","establishmentType":"INSTITUCION EDUCATIVA","rectorName":"HUGOBERTO RODRIGUEZ PIRANEQUE","address":"CENTRO CHAMEZA","phone":"3212339128","email":"iejoseantoniogalan@sedcasanare.gov.co","zones":"RURAL,URBANA","levels":"PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA","grades":"0,1,2,3,4,5,6,7,8,9,10,11,21,23,24,25,26","campusCount":15,"calendar":"A","status":"ANTIGUO-ACTIVO"}
+{
+  "dane": "185015000104",
+  "name": "",
+  "departmentCode": "85",
+  "departmentName": "CASANARE",
+  "municipalityCode": "85015",
+  "municipalityName": "CHAMEZA",
+  "sector": "OFICIAL",
+  "establishmentType": "INSTITUCION EDUCATIVA",
+  "rectorName": "HUGOBERTO RODRIGUEZ PIRANEQUE",
+  "address": "CENTRO CHAMEZA",
+  "phone": "3212339128",
+  "email": "iejoseantoniogalan@sedcasanare.gov.co",
+  "zones": "",
+  "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
+  "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21,23,24,25,26",
+  "campusCount": "15",
+  "calendar": "A",
+  "status": "ANTIGUO-ACTIVO"
+}
