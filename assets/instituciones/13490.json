@@ -1,6 +1,6 @@
 {
   "dane": "213600000687",
-  "name": "",
+  "name": "INSTITUCIÓN EDUCATIVA  ACADÉMICA Y TÉCNICA AGROINDUSTRIAL DE NOROSI",
   "departmentCode": "13",
   "departmentName": "BOLÍVAR",
   "municipalityCode": "13490",
@@ -11,7 +11,7 @@
   "address": "IND CALLE 1 # 7- 04",
   "phone": "3145201311",
   "email": "iedenorosi@sedbolivar.gov.co",
-  "zones": "",
+  "zones": "URBANA,RURAL",
   "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA,PRIMERA INFANCIA",
   "grades": "-3,-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
   "campusCount": "34",

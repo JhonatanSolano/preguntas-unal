@@ -1,7 +1,7 @@
 [
   {
     "dane": "115464000242",
-    "name": "",
+    "name": "I.E. TECNICA LISANDRO CELY",
     "departmentCode": "15",
     "departmentName": "BOYACÁ",
     "municipalityCode": "15464",
@@ -12,7 +12,7 @@
     "address": "KR 6 # 3 - 55",
     "phone": "3124019475 - 3204097646",
     "email": "mongualisandrocely@sedboyaca.gov.co",
-    "zones": "",
+    "zones": "URBANA,RURAL",
     "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
     "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
     "campusCount": "13",
@@ -21,7 +21,7 @@
   },
   {
     "dane": "215464000085",
-    "name": "",
+    "name": "I.E. TUNJUELO",
     "departmentCode": "15",
     "departmentName": "BOYACÁ",
     "municipalityCode": "15464",
@@ -32,7 +32,7 @@
     "address": "VDA TUNJUELO",
     "phone": "3125421138 - 3125610761",
     "email": "monguatunjuelo@sedboyaca.gov.co",
-    "zones": "",
+    "zones": "RURAL",
     "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
     "grades": "-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
     "campusCount": "6",

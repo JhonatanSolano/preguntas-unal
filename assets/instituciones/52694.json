@@ -1,7 +1,7 @@
 [
   {
     "dane": "252051000098",
-    "name": "",
+    "name": "INSTITUCIÓN EDUCATIVA LA ESTANCIA",
     "departmentCode": "52",
     "departmentName": "NARIÑO",
     "municipalityCode": "52694",
@@ -12,7 +12,7 @@
     "address": "VDA LA ESTANCIA",
     "phone": "3117431189",
     "email": "ie.laestancia.cartago@sednarino.gov.co",
-    "zones": "",
+    "zones": "RURAL",
     "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
     "grades": "0,1,2,3,4,5,6,7,8,9,10,11",
     "campusCount": "1",
@@ -21,7 +21,7 @@
   },
   {
     "dane": "252051000560",
-    "name": "",
+    "name": "INSTITUCION EDUCATIVA SAN PEDRO DE CARTAGO",
     "departmentCode": "52",
     "departmentName": "NARIÑO",
     "municipalityCode": "52694",
@@ -32,7 +32,7 @@
     "address": "IND SAN PEDRO CARTAGO",
     "phone": "3185895238",
     "email": "ie.pedro.cartago@sednarino.gov.co",
-    "zones": "",
+    "zones": "URBANA,RURAL",
     "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
     "grades": "0,1,2,3,4,5,6,7,8,9,10,11,20,21,22,23,24",
     "campusCount": "18",

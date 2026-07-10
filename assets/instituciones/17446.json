@@ -1,7 +1,7 @@
 [
   {
     "dane": "117446000157",
-    "name": "",
+    "name": "INSTITUCION EDUCATIVA EFREN CARDONA CHICA",
     "departmentCode": "17",
     "departmentName": "CALDAS",
     "municipalityCode": "17446",
@@ -12,7 +12,7 @@
     "address": "CALLE 4 4-11",
     "phone": "",
     "email": "ieefrencardonachica@sedcaldas.gov.co",
-    "zones": "",
+    "zones": "URBANA,RURAL",
     "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
     "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25",
     "campusCount": "9",
@@ -21,7 +21,7 @@
   },
   {
     "dane": "217446000038",
-    "name": "",
+    "name": "INSTITUCION EDUCATIVA MONTEBONITO",
     "departmentCode": "17",
     "departmentName": "CALDAS",
     "municipalityCode": "17446",
@@ -32,7 +32,7 @@
     "address": "CORREGIMIENTO MONTEBONITO",
     "phone": "8545518",
     "email": "iemontebonito@sedcaldas.gov.co",
-    "zones": "",
+    "zones": "RURAL",
     "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
     "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21,23,24,25,26",
     "campusCount": "8",

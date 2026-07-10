@@ -1,6 +1,6 @@
 {
   "dane": "125599000060",
-  "name": "",
+  "name": "INSTITUCION EDUCATIVA DEPARTAMENTAL ANTONIO NARIÑO",
   "departmentCode": "25",
   "departmentName": "CUNDINAMARCA",
   "municipalityCode": "25599",
@@ -11,7 +11,7 @@
   "address": "AVENIDA PRINCIPAL",
   "phone": "3138701556 - 3142190793",
   "email": "iedantonionarino_apulo@secundinamarca.edu.co",
-  "zones": "",
+  "zones": "URBANA,RURAL",
   "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
   "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
   "campusCount": "18",

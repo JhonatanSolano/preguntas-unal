@@ -1,6 +1,6 @@
 {
   "dane": "105315000021",
-  "name": "",
+  "name": "I. E.  LUIS LOPEZ DE MESA",
   "departmentCode": "05",
   "departmentName": "ANTIOQUIA",
   "municipalityCode": "05315",
@@ -11,7 +11,7 @@
   "address": "CL 47 48 A 64",
   "phone": "8616047",
   "email": "gpeducamor@gmail.com",
-  "zones": "",
+  "zones": "RURAL,URBANA",
   "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
   "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26,99",
   "campusCount": "18",

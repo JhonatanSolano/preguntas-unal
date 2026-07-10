@@ -1,6 +1,6 @@
 {
   "dane": "125807000257",
-  "name": "",
+  "name": "INSTITUCION EDUCATIVA DEPARTAMENTAL MONSEÑOR AGUSTIN GUTIERREZ",
   "departmentCode": "25",
   "departmentName": "CUNDINAMARCA",
   "municipalityCode": "25807",
@@ -11,7 +11,7 @@
   "address": "CALLE 4 NO. 3-74",
   "phone": "8566008-3202549678 - 3103287125",
   "email": "iedagustingutierrez_tibirita@secundinamarca.edu.co",
-  "zones": "",
+  "zones": "URBANA,RURAL",
   "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
   "grades": "-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22",
   "campusCount": "12",

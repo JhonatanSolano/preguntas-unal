@@ -1,7 +1,7 @@
 [
   {
     "dane": "125178000168",
-    "name": "",
+    "name": "INSTITUCIÓN EDUCATIVA DEPARTAMENTAL PIO X",
     "departmentCode": "25",
     "departmentName": "CUNDINAMARCA",
     "municipalityCode": "25178",
@@ -12,7 +12,7 @@
     "address": "CALLE 7 NO  3 96",
     "phone": "3133397453 - 3108784468",
     "email": "iedpiox_chipaque@secundinamarca.edu.co",
-    "zones": "",
+    "zones": "RURAL,URBANA",
     "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
     "grades": "-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,21,23,24,25,26",
     "campusCount": "12",
@@ -21,7 +21,7 @@
   },
   {
     "dane": "225178000375",
-    "name": "",
+    "name": "INSTITUCIÓN EDUCATIVA DEPARTAMENTAL RURAL CEREZOS GRANDES",
     "departmentCode": "25",
     "departmentName": "CUNDINAMARCA",
     "municipalityCode": "25178",
@@ -32,7 +32,7 @@
     "address": "VEREDA CEREZOS GRANDES",
     "phone": "3115045955.",
     "email": "iedrcerezos_chipaque@secundinamarca.edu.co",
-    "zones": "",
+    "zones": "RURAL",
     "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
     "grades": "-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,21",
     "campusCount": "5",

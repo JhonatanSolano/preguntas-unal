@@ -1,7 +1,7 @@
 [
   {
     "dane": "125335000541",
-    "name": "",
+    "name": "INSTITUCION EDUCATIVA DEPARTAMENTAL MONSEÑOR ALBERTO REYES FONSECA",
     "departmentCode": "25",
     "departmentName": "CUNDINAMARCA",
     "municipalityCode": "25335",
@@ -12,7 +12,7 @@
     "address": "CALLE 2 Nº 3-37",
     "phone": "3203006130 - 3002288898",
     "email": "iedalbertoreyes_guayabetal@secundinamarca.edu.co",
-    "zones": "",
+    "zones": "RURAL,URBANA",
     "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
     "grades": "-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
     "campusCount": "23",
@@ -21,7 +21,7 @@
   },
   {
     "dane": "425335000243",
-    "name": "",
+    "name": "INSTITUTO CLARA THERESIA",
     "departmentCode": "25",
     "departmentName": "CUNDINAMARCA",
     "municipalityCode": "25335",
@@ -32,7 +32,7 @@
     "address": "VDA MONTERREDONDO",
     "phone": "3124751931",
     "email": "institutoclaratheresia9@gmail.com institutoclaratheresiarectoria@gmail.com",
-    "zones": "",
+    "zones": "RURAL",
     "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
     "grades": "-1,0,1,2,3,4,5,6,7,8,9,10,11",
     "campusCount": "1",

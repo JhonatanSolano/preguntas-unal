@@ -1,7 +1,7 @@
 [
   {
     "dane": "147675000060",
-    "name": "",
+    "name": "INSTITUCION EDUCATIVA DEPARTAMENTAL DE SALAMINA",
     "departmentCode": "47",
     "departmentName": "MAGDALENA",
     "municipalityCode": "47675",
@@ -12,7 +12,7 @@
     "address": "CALLE 5 NO 13 - 19",
     "phone": "",
     "email": "iedsalamina@sedmagdalena.gov.co",
-    "zones": "",
+    "zones": "URBANA,RURAL",
     "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
     "grades": "0,1,2,3,4,5,6,7,8,9,10,11,20,21,22,23,24,25,26,99",
     "campusCount": "7",
@@ -21,7 +21,7 @@
   },
   {
     "dane": "347675000115",
-    "name": "",
+    "name": "INSTITUCION EDUCATIVA TÉCNICA DEPARTAMENTAL DE GUAIMARO",
     "departmentCode": "47",
     "departmentName": "MAGDALENA",
     "municipalityCode": "47675",
@@ -32,7 +32,7 @@
     "address": "CORREGIMIENTO DE GUAIMARO",
     "phone": "",
     "email": "iedguaimaro@sedmagdalena.gov.co",
-    "zones": "",
+    "zones": "RURAL",
     "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
     "grades": "0,1,2,3,4,5,6,7,8,9,10,11,20,21,22,23,24,25,26",
     "campusCount": "4",

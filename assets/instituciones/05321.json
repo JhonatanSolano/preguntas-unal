@@ -1,6 +1,6 @@
 {
   "dane": "105321000025",
-  "name": "",
+  "name": "I. E. NUESTRA SEÑORA DEL PILAR",
   "departmentCode": "05",
   "departmentName": "ANTIOQUIA",
   "municipalityCode": "05321",
@@ -11,7 +11,7 @@
   "address": "CL 31 23 A 33",
   "phone": "8610385-8610559",
   "email": "iepilarguatape@hotmail.com",
-  "zones": "",
+  "zones": "RURAL,URBANA",
   "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
   "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
   "campusCount": "8",

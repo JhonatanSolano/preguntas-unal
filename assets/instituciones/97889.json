@@ -1,6 +1,6 @@
 {
   "dane": "297001002115",
-  "name": "",
+  "name": "I.E.D. DE MONFORTH",
   "departmentCode": "97",
   "departmentName": "VAUPÉS",
   "municipalityCode": "97889",
@@ -11,7 +11,7 @@
   "address": "CORREGIMIENTO DE YAVARATE",
   "phone": "3133550299",
   "email": "monforth@sedvaupes.gov.co",
-  "zones": "",
+  "zones": "RURAL",
   "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
   "grades": "-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22",
   "campusCount": "6",

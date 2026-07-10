@@ -1,6 +1,6 @@
 {
   "dane": "381591000024",
-  "name": "",
+  "name": "INSTITUCION EDUCATIVA LA INMACULADA",
   "departmentCode": "81",
   "departmentName": "ARAUCA",
   "municipalityCode": "81591",
@@ -11,7 +11,7 @@
   "address": "KR 4 4 09",
   "phone": "3213731554",
   "email": "rector.iecli@sedarauca.edu.co",
-  "zones": "",
+  "zones": "RURAL,URBANA",
   "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
   "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
   "campusCount": "19",

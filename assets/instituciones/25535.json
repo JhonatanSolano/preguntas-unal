@@ -1,7 +1,7 @@
 [
   {
     "dane": "125535000023",
-    "name": "",
+    "name": "INSTITUCIÓN EDUCATIVA NORMAL SUPERIOR NUESTRA SEÑORA DE LA ENCARNACION",
     "departmentCode": "25",
     "departmentName": "CUNDINAMARCA",
     "municipalityCode": "25535",
@@ -12,7 +12,7 @@
     "address": "CALLE 2 # 6-02",
     "phone": "8688004 3016024447",
     "email": "iednormalsuperior_pasca@secundinamarca.edu.co",
-    "zones": "",
+    "zones": "RURAL,URBANA",
     "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
     "grades": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,20,21,22,23,24,25,26,41,42,43,44,45",
     "campusCount": "16",
@@ -21,7 +21,7 @@
   },
   {
     "dane": "225535000010",
-    "name": "",
+    "name": "INSTITUCION EDUCATIVA RURAL DEPARTAMENTAL ADOLFO LEON GOMEZ",
     "departmentCode": "25",
     "departmentName": "CUNDINAMARCA",
     "municipalityCode": "25535",
@@ -32,7 +32,7 @@
     "address": "VEREDA EL RETIRO  PASCA",
     "phone": "3125659355",
     "email": "iedradolfoleon_pasca@secundinamarca.edu.co",
-    "zones": "",
+    "zones": "RURAL",
     "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
     "grades": "-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
     "campusCount": "16",

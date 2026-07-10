@@ -1,6 +1,6 @@
 {
   "dane": "105142000136",
-  "name": "",
+  "name": "I. E. GABRIEL CORREA VELEZ",
   "departmentCode": "05",
   "departmentName": "ANTIOQUIA",
   "municipalityCode": "05142",
@@ -11,7 +11,7 @@
   "address": "CL 22 21 B 10",
   "phone": "8336308",
   "email": "iegabrielcorreav@gmail.com",
-  "zones": "",
+  "zones": "RURAL,URBANA",
   "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
   "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26,99",
   "campusCount": "16",

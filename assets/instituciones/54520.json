@@ -1,7 +1,7 @@
 [
   {
     "dane": "154520000108",
-    "name": "",
+    "name": "COL NUESTRA SEÑORA DEL PILAR",
     "departmentCode": "54",
     "departmentName": "NORTE DE SANTANDER",
     "municipalityCode": "54520",
@@ -12,7 +12,7 @@
     "address": "CR 3 N.2-74",
     "phone": "3157751949",
     "email": "ie_nuestrasradelpilar@sednortedesantander.gov.co",
-    "zones": "",
+    "zones": "URBANA,RURAL",
     "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
     "grades": "-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
     "campusCount": "9",
@@ -21,7 +21,7 @@
   },
   {
     "dane": "254520000056",
-    "name": "",
+    "name": "INSTITUCIÓN EDUCATIVA EL DIAMANTE",
     "departmentCode": "54",
     "departmentName": "NORTE DE SANTANDER",
     "municipalityCode": "54520",
@@ -32,7 +32,7 @@
     "address": "CORREG EL DIAMANTE",
     "phone": "3112261587",
     "email": "yomoliz@gmail.com",
-    "zones": "",
+    "zones": "RURAL",
     "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
     "grades": "-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
     "campusCount": "5",
@@ -41,7 +41,7 @@
   },
   {
     "dane": "254520000188",
-    "name": "",
+    "name": "INSTITUCION EDUCATIVA RURAL GUAYABALES",
     "departmentCode": "54",
     "departmentName": "NORTE DE SANTANDER",
     "municipalityCode": "54520",
@@ -52,7 +52,7 @@
     "address": "CRA 10 N 11-33",
     "phone": "3203468306",
     "email": "cerguayabales@hotmail.com",
-    "zones": "",
+    "zones": "RURAL",
     "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
     "grades": "-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
     "campusCount": "9",

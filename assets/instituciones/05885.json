@@ -1,6 +1,6 @@
 {
   "dane": "105885000025",
-  "name": "",
+  "name": "INSTITUCION EDUCATIVA LORENZO YALI",
   "departmentCode": "05",
   "departmentName": "ANTIOQUIA",
   "municipalityCode": "05885",
@@ -11,7 +11,7 @@
   "address": "CL 20 20 212",
   "phone": "8675703",
   "email": "ielorenzoyali@yahoo.es",
-  "zones": "",
+  "zones": "RURAL,URBANA",
   "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
   "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26,99",
   "campusCount": "27",

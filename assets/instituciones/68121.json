@@ -1,7 +1,7 @@
 [
   {
     "dane": "168121000031",
-    "name": "",
+    "name": "COLEGIO  INTEGRADO DE CABRERA",
     "departmentCode": "68",
     "departmentName": "SANTANDER",
     "municipalityCode": "68121",
@@ -12,7 +12,7 @@
     "address": "KM 1 VIA CABRERA GALAN",
     "phone": "3185171074 - 3156235438 -",
     "email": "colcabrera@santander.edu.co",
-    "zones": "",
+    "zones": "URBANA,RURAL",
     "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
     "grades": "-2,-1,0,1,2,3,4,5,6,7,8,9,10,11",
     "campusCount": "9",
@@ -21,7 +21,7 @@
   },
   {
     "dane": "468121000151",
-    "name": "",
+    "name": "INSTITUTO TECNICO PARA EL DESARROLLO RURAL IDEAR",
     "departmentCode": "68",
     "departmentName": "SANTANDER",
     "municipalityCode": "68121",
@@ -32,7 +32,7 @@
     "address": "CENTRO",
     "phone": "7242543",
     "email": "idearsangil@gmail.com",
-    "zones": "",
+    "zones": "RURAL",
     "levels": "MEDIA,BÁSICA SECUNDARIA",
     "grades": "23,24,25,26",
     "campusCount": "1",

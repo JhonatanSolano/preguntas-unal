@@ -1,6 +1,6 @@
 {
   "dane": "250223000394",
-  "name": "",
+  "name": "INSTITUCION EDUCATIVA EL DORADO",
   "departmentCode": "50",
   "departmentName": "META",
   "municipalityCode": "50270",
@@ -11,7 +11,7 @@
   "address": "CALLE 2 #7- 8",
   "phone": "3103358617- 3203859319",
   "email": "rectoria@ieldorado.edu.co",
-  "zones": "",
+  "zones": "RURAL,URBANA",
   "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
   "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
   "campusCount": "12",

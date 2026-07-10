@@ -1,6 +1,6 @@
 {
   "dane": "115810000220",
-  "name": "",
+  "name": "I.E. TECNICA LUCAS CABALLERO CALDERON",
   "departmentCode": "15",
   "departmentName": "BOYACÁ",
   "municipalityCode": "15810",
@@ -11,7 +11,7 @@
   "address": "KR 2 # 6 - 15",
   "phone": "7889007",
   "email": "tipacoquelucascaballero@sedboyaca.gov.co",
-  "zones": "",
+  "zones": "RURAL,URBANA",
   "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
   "grades": "-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
   "campusCount": "13",

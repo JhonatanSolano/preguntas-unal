@@ -1,7 +1,7 @@
 [
   {
     "dane": "168013000016",
-    "name": "",
+    "name": "COLEGIO INTEGRADO ROEL Y VELASCO",
     "departmentCode": "68",
     "departmentName": "SANTANDER",
     "municipalityCode": "68013",
@@ -12,7 +12,7 @@
     "address": "CALLE 3 NO. 1-33 CASCO URBANO",
     "phone": "3102621413 -0977565537-3102643925",
     "email": "colegiointegradoroelyvelascoaguada@santander.edu.co",
-    "zones": "",
+    "zones": "RURAL,URBANA",
     "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
     "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21,23,24",
     "campusCount": "9",
@@ -21,7 +21,7 @@
   },
   {
     "dane": "468013000192",
-    "name": "",
+    "name": "INSTITUTO DE EDUCACION RURAL SANTA MARIA DEL CAMINO",
     "departmentCode": "68",
     "departmentName": "SANTANDER",
     "municipalityCode": "68013",
@@ -32,7 +32,7 @@
     "address": "KR 2 3 25",
     "phone": "3176391894",
     "email": "inst.santamariadelcamino@hotmail.com",
-    "zones": "",
+    "zones": "RURAL",
     "levels": "MEDIA,BÁSICA SECUNDARIA",
     "grades": "23,24,25,26",
     "campusCount": "1",

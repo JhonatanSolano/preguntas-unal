@@ -1,6 +1,6 @@
 {
   "dane": "150686000119",
-  "name": "",
+  "name": "INSTITUCION EDUCATIVA JOHN F. KENNEDY",
   "departmentCode": "50",
   "departmentName": "META",
   "municipalityCode": "50686",
@@ -11,7 +11,7 @@
   "address": "CARRERA 3 #11-01",
   "phone": "3138933768",
   "email": "jaimeclavijor@hotmail.com colkenedy@gmail.com",
-  "zones": "",
+  "zones": "RURAL,URBANA",
   "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
   "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24",
   "campusCount": "10",

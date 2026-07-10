@@ -1,7 +1,7 @@
 [
   {
     "dane": "268872000171",
-    "name": "",
+    "name": "COLEGIO NUESTRA SEÑORA DE FATIMA",
     "departmentCode": "68",
     "departmentName": "SANTANDER",
     "municipalityCode": "68370",
@@ -12,7 +12,7 @@
     "address": "VDA. EL POZO",
     "phone": "3133791663",
     "email": "colegionuestrasenoradefatimajordan@santander.edu.co",
-    "zones": "",
+    "zones": "RURAL",
     "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
     "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21,22,23",
     "campusCount": "8",
@@ -21,7 +21,7 @@
   },
   {
     "dane": "468370000137",
-    "name": "",
+    "name": "INSTITUTO TECNICO PARA EL DESARROLLO RURAL IDEAR",
     "departmentCode": "68",
     "departmentName": "SANTANDER",
     "municipalityCode": "68370",
@@ -32,7 +32,7 @@
     "address": "CENTRO",
     "phone": "7242543",
     "email": "idearsangil@gmail.com",
-    "zones": "",
+    "zones": "RURAL",
     "levels": "MEDIA,BÁSICA SECUNDARIA",
     "grades": "23,24,25,26",
     "campusCount": "1",

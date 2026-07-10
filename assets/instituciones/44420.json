@@ -1,7 +1,7 @@
 [
   {
     "dane": "244855000268",
-    "name": "",
+    "name": "CENTRO EDUCATIVO EL PLAN",
     "departmentCode": "44",
     "departmentName": "LA GUAJIRA",
     "municipalityCode": "44420",
@@ -12,7 +12,7 @@
     "address": "CGTO DE EL PLAN",
     "phone": "3145110166",
     "email": "centroeducelplan@hotmail.com",
-    "zones": "",
+    "zones": "RURAL",
     "levels": "PREESCOLAR,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
     "grades": "0,1,2,3,4,5,6,21,22",
     "campusCount": "4",
@@ -21,7 +21,7 @@
   },
   {
     "dane": "244855000331",
-    "name": "",
+    "name": "INSTITUCION EDUCATIVA TECNICA AGROPECUARIA ANAURIO MANJARREZ",
     "departmentCode": "44",
     "departmentName": "LA GUAJIRA",
     "municipalityCode": "44420",
@@ -32,7 +32,7 @@
     "address": "KR 4 7 28",
     "phone": "3108688620",
     "email": "ieamanjarrez@hotmail.com",
-    "zones": "",
+    "zones": "URBANA",
     "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
     "grades": "-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,99",
     "campusCount": "2",

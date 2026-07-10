@@ -1,7 +1,7 @@
 [
   {
     "dane": "105647000220",
-    "name": "",
+    "name": "I. E. SAN ANDRES",
     "departmentCode": "05",
     "departmentName": "ANTIOQUIA",
     "municipalityCode": "05647",
@@ -12,7 +12,7 @@
     "address": "KR 28 30 40",
     "phone": "8618015",
     "email": "gabriel.quiroz@iesanandresdecuerquia.edu.co",
-    "zones": "",
+    "zones": "URBANA,RURAL",
     "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
     "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26,99",
     "campusCount": "5",
@@ -21,7 +21,7 @@
   },
   {
     "dane": "205658000030",
-    "name": "",
+    "name": "INSTITUCION EDUCATIVA RURAL LAS CRUCES",
     "departmentCode": "05",
     "departmentName": "ANTIOQUIA",
     "municipalityCode": "05647",
@@ -32,7 +32,7 @@
     "address": "VDA. CRUCES",
     "phone": "",
     "email": "institucionlascruces@gmail.com",
-    "zones": "",
+    "zones": "RURAL",
     "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
     "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
     "campusCount": "24",

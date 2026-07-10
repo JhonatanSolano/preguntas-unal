@@ -1,7 +1,7 @@
 [
   {
     "dane": "227160000028",
-    "name": "",
+    "name": "CE INDÍGENA PARECITO",
     "departmentCode": "27",
     "departmentName": "CHOCÓ",
     "municipalityCode": "27160",
@@ -12,7 +12,7 @@
     "address": "VDA PARECITO",
     "phone": "3136216257",
     "email": "carampaimamonalaura@gmail.com ceipareciti01@gmail.com",
-    "zones": "",
+    "zones": "RURAL",
     "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
     "grades": "0,1,2,3,4,5,6,7,8,9,21,22,23,24,25,26",
     "campusCount": "2",
@@ -21,7 +21,7 @@
   },
   {
     "dane": "427787000014",
-    "name": "",
+    "name": "IE MATIAS TRES PALACIOS",
     "departmentCode": "27",
     "departmentName": "CHOCÓ",
     "municipalityCode": "27160",
@@ -32,7 +32,7 @@
     "address": "IND CANDELARIA",
     "phone": "3147154656",
     "email": "matiastrespalacios2022@gmail.com",
-    "zones": "",
+    "zones": "RURAL,URBANA",
     "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
     "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
     "campusCount": "8",

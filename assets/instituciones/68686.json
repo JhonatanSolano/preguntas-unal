@@ -1,7 +1,7 @@
 [
   {
     "dane": "168686000166",
-    "name": "",
+    "name": "COLEGIO INTEGRADO MONSEÑOR EVARISTO BLANCO",
     "departmentCode": "68",
     "departmentName": "SANTANDER",
     "municipalityCode": "68686",
@@ -12,7 +12,7 @@
     "address": "CARRERA 4A NO. 4 - 53",
     "phone": "3125017196",
     "email": "colegiointegradomonsenorevaristoblancosanmiguel@santander.edu.co",
-    "zones": "",
+    "zones": "URBANA,RURAL",
     "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
     "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21,22",
     "campusCount": "14",
@@ -21,7 +21,7 @@
   },
   {
     "dane": "468686000284",
-    "name": "",
+    "name": "INSTITUTO TECNICO AGROINDUSTRIAL DE EDUCACION CAMPESINA",
     "departmentCode": "68",
     "departmentName": "SANTANDER",
     "municipalityCode": "68686",
@@ -32,7 +32,7 @@
     "address": "SAN MIGUEL",
     "phone": "6616878",
     "email": "itaecdiocesismalagasoata@yahoo.es",
-    "zones": "",
+    "zones": "RURAL",
     "levels": "MEDIA,BÁSICA SECUNDARIA",
     "grades": "23,24,25,26",
     "campusCount": "1",

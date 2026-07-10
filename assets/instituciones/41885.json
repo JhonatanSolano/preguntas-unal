@@ -1,6 +1,6 @@
 {
   "dane": "141885000013",
-  "name": "",
+  "name": "INSTITUCION EDUCATIVA ANA ELISA CUENCA LARA",
   "departmentCode": "41",
   "departmentName": "HUILA",
   "municipalityCode": "41885",
@@ -11,7 +11,7 @@
   "address": "CALLE 3 Nº 9-180",
   "phone": "3206783743",
   "email": "anaelisa.yaguara@sedhuila.gov.co",
-  "zones": "",
+  "zones": "RURAL,URBANA",
   "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
   "grades": "0,1,2,3,4,5,6,7,8,9,10,11,20,21,22,23,24,25,26",
   "campusCount": "10",

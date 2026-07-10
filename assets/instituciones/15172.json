@@ -1,7 +1,7 @@
 [
   {
     "dane": "215172000050",
-    "name": "",
+    "name": "I.E. JUAN DE JESUS ACEVEDO",
     "departmentCode": "15",
     "departmentName": "BOYACÁ",
     "municipalityCode": "15172",
@@ -12,7 +12,7 @@
     "address": "VDA MONTEJO",
     "phone": "3105551515",
     "email": "chinavitajjacevedo@sedboyaca.gov.co",
-    "zones": "",
+    "zones": "RURAL",
     "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
     "grades": "0,1,2,3,4,5,6,7,8,9,10,11,22,23,24",
     "campusCount": "7",
@@ -21,7 +21,7 @@
   },
   {
     "dane": "315172000020",
-    "name": "",
+    "name": "I.E. TECNICA NUESTRA SEÑORA DE NAZARETH",
     "departmentCode": "15",
     "departmentName": "BOYACÁ",
     "municipalityCode": "15172",
@@ -32,7 +32,7 @@
     "address": "CL 2 # 2 - 38",
     "phone": "7524094",
     "email": "chinavitanazareth@sedboyaca.gov.co",
-    "zones": "",
+    "zones": "RURAL,URBANA",
     "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
     "grades": "-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
     "campusCount": "6",

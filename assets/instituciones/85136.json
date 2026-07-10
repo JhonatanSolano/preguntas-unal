@@ -1,6 +1,6 @@
 {
   "dane": "185136000047",
-  "name": "",
+  "name": "INSTITUCION EDUCATIVA JORGE ELIECER GAITAN",
   "departmentCode": "85",
   "departmentName": "CASANARE",
   "municipalityCode": "85136",
@@ -11,7 +11,7 @@
   "address": "BARRIO CENTRO",
   "phone": "310 795 2998",
   "email": "iejorgeeliecergaitanlasalina@sedcasanare.gov.co",
-  "zones": "",
+  "zones": "URBANA,RURAL",
   "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
   "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21",
   "campusCount": "8",

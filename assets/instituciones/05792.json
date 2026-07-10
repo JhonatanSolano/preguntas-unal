@@ -1,7 +1,7 @@
 [
   {
     "dane": "105792000190",
-    "name": "",
+    "name": "I. E. JOSE PRIETO ARANGO",
     "departmentCode": "05",
     "departmentName": "ANTIOQUIA",
     "municipalityCode": "05792",
@@ -12,7 +12,7 @@
     "address": "CL 18 27 77",
     "phone": "8458716",
     "email": "insjopra@yahoo.es",
-    "zones": "",
+    "zones": "URBANA",
     "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
     "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26,99",
     "campusCount": "2",
@@ -21,7 +21,7 @@
   },
   {
     "dane": "205792000062",
-    "name": "",
+    "name": "I.E.R. JESUS ANIBAL GOMEZ",
     "departmentCode": "05",
     "departmentName": "ANTIOQUIA",
     "municipalityCode": "05792",
@@ -32,7 +32,7 @@
     "address": "VDA. TACAMOCHO",
     "phone": "8458094",
     "email": "cer.jag@gmail.com",
-    "zones": "",
+    "zones": "RURAL",
     "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
     "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21",
     "campusCount": "11",

@@ -1,7 +1,7 @@
 [
   {
     "dane": "213760000152",
-    "name": "",
+    "name": "INSTITUCIÓN EDUCATIVA TÉCNICA ACUICOLA DE SAN CRISTOBAL",
     "departmentCode": "13",
     "departmentName": "BOLÍVAR",
     "municipalityCode": "13620",
@@ -12,7 +12,7 @@
     "address": "IND CLL.DE LA IGLESIA",
     "phone": "3114381956",
     "email": "ietadesancristobal@sedbolivar.gov.co",
-    "zones": "",
+    "zones": "URBANA",
     "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
     "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
     "campusCount": "3",
@@ -21,7 +21,7 @@
   },
   {
     "dane": "213760000187",
-    "name": "",
+    "name": "INSTITUCIÓN EDUCATIVA TÉCNICA AGROPECUARIA FRANCISCO DE PAULA SANTANDER HIGUERETAL",
     "departmentCode": "13",
     "departmentName": "BOLÍVAR",
     "municipalityCode": "13620",
@@ -32,7 +32,7 @@
     "address": "C/GIMIENTO HIGUERETAL- BARRIO LAS CRUCES",
     "phone": "320 5183613",
     "email": "ietafranciscodepaulasantanderhigueretal@sedbolivar.gov.co",
-    "zones": "",
+    "zones": "RURAL",
     "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
     "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
     "campusCount": "2",

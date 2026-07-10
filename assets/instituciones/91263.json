@@ -1,6 +1,6 @@
 {
   "dane": "291263000034",
-  "name": "",
+  "name": "I.E INTERNADO SAN RAFAEL DEL CARAPARANA",
   "departmentCode": "91",
   "departmentName": "AMAZONAS",
   "municipalityCode": "91263",
@@ -11,7 +11,7 @@
   "address": "VDA SAN RAFAEL",
   "phone": "3144016203.",
   "email": "intersanrafaeldelcarapana@sedamazonas.gov.co",
-  "zones": "",
+  "zones": "RURAL",
   "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
   "grades": "-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
   "campusCount": "9",

@@ -1,6 +1,6 @@
 {
   "dane": "105353000051",
-  "name": "",
+  "name": "INSTITUCION EDUCATIVA AURA MARIA VALENCIA",
   "departmentCode": "05",
   "departmentName": "ANTIOQUIA",
   "municipalityCode": "05353",
@@ -11,7 +11,7 @@
   "address": "CL 49 52 51",
   "phone": "8432052 - 8432076",
   "email": "institucionaura@yahoo.es",
-  "zones": "",
+  "zones": "RURAL,URBANA",
   "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
   "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26,99",
   "campusCount": "10",

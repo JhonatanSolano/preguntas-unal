@@ -1,6 +1,6 @@
 {
   "dane": "141349000108",
-  "name": "",
+  "name": "INSTITUCION EDUCATIVA ROBERTO SUAZA MARQUINEZ",
   "departmentCode": "41",
   "departmentName": "HUILA",
   "municipalityCode": "41349",
@@ -11,7 +11,7 @@
   "address": "KR 2 CL 5",
   "phone": "3023597575",
   "email": "robertosuaza.hobo@sedhuila.gov.co",
-  "zones": "",
+  "zones": "RURAL,URBANA",
   "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
   "grades": "-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26,99",
   "campusCount": "8",

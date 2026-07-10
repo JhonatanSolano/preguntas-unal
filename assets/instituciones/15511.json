@@ -1,6 +1,6 @@
 {
   "dane": "315511000018",
-  "name": "",
+  "name": "I.E. TECNICA HONORIO ANGEL Y OLARTE",
   "departmentCode": "15",
   "departmentName": "BOYACÁ",
   "municipalityCode": "15511",
@@ -11,7 +11,7 @@
   "address": "KR 2 # 4 - 08",
   "phone": "7592134- 3142222713",
   "email": "pachavitahonorioangel@sedboyaca.gov.co",
-  "zones": "",
+  "zones": "RURAL,URBANA",
   "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
   "grades": "-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
   "campusCount": "11",

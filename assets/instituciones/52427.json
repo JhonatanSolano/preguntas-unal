@@ -1,7 +1,7 @@
 [
   {
     "dane": "152427000626",
-    "name": "",
+    "name": "INSTITUCION EDUCATIVA ELISEO PAYAN",
     "departmentCode": "52",
     "departmentName": "NARIÑO",
     "municipalityCode": "52427",
@@ -12,7 +12,7 @@
     "address": "IND MAGUI PAYAN (CASCO URBANO)",
     "phone": "3148859681",
     "email": "ie.eliseo.payan.magui@sednarino.gov.co",
-    "zones": "",
+    "zones": "RURAL,URBANA",
     "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
     "grades": "0,1,2,3,4,5,6,7,8,9,10,11,20,21,22,23,24,25,26",
     "campusCount": "37",
@@ -21,7 +21,7 @@
   },
   {
     "dane": "252427000493",
-    "name": "",
+    "name": "INSTITUCIÓN EDUCATIVA LAS LAJAS",
     "departmentCode": "52",
     "departmentName": "NARIÑO",
     "municipalityCode": "52427",
@@ -32,7 +32,7 @@
     "address": "VEREDA LAS LAJAS",
     "phone": "3152873559",
     "email": "ie.lajas.magui@sednarino.gov.co",
-    "zones": "",
+    "zones": "RURAL",
     "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
     "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21,22",
     "campusCount": "9",

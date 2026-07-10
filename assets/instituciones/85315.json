@@ -1,6 +1,6 @@
 {
   "dane": "185315000084",
-  "name": "",
+  "name": "INSTITUCION EDUCATIVA ANTONIO NARIÑO",
   "departmentCode": "85",
   "departmentName": "CASANARE",
   "municipalityCode": "85315",
@@ -11,7 +11,7 @@
   "address": "CALLE 3 NO 13 43",
   "phone": "3142949531",
   "email": "ieantonionarino.sacama@sedcasanare.gov.co",
-  "zones": "",
+  "zones": "URBANA,RURAL",
   "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
   "grades": "-1,0,1,2,3,4,5,6,7,8,9,10,11,21,23,24,25,26",
   "campusCount": "7",

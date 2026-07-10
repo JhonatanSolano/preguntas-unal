@@ -1,7 +1,7 @@
 [
   {
     "dane": "252019000060",
-    "name": "",
+    "name": "INSTITUCION EDUCATIVA AGROPECUARIA LA VEGA",
     "departmentCode": "52",
     "departmentName": "NARIÑO",
     "municipalityCode": "52685",
@@ -12,7 +12,7 @@
     "address": "CORREGIMIENTO LA VEGA",
     "phone": "3113795720",
     "email": "ie.vega.sanbernardo@sednarino.gov.co",
-    "zones": "",
+    "zones": "RURAL",
     "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
     "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
     "campusCount": "8",
@@ -21,7 +21,7 @@
   },
   {
     "dane": "252019000337",
-    "name": "",
+    "name": "INSTITUCION EDUCATIVA JOSE ANTONIO GALAN",
     "departmentCode": "52",
     "departmentName": "NARIÑO",
     "municipalityCode": "52685",
@@ -32,7 +32,7 @@
     "address": "IND SAN BERNARDO",
     "phone": "3186754085",
     "email": "ie.antonio.galan.sanbernardo@sednarino.gov.co",
-    "zones": "",
+    "zones": "RURAL,URBANA",
     "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
     "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
     "campusCount": "12",

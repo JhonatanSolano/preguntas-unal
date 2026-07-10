@@ -1,7 +1,7 @@
 [
   {
     "dane": "168266000268",
-    "name": "",
+    "name": "COLEGIO JOSE DE FERRO",
     "departmentCode": "68",
     "departmentName": "SANTANDER",
     "municipalityCode": "68266",
@@ -12,7 +12,7 @@
     "address": "CALLE 4 NO. 3 - 21",
     "phone": "3142971653",
     "email": "colegiojosedeferroenciso@santander.edu.co",
-    "zones": "",
+    "zones": "RURAL,URBANA",
     "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
     "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21,22",
     "campusCount": "14",
@@ -21,7 +21,7 @@
   },
   {
     "dane": "268266000025",
-    "name": "",
+    "name": "COLEGIO TECNICO AGROINDUSTRIAL PEÑACOLORADA",
     "departmentCode": "68",
     "departmentName": "SANTANDER",
     "municipalityCode": "68266",
@@ -32,7 +32,7 @@
     "address": "CORREGIMIENTO PEÑACOLORADA",
     "phone": "3107806170 3012942924",
     "email": "colegiotecnicoagroindustrialpenacoloradaenciso@santander.edu.co",
-    "zones": "",
+    "zones": "RURAL",
     "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
     "grades": "-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22",
     "campusCount": "6",
@@ -41,7 +41,7 @@
   },
   {
     "dane": "468266001200",
-    "name": "",
+    "name": "INSTITUTO TECNICO AGROINDUSTRIAL DE EDUCACION CAMPESINA",
     "departmentCode": "68",
     "departmentName": "SANTANDER",
     "municipalityCode": "68266",
@@ -52,7 +52,7 @@
     "address": "PEÑACOLORADA",
     "phone": "6607571",
     "email": "itaecdiocesismalagasoata@yahoo.es",
-    "zones": "",
+    "zones": "RURAL",
     "levels": "MEDIA,BÁSICA SECUNDARIA",
     "grades": "23,24,25,26",
     "campusCount": "1",

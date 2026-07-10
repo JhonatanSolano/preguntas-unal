@@ -1,7 +1,7 @@
 [
   {
     "dane": "125777000168",
-    "name": "",
+    "name": "INSTITUCION EDUCATIVA DEPARTAMENTAL NUESTRA SEÑORA DE LA SALUD",
     "departmentCode": "25",
     "departmentName": "CUNDINAMARCA",
     "municipalityCode": "25777",
@@ -12,7 +12,7 @@
     "address": "VEREDA SANTA BARBARA.",
     "phone": "3102159124 - 3213967971",
     "email": "iedsenoradelasalud_supata@secundinamarca.edu.co iednuestrasenoradelasalud@gmail.com",
-    "zones": "",
+    "zones": "RURAL,URBANA",
     "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
     "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21,23,24,25,26",
     "campusCount": "15",
@@ -21,7 +21,7 @@
   },
   {
     "dane": "225777000189",
-    "name": "",
+    "name": "INSTITUCIÓN EDUCATIVA RURAL DEPARTAMENTAL EL IMPARAL",
     "departmentCode": "25",
     "departmentName": "CUNDINAMARCA",
     "municipalityCode": "25777",
@@ -32,7 +32,7 @@
     "address": "VEREDA EL IMPARAL",
     "phone": "3144791737",
     "email": "iedrimparal_supata@secundinamarca.edu.co",
-    "zones": "",
+    "zones": "RURAL",
     "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
     "grades": "0,1,2,3,4,5,6,7,8,9,10,11,23,24,25,26",
     "campusCount": "6",

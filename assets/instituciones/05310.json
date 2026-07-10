@@ -1,7 +1,7 @@
 [
   {
     "dane": "105310000031",
-    "name": "",
+    "name": "I. E. GOMEZ PLATA",
     "departmentCode": "05",
     "departmentName": "ANTIOQUIA",
     "municipalityCode": "05310",
@@ -12,7 +12,7 @@
     "address": "CL 48 51 25",
     "phone": "8627714-8628093",
     "email": "insedugomezplata@gmail.com",
-    "zones": "",
+    "zones": "RURAL,URBANA",
     "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
     "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26,99",
     "campusCount": "13",
@@ -21,7 +21,7 @@
   },
   {
     "dane": "205310000354",
-    "name": "",
+    "name": "INSTITUCION EDUCATIVA RURAL EL SALTO",
     "departmentCode": "05",
     "departmentName": "ANTIOQUIA",
     "municipalityCode": "05310",
@@ -32,7 +32,7 @@
     "address": "CORREG. EL SALTO",
     "phone": "380 95 02",
     "email": "ieresalto@hotmail.com",
-    "zones": "",
+    "zones": "RURAL",
     "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
     "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
     "campusCount": "9",

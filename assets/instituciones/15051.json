@@ -1,6 +1,6 @@
 {
   "dane": "115051000155",
-  "name": "",
+  "name": "I.E. TECNICO ALEJANDRO DE HUMBOLDT",
   "departmentCode": "15",
   "departmentName": "BOYACÁ",
   "municipalityCode": "15051",
@@ -11,7 +11,7 @@
   "address": "AV 3 # 9 - 46",
   "phone": "7360017",
   "email": "arcabucohumboldt@sedboyaca.gov.co",
-  "zones": "",
+  "zones": "URBANA,RURAL",
   "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
   "grades": "-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
   "campusCount": "11",

@@ -1,7 +1,7 @@
 [
   {
     "dane": "215325000089",
-    "name": "",
+    "name": "I.E. SOCHAQUIRA ABAJO",
     "departmentCode": "15",
     "departmentName": "BOYACÁ",
     "municipalityCode": "15325",
@@ -12,7 +12,7 @@
     "address": "VDA SOCHAQUIRA ABAJO",
     "phone": "",
     "email": "guayatasochaquira@sedboyaca.gov.co",
-    "zones": "",
+    "zones": "RURAL",
     "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
     "grades": "-1,0,1,2,3,4,5,6,7,8,9,10,11",
     "campusCount": "6",
@@ -21,7 +21,7 @@
   },
   {
     "dane": "215325000321",
-    "name": "",
+    "name": "I.E. TECNICA LAS MERCEDES",
     "departmentCode": "15",
     "departmentName": "BOYACÁ",
     "municipalityCode": "15325",
@@ -32,7 +32,7 @@
     "address": "KR 6 # 9 - 60",
     "phone": "7535014",
     "email": "guayatalasmercedes@sedboyaca.gov.co",
-    "zones": "",
+    "zones": "RURAL,URBANA",
     "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
     "grades": "-1,0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
     "campusCount": "10",

@@ -1,6 +1,6 @@
 {
   "dane": "125368000164",
-  "name": "",
+  "name": "INSTITUCION EDUCATIVA DEPARTAMENTAL NACIONALIZADO",
   "departmentCode": "25",
   "departmentName": "CUNDINAMARCA",
   "municipalityCode": "25368",
@@ -11,7 +11,7 @@
   "address": "PARQUE PRINCIPAL",
   "phone": "3114850919",
   "email": "iednacionalizado_jerusalen@secundinamarca.edu.co",
-  "zones": "",
+  "zones": "RURAL,URBANA",
   "levels": "PREESCOLAR,MEDIA,BÁSICA SECUNDARIA,BÁSICA PRIMARIA",
   "grades": "0,1,2,3,4,5,6,7,8,9,10,11,21,22,23,24,25,26",
   "campusCount": "15",

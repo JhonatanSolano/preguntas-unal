@@ -4486,6 +4486,7 @@ function mostrarInstitutionInfo() {
 function cerrarInstitutionInfo() {
   document.getElementById("institutionInfoCard")?.classList.add("hidden");
   document.getElementById("tabInstitutionRegister")?.classList.remove("active");
+  limpiarFormularioInstitucional();
 }
 
 function mostrarFaqCard() {
@@ -4669,11 +4670,29 @@ async function actualizarCiudadesInstitucion() {
 }
 
 function limpiarColegioInstitucional() {
-  const ids = ["institutionName", "institutionSector"];
+  const ids = ["institutionName", "institutionSector", "institutionDane"];
   ids.forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = "";
   });
+}
+
+function limpiarFormularioInstitucional() {
+  const card = document.getElementById("institutionInfoCard");
+  if (!card) return;
+  card.querySelectorAll("input").forEach(input => {
+    input.value = "";
+    if (input.id === "institutionPassword") input.type = "password";
+  });
+  card.querySelectorAll("select").forEach(select => {
+    select.selectedIndex = 0;
+  });
+  const city = document.getElementById("institutionCity");
+  const school = document.getElementById("institutionSchool");
+  if (city) city.innerHTML = `<option value="">Ciudad o municipio</option>`;
+  if (school) school.innerHTML = `<option value="">Primero selecciona ciudad</option>`;
+  setStatus("institutionStatus", "");
+  actualizarReglasPasswordInstitucion();
 }
 
 async function actualizarColegiosInstitucion() {
@@ -4793,6 +4812,7 @@ async function crearCuentaInstitucional() {
     await signOut(auth);
     registroEnCurso = false;
     setStatus(statusId, "Cuenta institucional creada. Verifica el correo antes de iniciar sesión.", "ok");
+    setTimeout(limpiarFormularioInstitucional, 1800);
   } catch (err) {
     registroEnCurso = false;
     console.error(err);
