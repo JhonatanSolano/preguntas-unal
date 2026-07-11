@@ -3305,7 +3305,7 @@ function renderMessagesPanel() {
   }
   const className = visibleMessages[0]?.className || availableClasses.find(classroom => classroom.id === messageHistoryClassId)?.name || "Aula";
   list.innerHTML = `
-    <details class="accordion-card message-class-history" open>
+    <details class="accordion-card message-class-history">
       <summary>${escapeHtml(className)} · ${visibleMessages.length} mensaje(s)</summary>
       <div class="message-class-thread-list">
         ${visibleMessages.map(msg => `
