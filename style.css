@@ -1282,6 +1282,13 @@ body.admin-mode #sectionExamenes .exams-hub {
   font-family: var(--font-body);
   font-size: .85rem;
 }
+.pricing-list {
+  display: grid;
+  gap: .45rem;
+  margin: .85rem 0 1.1rem 1.1rem;
+  color: var(--c-muted);
+  line-height: 1.45;
+}
 .landing-grid article span {
   display: inline-flex;
   width: 34px;
@@ -5737,11 +5744,27 @@ body:not(.group-locked) .main-content:not(.hidden)::-webkit-scrollbar-thumb {
 }
 
 @media (max-width: 640px) {
+  .landing-nav {
+    width: calc(100vw - 1.5rem) !important;
+    max-width: calc(100vw - 1.5rem) !important;
+    margin-inline: auto !important;
+    padding-left: .75rem;
+    padding-right: .75rem;
+    gap: .55rem;
+  }
+
+  .landing-nav .landing-menu-toggle {
+    flex: 0 0 46px;
+    width: 46px;
+    height: 46px;
+    margin-left: .35rem;
+  }
+
   .landing-nav,
   .app-download-banner {
-    width: calc(100vw - 1rem);
-    max-width: calc(100vw - 1rem);
-    margin-inline: .5rem;
+    width: calc(100vw - 1.5rem);
+    max-width: calc(100vw - 1.5rem);
+    margin-inline: auto;
   }
 
   .landing-nav > .brand-lockup strong {
