@@ -10,7 +10,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="style.css?v=20260710-17" />
+  <link rel="stylesheet" href="style.css?v=20260711-01" />
 </head>
 <body class="group-locked">
   <div class="welcome-splash hidden" id="welcomeSplash" aria-live="polite">
@@ -254,26 +254,32 @@
         <h2 id="authTitle">Ingreso Matemáticas En Tu Bolsillo</h2>
         <p>Accede con Google o con correo Gmail y contraseña. Después ingresarás el código único de tu aula.</p>
 
-        <select id="loginAccountType" class="admin-input" aria-label="Tipo de cuenta para iniciar sesión">
-          <option value="independentStudent">Estudiante independiente</option>
-          <option value="institutionalStudent">Estudiante asociado a una institución</option>
-          <option value="teacher">Profesor</option>
-          <option value="institution">Institución educativa</option>
-        </select>
+        <div class="auth-type-step" id="loginTypeStep">
+          <label class="mini-help" for="loginAccountType">Primero escoge el tipo de cuenta con el que vas a ingresar.</label>
+          <select id="loginAccountType" class="admin-input" aria-label="Tipo de cuenta para iniciar sesión">
+            <option value="">Selecciona el tipo de cuenta</option>
+            <option value="independentStudent">Estudiante independiente</option>
+            <option value="institutionalStudent">Estudiante asociado a una institución</option>
+            <option value="teacher">Profesor</option>
+            <option value="institution">Institución educativa</option>
+          </select>
+          <button class="btn btn-primary" id="btnContinueLoginType" type="button">Continuar</button>
+          <p class="bank-status" id="loginTypeStatus"></p>
+        </div>
 
-        <div class="auth-actions">
+        <div class="auth-actions hidden">
           <button class="btn btn-primary" id="btnGoogleLogin" type="button">Entrar con Google</button>
         </div>
 
-        <div class="auth-divider"><span>o</span></div>
+        <div class="auth-divider hidden"><span>o</span></div>
 
-        <div class="auth-tabs" role="tablist" aria-label="Acceso">
+        <div class="auth-tabs hidden" role="tablist" aria-label="Acceso">
           <button class="auth-tab active" id="tabLogin" type="button">Iniciar sesión</button>
           <button class="auth-tab" id="tabRegister" type="button">Registro estudiante independiente</button>
           <button class="auth-tab" id="tabInstitutionRegister" type="button">Registro institucional</button>
         </div>
 
-        <div class="auth-form" id="loginPanel">
+        <div class="auth-form hidden" id="loginPanel">
           <input type="email" id="loginEmail" class="admin-input" placeholder="Correo electrónico" autocomplete="email" />
           <div class="password-wrap">
             <input type="password" id="loginPassword" class="admin-input" placeholder="Contraseña" autocomplete="current-password" />
@@ -350,6 +356,7 @@
         <img class="auth-logo" src="assets/logo.png" alt="Matemáticas En Tu Bolsillo" />
         <h2 id="institutionInfoTitle">Registro institucional</h2>
         <p>Este registro es únicamente para colegios de Colombia. Debe realizarlo rectoría o coordinación para administrar docentes y estudiantes de la institución.</p>
+        <button class="btn btn-outline" id="btnInstitutionBack" type="button">Volver a las opciones de acceso</button>
         <div class="institution-form">
           <div class="profile-form-grid">
             <input type="text" id="institutionAdminName" class="admin-input" placeholder="Nombre del responsable" autocomplete="name" />
@@ -1953,6 +1960,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260710-17"></script>
+  <script type="module" src="script.js?v=20260711-01"></script>
 </body>
 </html>

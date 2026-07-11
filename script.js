@@ -2757,6 +2757,7 @@ async function renderInstitutionPanel() {
   const summary = document.getElementById("institutionSummaryBox");
   const list = document.getElementById("institutionMembersList");
   const members = await miembrosInstitucionActual().catch(() => []);
+  const requests = await solicitudesInstitucionActual().catch(() => []);
   const students = members.filter(item => item.role === "student" && item.status !== "removed");
   const teachers = members.filter(item => item.role === "teacher" && item.status !== "removed");
   const grades = gradosInstitucion();
@@ -2771,11 +2772,27 @@ async function renderInstitutionPanel() {
     ].map(([label, value]) => `<article class="stat-card"><span>${label}</span><strong>${value}</strong></article>`).join("");
   }
   if (list) {
+    const pendingHtml = requests.length ? `<details class="class-student-group" open>
+      <summary>Solicitudes pendientes · ${requests.length}</summary>
+      <div class="student-row-list">
+        ${requests.map(req => `<article class="student-row">
+          <div>
+            <strong>${req.action === "add-students" ? "Agregar estudiantes" : "Eliminar estudiante"}</strong>
+            <span>${req.className || "Aula"} · Solicitó: ${req.requesterName || req.requesterEmail || "Profesor"}</span>
+            <small>${req.action === "add-students"
+              ? (req.students || []).map(s => s.email).join(", ")
+              : (req.studentEmail || req.studentId || "Estudiante")}</small>
+          </div>
+          <button class="btn btn-primary" type="button" data-approve-institution-request="${req.id}">Aprobar</button>
+          <button class="btn btn-outline danger" type="button" data-reject-institution-request="${req.id}">Rechazar</button>
+        </article>`).join("")}
+      </div>
+    </details>` : "";
     if (!members.length) {
-      list.innerHTML = `<p class="mini-help">Aún no hay estudiantes ni profesores registrados por la institución.</p>`;
+      list.innerHTML = `${pendingHtml}<p class="mini-help">Aún no hay estudiantes ni profesores registrados por la institución.</p>`;
     } else {
       const byGrade = [...new Set([...grades, ...members.map(item => item.grade || "Sin curso")])];
-      list.innerHTML = byGrade.map(grade => {
+      list.innerHTML = pendingHtml + (byGrade.map(grade => {
         const items = members.filter(item => (item.grade || "Sin curso") === grade && item.status !== "removed");
         if (!items.length) return "";
         return `<details class="class-student-group">
@@ -2787,9 +2804,62 @@ async function renderInstitutionPanel() {
             </article>`).join("")}
           </div>
         </details>`;
-      }).join("") || `<p class="mini-help">No hay integrantes activos.</p>`;
+      }).join("") || `<p class="mini-help">No hay integrantes activos.</p>`);
     }
   }
+}
+
+async function solicitudesInstitucionActual() {
+  const dane = normalizarDane(perfilActual?.institutionDane);
+  if (!dane) return [];
+  const snap = await getDocs(query(
+    collection(db, "institutionRequests"),
+    where("institutionDane", "==", dane),
+    where("status", "==", "pending")
+  ));
+  return snap.docs.map(item => ({ id: item.id, ...item.data() }));
+}
+
+async function crearSolicitudInstitucional(action, payload = {}) {
+  const dane = normalizarDane(perfilActual?.institutionDane || payload.institutionDane);
+  if (!dane) throw new Error("No se encontró la institución asociada.");
+  const institutionSnap = await getDoc(doc(db, "institutions", dane));
+  const institution = institutionSnap.exists() ? institutionSnap.data() : {};
+  const requestRef = doc(collection(db, "institutionRequests"));
+  const request = {
+    institutionDane: dane,
+    institutionName: perfilActual?.institutionName || institution.institutionName || "",
+    institutionOwnerUid: institution.ownerUid || perfilActual?.institutionOwnerUid || "",
+    institutionOwnerEmail: institution.ownerEmail || "",
+    action,
+    status: "pending",
+    requesterUid: usuarioActual.uid,
+    requesterEmail: usuarioActual.email || "",
+    requesterName: perfilActual?.displayName || usuarioActual.displayName || "",
+    ...payload,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
+  };
+  await setDoc(requestRef, request);
+  await crearNotificacion({
+    type: "institution-request",
+    targetUid: request.institutionOwnerUid || "",
+    targetEmail: request.institutionOwnerEmail || "",
+    institutionDane: dane,
+    title: action === "add-students" ? "Solicitud para agregar estudiantes" : "Solicitud para eliminar estudiante",
+    body: `${request.requesterName || request.requesterEmail} solicita ${action === "add-students" ? "agregar estudiantes" : "eliminar un estudiante"} en ${request.className || "un aula"}.`,
+    requestId: requestRef.id
+  });
+  await crearNotificacion({
+    type: "institution-request-status",
+    targetUid: usuarioActual.uid,
+    targetEmail: usuarioActual.email || "",
+    institutionDane: dane,
+    title: "Solicitud enviada",
+    body: "Tu solicitud quedó pendiente de aprobación por la institución.",
+    requestId: requestRef.id
+  });
+  return requestRef.id;
 }
 
 async function agregarMiembrosInstitucion() {
@@ -2845,6 +2915,65 @@ async function eliminarMiembroInstitucion(id) {
       updatedAt: serverTimestamp()
     }).catch(() => {})));
   }
+  await renderInstitutionPanel();
+}
+
+async function aprobarSolicitudInstitucional(id) {
+  const ref = doc(db, "institutionRequests", id);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
+  const request = snap.data();
+  if (!confirm("¿Aprobar esta solicitud institucional?")) return;
+  if (request.action === "add-students") {
+    const classSnap = await getDoc(doc(db, "classes", request.classId));
+    if (!classSnap.exists()) throw new Error("El aula solicitada ya no existe.");
+    const clase = { id: classSnap.id, ...classSnap.data() };
+    const students = Array.isArray(request.students) ? request.students : [];
+    await Promise.all(students.map(student => crearInvitacionClase(clase, student)));
+  } else if (request.action === "remove-student" && request.studentId) {
+    await aplicarEliminacionEstudianteRegistrado(request.studentId);
+  }
+  await updateDoc(ref, {
+    status: "approved",
+    reviewedByUid: usuarioActual.uid,
+    reviewedByEmail: usuarioActual.email || "",
+    reviewedAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
+  });
+  await crearNotificacion({
+    type: "institution-request-status",
+    targetUid: request.requesterUid || "",
+    targetEmail: request.requesterEmail || "",
+    institutionDane: request.institutionDane || "",
+    title: "Solicitud aprobada",
+    body: `La institución aprobó tu solicitud sobre ${request.className || "el aula"}.`,
+    requestId: id
+  });
+  await renderInstitutionPanel();
+}
+
+async function rechazarSolicitudInstitucional(id) {
+  const ref = doc(db, "institutionRequests", id);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
+  const request = snap.data();
+  if (!confirm("¿Rechazar esta solicitud institucional?")) return;
+  await updateDoc(ref, {
+    status: "rejected",
+    reviewedByUid: usuarioActual.uid,
+    reviewedByEmail: usuarioActual.email || "",
+    reviewedAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
+  });
+  await crearNotificacion({
+    type: "institution-request-status",
+    targetUid: request.requesterUid || "",
+    targetEmail: request.requesterEmail || "",
+    institutionDane: request.institutionDane || "",
+    title: "Solicitud rechazada",
+    body: `La institución rechazó tu solicitud sobre ${request.className || "el aula"}.`,
+    requestId: id
+  });
   await renderInstitutionPanel();
 }
 
@@ -4733,16 +4862,20 @@ function mostrarAuthInicial() {
   document.getElementById("forgotUserCard")?.classList.add("hidden");
   document.getElementById("forgotPasswordCard")?.classList.add("hidden");
   document.getElementById("roleChoiceCard")?.classList.add("hidden");
-  document.querySelector(".auth-tabs")?.classList.remove("hidden");
-  document.querySelector(".auth-divider")?.classList.remove("hidden");
-  document.getElementById("loginPanel")?.classList.remove("hidden");
+  document.getElementById("loginTypeStep")?.classList.remove("hidden");
+  document.querySelector(".auth-tabs")?.classList.add("hidden");
+  document.querySelector(".auth-divider")?.classList.add("hidden");
+  document.getElementById("loginPanel")?.classList.add("hidden");
   document.getElementById("registerPanel")?.classList.add("hidden");
   document.getElementById("tabLogin")?.classList.add("active");
   document.getElementById("tabRegister")?.classList.remove("active");
   document.getElementById("tabInstitutionRegister")?.classList.remove("active");
-  document.getElementById("btnGoogleLogin")?.closest(".auth-actions")?.classList.remove("hidden");
+  document.getElementById("btnGoogleLogin")?.closest(".auth-actions")?.classList.add("hidden");
   document.getElementById("groupEntry")?.classList.add("hidden");
   document.getElementById("btnAuthClose")?.classList.remove("hidden");
+  const accountType = document.getElementById("loginAccountType");
+  if (accountType) accountType.value = "";
+  setStatus("loginTypeStatus", "");
   actualizarLoginAccountType();
 }
 
@@ -4757,12 +4890,15 @@ function actualizarBloqueoScrollPublico() {
 
 function mostrarLoginCard() {
   document.getElementById("loginCard")?.classList.remove("hidden");
-  cambiarAuthMode("login");
+  mostrarAuthInicial();
+  document.getElementById("loginCard")?.classList.remove("hidden");
   actualizarBloqueoScrollPublico();
 }
 
 function mostrarRegisterCard() {
   document.getElementById("loginCard")?.classList.remove("hidden");
+  document.getElementById("loginTypeStep")?.classList.add("hidden");
+  document.querySelector(".auth-tabs")?.classList.remove("hidden");
   cambiarAuthMode("register");
   actualizarBloqueoScrollPublico();
 }
@@ -5911,7 +6047,11 @@ function escucharMembresiaClase(classId) {
 async function loginEmail() {
   const email = document.getElementById("loginEmail").value.trim().toLowerCase();
   const password = document.getElementById("loginPassword").value;
-  const expectedType = document.getElementById("loginAccountType")?.value || "independentStudent";
+  const expectedType = document.getElementById("loginAccountType")?.value || "";
+  if (!expectedType) {
+    mostrarWarn("Selecciona primero el tipo de cuenta.");
+    return;
+  }
   try {
     const cred = await signInWithEmailAndPassword(auth, email, password);
     if (requiereVerificacionEmail(cred.user) && cred.user.email?.toLowerCase() !== ADMIN_EMAIL) {
@@ -5923,7 +6063,7 @@ async function loginEmail() {
     const profile = snap.exists() ? snap.data() : {};
     if (!loginCoincideConTipo(profile, expectedType, cred.user.email)) {
       await signOut(auth);
-      mostrarWarn("El tipo de cuenta seleccionado no coincide con este usuario.");
+      mostrarWarn(mensajeTipoCuentaNoAutorizado(expectedType));
     }
   } catch (err) {
     mostrarWarn("No se pudo ingresar. Revisa correo y contraseña.");
@@ -5942,12 +6082,19 @@ function loginCoincideConTipo(profile, expectedType, email = "") {
 }
 
 function actualizarLoginAccountType() {
-  const type = document.getElementById("loginAccountType")?.value || "independentStudent";
+  const type = document.getElementById("loginAccountType")?.value || "";
   const googleActions = document.getElementById("btnGoogleLogin")?.closest(".auth-actions");
   const divider = document.querySelector(".auth-divider");
-  const showGoogle = type !== "institution";
+  const showGoogle = !!type && type !== "institution";
   googleActions?.classList.toggle("hidden", !showGoogle);
   divider?.classList.toggle("hidden", !showGoogle);
+}
+
+function mensajeTipoCuentaNoAutorizado(expectedType) {
+  if (expectedType === "teacher") return "No estás autorizado como profesor por ninguna institución.";
+  if (expectedType === "institution") return "Este correo no corresponde a una institución educativa registrada.";
+  if (expectedType === "institutionalStudent") return "Este correo no está autorizado como estudiante asociado a una institución.";
+  return "Este correo no corresponde a un estudiante independiente registrado.";
 }
 
 async function registrarEmail() {
@@ -6067,7 +6214,11 @@ async function registrarEmail() {
 }
 
 async function loginGoogle() {
-  const expectedType = document.getElementById("loginAccountType")?.value || "independentStudent";
+  const expectedType = document.getElementById("loginAccountType")?.value || "";
+  if (!expectedType) {
+    mostrarWarn("Selecciona primero el tipo de cuenta.");
+    return;
+  }
   if (expectedType === "institution") {
     mostrarWarn("Las instituciones educativas deben ingresar únicamente con correo y contraseña.");
     return;
@@ -6078,7 +6229,9 @@ async function loginGoogle() {
     const profile = snap.exists() ? snap.data() : {};
     if (!snap.exists() || !loginCoincideConTipo(profile, expectedType, cred.user.email)) {
       await signOut(auth);
-      mostrarWarn("Google solo puede usarse con un correo ya registrado y con el tipo de cuenta correcto.");
+      mostrarWarn(expectedType === "teacher"
+        ? "No estás autorizado como profesor por ninguna institución."
+        : "Google solo puede usarse con un correo ya registrado y con el tipo de cuenta correcto.");
       return;
     }
     await guardarDatosGoogleIniciales(cred.user);
@@ -6631,6 +6784,8 @@ async function verificarCodigoRecuperacion() {
 function cambiarAuthMode(modo) {
   const login = modo === "login";
   document.getElementById("btnAuthClose")?.classList.remove("hidden");
+  document.getElementById("loginTypeStep")?.classList.add("hidden");
+  document.querySelector(".auth-tabs")?.classList.remove("hidden");
   document.getElementById("loginPanel").classList.toggle("hidden", !login);
   document.getElementById("registerPanel").classList.toggle("hidden", login);
   document.getElementById("recoverEmailPanel")?.classList.add("hidden");
@@ -6639,6 +6794,19 @@ function cambiarAuthMode(modo) {
   document.getElementById("tabInstitutionRegister")?.classList.remove("active");
   if (!login) inicializarRegistroPerfil();
   limpiarWarn();
+}
+
+function continuarLoginType() {
+  const type = document.getElementById("loginAccountType")?.value || "";
+  if (!type) {
+    setStatus("loginTypeStatus", "Selecciona primero el tipo de cuenta.", "error");
+    return;
+  }
+  setStatus("loginTypeStatus", "");
+  document.getElementById("loginTypeStep")?.classList.add("hidden");
+  document.querySelector(".auth-tabs")?.classList.remove("hidden");
+  cambiarAuthMode("login");
+  actualizarLoginAccountType();
 }
 
 function inicializarRegistroPerfil() {
@@ -7018,6 +7186,21 @@ async function registrarEstudiantesEnClase(claseId, raw, status) {
     return;
   }
   if (status) status.textContent = "Creando invitaciones...";
+  if (esProfesorInstitucional()) {
+    await crearSolicitudInstitucional("add-students", {
+      classId: clase.id,
+      className: clase.name,
+      classCode: clase.code || "",
+      classOwnerUid: clase.ownerUid || usuarioActual.uid,
+      classOwnerEmail: clase.ownerEmail || usuarioActual.email || "",
+      students: unique
+    });
+    if (status) {
+      status.textContent = `${unique.length} solicitud(es) enviada(s) a la institución para aprobación.`;
+      status.className = "bank-status success";
+    }
+    return;
+  }
   await Promise.all(unique.map(student => crearInvitacionClase(clase, student)));
   if (status) status.textContent = `${unique.length} invitación(es) enviada(s) para ${clase.name}.`;
   await renderAdminStudentsByClass();
@@ -7109,6 +7292,26 @@ async function cambiarGrupoEstudianteRegistrado(id, grupo) {
 
 async function eliminarEstudianteRegistrado(id) {
   if (!confirm("¿Eliminar este estudiante de la clase?")) return;
+  if (esProfesorInstitucional()) {
+    const snap = await getDoc(doc(db, "classStudents", id));
+    const data = snap.exists() ? snap.data() : {};
+    await crearSolicitudInstitucional("remove-student", {
+      classId: data.classId || data.aulaId || "",
+      className: data.className || data.groupName || "",
+      classCode: data.classCode || "",
+      studentId: id,
+      studentUid: data.userUid || "",
+      studentEmail: data.email || "",
+      studentName: data.name || data.displayName || ""
+    });
+    mostrarWarn("Solicitud enviada a la institución. El estudiante se eliminará cuando sea aprobada.");
+    await renderAdminStudentsByClass();
+    return;
+  }
+  await aplicarEliminacionEstudianteRegistrado(id);
+}
+
+async function aplicarEliminacionEstudianteRegistrado(id) {
   const ref = doc(db, "classStudents", id);
   const snap = await getDoc(ref);
   const data = snap.exists() ? snap.data() : {};
@@ -7264,6 +7467,7 @@ document.getElementById("btnEmailLogin")?.addEventListener("click", loginEmail);
 document.getElementById("btnEmailRegister")?.addEventListener("click", registrarEmail);
 document.getElementById("btnGoogleLogin")?.addEventListener("click", loginGoogle);
 document.getElementById("loginAccountType")?.addEventListener("change", actualizarLoginAccountType);
+document.getElementById("btnContinueLoginType")?.addEventListener("click", continuarLoginType);
 document.getElementById("btnForgotPassword")?.addEventListener("click", abrirPanelRecuperarPassword);
 document.getElementById("btnSendPasswordRecovery")?.addEventListener("click", recuperarPassword);
 document.getElementById("btnForgotPasswordBack")?.addEventListener("click", volverLoginDesdeRecuperacion);
@@ -7276,8 +7480,10 @@ document.getElementById("btnShowLoginMenu")?.addEventListener("click", () => {
 });
 document.getElementById("btnShowLoginBottom")?.addEventListener("click", mostrarLoginCard);
 document.getElementById("btnShowRegister")?.addEventListener("click", mostrarRegisterCard);
-document.getElementById("btnShowRegisterNav")?.addEventListener("click", mostrarRegisterCard);
-document.getElementById("btnShowRegisterNav")?.addEventListener("click", cerrarLandingMenu);
+document.getElementById("btnShowRegisterNav")?.addEventListener("click", () => {
+  cerrarLandingMenu();
+  mostrarRegisterCard();
+});
 document.getElementById("btnShowRegisterBottom")?.addEventListener("click", mostrarRegisterCard);
 document.getElementById("btnStudentPlanLanding")?.addEventListener("click", mostrarRegisterCard);
 document.getElementById("tabInstitutionRegister")?.addEventListener("click", mostrarInstitutionInfo);
@@ -7286,6 +7492,10 @@ document.getElementById("btnInstitutionPlanLanding")?.addEventListener("click", 
 document.getElementById("btnInstitutionFromRegister")?.addEventListener("click", mostrarInstitutionInfo);
 document.getElementById("btnInstitutionFromRole")?.addEventListener("click", mostrarInstitutionInfo);
 document.getElementById("btnInstitutionInfoClose")?.addEventListener("click", cerrarInstitutionInfo);
+document.getElementById("btnInstitutionBack")?.addEventListener("click", () => {
+  cerrarInstitutionInfo();
+  mostrarLoginCard();
+});
 document.getElementById("institutionDepartment")?.addEventListener("change", actualizarCiudadesInstitucion);
 document.getElementById("institutionCity")?.addEventListener("change", actualizarColegiosInstitucion);
 document.getElementById("institutionSchool")?.addEventListener("change", sincronizarColegioInstitucional);
@@ -7851,6 +8061,22 @@ document.getElementById("btnDeleteSelectedClass")?.addEventListener("click", () 
 });
 document.getElementById("btnInstitutionAddMembers")?.addEventListener("click", agregarMiembrosInstitucion);
 document.getElementById("institutionMembersList")?.addEventListener("click", e => {
+  const approve = e.target.closest("[data-approve-institution-request]");
+  if (approve) {
+    aprobarSolicitudInstitucional(approve.dataset.approveInstitutionRequest).catch(err => {
+      console.error(err);
+      setStatus("institutionMembersStatus", err.message || "No fue posible aprobar la solicitud.", "error");
+    });
+    return;
+  }
+  const reject = e.target.closest("[data-reject-institution-request]");
+  if (reject) {
+    rechazarSolicitudInstitucional(reject.dataset.rejectInstitutionRequest).catch(err => {
+      console.error(err);
+      setStatus("institutionMembersStatus", err.message || "No fue posible rechazar la solicitud.", "error");
+    });
+    return;
+  }
   const btn = e.target.closest("[data-delete-institution-member]");
   if (btn) eliminarMiembroInstitucion(btn.dataset.deleteInstitutionMember);
 });

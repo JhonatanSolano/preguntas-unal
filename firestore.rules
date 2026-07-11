@@ -72,6 +72,12 @@ service cloud.firestore {
         get(/databases/$(database)/documents/classes/$(classId)).data.ownerUid == request.auth.uid;
     }
 
+    function ownsInstitutionOfClass(classId) {
+      return signedIn() &&
+        exists(/databases/$(database)/documents/classes/$(classId)) &&
+        ownsInstitution(get(/databases/$(database)/documents/classes/$(classId)).data.institutionDane);
+    }
+
     function ownsInstitution(institutionId) {
       return signedIn() &&
         institutionId is string &&
@@ -199,6 +205,26 @@ service cloud.firestore {
         );
     }
 
+    match /institutionRequests/{requestId} {
+      allow read: if isPlatformOwner() ||
+        (signedIn() && resource.data.requesterUid == request.auth.uid) ||
+        ownsInstitution(resource.data.institutionDane);
+      allow create: if hasActiveSubscription() &&
+        signedIn() &&
+        request.resource.data.requesterUid == request.auth.uid &&
+        request.resource.data.status == "pending" &&
+        request.resource.data.action in ["add-students", "remove-student"];
+      allow update: if isPlatformOwner() ||
+        ownsInstitution(resource.data.institutionDane) ||
+        (
+          signedIn() &&
+          resource.data.requesterUid == request.auth.uid &&
+          request.resource.data.status == resource.data.status
+        );
+      allow delete: if isPlatformOwner() ||
+        ownsInstitution(resource.data.institutionDane);
+    }
+
     match /teacherQuestions/{questionId} {
       allow read: if hasActiveSubscription() && (
         resource.data.ownerUid == request.auth.uid ||
@@ -221,6 +247,7 @@ service cloud.firestore {
       allow read: if hasActiveSubscription();
       allow create: if hasActiveSubscription() && (
         (isAdmin() && ownsClass(request.resource.data.classId)) ||
+        ownsInstitutionOfClass(request.resource.data.classId) ||
         (
           joinsExistingClass(request.resource.data.classId) &&
           request.resource.data.status == "activo"
@@ -228,6 +255,7 @@ service cloud.firestore {
       );
       allow update: if hasActiveSubscription() && (
         (isAdmin() && ownsClass(request.resource.data.classId)) ||
+        ownsInstitutionOfClass(request.resource.data.classId) ||
         (
           resource.data.status != "bloqueado" &&
           request.resource.data.status == resource.data.status &&
@@ -236,6 +264,7 @@ service cloud.firestore {
       );
       allow delete: if hasActiveSubscription() && (
         (isAdmin() && ownsClass(resource.data.classId)) ||
+        ownsInstitutionOfClass(resource.data.classId) ||
         (signedIn() && resource.data.userUid == request.auth.uid)
       );
     }
@@ -248,13 +277,16 @@ service cloud.firestore {
       );
       allow create, update: if hasActiveSubscription() && (
         (isAdmin() && ownsClass(request.resource.data.classId)) ||
+        ownsInstitutionOfClass(request.resource.data.classId) ||
         (signedIn() &&
           resource.data.email == request.auth.token.email &&
           request.resource.data.email == request.auth.token.email &&
           request.resource.data.status in ["pending", "accepted"])
       );
-      allow delete: if hasActiveSubscription() && isAdmin() &&
-        ownsClass(resource.data.classId);
+      allow delete: if hasActiveSubscription() && (
+        (isAdmin() && ownsClass(resource.data.classId)) ||
+        ownsInstitutionOfClass(resource.data.classId)
+      );
     }
 
     match /classMessages/{messageId} {
