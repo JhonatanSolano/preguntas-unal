@@ -5471,3 +5471,31 @@ body.public-modal-open {
     width: 100%;
   }
 }
+
+/* Scroll interno de sesiones */
+body:not(.group-locked):not(.public-modal-open):not(.landing-menu-open) {
+  overflow-y: auto;
+}
+body:not(.group-locked) .main-content:not(.hidden) {
+  max-height: calc(100dvh - 5.25rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  padding-bottom: 7rem;
+}
+body.admin-mode .main-content:not(.hidden) {
+  max-height: calc(100dvh - 2.5rem);
+}
+body.exam-active .main-content:not(.hidden) {
+  max-height: calc(100dvh - 10rem);
+}
+body:not(.group-locked) .main-content:not(.hidden)::-webkit-scrollbar {
+  width: 10px;
+}
+body:not(.group-locked) .main-content:not(.hidden)::-webkit-scrollbar-track {
+  background: var(--c-blue-lt);
+}
+body:not(.group-locked) .main-content:not(.hidden)::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--c-blue), var(--c-teal-deep));
+  border-radius: 999px;
+}

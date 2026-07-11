@@ -10,7 +10,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="style.css?v=20260711-01" />
+  <link rel="stylesheet" href="style.css?v=20260711-02" />
 </head>
 <body class="group-locked">
   <div class="welcome-splash hidden" id="welcomeSplash" aria-live="polite">
@@ -286,6 +286,7 @@
             <button class="password-toggle" type="button" data-toggle-password="loginPassword" aria-label="Ver contraseña">👁</button>
           </div>
           <button class="btn btn-primary" id="btnEmailLogin" type="button">Ingresar</button>
+          <button class="btn btn-outline" id="btnBackToLoginType" type="button">Cambiar tipo de cuenta</button>
           <div class="auth-links">
             <button type="button" id="btnForgotPassword">¿Olvidó su contraseña?</button>
             <button type="button" id="btnForgotUser">¿Olvidó su usuario?</button>
@@ -293,10 +294,10 @@
         </div>
 
         <div class="auth-form hidden" id="registerPanel">
-        <p class="mini-help">Escoge si vas a registrarte como estudiante independiente o como estudiante afiliado a una institución. Si tu colegio te registró, debes usar exactamente el correo autorizado por la institución.</p>
+        <p class="mini-help" id="registerSelectedTypeLabel">Completa tu registro con el tipo de cuenta seleccionado. Si tu colegio te registró, debes usar exactamente el correo autorizado por la institución.</p>
         <input type="text" id="registerName" class="admin-input" placeholder="Nombre de usuario" autocomplete="name" />
         <input type="email" id="registerEmail" class="admin-input" placeholder="Correo electrónico" autocomplete="email" />
-        <select id="registerAccountType" class="admin-input" aria-label="Tipo de registro">
+        <select id="registerAccountType" class="admin-input hidden" aria-label="Tipo de registro">
           <option value="independent">Estudiante independiente</option>
           <option value="institutional">Estudiante por institución</option>
           <option value="institutionalTeacher">Profesor por institución</option>
@@ -335,6 +336,8 @@
           <p data-rule="symbol">Mínimo un símbolo permitido: ! @ # $ % ^ & * ( ) _ + - = [ ] { } ; : , . ?</p>
         </div>
         <button class="btn btn-primary" id="btnEmailRegister" type="button" disabled>Crear cuenta</button>
+        <button class="btn btn-outline" id="btnRegisterBackToType" type="button">Cambiar tipo de registro</button>
+        <button class="btn btn-outline" id="btnRegisterGoLogin" type="button">Ir a iniciar sesión</button>
       </div>
 
         <div class="group-entry hidden" id="groupEntry">
@@ -1960,6 +1963,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260711-01"></script>
+  <script type="module" src="script.js?v=20260711-02"></script>
 </body>
 </html>

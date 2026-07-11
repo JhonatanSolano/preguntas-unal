@@ -604,6 +604,7 @@ let claseActualInfo = null;
 let clasePendienteIngreso = null;
 let adminClaseActiva = localStorage.getItem(STORAGE_ADMIN_CLASE) || "";
 let adminClases = [];
+let authIntent = "login";
 
 function rolUsuario(perfil = perfilActual) {
   if (usuarioActual?.email?.toLowerCase() === ADMIN_EMAIL) return "teacher";
@@ -4857,7 +4858,8 @@ function mensajePasswordFirebase(err) {
   return "No se pudo completar la operación. Revisa los datos e intenta nuevamente.";
 }
 
-function mostrarAuthInicial() {
+function mostrarAuthInicial(intent = "login") {
+  authIntent = intent;
   document.getElementById("loginCard")?.classList.add("hidden");
   document.getElementById("forgotUserCard")?.classList.add("hidden");
   document.getElementById("forgotPasswordCard")?.classList.add("hidden");
@@ -4873,6 +4875,10 @@ function mostrarAuthInicial() {
   document.getElementById("btnGoogleLogin")?.closest(".auth-actions")?.classList.add("hidden");
   document.getElementById("groupEntry")?.classList.add("hidden");
   document.getElementById("btnAuthClose")?.classList.remove("hidden");
+  const title = document.getElementById("authTitle");
+  if (title) title.textContent = intent === "register" ? "Crear cuenta" : "Ingreso Matemáticas En Tu Bolsillo";
+  const continueBtn = document.getElementById("btnContinueLoginType");
+  if (continueBtn) continueBtn.textContent = intent === "register" ? "Continuar registro" : "Continuar";
   const accountType = document.getElementById("loginAccountType");
   if (accountType) accountType.value = "";
   setStatus("loginTypeStatus", "");
@@ -4890,16 +4896,15 @@ function actualizarBloqueoScrollPublico() {
 
 function mostrarLoginCard() {
   document.getElementById("loginCard")?.classList.remove("hidden");
-  mostrarAuthInicial();
+  mostrarAuthInicial("login");
   document.getElementById("loginCard")?.classList.remove("hidden");
   actualizarBloqueoScrollPublico();
 }
 
 function mostrarRegisterCard() {
   document.getElementById("loginCard")?.classList.remove("hidden");
-  document.getElementById("loginTypeStep")?.classList.add("hidden");
-  document.querySelector(".auth-tabs")?.classList.remove("hidden");
-  cambiarAuthMode("register");
+  mostrarAuthInicial("register");
+  document.getElementById("loginCard")?.classList.remove("hidden");
   actualizarBloqueoScrollPublico();
 }
 
@@ -6205,7 +6210,7 @@ async function registrarEmail() {
     await enviarVerificacionEmailPersonalizada(email);
     await signOut(auth);
     registroEnCurso = false;
-    cambiarAuthMode("login");
+    volverSelectorAuth("login");
     mostrarWarn("Cuenta creada. Te enviamos un correo de verificación; abre el enlace y luego inicia sesión.");
   } catch {
     registroEnCurso = false;
@@ -6229,9 +6234,9 @@ async function loginGoogle() {
     const profile = snap.exists() ? snap.data() : {};
     if (!snap.exists() || !loginCoincideConTipo(profile, expectedType, cred.user.email)) {
       await signOut(auth);
-      mostrarWarn(expectedType === "teacher"
-        ? "No estás autorizado como profesor por ninguna institución."
-        : "Google solo puede usarse con un correo ya registrado y con el tipo de cuenta correcto.");
+      mostrarWarn(expectedType === "independentStudent"
+        ? "Google solo puede usarse con un correo ya registrado como estudiante independiente."
+        : mensajeTipoCuentaNoAutorizado(expectedType));
       return;
     }
     await guardarDatosGoogleIniciales(cred.user);
@@ -6785,7 +6790,7 @@ function cambiarAuthMode(modo) {
   const login = modo === "login";
   document.getElementById("btnAuthClose")?.classList.remove("hidden");
   document.getElementById("loginTypeStep")?.classList.add("hidden");
-  document.querySelector(".auth-tabs")?.classList.remove("hidden");
+  document.querySelector(".auth-tabs")?.classList.toggle("hidden", authIntent === "register");
   document.getElementById("loginPanel").classList.toggle("hidden", !login);
   document.getElementById("registerPanel").classList.toggle("hidden", login);
   document.getElementById("recoverEmailPanel")?.classList.add("hidden");
@@ -6803,10 +6808,51 @@ function continuarLoginType() {
     return;
   }
   setStatus("loginTypeStatus", "");
+  if (authIntent === "register") {
+    if (type === "institution") {
+      mostrarInstitutionInfo();
+      return;
+    }
+    sincronizarRegistroConTipoLogin(type);
+    cambiarAuthMode("register");
+    return;
+  }
   document.getElementById("loginTypeStep")?.classList.add("hidden");
   document.querySelector(".auth-tabs")?.classList.remove("hidden");
   cambiarAuthMode("login");
   actualizarLoginAccountType();
+}
+
+function sincronizarRegistroConTipoLogin(type) {
+  const registerType = document.getElementById("registerAccountType");
+  const dane = document.getElementById("registerInstitutionDane");
+  const hint = document.getElementById("registerInstitutionHint");
+  const email = document.getElementById("registerEmail");
+  const role = document.getElementById("registerRole");
+  const mode = document.getElementById("registerAccountMode");
+  const label = document.getElementById("registerSelectedTypeLabel");
+  const institutional = type === "institutionalStudent" || type === "teacher";
+  const registerValue = type === "teacher" ? "institutionalTeacher" : (institutional ? "institutional" : "independent");
+  if (registerType) registerType.value = registerValue;
+  if (role) role.value = type === "teacher" ? "teacher" : "student";
+  if (mode) mode.value = institutional ? "institutional" : "independent";
+  dane?.classList.toggle("hidden", !institutional);
+  hint?.classList.toggle("hidden", !institutional);
+  if (email) email.placeholder = institutional ? "Correo autorizado por la institución" : "Correo @gmail.com";
+  if (label) {
+    label.textContent = type === "teacher"
+      ? "Registro de profesor autorizado por una institución. Usa el correo registrado por el colegio."
+      : institutional
+        ? "Registro de estudiante asociado a una institución. Usa el correo y el código DANE autorizados por el colegio."
+        : "Registro de estudiante independiente. Este acceso requiere suscripción individual.";
+  }
+}
+
+function volverSelectorAuth(intent = authIntent) {
+  document.getElementById("loginCard")?.classList.remove("hidden");
+  mostrarAuthInicial(intent);
+  document.getElementById("loginCard")?.classList.remove("hidden");
+  actualizarBloqueoScrollPublico();
 }
 
 function inicializarRegistroPerfil() {
@@ -7468,6 +7514,9 @@ document.getElementById("btnEmailRegister")?.addEventListener("click", registrar
 document.getElementById("btnGoogleLogin")?.addEventListener("click", loginGoogle);
 document.getElementById("loginAccountType")?.addEventListener("change", actualizarLoginAccountType);
 document.getElementById("btnContinueLoginType")?.addEventListener("click", continuarLoginType);
+document.getElementById("btnBackToLoginType")?.addEventListener("click", () => volverSelectorAuth("login"));
+document.getElementById("btnRegisterBackToType")?.addEventListener("click", () => volverSelectorAuth("register"));
+document.getElementById("btnRegisterGoLogin")?.addEventListener("click", () => volverSelectorAuth("login"));
 document.getElementById("btnForgotPassword")?.addEventListener("click", abrirPanelRecuperarPassword);
 document.getElementById("btnSendPasswordRecovery")?.addEventListener("click", recuperarPassword);
 document.getElementById("btnForgotPasswordBack")?.addEventListener("click", volverLoginDesdeRecuperacion);
@@ -7494,7 +7543,7 @@ document.getElementById("btnInstitutionFromRole")?.addEventListener("click", mos
 document.getElementById("btnInstitutionInfoClose")?.addEventListener("click", cerrarInstitutionInfo);
 document.getElementById("btnInstitutionBack")?.addEventListener("click", () => {
   cerrarInstitutionInfo();
-  mostrarLoginCard();
+  volverSelectorAuth("register");
 });
 document.getElementById("institutionDepartment")?.addEventListener("change", actualizarCiudadesInstitucion);
 document.getElementById("institutionCity")?.addEventListener("change", actualizarColegiosInstitucion);
@@ -8011,8 +8060,8 @@ document.querySelectorAll("[data-go-exam]").forEach(btn => {
 document.querySelectorAll("[data-role-choice]").forEach(btn => {
   btn.addEventListener("click", () => guardarRolUsuario(btn.dataset.roleChoice));
 });
-document.getElementById("tabLogin")?.addEventListener("click", () => cambiarAuthMode("login"));
-document.getElementById("tabRegister")?.addEventListener("click", () => cambiarAuthMode("register"));
+document.getElementById("tabLogin")?.addEventListener("click", () => volverSelectorAuth("login"));
+document.getElementById("tabRegister")?.addEventListener("click", () => volverSelectorAuth("register"));
 document.getElementById("registerPassword")?.addEventListener("input", actualizarReglasPassword);
 document.getElementById("btnSaveProfile")?.addEventListener("click", guardarPerfilDesdeFormulario);
 document.getElementById("btnChoosePhoto")?.addEventListener("click", () => document.getElementById("profilePhotoInput")?.click());
