@@ -10,7 +10,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="style.css?v=20260711-02" />
+  <link rel="stylesheet" href="style.css?v=20260711-03" />
 </head>
 <body class="group-locked">
   <div class="welcome-splash hidden" id="welcomeSplash" aria-live="polite">
@@ -272,6 +272,14 @@
         </div>
 
         <div class="auth-divider hidden"><span>o</span></div>
+
+        <div class="auth-form hidden" id="googleInstitutionPanel">
+          <p class="mini-help">Para ingresar con Google como usuario institucional, escribe el código DANE del colegio que autorizó tu correo.</p>
+          <input type="text" id="googleInstitutionDane" class="admin-input" placeholder="Código DANE de la institución" inputmode="numeric" autocomplete="off" />
+          <button class="btn btn-primary" id="btnContinueGoogleInstitution" type="button">Continuar con Google</button>
+          <button class="btn btn-outline" id="btnCancelGoogleInstitution" type="button">Salir</button>
+          <p class="bank-status" id="googleInstitutionStatus"></p>
+        </div>
 
         <div class="auth-tabs hidden" role="tablist" aria-label="Acceso">
           <button class="auth-tab active" id="tabLogin" type="button">Iniciar sesión</button>
@@ -1963,6 +1971,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260711-02"></script>
+  <script type="module" src="script.js?v=20260711-03"></script>
 </body>
 </html>
