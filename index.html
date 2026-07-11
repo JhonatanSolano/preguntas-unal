@@ -10,7 +10,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="style.css?v=20260710-16" />
+  <link rel="stylesheet" href="style.css?v=20260710-17" />
 </head>
 <body class="group-locked">
   <div class="welcome-splash hidden" id="welcomeSplash" aria-live="polite">
@@ -254,6 +254,13 @@
         <h2 id="authTitle">Ingreso Matemáticas En Tu Bolsillo</h2>
         <p>Accede con Google o con correo Gmail y contraseña. Después ingresarás el código único de tu aula.</p>
 
+        <select id="loginAccountType" class="admin-input" aria-label="Tipo de cuenta para iniciar sesión">
+          <option value="independentStudent">Estudiante independiente</option>
+          <option value="institutionalStudent">Estudiante asociado a una institución</option>
+          <option value="teacher">Profesor</option>
+          <option value="institution">Institución educativa</option>
+        </select>
+
         <div class="auth-actions">
           <button class="btn btn-primary" id="btnGoogleLogin" type="button">Entrar con Google</button>
         </div>
@@ -280,9 +287,16 @@
         </div>
 
         <div class="auth-form hidden" id="registerPanel">
-        <p class="mini-help">Este registro es para estudiantes independientes de Colombia o Venezuela. Los estudiantes independientes son administrados directamente por Jhonatan Solano, dueño y profesor de la app.</p>
+        <p class="mini-help">Escoge si vas a registrarte como estudiante independiente o como estudiante afiliado a una institución. Si tu colegio te registró, debes usar exactamente el correo autorizado por la institución.</p>
         <input type="text" id="registerName" class="admin-input" placeholder="Nombre de usuario" autocomplete="name" />
-        <input type="email" id="registerEmail" class="admin-input" placeholder="Correo @gmail.com" autocomplete="email" />
+        <input type="email" id="registerEmail" class="admin-input" placeholder="Correo electrónico" autocomplete="email" />
+        <select id="registerAccountType" class="admin-input" aria-label="Tipo de registro">
+          <option value="independent">Estudiante independiente</option>
+          <option value="institutional">Estudiante por institución</option>
+          <option value="institutionalTeacher">Profesor por institución</option>
+        </select>
+        <input type="text" id="registerInstitutionDane" class="admin-input hidden" placeholder="Código DANE de la institución" autocomplete="off" inputmode="numeric" />
+        <p class="mini-help hidden" id="registerInstitutionHint">El código DANE debe coincidir con la institución que autorizó tu correo.</p>
         <input type="hidden" id="registerRole" value="student" />
         <input type="hidden" id="registerAccountMode" value="independent" />
         <div class="profile-form-grid">
@@ -355,7 +369,7 @@
           </div>
           <div class="profile-form-grid">
             <select id="institutionSchool" class="admin-input" aria-label="Colegio"></select>
-            <input type="text" id="institutionDane" class="admin-input" placeholder="Código DANE del colegio" inputmode="numeric" />
+            <input type="text" id="institutionDane" class="admin-input" placeholder="Código DANE del colegio" inputmode="numeric" readonly />
           </div>
           <div class="profile-form-grid">
             <input type="text" id="institutionName" class="admin-input" placeholder="Nombre del colegio" readonly />
@@ -1575,6 +1589,60 @@
           <p class="bank-status" id="adminNotificationStatus"></p>
         </details>
       </section>
+
+      <section class="profile-panel institution-settings hidden" id="institutionSettingsPanel">
+        <h2>Configuración institucional</h2>
+        <details class="accordion-card">
+          <summary>Resumen institucional</summary>
+          <p>Consulta la información principal de la institución y el estado de sus estudiantes, profesores y aulas.</p>
+          <div class="stats-grid compact" id="institutionSummaryBox"></div>
+        </details>
+        <details class="accordion-card">
+          <summary>Agregar estudiantes y profesores</summary>
+          <p>Registra correos autorizados. Cuando esas personas creen cuenta con el mismo correo, recibirán los beneficios institucionales.</p>
+          <div class="bank-grid">
+            <label>Tipo de usuario
+              <select id="institutionMemberRole" class="admin-input">
+                <option value="student">Estudiante</option>
+                <option value="teacher">Profesor</option>
+              </select>
+            </label>
+            <label>Curso o grado
+              <select id="institutionMemberGrade" class="admin-input"></select>
+            </label>
+          </div>
+          <textarea id="institutionBulkMembers" class="admin-input" rows="5" placeholder="Nombre Apellido <correo@gmail.com>&#10;correo2@gmail.com"></textarea>
+          <button class="btn btn-primary" id="btnInstitutionAddMembers" type="button">Agregar a la institución</button>
+          <p class="bank-status" id="institutionMembersStatus"></p>
+        </details>
+        <details class="accordion-card">
+          <summary>Estudiantes y profesores</summary>
+          <p>Elimina integrantes de la institución cuando ya no pertenezcan a ella. Al eliminarlos pierden los beneficios institucionales.</p>
+          <div id="institutionMembersList" class="class-students-list"></div>
+        </details>
+        <details class="accordion-card">
+          <summary>Cuenta institucional</summary>
+          <p class="danger-text">Eliminar la cuenta institucional borra de la app la institución, profesores, estudiantes, permisos y beneficios asociados. Esta acción no se puede deshacer.</p>
+          <label>Contraseña institucional actual
+            <input type="password" id="institutionDeletePassword" class="admin-input" autocomplete="current-password" />
+          </label>
+          <label class="check-line">
+            <input type="checkbox" id="institutionDeleteConfirm" />
+            Entiendo que esta eliminación es permanente.
+          </label>
+          <button class="btn btn-outline danger" id="btnDeleteInstitutionAccount" type="button">Eliminar cuenta institucional</button>
+          <p class="bank-status" id="institutionDeleteStatus"></p>
+        </details>
+      </section>
+
+      <section class="profile-panel owner-settings hidden" id="ownerSettingsPanel">
+        <h2>Panel del dueño</h2>
+        <details class="accordion-card">
+          <summary>Instituciones registradas</summary>
+          <p class="danger-text">Solo el dueño de la app puede eliminar una institución completa desde aquí.</p>
+          <div id="ownerInstitutionsList" class="class-students-list"></div>
+        </details>
+      </section>
     </div>
   </main>
 
@@ -1885,6 +1953,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260710-16"></script>
+  <script type="module" src="script.js?v=20260710-17"></script>
 </body>
 </html>

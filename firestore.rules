@@ -22,7 +22,16 @@ service cloud.firestore {
       return isPlatformOwner() || (
         signedIn() &&
         exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.subscriptionStatus == "active"
+        (
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.subscriptionStatus == "active" ||
+          (
+            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.subscriptionInherited == true &&
+            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.institutionSubscriptionStatus == "active" &&
+            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.institutionAccessRevoked != true &&
+            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.institutionMemberStatus != "removed" &&
+            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.institutionMemberStatus != "blocked"
+          )
+        )
       );
     }
 
@@ -65,6 +74,7 @@ service cloud.firestore {
 
     function ownsInstitution(institutionId) {
       return signedIn() &&
+        institutionId is string &&
         exists(/databases/$(database)/documents/institutions/$(institutionId)) &&
         get(/databases/$(database)/documents/institutions/$(institutionId)).data.ownerUid == request.auth.uid;
     }
@@ -87,6 +97,7 @@ service cloud.firestore {
     match /users/{uid} {
       allow read: if isPlatformOwner() ||
         (signedIn() && request.auth.uid == uid) ||
+        ownsInstitution(resource.data.institutionDane) ||
         (isAdmin() && resource.data.classOwnerUid == request.auth.uid);
       allow create: if isPlatformOwner() || (
         signedIn() &&
@@ -110,12 +121,14 @@ service cloud.firestore {
       allow update: if isPlatformOwner() || (
         (
           (signedIn() && request.auth.uid == uid) ||
+          ownsInstitution(resource.data.institutionDane) ||
           (isAdmin() && resource.data.classOwnerUid == request.auth.uid)
         ) &&
         protectsSubscriptionFields()
       );
       allow delete: if isPlatformOwner() ||
         (signedIn() && request.auth.uid == uid) ||
+        ownsInstitution(resource.data.institutionDane) ||
         (isAdmin() && resource.data.classOwnerUid == request.auth.uid);
     }
 
@@ -175,7 +188,15 @@ service cloud.firestore {
       allow create: if isPlatformOwner() ||
         ownsInstitution(request.resource.data.institutionDane);
       allow update, delete: if isPlatformOwner() ||
-        ownsInstitution(resource.data.institutionDane);
+        ownsInstitution(resource.data.institutionDane) ||
+        (
+          signedIn() &&
+          resource.data.email == request.auth.token.email &&
+          request.resource.data.email == resource.data.email &&
+          request.resource.data.institutionDane == resource.data.institutionDane &&
+          request.resource.data.role == resource.data.role &&
+          request.resource.data.status == "active"
+        );
     }
 
     match /teacherQuestions/{questionId} {

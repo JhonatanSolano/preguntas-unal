@@ -242,7 +242,7 @@ body {
   display: grid;
   gap: .3rem;
   min-height: 145px;
-  padding: 1rem;
+  padding: 1rem 1rem calc(2.5rem + env(safe-area-inset-bottom));
   border: 2px solid #d7e4ec;
   border-radius: 8px;
   background: #fff;
@@ -984,12 +984,14 @@ body.admin-mode #sectionExamenes .exams-hub {
   background: rgba(6,24,43,.38);
   backdrop-filter: blur(14px);
   animation: fadeIn .2s ease;
+  overscroll-behavior: contain;
 }
 .auth-shell .auth-gate {
   position: relative;
   width: min(720px, 100%);
   max-height: min(90vh, 860px);
   overflow: auto;
+  overscroll-behavior: contain;
   margin: 0;
   animation: modalIn .25s ease both;
 }
@@ -1792,18 +1794,43 @@ body.admin-mode #sectionExamenes .exams-hub {
 .admin-settings .accordion-card > :not(summary),
 .admin-settings textarea.admin-input,
 .admin-settings select.admin-input,
-.admin-settings input.admin-input {
+.admin-settings input.admin-input,
+.institution-settings .accordion-card,
+.institution-settings .accordion-card > :not(summary),
+.institution-settings textarea.admin-input,
+.institution-settings select.admin-input,
+.institution-settings input.admin-input,
+.owner-settings .accordion-card,
+.owner-settings .accordion-card > :not(summary) {
   max-width: 100%;
 }
-.admin-settings .accordion-card > .btn {
+.admin-settings .accordion-card > .btn,
+.institution-settings .accordion-card > .btn {
   width: min(260px, calc(100% - 2rem));
   max-width: calc(100% - 2rem);
   margin-inline: 1rem;
 }
 .admin-settings .accordion-card > textarea.admin-input,
 .admin-settings .accordion-card > label,
-.admin-settings .accordion-card > p {
+.admin-settings .accordion-card > p,
+.institution-settings .accordion-card > textarea.admin-input,
+.institution-settings .accordion-card > label,
+.institution-settings .accordion-card > p {
   width: calc(100% - 2rem);
+}
+.danger-text {
+  color: var(--c-red);
+  font-weight: 800;
+}
+.check-line {
+  display: flex;
+  align-items: flex-start;
+  gap: .55rem;
+  color: var(--c-muted);
+  font-weight: 800;
+}
+.stats-grid.compact {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 }
 .advisor-feature-grid {
   display: grid;
@@ -3273,6 +3300,7 @@ body.admin-mode #sectionExamenes .exams-hub {
   align-items: stretch;
   gap: .35rem;
   overflow-y: auto;
+  overscroll-behavior: contain;
   background: #fff;
   border-left: 1px solid var(--c-border);
   box-shadow: -24px 0 60px rgba(6, 52, 95, .18);
@@ -3308,15 +3336,22 @@ body.admin-mode #sectionExamenes .exams-hub {
   line-height: 1;
   cursor: pointer;
 }
-.landing-nav .landing-menu > a:not(.brand-lockup) {
+.landing-nav .landing-menu > a:not(.brand-lockup),
+.landing-nav .landing-menu > .landing-menu-link {
   width: 100%;
   padding: .82rem .9rem;
+  border: 0;
   border-radius: 8px;
   color: var(--c-navy);
+  background: transparent;
+  font: inherit;
+  font-weight: 900;
   font-size: 1rem;
   text-align: left;
+  cursor: pointer;
 }
-.landing-nav .landing-menu > a:not(.brand-lockup):hover {
+.landing-nav .landing-menu > a:not(.brand-lockup):hover,
+.landing-nav .landing-menu > .landing-menu-link:hover {
   background: var(--c-blue-lt);
   color: var(--c-teal-deep);
 }
@@ -3341,6 +3376,9 @@ body.admin-mode #sectionExamenes .exams-hub {
   visibility: visible;
 }
 body.landing-menu-open {
+  overflow: hidden;
+}
+body.public-modal-open {
   overflow: hidden;
 }
 .android-promo {

@@ -61,6 +61,7 @@ const APP_CONFIG = {
   asesorEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/generateAiResponse",
   passwordResetEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/sendPasswordResetEmailCustom",
   emailVerificationEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/sendEmailVerificationCustom",
+  deepDeleteEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/deleteInstitutionDeep",
   payments: {
     provider: "Wompi",
     checkoutReady: false,
@@ -138,6 +139,9 @@ const EMOJIS_MENSAJE = [
 ];
 const SECCIONES_ESTUDIANTE = new Set(["inicio", "perfil", "examenes", "diagnostico", "nivel1", "examen", "estadisticas", "mensajes", "asesorIA", "suscripcion", "configuracion", "facturacion", "soporte"]);
 const SECCIONES_PROFESOR = new Set(["admin", "perfil", "examenes", "adminMetricas", "mensajes", "asesorIA", "suscripcion", "configuracion", "facturacion", "soporte"]);
+const SECCIONES_ESTUDIANTE_INSTITUCIONAL = new Set(["inicio", "perfil", "examenes", "diagnostico", "nivel1", "examen", "estadisticas", "mensajes", "asesorIA", "configuracion", "soporte"]);
+const SECCIONES_PROFESOR_INSTITUCIONAL = new Set(["admin", "perfil", "examenes", "adminMetricas", "mensajes", "asesorIA", "configuracion", "soporte"]);
+const SECCIONES_INSTITUCION = new Set(["inicio", "perfil", "adminMetricas", "suscripcion", "facturacion", "configuracion", "soporte"]);
 const PHONE_CODE_DURATION_MS = 2 * 60 * 1000;
 const MAX_PROFILE_PHOTO_INPUT_MB = 12;
 const MAX_MESSAGE_ATTACHMENT_MB = 8;
@@ -618,8 +622,44 @@ function esPropietarioPlataforma() {
   return usuarioActual?.email?.toLowerCase() === ADMIN_EMAIL;
 }
 
+function cuentaInstitucional(perfil = perfilActual) {
+  return perfil?.accountMode === "institutional" || (!!perfil?.institutionDane && !esInstitucion(perfil));
+}
+
+function esEstudianteInstitucional(perfil = perfilActual) {
+  return rolUsuario(perfil) === "student" && cuentaInstitucional(perfil);
+}
+
+function esProfesorInstitucional(perfil = perfilActual) {
+  return rolUsuario(perfil) === "teacher" && cuentaInstitucional(perfil) && !esPropietarioPlataforma();
+}
+
+function facturacionDisponible(perfil = perfilActual) {
+  if (esPropietarioPlataforma()) return true;
+  if (esInstitucion(perfil)) return true;
+  if (esProfesorInstitucional(perfil) || esEstudianteInstitucional(perfil)) return false;
+  return true;
+}
+
+function seccionesPermitidasActuales() {
+  if (esInstitucion()) return SECCIONES_INSTITUCION;
+  if (esProfesorInstitucional()) return SECCIONES_PROFESOR_INSTITUCIONAL;
+  if (modoAdmin) return SECCIONES_PROFESOR;
+  if (esEstudianteInstitucional()) return SECCIONES_ESTUDIANTE_INSTITUCIONAL;
+  return SECCIONES_ESTUDIANTE;
+}
+
+function seccionInicioActual() {
+  if (modoAdmin) return "admin";
+  return "inicio";
+}
+
 function suscripcionActiva(perfil = perfilActual) {
   if (esPropietarioPlataforma()) return true;
+  if (cuentaInstitucional(perfil) && !esInstitucion(perfil)) {
+    if (perfil?.institutionAccessRevoked || perfil?.institutionMemberStatus === "removed" || perfil?.institutionMemberStatus === "blocked") return false;
+    return perfil?.institutionSubscriptionStatus === "active" || perfil?.subscriptionInherited === true || perfil?.subscriptionStatus === "active";
+  }
   if (perfil?.subscriptionStatus !== "active") return false;
   const expiresAt = perfil?.subscriptionExpiresAt;
   if (!expiresAt) return true;
@@ -658,6 +698,42 @@ function formatoPrecioCOP(value) {
     currency: "COP",
     maximumFractionDigits: 0
   }).format(Number(value));
+}
+
+function normalizarDane(value = "") {
+  return String(value).trim().replace(/\D/g, "");
+}
+
+function memberDocId(institutionDane, email) {
+  return `${normalizarDane(institutionDane)}_${email.toLowerCase().replace(/[^a-z0-9]+/g, "_")}`;
+}
+
+async function buscarMiembroInstitucionalPorEmail(email) {
+  if (!email) return null;
+  const snap = await getDocs(query(collection(db, "institutionMembers"), where("email", "==", email.toLowerCase())));
+  if (snap.empty) return null;
+  const docSnap = snap.docs[0];
+  return { id: docSnap.id, ...docSnap.data() };
+}
+
+async function buscarMiembroInstitucional(email, dane) {
+  const normalizedDane = normalizarDane(dane);
+  const snap = await getDocs(query(collection(db, "institutionMembers"), where("email", "==", email.toLowerCase())));
+  const found = snap.docs
+    .map(docSnap => ({ id: docSnap.id, ...docSnap.data() }))
+    .find(member => normalizarDane(member.institutionDane) === normalizedDane);
+  return found || null;
+}
+
+async function institucionTienePlanActivo(dane) {
+  const snap = await getDoc(doc(db, "institutions", normalizarDane(dane)));
+  if (!snap.exists()) return { active: false, data: null };
+  const data = snap.data();
+  const status = data.subscriptionStatus || data.status || "";
+  return {
+    active: status === "active" || data.subscriptionInherited === true,
+    data
+  };
 }
 
 function nombreMetodoPago(method = selectedPaymentMethod) {
@@ -1912,6 +1988,8 @@ function actualizarBotonVolver() {
 
 function activarNav(sec, options = {}) {
   if (!confirmarCambioSeccion(sec)) return false;
+  const permitidasActuales = seccionesPermitidasActuales();
+  if (!permitidasActuales.has(sec)) sec = seccionInicioActual();
   if (!suscripcionActiva() && seccionRequiereSuscripcion(sec)) {
     sec = "suscripcion";
     setTimeout(() => {
@@ -1940,7 +2018,7 @@ function activarNav(sec, options = {}) {
     }, 0);
   }
   if (sec !== seccionActual && !options.fromHistory) {
-    const permitidas = modoAdmin ? SECCIONES_PROFESOR : SECCIONES_ESTUDIANTE;
+    const permitidas = seccionesPermitidasActuales();
     if (permitidas.has(seccionActual)) {
       historialSecciones.push(seccionActual);
       historialSecciones = historialSecciones.slice(-30);
@@ -1988,9 +2066,9 @@ function avanzarSeccionSiguiente() {
 }
 
 function seccionRestaurable() {
-  const fallback = modoAdmin ? "admin" : "inicio";
+  const fallback = seccionInicioActual();
   const guardada = localStorage.getItem(STORAGE_SECCION_ACTIVA) || "";
-  const permitidas = modoAdmin ? SECCIONES_PROFESOR : SECCIONES_ESTUDIANTE;
+  const permitidas = seccionesPermitidasActuales();
   if (!permitidas.has(guardada)) return fallback;
   if (!suscripcionActiva() && seccionRequiereSuscripcion(guardada)) return "suscripcion";
   if (!modoAdmin && !aulaActualValida() && ["diagnostico", "nivel1", "examen", "estadisticas"].includes(guardada)) {
@@ -2453,6 +2531,8 @@ async function saveTeacherQuestion() {
       ...data,
       ownerUid: usuarioActual.uid,
       ownerEmail: (usuarioActual.email || "").toLowerCase(),
+      institutionDane: perfilActual?.institutionDane || "",
+      institutionName: perfilActual?.institutionName || "",
       active: true,
       imageUrl: "",
       imagePath: "",
@@ -2608,8 +2688,14 @@ function cerrarDrawer() {
 function actualizarDrawer() {
   const name = document.getElementById("drawerUserName");
   if (name) name.textContent = perfilActual?.displayName || usuarioActual?.displayName || APP_CONFIG.name;
-  document.querySelectorAll(".admin-only").forEach(el => el.classList.toggle("hidden", !modoAdmin));
-  document.querySelectorAll(".student-only").forEach(el => el.classList.toggle("hidden", modoAdmin));
+  const institucion = esInstitucion();
+  const permitidas = seccionesPermitidasActuales();
+  document.querySelectorAll(".admin-only").forEach(el => el.classList.toggle("hidden", !(modoAdmin || institucion)));
+  document.querySelectorAll(".student-only").forEach(el => el.classList.toggle("hidden", modoAdmin || institucion));
+  document.querySelectorAll(".drawer-link[data-section]").forEach(el => {
+    const section = el.dataset.section;
+    el.classList.toggle("hidden", !permitidas.has(section));
+  });
 }
 
 function renderAdminWelcome() {
@@ -2621,21 +2707,218 @@ function renderAdminWelcome() {
   img.src = perfilActual?.photoData || usuarioActual?.photoURL || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Crect width='120' height='120' rx='60' fill='%23e8f0fb'/%3E%3Ctext x='60' y='70' text-anchor='middle' font-size='46' fill='%23003865'%3E%F0%9F%91%A8%E2%80%8D%F0%9F%8F%AB%3C/text%3E%3C/svg%3E";
 }
 
+function parseInstitutionMemberLines(raw) {
+  return raw.split(/\n|;/)
+    .map(line => line.trim())
+    .filter(Boolean)
+    .map(line => {
+      const angle = line.match(/^(.*?)<([^>]+)>$/);
+      if (angle) return { name: angle[1].trim(), email: angle[2].trim().toLowerCase() };
+      const comma = line.match(/^(.*?),\s*([^,\s]+@[^\s,]+)$/i);
+      if (comma) return { name: comma[1].trim(), email: comma[2].trim().toLowerCase() };
+      const email = line.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0]?.toLowerCase() || "";
+      return { name: line.replace(email, "").replace(/[<>,]/g, "").trim(), email };
+    })
+    .filter(item => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(item.email));
+}
+
+function gradosInstitucion(perfil = perfilActual) {
+  const counts = perfil?.gradeCounts || {};
+  const mode = perfil?.gradeMode || "letter";
+  const result = [];
+  ["9", "10", "11"].forEach(grade => {
+    const total = Number(counts[grade] || 0);
+    for (let i = 1; i <= total; i += 1) {
+      const suffix = mode === "number" ? String(i) : String.fromCharCode(64 + i);
+      result.push(`${grade}${mode === "number" ? "-" : ""}${suffix}`);
+    }
+  });
+  return result;
+}
+
+function actualizarSelectGradosInstitucion() {
+  const select = document.getElementById("institutionMemberGrade");
+  if (!select) return;
+  const grades = gradosInstitucion();
+  select.innerHTML = grades.length
+    ? grades.map(grade => `<option value="${grade}">${grade}</option>`).join("")
+    : `<option value="">Sin grados configurados</option>`;
+}
+
+async function miembrosInstitucionActual() {
+  const dane = normalizarDane(perfilActual?.institutionDane);
+  if (!dane) return [];
+  const snap = await getDocs(query(collection(db, "institutionMembers"), where("institutionDane", "==", dane)));
+  return snap.docs.map(item => ({ id: item.id, ...item.data() }));
+}
+
+async function renderInstitutionPanel() {
+  actualizarSelectGradosInstitucion();
+  const summary = document.getElementById("institutionSummaryBox");
+  const list = document.getElementById("institutionMembersList");
+  const members = await miembrosInstitucionActual().catch(() => []);
+  const students = members.filter(item => item.role === "student" && item.status !== "removed");
+  const teachers = members.filter(item => item.role === "teacher" && item.status !== "removed");
+  const grades = gradosInstitucion();
+  if (summary) {
+    summary.innerHTML = [
+      ["Institución", perfilActual?.institutionName || "Sin nombre"],
+      ["Código DANE", perfilActual?.institutionDane || "Sin DANE"],
+      ["Ubicación", [perfilActual?.institutionDepartmentName, perfilActual?.institutionMunicipalityName].filter(Boolean).join(" · ") || "Sin ubicación"],
+      ["Aulas creadas", String(adminClases?.length || 0)],
+      ["Estudiantes", String(students.length)],
+      ["Profesores", String(teachers.length)]
+    ].map(([label, value]) => `<article class="stat-card"><span>${label}</span><strong>${value}</strong></article>`).join("");
+  }
+  if (list) {
+    if (!members.length) {
+      list.innerHTML = `<p class="mini-help">Aún no hay estudiantes ni profesores registrados por la institución.</p>`;
+    } else {
+      const byGrade = [...new Set([...grades, ...members.map(item => item.grade || "Sin curso")])];
+      list.innerHTML = byGrade.map(grade => {
+        const items = members.filter(item => (item.grade || "Sin curso") === grade && item.status !== "removed");
+        if (!items.length) return "";
+        return `<details class="class-student-group">
+          <summary>${grade} · ${items.length} integrante(s)</summary>
+          <div class="student-row-list">
+            ${items.map(item => `<article class="student-row">
+              <div><strong>${item.name || item.displayName || "Sin nombre"}</strong><span>${item.email}</span><small>${item.role === "teacher" ? "Profesor" : "Estudiante"} · ${item.status || "activo"}</small></div>
+              <button class="btn btn-outline danger" type="button" data-delete-institution-member="${item.id}">Eliminar</button>
+            </article>`).join("")}
+          </div>
+        </details>`;
+      }).join("") || `<p class="mini-help">No hay integrantes activos.</p>`;
+    }
+  }
+}
+
+async function agregarMiembrosInstitucion() {
+  const status = document.getElementById("institutionMembersStatus");
+  const raw = document.getElementById("institutionBulkMembers")?.value || "";
+  const role = document.getElementById("institutionMemberRole")?.value || "student";
+  const grade = document.getElementById("institutionMemberGrade")?.value || "";
+  const dane = normalizarDane(perfilActual?.institutionDane);
+  const members = [...new Map(parseInstitutionMemberLines(raw).map(item => [item.email, item])).values()];
+  if (!dane || !members.length) {
+    if (status) {
+      status.textContent = "Agrega correos válidos y verifica la institución.";
+      status.className = "bank-status error";
+    }
+    return;
+  }
+  if (status) {
+    status.textContent = "Guardando integrantes...";
+    status.className = "bank-status";
+  }
+  await Promise.all(members.map(member => setDoc(doc(db, "institutionMembers", memberDocId(dane, member.email)), {
+    institutionDane: dane,
+    institutionName: perfilActual?.institutionName || "",
+    ownerUid: usuarioActual.uid,
+    ownerEmail: usuarioActual.email || "",
+    name: member.name || "",
+    email: member.email,
+    role,
+    grade,
+    status: "active",
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
+  }, { merge: true })));
+  document.getElementById("institutionBulkMembers").value = "";
+  if (status) status.textContent = `${members.length} integrante(s) agregado(s) a la institución.`;
+  await renderInstitutionPanel();
+}
+
+async function eliminarMiembroInstitucion(id) {
+  const ref = doc(db, "institutionMembers", id);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
+  const member = snap.data();
+  if (!confirm(`Eliminar a ${member.name || member.email} de la institución.\n\nPerderá los beneficios institucionales y no podrá acceder como integrante de esta institución.`)) return;
+  await updateDoc(ref, { status: "removed", removedAt: serverTimestamp(), updatedAt: serverTimestamp() });
+  const users = await getDocs(query(collection(db, "users"), where("email", "==", member.email))).catch(() => null);
+  if (users) {
+    await Promise.all(users.docs.map(userDoc => updateDoc(userDoc.ref, {
+      institutionAccessRevoked: true,
+      institutionMemberStatus: "removed",
+      subscriptionInherited: false,
+      institutionSubscriptionStatus: "removed",
+      updatedAt: serverTimestamp()
+    }).catch(() => {})));
+  }
+  await renderInstitutionPanel();
+}
+
+async function eliminarInstitucionCompleta(dane, password = "") {
+  const normalized = normalizarDane(dane);
+  if (!normalized) return;
+  const institutionRef = doc(db, "institutions", normalized);
+  const institutionSnap = await getDoc(institutionRef);
+  const institutionName = institutionSnap.exists() ? institutionSnap.data().institutionName : normalized;
+  const warning = `Eliminar institución: ${institutionName}\n\nEsta acción eliminará de la app el registro institucional, sus estudiantes, profesores, beneficios, permisos y datos asociados. No se podrá recuperar.\n\n¿Deseas continuar?`;
+  if (!confirm(warning)) return;
+  if (!esPropietarioPlataforma() && password) {
+    const credential = EmailAuthProvider.credential(usuarioActual.email, password);
+    await reauthenticateWithCredential(usuarioActual, credential);
+  }
+  const idToken = await usuarioActual.getIdToken(true);
+  const response = await fetch(APP_CONFIG.deepDeleteEndpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${idToken}`
+    },
+    body: JSON.stringify({
+      institutionDane: normalized,
+      deleteOwnInstitutionAccount: !esPropietarioPlataforma() && esInstitucion()
+    })
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || "No se pudo eliminar la institución desde el servidor.");
+  }
+  if (!esPropietarioPlataforma() && esInstitucion()) {
+    await signOut(auth);
+    location.reload();
+  }
+}
+
+async function renderOwnerInstitutions() {
+  const cont = document.getElementById("ownerInstitutionsList");
+  if (!cont || !esPropietarioPlataforma()) return;
+  const snap = await getDocs(collection(db, "institutions")).catch(() => null);
+  if (!snap || snap.empty) {
+    cont.innerHTML = `<p class="mini-help">No hay instituciones registradas.</p>`;
+    return;
+  }
+  cont.innerHTML = snap.docs.map(item => {
+    const data = item.data();
+    return `<article class="student-row">
+      <div><strong>${data.institutionName || item.id}</strong><span>DANE ${data.institutionDane || item.id}</span><small>${data.institutionDepartmentName || ""} ${data.institutionMunicipalityName || ""}</small></div>
+      <button class="btn btn-outline danger" type="button" data-owner-delete-institution="${item.id}">Eliminar institución</button>
+    </article>`;
+  }).join("");
+}
+
 function renderConfiguracion() {
   if (!suscripcionActiva()) {
     exigirSuscripcion("La configuración académica se habilita al activar tu suscripción.");
     return;
   }
-  document.querySelector(".student-settings")?.classList.toggle("hidden", modoAdmin);
-  document.getElementById("adminSettingsPanel")?.classList.toggle("hidden", !modoAdmin);
+  const institucion = esInstitucion();
+  document.querySelector(".student-settings")?.classList.toggle("hidden", modoAdmin || institucion);
+  document.getElementById("adminSettingsPanel")?.classList.toggle("hidden", !modoAdmin || institucion);
+  document.getElementById("institutionSettingsPanel")?.classList.toggle("hidden", !institucion);
+  document.getElementById("ownerSettingsPanel")?.classList.toggle("hidden", !esPropietarioPlataforma());
   actualizarEstadoNotificaciones();
-  if (modoAdmin) renderAdminPanel();
+  if (institucion) renderInstitutionPanel();
+  else if (modoAdmin) renderAdminPanel();
   else {
     document.getElementById("settingsBankPanel")?.classList.toggle("hidden", !aulaActualValida());
     document.getElementById("createPasswordSection")?.classList.toggle("hidden", tienePasswordActual());
     document.getElementById("updatePasswordSection")?.classList.toggle("hidden", !tienePasswordActual());
     actualizarBancoEstudiante();
   }
+  if (esPropietarioPlataforma()) renderOwnerInstitutions();
 }
 
 function soporteNotificaciones() {
@@ -4460,16 +4743,28 @@ function mostrarAuthInicial() {
   document.getElementById("btnGoogleLogin")?.closest(".auth-actions")?.classList.remove("hidden");
   document.getElementById("groupEntry")?.classList.add("hidden");
   document.getElementById("btnAuthClose")?.classList.remove("hidden");
+  actualizarLoginAccountType();
+}
+
+function modalPublicoAbierto() {
+  return ["loginCard", "institutionInfoCard", "faqCard", "forgotPasswordCard", "forgotUserCard", "roleChoiceCard"]
+    .some(id => !document.getElementById(id)?.classList.contains("hidden"));
+}
+
+function actualizarBloqueoScrollPublico() {
+  document.body.classList.toggle("public-modal-open", modalPublicoAbierto());
 }
 
 function mostrarLoginCard() {
   document.getElementById("loginCard")?.classList.remove("hidden");
   cambiarAuthMode("login");
+  actualizarBloqueoScrollPublico();
 }
 
 function mostrarRegisterCard() {
   document.getElementById("loginCard")?.classList.remove("hidden");
   cambiarAuthMode("register");
+  actualizarBloqueoScrollPublico();
 }
 
 function mostrarInstitutionInfo() {
@@ -4481,12 +4776,14 @@ function mostrarInstitutionInfo() {
   document.getElementById("tabInstitutionRegister")?.classList.add("active");
   document.getElementById("institutionInfoCard")?.classList.remove("hidden");
   inicializarFormularioInstitucional();
+  actualizarBloqueoScrollPublico();
 }
 
 function cerrarInstitutionInfo() {
   document.getElementById("institutionInfoCard")?.classList.add("hidden");
   document.getElementById("tabInstitutionRegister")?.classList.remove("active");
   limpiarFormularioInstitucional();
+  actualizarBloqueoScrollPublico();
 }
 
 function mostrarFaqCard() {
@@ -4494,10 +4791,12 @@ function mostrarFaqCard() {
   document.getElementById("loginCard")?.classList.add("hidden");
   document.getElementById("institutionInfoCard")?.classList.add("hidden");
   document.getElementById("faqCard")?.classList.remove("hidden");
+  actualizarBloqueoScrollPublico();
 }
 
 function cerrarFaqCard() {
   document.getElementById("faqCard")?.classList.add("hidden");
+  actualizarBloqueoScrollPublico();
 }
 
 function cerrarAuthCard() {
@@ -4506,6 +4805,7 @@ function cerrarAuthCard() {
     return;
   }
   document.getElementById("loginCard")?.classList.add("hidden");
+  actualizarBloqueoScrollPublico();
 }
 
 function mostrarEntradaGrupo() {
@@ -4522,6 +4822,7 @@ function mostrarEntradaGrupo() {
   document.getElementById("classCodeStep")?.classList.remove("hidden");
   document.getElementById("groupCodeStep")?.classList.add("hidden");
   document.getElementById("groupEntryText").textContent = "Cuenta validada. Ingresa el código del aula compartido por tu profesor o continúa más tarde desde configuración.";
+  actualizarBloqueoScrollPublico();
 }
 
 function toggleLandingMenu() {
@@ -4725,7 +5026,7 @@ function sincronizarColegioInstitucional() {
   const dane = document.getElementById("institutionDane");
   if (name) name.value = selected?.dataset.name || "";
   if (sector) sector.value = selected?.dataset.sector || "";
-  if (dane && school?.value) dane.value = school.value;
+  if (dane) dane.value = school?.value || "";
 }
 
 async function crearCuentaInstitucional() {
@@ -4738,7 +5039,7 @@ async function crearCuentaInstitucional() {
   const dept = document.getElementById("institutionDepartment");
   const city = document.getElementById("institutionCity");
   const school = document.getElementById("institutionSchool");
-  const daneTyped = document.getElementById("institutionDane")?.value.trim() || "";
+  const daneTyped = school?.value || "";
   const gradeMode = document.getElementById("institutionGradeMode")?.value || "";
   const selectedSchool = school?.selectedOptions?.[0];
   const selectedDept = dept?.selectedOptions?.[0];
@@ -4972,15 +5273,21 @@ function renderProfile() {
   const displayName = profile.displayName || usuarioActual.displayName || "";
   const photo = profile.photoData || usuarioActual.photoURL || "";
   const activeClassCount = adminClases.filter(c => (c.status || "activa") === "activa").length;
-  document.getElementById("profileNameTitle").textContent = displayName || "Perfil";
+  const institucion = esInstitucion(profile);
+  document.getElementById("profileNameTitle").textContent = institucion ? (profile.institutionName || displayName || "Institución") : (displayName || "Perfil");
   document.getElementById("profileEmailText").textContent = usuarioActual.email || "";
-  document.getElementById("profileAgeChip").textContent = `Edad: ${calcularEdad(profile.birthDate)}`;
+  const ageChip = document.getElementById("profileAgeChip");
+  if (ageChip) {
+    ageChip.textContent = institucion ? `DANE: ${profile.institutionDane || "—"}` : `Edad: ${calcularEdad(profile.birthDate)}`;
+  }
   const groupChip = document.getElementById("profileGroupChip");
   if (groupChip) groupChip.remove();
-  document.getElementById("profileClassChip").textContent = modoAdmin
-    ? `Aulas activas: ${activeClassCount}`
-    : `Aula: ${profile.className || claseActualInfo?.name || "sin aula"}`;
-  document.getElementById("profileCreatedChip").textContent = `Registro: ${profile.createdLabel || "—"}`;
+  document.getElementById("profileClassChip").textContent = institucion
+    ? `${profile.institutionDepartmentName || "Departamento"} · ${profile.institutionMunicipalityName || "Ciudad"}`
+    : (modoAdmin ? `Aulas activas: ${activeClassCount}` : `Aula: ${profile.className || claseActualInfo?.name || "sin aula"}`);
+  document.getElementById("profileCreatedChip").textContent = institucion
+    ? `Sector: ${profile.institutionSector || "—"}`
+    : `Registro: ${profile.createdLabel || "—"}`;
   document.getElementById("profilePhoneChip").textContent = profile.phoneVerified ? "Teléfono verificado" : "Teléfono sin verificar";
   document.getElementById("profilePhotoPreview").src = photo || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Crect width='120' height='120' rx='60' fill='%23e8f0fb'/%3E%3Ctext x='60' y='68' text-anchor='middle' font-size='44' fill='%23003865'%3E%F0%9F%91%A4%3C/text%3E%3C/svg%3E";
   document.getElementById("profileName").value = displayName;
@@ -4990,7 +5297,9 @@ function renderProfile() {
   document.getElementById("profilePhone").value = profile.phoneVerified ? "" : (profile.phone || "");
   document.getElementById("profilePhoneCodeInput").value = "";
   poblarUbicacion("profile", profile);
-  document.getElementById("teacherDeletePanel")?.classList.toggle("hidden", !modoAdmin);
+  document.getElementById("profileBirth")?.closest("label")?.classList.toggle("hidden", institucion);
+  document.getElementById("profileGender")?.closest("label")?.classList.toggle("hidden", institucion);
+  document.getElementById("teacherDeletePanel")?.classList.toggle("hidden", !modoAdmin || institucion);
 }
 
 function codigoClaseAleatorio() {
@@ -5055,6 +5364,8 @@ async function crearClaseAdmin() {
       codeKey: normalizarCodigoClase(code),
       ownerEmail: usuarioActual.email,
       ownerUid: usuarioActual.uid,
+      institutionDane: cuentaInstitucional() ? (perfilActual?.institutionDane || "") : "",
+      institutionName: cuentaInstitucional() ? (perfilActual?.institutionName || "") : "",
       status: "activa",
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
@@ -5278,7 +5589,7 @@ async function prepararSesionAutenticada() {
     localStorage.setItem(STORAGE_GRUPO, grupoActivo);
     document.body.classList.remove("group-locked");
     aplicarModoUsuario();
-    activarNav(suscripcionActiva() ? "facturacion" : "suscripcion");
+    activarNav(suscripcionActiva() ? seccionRestaurable() : "suscripcion");
     return;
   }
 
@@ -5444,6 +5755,8 @@ async function sincronizarRegistroEstudianteClase(classId, grupo, extra = {}) {
     userUid: usuarioActual.uid,
     ownerUid,
     ownerEmail,
+    institutionDane: extra.institutionDane || claseActualInfo?.institutionDane || perfilActual?.institutionDane || "",
+    institutionName: extra.institutionName || claseActualInfo?.institutionName || perfilActual?.institutionName || "",
     updatedAt: serverTimestamp()
   }, { merge: true });
 }
@@ -5463,6 +5776,8 @@ async function crearInvitacionClase(clase, { email, name = "" }) {
     ownerUid: usuarioActual.uid,
     teacherEmail: usuarioActual.email || "",
     teacherName,
+    institutionDane: clase.institutionDane || perfilActual?.institutionDane || "",
+    institutionName: clase.institutionName || perfilActual?.institutionName || "",
     status: "pending",
     inviteToken,
     acceptUrl: enlaceInvitacionAula(inviteToken),
@@ -5596,6 +5911,7 @@ function escucharMembresiaClase(classId) {
 async function loginEmail() {
   const email = document.getElementById("loginEmail").value.trim().toLowerCase();
   const password = document.getElementById("loginPassword").value;
+  const expectedType = document.getElementById("loginAccountType")?.value || "independentStudent";
   try {
     const cred = await signInWithEmailAndPassword(auth, email, password);
     if (requiereVerificacionEmail(cred.user) && cred.user.email?.toLowerCase() !== ADMIN_EMAIL) {
@@ -5603,28 +5919,75 @@ async function loginEmail() {
       mostrarWarn("Debes verificar tu correo. Abre el enlace de verificación antes de iniciar sesión.");
       return;
     }
+    const snap = await getDoc(doc(db, "users", cred.user.uid));
+    const profile = snap.exists() ? snap.data() : {};
+    if (!loginCoincideConTipo(profile, expectedType, cred.user.email)) {
+      await signOut(auth);
+      mostrarWarn("El tipo de cuenta seleccionado no coincide con este usuario.");
+    }
   } catch (err) {
     mostrarWarn("No se pudo ingresar. Revisa correo y contraseña.");
   }
+}
+
+function loginCoincideConTipo(profile, expectedType, email = "") {
+  const normalizedEmail = String(email || profile.email || "").toLowerCase();
+  if (normalizedEmail === ADMIN_EMAIL) return true;
+  const role = profile.role || profile.tipoCuenta || "";
+  const institutional = profile.accountMode === "institutional" || !!profile.institutionDane;
+  if (expectedType === "institution") return role === "institution";
+  if (expectedType === "teacher") return role === "teacher";
+  if (expectedType === "institutionalStudent") return role === "student" && institutional;
+  return role === "student" && !institutional;
+}
+
+function actualizarLoginAccountType() {
+  const type = document.getElementById("loginAccountType")?.value || "independentStudent";
+  const googleActions = document.getElementById("btnGoogleLogin")?.closest(".auth-actions");
+  const divider = document.querySelector(".auth-divider");
+  const showGoogle = type !== "institution";
+  googleActions?.classList.toggle("hidden", !showGoogle);
+  divider?.classList.toggle("hidden", !showGoogle);
 }
 
 async function registrarEmail() {
   const nombre = document.getElementById("registerName").value.trim();
   const email = document.getElementById("registerEmail").value.trim().toLowerCase();
   const password = document.getElementById("registerPassword").value;
-  const role = "student";
-  const accountMode = "independent";
+  const accountType = document.getElementById("registerAccountType")?.value || "independent";
+  const role = accountType === "institutionalTeacher" ? "teacher" : "student";
+  const accountMode = accountType === "independent" ? "independent" : "institutional";
+  const institutionDane = normalizarDane(document.getElementById("registerInstitutionDane")?.value || "");
   const perfilRegistro = perfilBasicoDesdeFormulario("register");
   if (nombre.length < 3) {
     mostrarWarn("Escribe un nombre de usuario de mínimo 3 caracteres.");
     return;
   }
-  if (!email.endsWith("@gmail.com")) {
-    mostrarWarn("Solo se permiten correos @gmail.com.");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    mostrarWarn("Escribe un correo electrónico válido.");
     return;
+  }
+  if (accountMode === "independent" && !email.endsWith("@gmail.com")) {
+    mostrarWarn("Para estudiante independiente solo se permiten correos @gmail.com.");
+    return;
+  }
+  let institucionRegistro = null;
+  let miembroInstitucional = null;
+  if (accountMode === "institutional") {
+    if (!institutionDane) {
+      mostrarWarn("Escribe el código DANE de la institución.");
+      return;
+    }
   }
   document.getElementById("registerRole").value = role;
   document.getElementById("registerAccountMode").value = accountMode;
+  if (accountMode === "institutional" && !email.endsWith("@gmail.com")) {
+    // Los estudiantes institucionales pueden usar el correo autorizado por su colegio.
+  }
+  if (accountMode === "independent" && !email.endsWith("@gmail.com")) {
+    mostrarWarn("Solo se permiten correos @gmail.com.");
+    return;
+  }
   if (!actualizarReglasPassword() || !validarPassword(password)) {
     mostrarWarn("La contraseña debe tener mínimo 8 caracteres, una mayúscula, dos números y un símbolo permitido.");
     return;
@@ -5637,19 +6000,61 @@ async function registrarEmail() {
     registroEnCurso = true;
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(cred.user, { displayName: nombre });
+    if (accountMode === "institutional") {
+      miembroInstitucional = await buscarMiembroInstitucional(email, institutionDane);
+      if (!miembroInstitucional || miembroInstitucional.role !== role || miembroInstitucional.status === "removed" || miembroInstitucional.status === "blocked") {
+        await deleteUser(cred.user).catch(() => {});
+        registroEnCurso = false;
+        mostrarWarn(`Tu correo no aparece autorizado como ${role === "teacher" ? "profesor" : "estudiante"} activo de esa institución.`);
+        return;
+      }
+      const institutionState = await institucionTienePlanActivo(institutionDane);
+      institucionRegistro = institutionState.data;
+      if (!institutionState.active) {
+        await deleteUser(cred.user).catch(() => {});
+        registroEnCurso = false;
+        mostrarWarn("La institución aún no tiene una suscripción activa. Comunícate con rectoría o coordinación.");
+        return;
+      }
+    } else {
+      const miembroExistente = await buscarMiembroInstitucionalPorEmail(email);
+      if (miembroExistente && miembroExistente.status !== "removed" && miembroExistente.status !== "blocked") {
+        const institutionState = await institucionTienePlanActivo(miembroExistente.institutionDane);
+        if (institutionState.active) {
+          await deleteUser(cred.user).catch(() => {});
+          registroEnCurso = false;
+          mostrarWarn(`Este correo está registrado por medio de la institución ${miembroExistente.institutionName || institutionState.data?.institutionName || "asociada"}. Debes registrarte como estudiante por institución.`);
+          return;
+        }
+      }
+    }
     await guardarPerfilUsuario({
       uid: cred.user.uid,
       email,
       displayName: nombre,
       role,
-      tipoCuenta: "student",
+      tipoCuenta: role,
       accountMode,
       billingMode: accountMode,
-      institutionStatus: "",
+      institutionStatus: accountMode === "institutional" ? "active" : "",
+      institutionMemberStatus: accountMode === "institutional" ? "active" : "",
+      institutionDane: accountMode === "institutional" ? institutionDane : "",
+      institutionName: accountMode === "institutional" ? (miembroInstitucional?.institutionName || institucionRegistro?.institutionName || "") : "",
+      institutionOwnerUid: accountMode === "institutional" ? (miembroInstitucional?.ownerUid || institucionRegistro?.ownerUid || "") : "",
+      institutionSubscriptionStatus: accountMode === "institutional" ? "active" : "",
+      subscriptionInherited: accountMode === "institutional",
       isAdmin: email === ADMIN_EMAIL,
       phoneVerified: false,
       ...perfilRegistro
     });
+    if (accountMode === "institutional" && miembroInstitucional) {
+      await updateDoc(doc(db, "institutionMembers", miembroInstitucional.id), {
+        userUid: cred.user.uid,
+        displayName: nombre,
+        status: "active",
+        registeredAt: serverTimestamp()
+      });
+    }
     await enviarVerificacionEmailPersonalizada(email);
     await signOut(auth);
     registroEnCurso = false;
@@ -5662,8 +6067,20 @@ async function registrarEmail() {
 }
 
 async function loginGoogle() {
+  const expectedType = document.getElementById("loginAccountType")?.value || "independentStudent";
+  if (expectedType === "institution") {
+    mostrarWarn("Las instituciones educativas deben ingresar únicamente con correo y contraseña.");
+    return;
+  }
   try {
     const cred = await signInWithPopup(auth, new GoogleAuthProvider());
+    const snap = await getDoc(doc(db, "users", cred.user.uid));
+    const profile = snap.exists() ? snap.data() : {};
+    if (!snap.exists() || !loginCoincideConTipo(profile, expectedType, cred.user.email)) {
+      await signOut(auth);
+      mostrarWarn("Google solo puede usarse con un correo ya registrado y con el tipo de cuenta correcto.");
+      return;
+    }
     await guardarDatosGoogleIniciales(cred.user);
   } catch (err) {
     mostrarWarn("No se pudo ingresar con Google.");
@@ -5729,6 +6146,7 @@ function abrirPanelRecuperarPassword() {
   document.getElementById("forgotPasswordPanel")?.classList.remove("hidden");
   document.getElementById("forgotPasswordEmail").value = document.getElementById("loginEmail")?.value || "";
   setStatus("forgotPasswordStatus", "");
+  actualizarBloqueoScrollPublico();
 }
 
 function abrirPanelRecuperarUsuario() {
@@ -5741,6 +6159,7 @@ function abrirPanelRecuperarUsuario() {
   setRecoverStep(1);
   setStatus("recoverStatus", "");
   mostrarSoporteRecuperacion(false);
+  actualizarBloqueoScrollPublico();
 }
 
 function mostrarSeleccionRol() {
@@ -5750,6 +6169,7 @@ function mostrarSeleccionRol() {
   document.getElementById("forgotPasswordCard")?.classList.add("hidden");
   document.getElementById("roleChoiceCard")?.classList.remove("hidden");
   setStatus("roleChoiceStatus", "");
+  actualizarBloqueoScrollPublico();
 }
 
 async function guardarRolUsuario(role) {
@@ -5774,6 +6194,7 @@ function volverLoginDesdeRecuperacion() {
   cambiarAuthMode("login");
   document.getElementById("forgotPasswordPanel")?.classList.remove("hidden");
   document.getElementById("loginCard")?.classList.remove("hidden");
+  actualizarBloqueoScrollPublico();
 }
 
 function telefonoCompletoRecuperacion() {
@@ -6240,6 +6661,10 @@ async function guardarPerfilDesdeFormulario() {
     ...perfilBasicoDesdeFormulario("profile"),
     displayName: nombre
   };
+  if (esInstitucion()) {
+    delete datos.birthDate;
+    delete datos.gender;
+  }
   await updateProfile(usuarioActual, { displayName: nombre });
   await guardarPerfilUsuario(datos);
   renderProfile();
@@ -6838,6 +7263,7 @@ document.getElementById("btnSalirAdmin")?.addEventListener("click", salirApp);
 document.getElementById("btnEmailLogin")?.addEventListener("click", loginEmail);
 document.getElementById("btnEmailRegister")?.addEventListener("click", registrarEmail);
 document.getElementById("btnGoogleLogin")?.addEventListener("click", loginGoogle);
+document.getElementById("loginAccountType")?.addEventListener("change", actualizarLoginAccountType);
 document.getElementById("btnForgotPassword")?.addEventListener("click", abrirPanelRecuperarPassword);
 document.getElementById("btnSendPasswordRecovery")?.addEventListener("click", recuperarPassword);
 document.getElementById("btnForgotPasswordBack")?.addEventListener("click", volverLoginDesdeRecuperacion);
@@ -6883,7 +7309,30 @@ document.getElementById("registerRole")?.addEventListener("change", event => {
   if (event.target.value === "teacher") mode.value = "institutional";
   if (event.target.value === "student" && !mode.value) mode.value = "independent";
 });
+document.getElementById("registerAccountType")?.addEventListener("change", event => {
+  const institutional = event.target.value === "institutional" || event.target.value === "institutionalTeacher";
+  const mode = document.getElementById("registerAccountMode");
+  const role = document.getElementById("registerRole");
+  const dane = document.getElementById("registerInstitutionDane");
+  const hint = document.getElementById("registerInstitutionHint");
+  const email = document.getElementById("registerEmail");
+  if (mode) mode.value = institutional ? "institutional" : "independent";
+  if (role) role.value = event.target.value === "institutionalTeacher" ? "teacher" : "student";
+  dane?.classList.toggle("hidden", !institutional);
+  hint?.classList.toggle("hidden", !institutional);
+  if (email) email.placeholder = institutional ? "Correo autorizado por la institución" : "Correo @gmail.com";
+});
 document.getElementById("btnAuthClose")?.addEventListener("click", cerrarAuthCard);
+["loginCard", "institutionInfoCard", "faqCard", "forgotPasswordCard", "forgotUserCard"].forEach(id => {
+  document.getElementById(id)?.addEventListener("click", event => {
+    if (event.target.id !== id) return;
+    if (id === "loginCard") cerrarAuthCard();
+    else if (id === "institutionInfoCard") cerrarInstitutionInfo();
+    else if (id === "faqCard") cerrarFaqCard();
+    else event.currentTarget.classList.add("hidden");
+    actualizarBloqueoScrollPublico();
+  });
+});
 document.getElementById("btnLandingMenu")?.addEventListener("click", toggleLandingMenu);
 document.getElementById("btnLandingMenuClose")?.addEventListener("click", cerrarLandingMenu);
 document.getElementById("landingMenuBackdrop")?.addEventListener("click", cerrarLandingMenu);
@@ -7400,6 +7849,37 @@ document.getElementById("btnDeleteSelectedClass")?.addEventListener("click", () 
   const selected = document.getElementById("adminClassSelect")?.value || adminClaseActiva;
   eliminarClaseAdmin(selected);
 });
+document.getElementById("btnInstitutionAddMembers")?.addEventListener("click", agregarMiembrosInstitucion);
+document.getElementById("institutionMembersList")?.addEventListener("click", e => {
+  const btn = e.target.closest("[data-delete-institution-member]");
+  if (btn) eliminarMiembroInstitucion(btn.dataset.deleteInstitutionMember);
+});
+document.getElementById("ownerInstitutionsList")?.addEventListener("click", async e => {
+  const btn = e.target.closest("[data-owner-delete-institution]");
+  if (!btn) return;
+  await eliminarInstitucionCompleta(btn.dataset.ownerDeleteInstitution);
+  await renderOwnerInstitutions();
+});
+document.getElementById("btnDeleteInstitutionAccount")?.addEventListener("click", async () => {
+  const status = document.getElementById("institutionDeleteStatus");
+  const pass = document.getElementById("institutionDeletePassword")?.value || "";
+  const confirmBox = document.getElementById("institutionDeleteConfirm");
+  if (!pass || !confirmBox?.checked) {
+    if (status) {
+      status.textContent = "Escribe tu contraseña y confirma que entiendes la eliminación permanente.";
+      status.className = "bank-status error";
+    }
+    return;
+  }
+  try {
+    await eliminarInstitucionCompleta(perfilActual?.institutionDane, pass);
+  } catch {
+    if (status) {
+      status.textContent = "No se pudo eliminar la cuenta institucional. Revisa la contraseña o intenta de nuevo.";
+      status.className = "bank-status error";
+    }
+  }
+});
 document.getElementById("adminStudentsByClass")?.addEventListener("input", e => {
   const search = e.target.closest("[data-class-search]");
   if (!search) return;
@@ -7496,6 +7976,7 @@ document.addEventListener("keydown", e => {
     loginPassword: "btnEmailLogin",
     registerName: "btnEmailRegister",
     registerEmail: "btnEmailRegister",
+    registerInstitutionDane: "btnEmailRegister",
     registerPassword: "btnEmailRegister",
     claseCodigo: "btnValidarClase",
     forgotPasswordEmail: "btnSendPasswordRecovery",

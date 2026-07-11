@@ -787,3 +787,119 @@ exports.processBillingRequest = onDocumentWritten({
     }, { merge: true });
   }
 });
+
+async function deleteQueryInChunks(querySnapshot, authUids = new Set()) {
+  const db = admin.firestore();
+  let batch = db.batch();
+  let count = 0;
+  for (const docSnap of querySnapshot.docs) {
+    const data = docSnap.data() || {};
+    if (data.userUid) authUids.add(String(data.userUid));
+    if (data.uid) authUids.add(String(data.uid));
+    batch.delete(docSnap.ref);
+    count += 1;
+    if (count % 450 === 0) {
+      await batch.commit();
+      batch = db.batch();
+    }
+  }
+  if (count % 450 !== 0) await batch.commit();
+  return count;
+}
+
+async function deleteByField(collectionName, field, value, authUids) {
+  const snap = await admin.firestore().collection(collectionName).where(field, "==", value).get();
+  return deleteQueryInChunks(snap, authUids);
+}
+
+async function deleteUserProfileAndAuth(uid) {
+  if (!uid) return;
+  const db = admin.firestore();
+  await Promise.all([
+    db.collection("users").doc(uid).delete().catch(() => {}),
+    db.collection("studentState").doc(uid).delete().catch(() => {})
+  ]);
+  await admin.auth().deleteUser(uid).catch(err => {
+    if (err?.code !== "auth/user-not-found") throw err;
+  });
+}
+
+exports.deleteInstitutionDeep = onRequest({ region: "us-central1" }, async (req, res) => {
+  setCors(res);
+  if (req.method === "OPTIONS") return res.status(204).send("");
+  if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
+
+  let decoded;
+  try {
+    decoded = await requireAuth(req);
+  } catch {
+    return res.status(401).json({ error: "Debes iniciar sesión." });
+  }
+
+  const institutionDane = String(req.body?.institutionDane || "").replace(/\D/g, "");
+  const deleteOwnInstitutionAccount = req.body?.deleteOwnInstitutionAccount === true;
+  if (!institutionDane) return res.status(400).json({ error: "Falta el código DANE de la institución." });
+
+  const db = admin.firestore();
+  const institutionRef = db.collection("institutions").doc(institutionDane);
+  const institutionSnap = await institutionRef.get();
+  if (!institutionSnap.exists) return res.status(404).json({ error: "Institución no encontrada." });
+  const institution = institutionSnap.data();
+  const callerEmail = String(decoded.email || "").toLowerCase();
+  const isPlatformOwner = callerEmail === "solanojhonatan2000@gmail.com";
+  const ownsInstitution = institution.ownerUid === decoded.uid;
+  if (!isPlatformOwner && !ownsInstitution) {
+    return res.status(403).json({ error: "No tienes permiso para eliminar esta institución." });
+  }
+
+  const authUids = new Set();
+  const usersSnap = await db.collection("users").where("institutionDane", "==", institutionDane).get();
+  usersSnap.docs.forEach(docSnap => authUids.add(docSnap.id));
+
+  const deleted = {};
+  const relatedCollections = [
+    ["institutionMembers", "institutionDane"],
+    ["institutionAdmins", "institutionDane"],
+    ["classStudents", "institutionDane"],
+    ["classInvites", "institutionDane"],
+    ["classes", "institutionDane"],
+    ["classPermissions", "institutionDane"],
+    ["teacherQuestions", "institutionDane"],
+    ["classMessages", "institutionDane"],
+    ["messageReplies", "institutionDane"],
+    ["notifications", "institutionDane"],
+    ["billingRequests", "institutionDane"],
+    ["billingTransactions", "institutionDane"],
+    ["paymentIntents", "institutionDane"],
+    ["billingEvents", "institutionDane"]
+  ];
+
+  for (const [collectionName, field] of relatedCollections) {
+    deleted[collectionName] = await deleteByField(collectionName, field, institutionDane, authUids).catch(err => {
+      console.warn(`No se pudo limpiar ${collectionName}`, err);
+      return 0;
+    });
+  }
+
+  await deleteQueryInChunks(usersSnap, authUids);
+  await institutionRef.delete();
+
+  for (const uid of authUids) {
+    if (!uid) continue;
+    if (!isPlatformOwner && uid === decoded.uid && !deleteOwnInstitutionAccount) continue;
+    await deleteUserProfileAndAuth(uid).catch(err => console.warn("No se pudo eliminar usuario Auth", uid, err));
+  }
+
+  await db.collection("billingEvents").add({
+    type: "institution-deep-delete",
+    institutionDane,
+    institutionName: institution.institutionName || "",
+    requestedByUid: decoded.uid,
+    requestedByEmail: callerEmail,
+    isPlatformOwner,
+    deleted,
+    createdAt: admin.firestore.FieldValue.serverTimestamp()
+  }).catch(() => {});
+
+  return res.status(200).json({ ok: true, deleted, authUsersQueued: authUids.size });
+});
