@@ -7667,6 +7667,7 @@ document.getElementById("btnShowLoginMenu")?.addEventListener("click", () => {
 });
 document.getElementById("btnShowLoginBottom")?.addEventListener("click", mostrarLoginCard);
 document.getElementById("btnShowRegister")?.addEventListener("click", mostrarRegisterCard);
+document.getElementById("btnShowRegisterTop")?.addEventListener("click", mostrarRegisterCard);
 document.getElementById("btnShowRegisterNav")?.addEventListener("click", () => {
   cerrarLandingMenu();
   mostrarRegisterCard();
