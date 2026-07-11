@@ -5499,3 +5499,353 @@ body:not(.group-locked) .main-content:not(.hidden)::-webkit-scrollbar-thumb {
   background: linear-gradient(180deg, var(--c-blue), var(--c-teal-deep));
   border-radius: 999px;
 }
+
+/* Capa responsive final: móvil y tablet */
+@media (max-width: 1024px) {
+  html,
+  body {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  body:not(.group-locked) {
+    min-height: 100dvh;
+  }
+
+  .landing-nav,
+  .app-download-banner,
+  .public-hero,
+  .landing-section,
+  .public-footer,
+  .main-content,
+  .start-screen,
+  .profile-panel,
+  .admin-panel,
+  .messages-panel,
+  .teacher-message-compose,
+  .billing-shell,
+  .subscription-shell,
+  .checkout-shell,
+  .teacher-question-builder,
+  .teacher-builder-card,
+  .question-card,
+  .welcome-panel,
+  .settings-shell,
+  .profile-shell,
+  .exams-hub,
+  .admin-exam-bank-panel {
+    width: min(100%, calc(100vw - 1.5rem));
+    max-width: calc(100vw - 1.5rem);
+    min-width: 0;
+  }
+
+  body:not(.group-locked) .main-content:not(.hidden) {
+    width: 100%;
+    max-width: 100vw;
+    max-height: calc(100dvh - 4.75rem);
+    margin: 0 auto;
+    padding: .75rem .75rem 1.25rem;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  body.admin-mode .main-content:not(.hidden),
+  body.exam-active .main-content:not(.hidden) {
+    max-height: calc(100dvh - 4.75rem);
+  }
+
+  .auth-shell,
+  .message-detail-overlay,
+  .overlay {
+    align-items: flex-start;
+    justify-content: center;
+    padding: max(.75rem, env(safe-area-inset-top)) .75rem max(.75rem, env(safe-area-inset-bottom));
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .auth-shell .auth-gate,
+  .message-detail-card,
+  .overlay-card {
+    width: min(100%, calc(100vw - 1.5rem));
+    max-width: calc(100vw - 1.5rem);
+    max-height: calc(100dvh - 1.5rem);
+    margin: 0 auto;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .advisor-chat-panel {
+    right: .75rem;
+    bottom: calc(5.1rem + env(safe-area-inset-bottom));
+    width: min(420px, calc(100vw - 1.5rem));
+    height: min(640px, calc(100dvh - 6rem));
+    max-width: calc(100vw - 1.5rem);
+  }
+
+  .notifications-popover {
+    right: .75rem;
+    left: auto;
+    width: min(360px, calc(100vw - 1.5rem));
+    max-height: calc(100dvh - 6rem);
+  }
+
+  .profile-form-grid,
+  .profile-form-grid.three,
+  .institution-form > div,
+  .checkout-plan-grid,
+  .checkout-layout,
+  .billing-grid,
+  .teacher-question-grid,
+  .teacher-options-grid,
+  .teacher-question-actions,
+  .question-builder-heading,
+  .message-reply-form,
+  .class-toolbar,
+  .student-row,
+  .admin-login,
+  .bank-grid,
+  .password-settings-grid,
+  .notification-setting,
+  .stats-grid,
+  .exam-hub-grid,
+  .landing-highlights,
+  .process-steps,
+  .footer-columns {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .profile-form-grid,
+  .profile-form-grid.three,
+  .teacher-question-actions,
+  .question-builder-heading,
+  .notification-setting,
+  .billing-card-title,
+  .subscription-heading,
+  .class-toolbar,
+  .student-row {
+    align-items: stretch;
+  }
+
+  .admin-input,
+  textarea.admin-input,
+  select.admin-input,
+  input,
+  select,
+  textarea {
+    width: 100%;
+    min-width: 0;
+    font-size: 16px;
+  }
+
+  .btn,
+  .teacher-message-compose .btn,
+  .profile-panel .btn,
+  .admin-panel .btn,
+  .billing-card .btn,
+  .checkout-shell .btn,
+  .teacher-question-actions .btn,
+  .class-toolbar .btn,
+  .student-row .btn {
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  .message-toolbar,
+  .message-menu-bar,
+  .equation-toolbar,
+  .emoji-categories,
+  .section-nav,
+  .exam-tabs,
+  .billing-tabs {
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .message-toolbar button,
+  .message-toolbar select,
+  .equation-toolbar button,
+  .emoji-categories span {
+    flex: 0 0 auto;
+  }
+
+  .rich-message-area,
+  .message-body,
+  .message-replies article,
+  .teacher-question-live-preview,
+  .question-preview,
+  .question-card,
+  .start-screen,
+  .profile-panel,
+  .admin-panel,
+  .billing-card,
+  .checkout-summary-card,
+  .checkout-plan-card,
+  .message-thread-card button {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .rich-table-wrap,
+  .summary-table-wrap,
+  .question-preview,
+  .message-attachments,
+  .billing-payment-methods,
+  .billing-history,
+  .class-students-list {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .q-formula,
+  .katex-display,
+  mjx-container,
+  .rich-message-area table,
+  .rich-message-output table,
+  .summary-table {
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .site-footer {
+    margin-top: .75rem;
+    padding: .9rem .75rem max(.9rem, env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 640px) {
+  .landing-nav,
+  .app-download-banner {
+    width: calc(100vw - 1rem);
+    max-width: calc(100vw - 1rem);
+    margin-inline: .5rem;
+  }
+
+  .landing-nav > .brand-lockup strong {
+    max-width: 42vw;
+    font-size: .76rem;
+    line-height: 1.15;
+  }
+
+  .landing-nav-actions .btn {
+    display: none;
+  }
+
+  .start-screen,
+  .auth-shell .auth-gate,
+  .profile-panel,
+  .admin-panel,
+  .message-detail-card,
+  .billing-card,
+  .teacher-builder-card,
+  .question-card {
+    border-radius: 16px;
+    padding: 1.1rem;
+  }
+
+  .auth-shell {
+    place-items: start center;
+  }
+
+  .auth-type-step,
+  .auth-form,
+  .institution-form {
+    width: 100%;
+  }
+
+  .auth-actions .btn,
+  .auth-type-step .btn,
+  .auth-form .btn,
+  .institution-form .btn,
+  .public-actions .btn,
+  .start-screen .btn,
+  .message-reply-form .btn,
+  .teacher-message-compose > .btn,
+  .billing-tabs button,
+  .checkout-plan-card {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .landing-menu {
+    width: min(330px, 92vw) !important;
+    max-width: 92vw;
+  }
+
+  .public-hero,
+  .landing-section {
+    padding-inline: .85rem;
+  }
+
+  .hero-copy h1,
+  .start-screen h2,
+  .billing-heading h2,
+  .message-detail-card h2 {
+    font-size: clamp(1.55rem, 8vw, 2.15rem);
+    line-height: 1.15;
+  }
+
+  .teacher-message-compose {
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .message-field,
+  .teacher-message-compose label {
+    gap: .45rem;
+  }
+
+  .message-reply-form {
+    display: grid;
+    gap: .65rem;
+  }
+
+  .emoji-card {
+    max-height: calc(100dvh - 1.5rem);
+  }
+
+  .emoji-grid {
+    grid-template-columns: repeat(auto-fit, minmax(42px, 1fr));
+  }
+
+  .equation-card {
+    padding-bottom: 1.25rem;
+  }
+
+  .advisor-chat-panel {
+    right: .5rem;
+    bottom: calc(4.75rem + env(safe-area-inset-bottom));
+    width: calc(100vw - 1rem);
+    height: min(620px, calc(100dvh - 5.5rem));
+  }
+
+  .advisor-launcher,
+  .whatsapp-float,
+  .scroll-top-btn {
+    transform: scale(.9);
+    transform-origin: bottom right;
+  }
+
+  .billing-payment-row,
+  .billing-history-row {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .billing-payment-icon {
+    justify-self: start;
+  }
+
+  .question-card img,
+  .question-preview img,
+  .teacher-question-image-preview img,
+  .message-attachments img {
+    height: auto;
+    max-width: 100%;
+    object-fit: contain;
+  }
+}
