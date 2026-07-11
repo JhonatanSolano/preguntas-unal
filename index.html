@@ -10,7 +10,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="style.css?v=20260711-07" />
+  <link rel="stylesheet" href="style.css?v=20260711-08" />
 </head>
 <body class="group-locked">
   <div class="welcome-splash hidden" id="welcomeSplash" aria-live="polite">
@@ -1682,6 +1682,12 @@
       <p>Métricas por aula, estadísticas por aula, ranking de aulas y comparativas entre aulas.</p>
       <section class="admin-metrics-panel" id="adminMetricsPanel" hidden>
         <h3>Panel comparativo por aula</h3>
+        <label class="admin-metrics-selector">
+          <span>Selecciona qué deseas revisar</span>
+          <select class="admin-input" id="adminMetricsClassSelect">
+            <option value="best">Mejor aula</option>
+          </select>
+        </label>
         <div class="stats-grid" id="adminStats"></div>
       </section>
     </div>
@@ -1972,6 +1978,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260711-06"></script>
+  <script type="module" src="script.js?v=20260711-07"></script>
 </body>
 </html>

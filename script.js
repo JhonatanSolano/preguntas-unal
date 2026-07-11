@@ -5563,6 +5563,7 @@ function renderClassSelectors() {
   const select = document.getElementById("adminClassSelect");
   const bulkClass = document.getElementById("bulkStudentClass");
   const studentClass = document.getElementById("adminStudentGroupSelect");
+  const metricsClass = document.getElementById("adminMetricsClassSelect");
   const options = adminClases.length
     ? adminClases.map(c => `<option value="${c.id}">${c.name} (${c.code})</option>`).join("")
     : `<option value="">Sin aulas creadas</option>`;
@@ -5577,6 +5578,13 @@ function renderClassSelectors() {
   if (studentClass) {
     studentClass.innerHTML = options;
     studentClass.value = adminClaseActiva || "";
+  }
+  if (metricsClass) {
+    const current = metricsClass.value || "best";
+    metricsClass.innerHTML = adminClases.length
+      ? `<option value="best">Mejor aula</option>${adminClases.map(c => `<option value="${c.id}">${c.name} (${c.code})</option>`).join("")}`
+      : `<option value="">Sin aulas creadas</option>`;
+    metricsClass.value = adminClases.some(c => c.id === current) || current === "best" ? current : "best";
   }
 }
 
@@ -8529,6 +8537,8 @@ async function renderAdminStats() {
   const cont = document.getElementById("adminStats");
   if (!cont || !modoAdmin) return;
   cont.innerHTML = `<div class="stats-card"><h3>Métricas</h3><p>Cargando datos...</p></div>`;
+  renderClassSelectors();
+  const metricsSelection = document.getElementById("adminMetricsClassSelect")?.value || "best";
   const snaps = await getDocs(collection(db, "studentState"));
   const acumulado = {};
   adminClases.forEach(aula => acumulado[aula.id] = { aula, estudiantes: new Set(), intentos: 0, correctas: 0, incorrectas: 0, nota: 0, tiempo: 0 });
@@ -8536,7 +8546,6 @@ async function renderAdminStats() {
     const data = snap.data();
     const grupo = data.aulaId || data.claseId || data.grupo;
     if (!acumulado[grupo]) return;
-    if (adminClaseActiva && grupo !== adminClaseActiva) return;
     const bucket = acumulado[grupo];
     bucket.estudiantes.add(data.uid || snap.id);
     const resultados = data.resultados || {};
@@ -8553,6 +8562,10 @@ async function renderAdminStats() {
     });
   });
   cont.innerHTML = "";
+  if (!adminClases.length) {
+    cont.innerHTML = `<div class="stats-card"><h3>Sin aulas</h3><p>Crea un aula para consultar métricas.</p></div>`;
+    return;
+  }
   const ranking = Object.entries(acumulado)
     .filter(([, data]) => data.intentos > 0)
     .map(([grupo, data]) => ({
@@ -8565,7 +8578,11 @@ async function renderAdminStats() {
     }))
     .sort((a, b) => b.promedioNota - a.promedioNota || b.promedioCorrectas - a.promedioCorrectas || a.promedioTiempo - b.promedioTiempo);
 
-  if (ranking.length) {
+  if (metricsSelection === "best") {
+    if (!ranking.length) {
+      cont.innerHTML = `<div class="stats-card"><h3>Mejor aula</h3><p>Aún no hay intentos registrados para calcular el ranking.</p></div>`;
+      return;
+    }
     const mejor = ranking[0];
     const bestCard = document.createElement("div");
     bestCard.className = "stats-card";
@@ -8579,23 +8596,27 @@ async function renderAdminStats() {
       <p><strong>Promedio tiempo:</strong> ${formatTiempo(Math.round(mejor.promedioTiempo))}</p>
     `;
     cont.appendChild(bestCard);
+    return;
   }
 
-  Object.entries(acumulado).forEach(([grupo, data]) => {
-    const card = document.createElement("div");
-    card.className = "stats-card";
-    const n = data.intentos || 1;
-    card.innerHTML = `
-      <h3>${data.aula?.name || "Aula"}</h3>
-      <p><strong>Estudiantes:</strong> ${data.estudiantes.size}</p>
-      <p><strong>Intentos:</strong> ${data.intentos}</p>
-      <p><strong>Promedio nota:</strong> ${(data.nota / n).toFixed(1)}</p>
-      <p><strong>Promedio correctas:</strong> ${(data.correctas / n).toFixed(1)}</p>
-      <p><strong>Promedio incorrectas:</strong> ${(data.incorrectas / n).toFixed(1)}</p>
-      <p><strong>Promedio tiempo:</strong> ${formatTiempo(Math.round(data.tiempo / n))}</p>
-    `;
-    cont.appendChild(card);
-  });
+  const data = acumulado[metricsSelection];
+  if (!data) {
+    cont.innerHTML = `<div class="stats-card"><h3>Aula no disponible</h3><p>Selecciona un aula creada.</p></div>`;
+    return;
+  }
+  const card = document.createElement("div");
+  card.className = "stats-card";
+  const n = data.intentos || 1;
+  card.innerHTML = `
+    <h3>${data.aula?.name || "Aula"}</h3>
+    <p><strong>Estudiantes:</strong> ${data.estudiantes.size}</p>
+    <p><strong>Intentos:</strong> ${data.intentos}</p>
+    <p><strong>Promedio nota:</strong> ${(data.nota / n).toFixed(1)}</p>
+    <p><strong>Promedio correctas:</strong> ${(data.correctas / n).toFixed(1)}</p>
+    <p><strong>Promedio incorrectas:</strong> ${(data.incorrectas / n).toFixed(1)}</p>
+    <p><strong>Promedio tiempo:</strong> ${formatTiempo(Math.round(data.tiempo / n))}</p>
+  `;
+  cont.appendChild(card);
 }
 
 document.getElementById("adminGrupoSelect")?.addEventListener("change", (e) => {
@@ -8612,6 +8633,10 @@ document.getElementById("adminList")?.addEventListener("change", (e) => {
 document.getElementById("bankGrupoSelect")?.addEventListener("change", (e) => {
   adminGrupoActual = e.target.value;
   renderAdminPanel();
+});
+
+document.getElementById("adminMetricsClassSelect")?.addEventListener("change", () => {
+  renderAdminStats().catch(err => console.warn("No se pudieron actualizar métricas.", err));
 });
 
 document.getElementById("bankNivelSelect")?.addEventListener("change", renderBankPanel);
