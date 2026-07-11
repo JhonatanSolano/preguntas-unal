@@ -6089,10 +6089,12 @@ function loginCoincideConTipo(profile, expectedType, email = "") {
 
 function actualizarLoginAccountType() {
   const type = document.getElementById("loginAccountType")?.value || "";
+  const typeStep = document.getElementById("loginTypeStep");
+  const typeStepVisible = !!typeStep && !typeStep.classList.contains("hidden");
   const googleActions = document.getElementById("btnGoogleLogin")?.closest(".auth-actions");
   const divider = document.querySelector(".auth-divider");
   const googleButton = document.getElementById("btnGoogleLogin");
-  const showGoogle = !!type && (
+  const showGoogle = !typeStepVisible && !!type && (
     (authIntent === "login" && type !== "institution") ||
     (authIntent === "register" && type === "independentStudent")
   );
