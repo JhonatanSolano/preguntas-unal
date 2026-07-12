@@ -10,7 +10,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="style.css?v=20260711-11" />
+  <link rel="stylesheet" href="style.css?v=20260711-12" />
 </head>
 <body class="group-locked">
   <div class="welcome-splash hidden" id="welcomeSplash" aria-live="polite">
@@ -19,6 +19,10 @@
       <h2 id="splashTitle">¡Bienvenido nuevamente!</h2>
       <p id="splashText">Nos alegra verte otra vez. Prepárate para seguir aprendiendo matemáticas.</p>
     </div>
+  </div>
+  <div class="reload-splash hidden" id="reloadSplash" aria-live="polite">
+    <div class="reload-spinner" aria-hidden="true"></div>
+    <p>Actualizando tu sesión...</p>
   </div>
 
   <main class="main-content public-home" id="groupGate">
@@ -1468,7 +1472,7 @@
             <button class="btn btn-primary" id="btnSettingsBancoSiguiente" type="button">Banco siguiente</button>
           </div>
         </details>
-        <details class="accordion-card">
+        <details class="accordion-card" id="settingsClassPanel">
           <summary>Aula</summary>
           <p>Escribe un código de aula válido. No podrás cambiarte si estás presentando un examen.</p>
           <div class="admin-login">
@@ -1989,6 +1993,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260711-09"></script>
+  <script type="module" src="script.js?v=20260711-10"></script>
 </body>
 </html>

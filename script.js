@@ -119,6 +119,7 @@ let advisorLoading = false;
 let internalNotifications = [];
 let internalMessages = [];
 let internalReplies = [];
+const avatarProfileCache = new Map();
 let activeMessageId = "";
 let equationInsertTarget = "message";
 let teacherQuestions = [];
@@ -523,6 +524,7 @@ const STORAGE_BANCO_ACTIVO = "preguntasUnalBancoActivo";
 const STORAGE_CLASE_ACTIVA = "preguntasUnalClaseActiva";
 const STORAGE_ADMIN_CLASE = "preguntasUnalAdminClaseActiva";
 const STORAGE_SECCION_ACTIVA = "matematicasBolsilloSeccionActiva";
+const STORAGE_RELOAD_SESION = "matematicasBolsilloReloadSesion";
 const STORAGE_ASESOR_CHAT = "matematicasBolsilloAsesorIA";
 const STORAGE_INVITE_TOKEN = "matematicasBolsilloInviteToken";
 const INACTIVIDAD_MS = 10 * 60 * 1000;
@@ -671,9 +673,10 @@ function suscripcionActiva(perfil = perfilActual) {
 }
 
 function seccionRequiereSuscripcion(section) {
+  if (section === "configuracion") return modoAdmin || esInstitucion();
   return new Set([
     "examenes", "diagnostico", "nivel1", "examen", "estadisticas",
-    "adminMetricas", "mensajes", "asesorIA", "configuracion"
+    "adminMetricas", "mensajes", "asesorIA"
   ]).has(section);
 }
 
@@ -813,6 +816,15 @@ function aplicarEstadoSuscripcion() {
     button.setAttribute("aria-disabled", String(locked));
   });
   document.getElementById("advisorWidget")?.classList.toggle("hidden", !usuarioActual || !active);
+  if (!active) {
+    detenerListenersComunicacion();
+    internalMessages = [];
+    internalReplies = [];
+    activeMessageId = "";
+    renderMessagesPanel();
+  } else if (usuarioActual?.email) {
+    iniciarListenersComunicacion();
+  }
   renderSubscriptionPanel();
 }
 
@@ -3033,23 +3045,30 @@ async function renderOwnerInstitutions() {
 }
 
 function renderConfiguracion() {
-  if (!suscripcionActiva()) {
-    exigirSuscripcion("La configuración académica se habilita al activar tu suscripción.");
-    return;
-  }
+  const active = suscripcionActiva();
   const institucion = esInstitucion();
   document.querySelector(".student-settings")?.classList.toggle("hidden", modoAdmin || institucion);
   document.getElementById("adminSettingsPanel")?.classList.toggle("hidden", !modoAdmin || institucion);
   document.getElementById("institutionSettingsPanel")?.classList.toggle("hidden", !institucion);
   document.getElementById("ownerSettingsPanel")?.classList.toggle("hidden", !esPropietarioPlataforma());
   actualizarEstadoNotificaciones();
+  if (!active && (modoAdmin || institucion)) {
+    exigirSuscripcion("La configuración administrativa se habilita al activar tu suscripción.");
+    return;
+  }
   if (institucion) renderInstitutionPanel();
   else if (modoAdmin) renderAdminPanel();
   else {
-    document.getElementById("settingsBankPanel")?.classList.toggle("hidden", !aulaActualValida());
+    document.getElementById("settingsBankPanel")?.classList.toggle("hidden", !active || !aulaActualValida());
+    document.getElementById("settingsClassPanel")?.classList.toggle("hidden", !active);
+    const status = document.getElementById("settingsClassStatus");
+    if (!active && status) {
+      status.textContent = "Activa tu suscripción para ingresar o cambiar de aula.";
+      status.className = "bank-status error";
+    }
     document.getElementById("createPasswordSection")?.classList.toggle("hidden", tienePasswordActual());
     document.getElementById("updatePasswordSection")?.classList.toggle("hidden", !tienePasswordActual());
-    actualizarBancoEstudiante();
+    if (active) actualizarBancoEstudiante();
   }
   if (esPropietarioPlataforma()) renderOwnerInstitutions();
 }
@@ -3346,6 +3365,40 @@ function renderMessageAvatar(item = {}) {
     return `<button class="message-avatar" type="button" data-avatar-src="${escapeHtml(avatar.photo)}" data-avatar-name="${escapeHtml(avatar.name)}" aria-label="${escapeHtml(label)}"><img src="${escapeHtml(avatar.photo)}" alt="" loading="lazy" /></button>`;
   }
   return `<span class="message-avatar message-avatar-initial" aria-label="${escapeHtml(avatar.name)}">${escapeHtml(avatar.initial)}</span>`;
+}
+
+async function cargarPerfilAvatar(uid = "") {
+  if (!uid || uid === usuarioActual?.uid) return null;
+  if (avatarProfileCache.has(uid)) return avatarProfileCache.get(uid);
+  try {
+    const snap = await getDoc(doc(db, "users", uid));
+    const profile = snap.exists() ? snap.data() : null;
+    avatarProfileCache.set(uid, profile);
+    return profile;
+  } catch (err) {
+    console.warn("No se pudo cargar avatar de usuario.", err);
+    avatarProfileCache.set(uid, null);
+    return null;
+  }
+}
+
+async function hidratarAvataresMensaje(messageId) {
+  if (!messageId || activeMessageId !== messageId) return;
+  const items = [
+    internalMessages.find(m => m.id === messageId),
+    ...internalReplies.filter(r => r.messageId === messageId)
+  ].filter(Boolean);
+  let changed = false;
+  for (const item of items) {
+    if (datosAvatarMensaje(item).photo || !item.fromUid || item.fromUid === usuarioActual?.uid) continue;
+    const profile = await cargarPerfilAvatar(item.fromUid);
+    const photo = profile?.photoData || profile?.photoURL || profile?.googlePhotoURL || "";
+    if (photo) {
+      item.fromPhoto = photo;
+      changed = true;
+    }
+  }
+  if (changed && activeMessageId === messageId) renderMessageDetail(messageId, { skipHydrate: true });
 }
 
 function renderAttachments(attachments = []) {
@@ -3706,7 +3759,7 @@ async function actualizarEstadoRespuestaMensaje(messageId) {
   );
 }
 
-function renderMessageDetail(messageId) {
+function renderMessageDetail(messageId, options = {}) {
   const msg = internalMessages.find(m => m.id === messageId);
   if (!msg) return;
   activeMessageId = messageId;
@@ -3750,6 +3803,7 @@ function renderMessageDetail(messageId) {
   setReplyFormEnabled(true, "");
   overlay.classList.remove("hidden");
   actualizarEstadoRespuestaMensaje(messageId);
+  if (!options.skipHydrate) hidratarAvataresMensaje(messageId);
 }
 
 async function abrirDetalleMensaje(messageId) {
@@ -5086,6 +5140,15 @@ function setStatus(id, msg, tipo = "ok") {
   el.classList.toggle("error", tipo === "error");
 }
 
+function mostrarReloadSesion() {
+  document.getElementById("reloadSplash")?.classList.remove("hidden");
+}
+
+function ocultarReloadSesion() {
+  document.getElementById("reloadSplash")?.classList.add("hidden");
+  sessionStorage.removeItem(STORAGE_RELOAD_SESION);
+}
+
 function poblarPhoneCodes(selectId, value = "+57") {
   const select = document.getElementById(selectId);
   if (!select) return;
@@ -5788,7 +5851,7 @@ async function prepararSesionAutenticada() {
   if (!suscripcionActiva()) {
     document.body.classList.remove("group-locked");
     aplicarModoUsuario();
-    activarNav("suscripcion");
+    activarNav(seccionRestaurable());
     return;
   }
   iniciarListenersComunicacion();
@@ -8445,6 +8508,10 @@ document.querySelectorAll("[data-notification-toggle]").forEach(toggle => {
 });
 
 window.addEventListener("beforeunload", e => {
+  if (usuarioActual) {
+    if (seccionActual) localStorage.setItem(STORAGE_SECCION_ACTIVA, seccionActual);
+    sessionStorage.setItem(STORAGE_RELOAD_SESION, "1");
+  }
   if (!hayBorradorMensajeProfesor() && !hayBorradorPreguntaProfesor()) return;
   e.preventDefault();
   e.returnValue = "";
@@ -8497,9 +8564,14 @@ document.addEventListener("keydown", e => {
 capturarInvitacionUrl();
 inicializarRegistroPerfil();
 
+if (sessionStorage.getItem(STORAGE_RELOAD_SESION) === "1") {
+  mostrarReloadSesion();
+}
+
 onAuthStateChanged(auth, async user => {
   usuarioActual = user;
   if (!user) {
+    ocultarReloadSesion();
     historialSecciones = [];
     historialAdelante = [];
     seccionActual = "inicio";
@@ -8519,9 +8591,13 @@ onAuthStateChanged(auth, async user => {
     mostrarAuthInicial();
     return;
   }
-  if (registroEnCurso) return;
+  if (registroEnCurso) {
+    ocultarReloadSesion();
+    return;
+  }
   if (requiereVerificacionEmail(user) && user.email?.toLowerCase() !== ADMIN_EMAIL) {
     await signOut(auth);
+    ocultarReloadSesion();
     document.body.classList.add("group-locked");
     mostrarAuthInicial();
     mostrarWarn("Tu correo aún no está verificado. Abre el enlace que llegó a Gmail.");
@@ -8532,7 +8608,11 @@ onAuthStateChanged(auth, async user => {
     await guardarDatosGoogleIniciales(user);
   }
   escucharHistorialFacturacion();
-  await prepararSesionAutenticada();
+  try {
+    await prepararSesionAutenticada();
+  } finally {
+    ocultarReloadSesion();
+  }
 });
 
 function renderAdminPanel() {
