@@ -2154,12 +2154,26 @@ body.admin-mode #sectionExamenes .exams-hub {
   display: grid;
   gap: .75rem;
 }
-.message-thread-card button {
-  width: 100%;
+.message-thread-card {
   border: 1px solid var(--c-border);
   border-radius: var(--radius-sm);
   background: #fff;
-  padding: .9rem;
+  padding: .85rem;
+}
+.message-thread-content,
+.message-detail-author,
+.message-reply-author {
+  display: flex;
+  align-items: flex-start;
+  gap: .7rem;
+  min-width: 0;
+}
+.message-thread-content > button {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  padding: 0;
   text-align: left;
   cursor: pointer;
 }
@@ -2175,6 +2189,48 @@ body.admin-mode #sectionExamenes .exams-hub {
 .message-thread-card span,
 .message-thread-card small {
   color: var(--c-muted);
+}
+.message-avatar {
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 50%;
+  padding: 0;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--c-blue), var(--c-teal));
+  color: #fff;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 8px 18px rgba(6,52,95,.12);
+}
+.message-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+button.message-avatar {
+  cursor: pointer;
+}
+.message-avatar-initial {
+  font-weight: 900;
+  font-size: 1rem;
+  text-transform: uppercase;
+}
+.message-detail-author {
+  margin: .35rem 0 .75rem;
+}
+.message-detail-author p {
+  margin: .1rem 0 0;
+}
+.message-reply-author {
+  align-items: center;
+  margin-bottom: .45rem;
+}
+.message-reply-author .message-avatar {
+  flex-basis: 34px;
+  width: 34px;
+  height: 34px;
 }
 .msg-title {
   display: block;
@@ -5745,8 +5801,8 @@ body:not(.group-locked) .main-content:not(.hidden)::-webkit-scrollbar-thumb {
 
 @media (max-width: 640px) {
   .landing-nav {
-    width: calc(100vw - 1.5rem) !important;
-    max-width: calc(100vw - 1.5rem) !important;
+    width: 100% !important;
+    max-width: 100% !important;
     margin-inline: auto !important;
     padding-left: .75rem;
     padding-right: .75rem;
@@ -5762,9 +5818,44 @@ body:not(.group-locked) .main-content:not(.hidden)::-webkit-scrollbar-thumb {
 
   .landing-nav,
   .app-download-banner {
-    width: calc(100vw - 1.5rem);
-    max-width: calc(100vw - 1.5rem);
+    width: 100%;
+    max-width: 100%;
     margin-inline: auto;
+  }
+
+  body:not(.group-locked) .main-content:not(.hidden) {
+    padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+    scroll-padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+  }
+
+  .support-email-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .support-email-card {
+    display: flex;
+    align-items: center;
+    gap: .85rem;
+    text-align: left;
+    padding: .9rem;
+  }
+
+  .support-email-card strong {
+    font-size: .95rem;
+    line-height: 1.25;
+    word-break: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .support-email-card small {
+    font-size: .82rem;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .support-email-card .gmail-icon {
+    flex: 0 0 38px;
   }
 
   .landing-nav > .brand-lockup strong {

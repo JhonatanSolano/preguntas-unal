@@ -178,14 +178,25 @@ exports.sendPasswordResetEmailCustom = onRequest({ region: "us-central1", secret
       url: "https://matematicasentubolsillo.com/",
       handleCodeInApp: false
     });
+    const token = crypto.randomUUID();
+    const expiresAt = admin.firestore.Timestamp.fromDate(new Date(Date.now() + 10 * 60 * 1000));
+    await admin.firestore().collection("passwordResetLinks").doc(token).set({
+      email,
+      resetLink,
+      expiresAt,
+      used: false,
+      createdAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+    const protectedLink = `https://us-central1-preguntas-tipo-examen.cloudfunctions.net/consumePasswordResetLink?token=${encodeURIComponent(token)}`;
     const html = `
       <div style="font-family:Arial,sans-serif;line-height:1.6;color:#162838;max-width:640px;margin:auto;padding:24px">
         <h1 style="color:#06345f">Restablece tu contraseña</h1>
         <p>Recibimos una solicitud para restablecer la contraseña de tu cuenta en <strong>Matemáticas En Tu Bolsillo</strong>.</p>
+        <p>Por seguridad, este enlace estará disponible durante <strong>10 minutos</strong>.</p>
         <p style="margin:28px 0">
-          <a href="${escapeHtml(resetLink)}" style="background:#0d9488;color:white;padding:14px 22px;border-radius:999px;text-decoration:none;font-weight:bold">Cambiar contraseña</a>
+          <a href="${escapeHtml(protectedLink)}" style="background:#0d9488;color:white;padding:14px 22px;border-radius:999px;text-decoration:none;font-weight:bold">Cambiar contraseña</a>
         </p>
-        <p>Si no solicitaste este cambio, puedes ignorar este correo.</p>
+        <p>Si el enlace caduca, genera uno nuevo desde la app. Si no solicitaste este cambio, puedes ignorar este correo.</p>
         <p style="font-size:12px;color:#66788a">© Todos los derechos reservados. Matemáticas En Tu Bolsillo.</p>
       </div>`;
     await sendEmail({
@@ -198,6 +209,30 @@ exports.sendPasswordResetEmailCustom = onRequest({ region: "us-central1", secret
   }
 
   return res.status(200).json({ ok: true });
+});
+
+exports.consumePasswordResetLink = onRequest({ region: "us-central1" }, async (req, res) => {
+  const token = String(req.query?.token || "").trim();
+  const expiredUrl = `${APP_URL}?resetExpired=1`;
+  if (!token) return res.redirect(302, expiredUrl);
+  try {
+    const ref = admin.firestore().collection("passwordResetLinks").doc(token);
+    const snap = await ref.get();
+    if (!snap.exists) return res.redirect(302, expiredUrl);
+    const data = snap.data() || {};
+    const expiresMs = data.expiresAt?.toMillis?.() || 0;
+    if (data.used === true || !expiresMs || expiresMs < Date.now() || !data.resetLink) {
+      return res.redirect(302, expiredUrl);
+    }
+    await ref.set({
+      used: true,
+      usedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+    return res.redirect(302, data.resetLink);
+  } catch (err) {
+    console.error("Password reset consume error", err);
+    return res.redirect(302, expiredUrl);
+  }
 });
 
 exports.sendEmailVerificationCustom = onRequest({ region: "us-central1", secrets: [resendApiKey] }, async (req, res) => {

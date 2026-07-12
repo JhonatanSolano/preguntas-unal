@@ -2011,7 +2011,7 @@ function activarNav(sec, options = {}) {
       }
     }, 0);
   }
-  if (!modoAdmin && !aulaActualValida() && ["inicio", "estadisticas"].includes(sec)) {
+  if (suscripcionActiva() && !modoAdmin && !aulaActualValida() && ["inicio", "estadisticas"].includes(sec)) {
     sec = "configuracion";
     setTimeout(() => {
       const status = document.getElementById("settingsClassStatus");
@@ -2123,12 +2123,15 @@ function actualizarBienvenida() {
     foto.alt = `Foto de perfil de ${primerNombre}`;
   }
   if (texto) {
-    texto.textContent = aulaActualValida()
+    texto.textContent = !suscripcionActiva()
+      ? "Tu cuenta está activa, pero las herramientas académicas están limitadas hasta que actives una suscripción o ingreses mediante una institución con plan vigente. Puedes completar tu perfil, revisar Suscripción y Facturación, y contactar soporte si necesitas ayuda."
+      : aulaActualValida()
       ? "Desde aquí puedes presentar los exámenes habilitados por tu profesor, revisar tu avance, recibir mensajes del aula, consultar estadísticas y apoyarte en el Asesor IA para estudiar mejor."
       : "Completa tu perfil y entra a un aula con el código de tu profesor para desbloquear exámenes, mensajes, estadísticas y herramientas de estudio.";
   }
+  panel.querySelector(".bank-progress-panel")?.classList.toggle("hidden", !suscripcionActiva());
   panel.hidden = false;
-  actualizarBancoEstudiante();
+  if (suscripcionActiva()) actualizarBancoEstudiante();
 }
 
 function renderExamenesHub() {
@@ -3310,15 +3313,39 @@ function renderMessagesPanel() {
       <div class="message-class-thread-list">
         ${visibleMessages.map(msg => `
           <article class="message-thread-card">
-            <button type="button" data-open-message="${msg.id}">
-              <strong>${escapeHtml(msg.subject || "Sin asunto")}</strong>
-              <span>${escapeHtml(msg.className || "Aula")} · ${escapeHtml(msg.fromName || msg.teacherName || "Profesor")}</span>
-              <small>${escapeHtml((msg.body || "").slice(0, 130))}</small>
-            </button>
+            <div class="message-thread-content">
+              ${renderMessageAvatar(msg)}
+              <button type="button" data-open-message="${msg.id}">
+                <strong>${escapeHtml(msg.subject || "Sin asunto")}</strong>
+                <span>${escapeHtml(msg.className || "Aula")} · ${escapeHtml(msg.fromName || msg.teacherName || "Profesor")}</span>
+                <small>${escapeHtml((msg.body || "").slice(0, 130))}</small>
+              </button>
+              </div>
           </article>
         `).join("")}
       </div>
     </details>`;
+}
+
+function datosAvatarMensaje(item = {}) {
+  const name = item.fromName || item.teacherName || item.displayName || item.fromEmail || item.teacherEmail || item.email || "Usuario";
+  const own = item.fromUid && item.fromUid === usuarioActual?.uid;
+  const ownPhoto = own
+    ? (perfilActual?.photoData || perfilActual?.photoURL || perfilActual?.googlePhotoURL || usuarioActual?.photoURL || "")
+    : "";
+  const photo = item.fromPhoto || item.photoData || item.photoURL || ownPhoto || "";
+  const initialSource = String(name || item.fromEmail || item.email || "U").trim();
+  const initial = (initialSource[0] || "U").toUpperCase();
+  return { name, photo, initial };
+}
+
+function renderMessageAvatar(item = {}) {
+  const avatar = datosAvatarMensaje(item);
+  const label = `Ver foto de ${avatar.name}`;
+  if (avatar.photo) {
+    return `<button class="message-avatar" type="button" data-avatar-src="${escapeHtml(avatar.photo)}" data-avatar-name="${escapeHtml(avatar.name)}" aria-label="${escapeHtml(label)}"><img src="${escapeHtml(avatar.photo)}" alt="" loading="lazy" /></button>`;
+  }
+  return `<span class="message-avatar message-avatar-initial" aria-label="${escapeHtml(avatar.name)}">${escapeHtml(avatar.initial)}</span>`;
 }
 
 function renderAttachments(attachments = []) {
@@ -3695,14 +3722,23 @@ function renderMessageDetail(messageId) {
   }
   cont.innerHTML = `
     <h2>${escapeHtml(msg.subject || "Mensaje")}</h2>
-    <p class="mini-help">${escapeHtml(msg.className || "Aula")} · ${escapeHtml(msg.fromName || msg.teacherName || "Profesor")}</p>
+    <div class="message-detail-author">
+      ${renderMessageAvatar(msg)}
+      <div>
+        <strong>${escapeHtml(msg.fromName || msg.teacherName || "Profesor")}</strong>
+        <p class="mini-help">${escapeHtml(msg.className || "Aula")}</p>
+      </div>
+    </div>
     <div class="message-body rich-message-output">${renderRichMessage(msg.bodyHtml, msg.body || "")}</div>
     ${renderAttachments(msg.attachments)}
     <h3>Respuestas</h3>
     <div class="message-replies">
       ${replies.length ? replies.map(reply => `
         <article class="${reply.fromUid === usuarioActual?.uid ? "own" : ""}">
-          <strong>${escapeHtml(reply.fromName || reply.fromEmail || "Usuario")}</strong>
+          <div class="message-reply-author">
+            ${renderMessageAvatar(reply)}
+            <strong>${escapeHtml(reply.fromName || reply.fromEmail || "Usuario")}</strong>
+          </div>
           <div>${renderMarkdownBasico(reply.body || "")}</div>
           ${renderAttachments(reply.attachments)}
         </article>
@@ -3743,6 +3779,7 @@ async function enviarMensajeAula() {
   try {
     const ref = doc(collection(db, "classMessages"));
     const teacherName = perfilActual?.displayName || usuarioActual?.displayName || usuarioActual?.email || "Profesor";
+    const teacherPhoto = perfilActual?.photoData || perfilActual?.photoURL || perfilActual?.googlePhotoURL || usuarioActual?.photoURL || "";
     await setDoc(ref, {
       classId,
       className: clase.name,
@@ -3751,6 +3788,7 @@ async function enviarMensajeAula() {
       fromUid: usuarioActual.uid,
       fromEmail: usuarioActual.email,
       fromName: teacherName,
+      fromPhoto: teacherPhoto,
       toEmails: students.map(s => s.email.toLowerCase()),
       subject,
       body,
@@ -3814,6 +3852,7 @@ async function responderMensaje(e) {
   try {
     const ref = doc(collection(db, "messageReplies"));
     const fromName = perfilActual?.displayName || usuarioActual?.displayName || usuarioActual?.email || "Usuario";
+    const fromPhoto = perfilActual?.photoData || perfilActual?.photoURL || perfilActual?.googlePhotoURL || usuarioActual?.photoURL || "";
     await setDoc(ref, {
       messageId: msg.id,
       classId: msg.classId,
@@ -3821,6 +3860,7 @@ async function responderMensaje(e) {
       fromUid: usuarioActual.uid,
       fromEmail: usuarioActual.email,
       fromName,
+      fromPhoto,
       body,
       attachments: [],
       createdAt: serverTimestamp()
@@ -6414,6 +6454,8 @@ async function recuperarPassword() {
       body: JSON.stringify({ email })
     });
     if (!response.ok) throw new Error(await response.text());
+    const input = document.getElementById("forgotPasswordEmail");
+    if (input) input.value = "";
     setStatus("forgotPasswordStatus", "Te enviamos un correo para restablecer la contraseña desde Matemáticas En Tu Bolsillo.");
   } catch {
     setStatus("forgotPasswordStatus", "No se pudo enviar la recuperación. Revisa el correo.", "error");
@@ -7749,6 +7791,13 @@ document.getElementById("btnAndroidPromoClose")?.addEventListener("click", () =>
 if (sessionStorage.getItem("androidPromoDismissed") === "1") {
   document.getElementById("androidPromo")?.classList.add("hidden");
 }
+if (new URLSearchParams(window.location.search).get("resetExpired") === "1") {
+  document.getElementById("forgotPasswordCard")?.classList.remove("hidden");
+  document.getElementById("forgotPasswordPanel")?.classList.remove("hidden");
+  setStatus("forgotPasswordStatus", "El enlace de cambio de contraseña caducó. Genera otro link nuevo desde la app.", "error");
+  window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
+  actualizarBloqueoScrollPublico();
+}
 activarEscenaMatematica();
 document.querySelectorAll(".landing-nav a").forEach(link => {
   link.addEventListener("click", cerrarLandingMenu);
@@ -7976,6 +8025,19 @@ document.getElementById("teacherCreatedQuestions")?.addEventListener("click", ev
   if (button) deleteTeacherQuestion(button.dataset.deleteTeacherQuestion);
 });
 document.addEventListener("click", event => {
+  const avatar = event.target.closest("[data-avatar-src]");
+  if (avatar) {
+    event.preventDefault();
+    event.stopPropagation();
+    const overlay = document.getElementById("photoOverlay");
+    const image = document.getElementById("photoFullImage");
+    if (!overlay || !image) return;
+    image.src = avatar.dataset.avatarSrc;
+    image.alt = avatar.dataset.avatarName ? `Foto de ${avatar.dataset.avatarName}` : "Foto de perfil ampliada";
+    overlay.classList.remove("question-image-mode");
+    overlay.classList.remove("hidden");
+    return;
+  }
   const button = event.target.closest("[data-question-image]");
   if (!button) return;
   const overlay = document.getElementById("photoOverlay");
