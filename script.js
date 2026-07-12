@@ -91,6 +91,8 @@ setPersistence(auth, browserLocalPersistence);
 document.title = APP_CONFIG.name;
 
 const ADMIN_EMAIL = "solanojhonatan2000@gmail.com";
+const INDEPENDENT_CLASS_CODE = "J5AEDJ";
+const INDEPENDENT_CLASS_NAME = "Matemáticas En Tu Bolsillo";
 const SIMBOLOS_PERMITIDOS = "!@#$%^&*()_+-=[]{};:,.?";
 let usuarioActual = null;
 let perfilActual = null;
@@ -672,8 +674,21 @@ function suscripcionActiva(perfil = perfilActual) {
   return !Number.isFinite(expiryMs) || expiryMs > Date.now();
 }
 
+function esEstudianteIndependiente(perfil = perfilActual) {
+  return rolUsuario(perfil) === "student" && !cuentaInstitucional(perfil) && !esInstitucion(perfil);
+}
+
+function tienePruebaDiagnosticoGratis(perfil = perfilActual) {
+  return esEstudianteIndependiente(perfil) && !suscripcionActiva(perfil);
+}
+
+function seccionPermitidaPruebaGratis(section) {
+  return tienePruebaDiagnosticoGratis() && ["inicio", "perfil", "examenes", "diagnostico", "estadisticas", "suscripcion", "facturacion", "configuracion", "soporte"].includes(section);
+}
+
 function seccionRequiereSuscripcion(section) {
   if (section === "configuracion") return modoAdmin || esInstitucion();
+  if (seccionPermitidaPruebaGratis(section)) return false;
   return new Set([
     "examenes", "diagnostico", "nivel1", "examen", "estadisticas",
     "adminMetricas", "mensajes", "asesorIA"
@@ -2135,7 +2150,9 @@ function actualizarBienvenida() {
     foto.alt = `Foto de perfil de ${primerNombre}`;
   }
   if (texto) {
-    texto.textContent = !suscripcionActiva()
+    texto.textContent = tienePruebaDiagnosticoGratis()
+      ? "Tienes activa la prueba gratuita: puedes presentar el diagnóstico, usar sus dos intentos y revisar métricas y retroalimentación de ese examen. Para nivel medio, examen final, mensajes, Asesor IA y demás beneficios debes activar Premium."
+      : !suscripcionActiva()
       ? "Tu cuenta está activa, pero las herramientas académicas están limitadas hasta que actives una suscripción o ingreses mediante una institución con plan vigente. Puedes completar tu perfil, revisar Suscripción y Facturación, y contactar soporte si necesitas ayuda."
       : aulaActualValida()
       ? "Desde aquí puedes presentar los exámenes habilitados por tu profesor, revisar tu avance, recibir mensajes del aula, consultar estadísticas y apoyarte en el Asesor IA para estudiar mejor."
@@ -2173,11 +2190,15 @@ function renderExamenesHub() {
   if (intro) {
     intro.textContent = sinAula
       ? "Cuando ingreses el código de aula, podrás presentar los exámenes habilitados por tu profesor."
+      : tienePruebaDiagnosticoGratis()
+      ? "Tu prueba gratuita incluye el diagnóstico, sus dos intentos, métricas y retroalimentación. Para nivel medio, examen final, mensajes y Asesor IA debes activar Premium."
       : "Elige el examen que vas a presentar o revisar.";
   }
   document.querySelectorAll("[data-go-exam]").forEach(btn => {
-    btn.disabled = sinAula;
-    btn.classList.toggle("disabled", sinAula);
+    const bloqueadoGratis = tienePruebaDiagnosticoGratis() && btn.dataset.goExam !== "diagnostico";
+    btn.disabled = sinAula || bloqueadoGratis;
+    btn.classList.toggle("disabled", sinAula || bloqueadoGratis);
+    btn.title = bloqueadoGratis ? "Disponible con Plan Premium." : "";
   });
 }
 
@@ -3060,7 +3081,7 @@ function renderConfiguracion() {
   else if (modoAdmin) renderAdminPanel();
   else {
     document.getElementById("settingsBankPanel")?.classList.toggle("hidden", !active || !aulaActualValida());
-    document.getElementById("settingsClassPanel")?.classList.toggle("hidden", !active);
+    document.getElementById("settingsClassPanel")?.classList.add("hidden");
     const status = document.getElementById("settingsClassStatus");
     if (!active && status) {
       status.textContent = "Activa tu suscripción para ingresar o cambiar de aula.";
@@ -4195,8 +4216,13 @@ function renderStudentStats() {
     cont.innerHTML = `<div class="stats-card"><h3>Sin aula activa</h3><p>Tu aula anterior ya no está disponible. Puedes conservar tu perfil y configuración, pero para ver métricas o presentar exámenes debes ingresar a una nueva aula con su código.</p></div>`;
     return;
   }
-  const nombres = { diagnostico: "Diagnóstico", nivel1: "Nivel Medio", examen: "Examen Final" };
+  const nombres = tienePruebaDiagnosticoGratis()
+    ? { diagnostico: "Diagnóstico" }
+    : { diagnostico: "Diagnóstico", nivel1: "Nivel Medio", examen: "Examen Final" };
   cont.innerHTML = "";
+  if (tienePruebaDiagnosticoGratis()) {
+    cont.innerHTML = `<div class="stats-card"><h3>Prueba gratuita</h3><p>En el plan gratis puedes consultar únicamente las métricas del examen diagnóstico. Activa Premium para comparar nivel medio, examen final, mensajes y todos los beneficios.</p></div>`;
+  }
   Object.entries(nombres).forEach(([clave, nombre]) => {
     const intentos = resultadosSesion[claveResultado(clave)]?.intentos || [];
     const card = document.createElement("div");
@@ -4563,6 +4589,7 @@ function requisitoCumplido(clave) {
 function examenHabilitado(clave) {
   if (modoAdmin) return true;
   if (!aulaActualValida()) return false;
+  if (tienePruebaDiagnosticoGratis() && clave === "diagnostico") return true;
   if (clave === "diagnostico") return permisoDirecto("diagnostico");
   if (clave === "examen") return permisoDirecto("examen") || nivelesCompletados.nivel1;
   return permisoDirecto(clave) || requisitoCumplido(clave);
@@ -5041,6 +5068,17 @@ function cerrarAuthCard() {
     return;
   }
   document.getElementById("loginCard")?.classList.add("hidden");
+  actualizarBloqueoScrollPublico();
+}
+
+function cerrarFlujosAuth() {
+  document.getElementById("loginCard")?.classList.add("hidden");
+  document.getElementById("forgotUserCard")?.classList.add("hidden");
+  document.getElementById("forgotPasswordCard")?.classList.add("hidden");
+  document.getElementById("roleChoiceCard")?.classList.add("hidden");
+  document.getElementById("institutionInfoCard")?.classList.add("hidden");
+  document.getElementById("googleInstitutionPanel")?.classList.add("hidden");
+  document.getElementById("groupEntry")?.classList.add("hidden");
   actualizarBloqueoScrollPublico();
 }
 
@@ -5814,6 +5852,7 @@ async function cargarPerfilUsuario() {
 
 async function prepararSesionAutenticada() {
   await cargarPerfilUsuario();
+  cerrarFlujosAuth();
   if (requiereSeleccionRol()) {
     await mostrarSplashBienvenida();
     mostrarSeleccionRol();
@@ -5848,6 +5887,9 @@ async function prepararSesionAutenticada() {
 
   await cargarEstadoRemoto();
   await mostrarSplashBienvenida();
+  if (esEstudianteIndependiente()) {
+    await asegurarAulaIndependienteAutomatica();
+  }
   if (!suscripcionActiva()) {
     document.body.classList.remove("group-locked");
     aplicarModoUsuario();
@@ -5916,12 +5958,26 @@ async function prepararSesionAutenticada() {
     return;
   }
 
-  mostrarEntradaGrupo();
+  document.body.classList.remove("group-locked");
+  aplicarModoUsuario();
+  activarNav(esEstudianteInstitucional() ? "inicio" : "perfil");
 }
 
 async function entrarGrupo() {
   if (!usuarioActual) {
     mostrarWarn("Primero inicia sesión o regístrate.");
+    return;
+  }
+  if (esEstudianteIndependiente()) {
+    await asegurarAulaIndependienteAutomatica();
+    document.body.classList.remove("group-locked");
+    aplicarModoUsuario();
+    activarNav("inicio");
+    return;
+  }
+  if (esEstudianteInstitucional()) {
+    mostrarWarn("Para ingresar a un aula institucional, solicita al profesor o a la institución que te agregue.");
+    document.getElementById("grupoWarn")?.classList.add("error");
     return;
   }
   if (!exigirSuscripcion("Necesitas una suscripción activa antes de ingresar a un aula.")) return;
@@ -6012,6 +6068,40 @@ async function sincronizarRegistroEstudianteClase(classId, grupo, extra = {}) {
     institutionName: extra.institutionName || claseActualInfo?.institutionName || perfilActual?.institutionName || "",
     updatedAt: serverTimestamp()
   }, { merge: true });
+}
+
+async function asegurarAulaIndependienteAutomatica() {
+  if (!usuarioActual || !esEstudianteIndependiente()) return false;
+  const clase = await buscarClasePorCodigo(INDEPENDENT_CLASS_CODE).catch(() => null);
+  if (!clase) {
+    console.warn(`No existe el aula independiente ${INDEPENDENT_CLASS_CODE}.`);
+    return false;
+  }
+  claseActiva = clase.id;
+  grupoActivo = clase.id;
+  claseActualInfo = clase;
+  classMembershipValid = true;
+  localStorage.setItem(STORAGE_GRUPO, grupoActivo);
+  localStorage.setItem(STORAGE_CLASE_ACTIVA, claseActiva);
+  await guardarPerfilUsuario({
+    grupo: clase.id,
+    classId: clase.id,
+    className: clase.name || INDEPENDENT_CLASS_NAME,
+    classCode: clase.code || INDEPENDENT_CLASS_CODE,
+    classOwnerUid: clase.ownerUid || "",
+    classOwnerEmail: clase.ownerEmail || ""
+  });
+  await sincronizarRegistroEstudianteClase(clase.id, clase.id, {
+    ownerUid: clase.ownerUid || "",
+    ownerEmail: clase.ownerEmail || "",
+    name: perfilActual?.displayName || usuarioActual.displayName || ""
+  });
+  await guardarEstadoRemoto();
+  await cargarPermisosRemotos([grupoActivo]);
+  aplicarBancoNivelMedio();
+  escucharPermisosGrupo(grupoActivo);
+  escucharMembresiaClase(grupoActivo);
+  return true;
 }
 
 async function crearInvitacionClase(clase, { email, name = "" }) {
@@ -6368,6 +6458,7 @@ async function loginGoogle() {
     const profile = snap.exists() ? snap.data() : {};
     if (authIntent === "register" && expectedType === "independentStudent" && !snap.exists()) {
       await registrarIndependienteGoogle(cred.user);
+      await prepararSesionAutenticada();
       return;
     }
     if (!snap.exists() || !loginCoincideConTipo(profile, expectedType, cred.user.email)) {
@@ -6378,6 +6469,7 @@ async function loginGoogle() {
       return;
     }
     await guardarDatosGoogleIniciales(cred.user);
+    await prepararSesionAutenticada();
   } catch (err) {
     mostrarWarn("No se pudo ingresar con Google.");
   }
@@ -6404,6 +6496,7 @@ async function loginGoogleInstitucional() {
         return;
       }
       await guardarDatosGoogleIniciales(cred.user);
+      await prepararSesionAutenticada();
       return;
     }
     const member = await buscarMiembroInstitucional(email, dane);
@@ -6443,6 +6536,7 @@ async function loginGoogleInstitucional() {
       registeredAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
+    await prepararSesionAutenticada();
   } catch (err) {
     console.error(err);
     setStatus("googleInstitutionStatus", "No fue posible ingresar con Google. Revisa el código DANE o intenta de nuevo.", "error");
@@ -7333,6 +7427,15 @@ async function verificarCodigoTelefono() {
 
 async function estudianteCambiarClase() {
   const status = document.getElementById("settingsClassStatus");
+  if (!modoAdmin) {
+    if (status) {
+      status.textContent = esEstudianteIndependiente()
+        ? `Tu aula independiente se asigna automáticamente: ${INDEPENDENT_CLASS_NAME}.`
+        : "Los estudiantes asociados a una institución deben solicitar al profesor o a la institución el ingreso al aula.";
+      status.className = "bank-status error";
+    }
+    return;
+  }
   if (!exigirSuscripcion("Necesitas una suscripción activa para ingresar o cambiar de aula.")) return;
   if (pruebaActivaActual()) {
     status.textContent = "No es posible cambiar de aula porque el estudiante se encuentra realizando un examen.";
