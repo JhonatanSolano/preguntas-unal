@@ -4769,11 +4769,13 @@ body.public-modal-open {
   max-width: min(92vw, 560px);
 }
 .photo-full-card img {
-  width: min(78vw, 420px);
-  aspect-ratio: 1;
-  object-fit: cover;
+  width: min(78vw, 520px);
+  max-height: 68vh;
+  aspect-ratio: auto;
+  object-fit: contain;
   border-radius: var(--radius-lg);
   margin-bottom: 1rem;
+  background: #f8fbff;
 }
 .question-image-mode .photo-full-card {
   max-width: min(94vw, 900px);

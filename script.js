@@ -3373,17 +3373,29 @@ function datosAvatarMensaje(item = {}) {
   const ownPhoto = own
     ? (perfilActual?.photoData || perfilActual?.photoURL || perfilActual?.googlePhotoURL || usuarioActual?.photoURL || "")
     : "";
+  const ownFullPhoto = own
+    ? (perfilActual?.googlePhotoURL || perfilActual?.photoURL || usuarioActual?.photoURL || perfilActual?.photoData || "")
+    : "";
   const photo = item.fromPhoto || item.photoData || item.photoURL || ownPhoto || "";
+  const fullPhoto = fotoPerfilAltaCalidad(item.fromFullPhoto || item.googlePhotoURL || item.photoURL || item.fromPhoto || item.photoData || ownFullPhoto || ownPhoto || "");
   const initialSource = String(name || item.fromEmail || item.email || "U").trim();
   const initial = (initialSource[0] || "U").toUpperCase();
-  return { name, photo, initial };
+  return { name, photo, fullPhoto, initial };
+}
+
+function fotoPerfilAltaCalidad(src = "") {
+  if (!src) return "";
+  if (!/^https?:\/\/[^"\s]+googleusercontent\.com\//i.test(src)) return src;
+  let enhanced = src.replace(/=s\d+(?:-c)?(?:-[a-z]+)?$/i, "=s1024-c");
+  enhanced = enhanced.replace(/\/s\d+(?:-c)?\//i, "/s1024-c/");
+  return enhanced;
 }
 
 function renderMessageAvatar(item = {}) {
   const avatar = datosAvatarMensaje(item);
   const label = `Ver foto de ${avatar.name}`;
   if (avatar.photo) {
-    return `<button class="message-avatar" type="button" data-avatar-src="${escapeHtml(avatar.photo)}" data-avatar-name="${escapeHtml(avatar.name)}" aria-label="${escapeHtml(label)}"><img src="${escapeHtml(avatar.photo)}" alt="" loading="lazy" /></button>`;
+    return `<button class="message-avatar" type="button" data-avatar-src="${escapeHtml(avatar.fullPhoto || avatar.photo)}" data-avatar-name="${escapeHtml(avatar.name)}" aria-label="${escapeHtml(label)}"><img src="${escapeHtml(avatar.photo)}" alt="" loading="lazy" /></button>`;
   }
   return `<span class="message-avatar message-avatar-initial" aria-label="${escapeHtml(avatar.name)}">${escapeHtml(avatar.initial)}</span>`;
 }
@@ -3414,8 +3426,10 @@ async function hidratarAvataresMensaje(messageId) {
     if (datosAvatarMensaje(item).photo || !item.fromUid || item.fromUid === usuarioActual?.uid) continue;
     const profile = await cargarPerfilAvatar(item.fromUid);
     const photo = profile?.photoData || profile?.photoURL || profile?.googlePhotoURL || "";
+    const fullPhoto = profile?.googlePhotoURL || profile?.photoURL || profile?.photoData || "";
     if (photo) {
       item.fromPhoto = photo;
+      item.fromFullPhoto = fotoPerfilAltaCalidad(fullPhoto);
       changed = true;
     }
   }
