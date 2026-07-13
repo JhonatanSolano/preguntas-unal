@@ -150,6 +150,8 @@ const MAX_PROFILE_PHOTO_INPUT_MB = 12;
 const MAX_MESSAGE_ATTACHMENT_MB = 8;
 const PROFILE_PHOTO_MAX_SIDE = 900;
 const PROFILE_PHOTO_QUALITY = 0.82;
+const PROFILE_PHOTO_FULL_MAX_SIDE = 1800;
+const PROFILE_PHOTO_FULL_QUALITY = 0.92;
 
 const PHONE_CODES = [
   { code: "+57", label: "Colombia (+57)", flag: "", country: "Colombia" },
@@ -3374,10 +3376,10 @@ function datosAvatarMensaje(item = {}) {
     ? (perfilActual?.photoData || perfilActual?.photoURL || perfilActual?.googlePhotoURL || usuarioActual?.photoURL || "")
     : "";
   const ownFullPhoto = own
-    ? (perfilActual?.googlePhotoURL || perfilActual?.photoURL || usuarioActual?.photoURL || perfilActual?.photoData || "")
+    ? (perfilActual?.photoFullURL || perfilActual?.googlePhotoURL || perfilActual?.photoURL || usuarioActual?.photoURL || perfilActual?.photoData || "")
     : "";
   const photo = item.fromPhoto || item.photoData || item.photoURL || ownPhoto || "";
-  const fullPhoto = fotoPerfilAltaCalidad(item.fromFullPhoto || item.googlePhotoURL || item.photoURL || item.fromPhoto || item.photoData || ownFullPhoto || ownPhoto || "");
+  const fullPhoto = fotoPerfilAltaCalidad(item.fromFullPhoto || item.photoFullURL || item.googlePhotoURL || item.photoURL || item.fromPhoto || item.photoData || ownFullPhoto || ownPhoto || "");
   const initialSource = String(name || item.fromEmail || item.email || "U").trim();
   const initial = (initialSource[0] || "U").toUpperCase();
   return { name, photo, fullPhoto, initial };
@@ -3426,7 +3428,7 @@ async function hidratarAvataresMensaje(messageId) {
     if (datosAvatarMensaje(item).photo || !item.fromUid || item.fromUid === usuarioActual?.uid) continue;
     const profile = await cargarPerfilAvatar(item.fromUid);
     const photo = profile?.photoData || profile?.photoURL || profile?.googlePhotoURL || "";
-    const fullPhoto = profile?.googlePhotoURL || profile?.photoURL || profile?.photoData || "";
+    const fullPhoto = profile?.photoFullURL || profile?.googlePhotoURL || profile?.photoURL || profile?.photoData || "";
     if (photo) {
       item.fromPhoto = photo;
       item.fromFullPhoto = fotoPerfilAltaCalidad(fullPhoto);
@@ -3869,6 +3871,7 @@ async function enviarMensajeAula() {
     const ref = doc(collection(db, "classMessages"));
     const teacherName = perfilActual?.displayName || usuarioActual?.displayName || usuarioActual?.email || "Profesor";
     const teacherPhoto = perfilActual?.photoData || perfilActual?.photoURL || perfilActual?.googlePhotoURL || usuarioActual?.photoURL || "";
+    const teacherFullPhoto = fotoPerfilAltaCalidad(perfilActual?.photoFullURL || perfilActual?.googlePhotoURL || perfilActual?.photoURL || usuarioActual?.photoURL || perfilActual?.photoData || "");
     await setDoc(ref, {
       classId,
       className: clase.name,
@@ -3878,6 +3881,7 @@ async function enviarMensajeAula() {
       fromEmail: usuarioActual.email,
       fromName: teacherName,
       fromPhoto: teacherPhoto,
+      fromFullPhoto: teacherFullPhoto,
       toEmails: students.map(s => s.email.toLowerCase()),
       subject,
       body,
@@ -3942,6 +3946,7 @@ async function responderMensaje(e) {
     const ref = doc(collection(db, "messageReplies"));
     const fromName = perfilActual?.displayName || usuarioActual?.displayName || usuarioActual?.email || "Usuario";
     const fromPhoto = perfilActual?.photoData || perfilActual?.photoURL || perfilActual?.googlePhotoURL || usuarioActual?.photoURL || "";
+    const fromFullPhoto = fotoPerfilAltaCalidad(perfilActual?.photoFullURL || perfilActual?.googlePhotoURL || perfilActual?.photoURL || usuarioActual?.photoURL || perfilActual?.photoData || "");
     await setDoc(ref, {
       messageId: msg.id,
       classId: msg.classId,
@@ -3950,6 +3955,7 @@ async function responderMensaje(e) {
       fromEmail: usuarioActual.email,
       fromName,
       fromPhoto,
+      fromFullPhoto,
       body,
       attachments: [],
       createdAt: serverTimestamp()
@@ -6530,6 +6536,7 @@ async function loginGoogleInstitucional() {
       email,
       displayName: cred.user.displayName || member.name || "",
       photoData: cred.user.photoURL || "",
+      photoFullURL: fotoPerfilAltaCalidad(cred.user.photoURL || ""),
       role: expectedRole,
       tipoCuenta: expectedRole,
       accountMode: "institutional",
@@ -6578,6 +6585,7 @@ async function registrarIndependienteGoogle(user) {
     email,
     displayName: user.displayName || "",
     photoData: user.photoURL || "",
+    photoFullURL: fotoPerfilAltaCalidad(user.photoURL || ""),
     role: "student",
     tipoCuenta: "student",
     accountMode: "independent",
@@ -6600,6 +6608,7 @@ async function guardarDatosGoogleIniciales(user) {
     googlePhotoURL: googleProvider?.photoURL || user.photoURL || "",
     displayName: existente.displayName || perfilActual?.displayName || user.displayName || googleProvider?.displayName || "",
     photoData: existente.photoData || perfilActual?.photoData || googleProvider?.photoURL || user.photoURL || "",
+    photoFullURL: existente.photoFullURL || perfilActual?.photoFullURL || fotoPerfilAltaCalidad(googleProvider?.photoURL || user.photoURL || ""),
     role: existente.role || perfilActual?.role || "",
     tipoCuenta: existente.tipoCuenta || perfilActual?.tipoCuenta || "",
     isAdmin: existente.isAdmin || existente.role === "teacher" || user.email?.toLowerCase() === ADMIN_EMAIL,
@@ -7334,7 +7343,7 @@ function reiniciarRecaptchaTelefono() {
   recaptchaVerifier = null;
 }
 
-function comprimirFotoPerfil(file) {
+function procesarFotoPerfil(file, maxSide, quality, output = "dataUrl") {
   return new Promise((resolve, reject) => {
     const img = new Image();
     const reader = new FileReader();
@@ -7342,18 +7351,48 @@ function comprimirFotoPerfil(file) {
     reader.onload = () => {
       img.onerror = () => reject(new Error("No se pudo procesar la imagen."));
       img.onload = () => {
-        const scale = Math.min(1, PROFILE_PHOTO_MAX_SIDE / Math.max(img.width, img.height));
+        const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
         const canvas = document.createElement("canvas");
         canvas.width = Math.max(1, Math.round(img.width * scale));
         canvas.height = Math.max(1, Math.round(img.height * scale));
         const ctx = canvas.getContext("2d");
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL("image/jpeg", PROFILE_PHOTO_QUALITY));
+        if (output === "blob") {
+          canvas.toBlob(blob => {
+            if (blob) resolve(blob);
+            else reject(new Error("No se pudo convertir la imagen."));
+          }, "image/jpeg", quality);
+          return;
+        }
+        resolve(canvas.toDataURL("image/jpeg", quality));
       };
       img.src = reader.result;
     };
     reader.readAsDataURL(file);
   });
+}
+
+function comprimirFotoPerfil(file) {
+  return procesarFotoPerfil(file, PROFILE_PHOTO_MAX_SIDE, PROFILE_PHOTO_QUALITY);
+}
+
+function comprimirFotoPerfilAlta(file) {
+  return procesarFotoPerfil(file, PROFILE_PHOTO_FULL_MAX_SIDE, PROFILE_PHOTO_FULL_QUALITY, "blob");
+}
+
+async function subirFotoPerfilAlta(file) {
+  if (!usuarioActual?.uid) return {};
+  const blob = await comprimirFotoPerfilAlta(file);
+  const path = `profilePhotos/${usuarioActual.uid}/profile.jpg`;
+  const ref = storageRef(storage, path);
+  await uploadBytes(ref, blob, {
+    contentType: "image/jpeg",
+    customMetadata: { ownerUid: usuarioActual.uid }
+  });
+  return {
+    photoFullURL: await getDownloadURL(ref),
+    photoStoragePath: path
+  };
 }
 
 async function cargarFotoPerfil(file) {
@@ -7366,9 +7405,15 @@ async function cargarFotoPerfil(file) {
   status.textContent = "Procesando foto...";
   try {
     const photoData = await comprimirFotoPerfil(file);
-    await guardarPerfilUsuario({ photoData });
+    const fotoAlta = await subirFotoPerfilAlta(file).catch(err => {
+      console.warn("No se pudo subir la foto en alta calidad.", err);
+      return {};
+    });
+    await guardarPerfilUsuario({ photoData, ...fotoAlta });
     renderProfile();
-    status.textContent = "Foto actualizada.";
+    status.textContent = fotoAlta.photoFullURL
+      ? "Foto actualizada."
+      : "Foto actualizada. La vista ampliada usará la versión optimizada local.";
   } catch (err) {
     console.error("Error procesando foto:", err);
     status.textContent = "No se pudo procesar la foto. Intenta con otra imagen.";
@@ -8458,13 +8503,18 @@ document.getElementById("btnTakePhoto")?.addEventListener("click", () => documen
 document.getElementById("profilePhotoInput")?.addEventListener("change", e => cargarFotoPerfil(e.target.files?.[0]));
 document.getElementById("profileCameraInput")?.addEventListener("change", e => cargarFotoPerfil(e.target.files?.[0]));
 document.getElementById("btnRemovePhoto")?.addEventListener("click", async () => {
-  await guardarPerfilUsuario({ photoData: "" });
+  if (perfilActual?.photoStoragePath) {
+    await deleteObject(storageRef(storage, perfilActual.photoStoragePath)).catch(err => {
+      console.warn("No se pudo eliminar la foto de Storage.", err);
+    });
+  }
+  await guardarPerfilUsuario({ photoData: "", photoFullURL: "", photoStoragePath: "" });
   renderProfile();
   document.getElementById("profileStatus").textContent = "Foto eliminada.";
 });
 document.getElementById("profilePhotoPreview")?.addEventListener("click", () => {
   document.getElementById("photoOverlay")?.classList.remove("question-image-mode");
-  document.getElementById("photoFullImage").src = document.getElementById("profilePhotoPreview").src;
+  document.getElementById("photoFullImage").src = fotoPerfilAltaCalidad(perfilActual?.photoFullURL || perfilActual?.googlePhotoURL || perfilActual?.photoURL || usuarioActual?.photoURL || perfilActual?.photoData || document.getElementById("profilePhotoPreview").src);
   document.getElementById("photoOverlay").classList.remove("hidden");
 });
 document.getElementById("btnClosePhotoOverlay")?.addEventListener("click", () => {

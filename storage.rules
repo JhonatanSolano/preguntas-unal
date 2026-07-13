@@ -47,6 +47,15 @@ service firebase.storage {
           ]);
     }
 
+    function validProfilePhoto() {
+      return request.resource.size < 5 * 1024 * 1024 &&
+        request.resource.contentType in [
+          "image/jpeg",
+          "image/png",
+          "image/webp"
+        ];
+    }
+
     function teacherQuestion(questionId) {
       return firestore.get(/databases/(default)/documents/teacherQuestions/$(questionId)).data;
     }
@@ -108,6 +117,15 @@ service firebase.storage {
         request.auth.uid == ownerUid &&
         teacherQuestion(questionId).ownerUid == request.auth.uid &&
         validQuestionImage();
+    }
+
+    match /profilePhotos/{uid}/{fileName} {
+      allow read: if signedIn();
+      allow create, update: if signedIn() &&
+        request.auth.uid == uid &&
+        validProfilePhoto();
+      allow delete: if signedIn() &&
+        request.auth.uid == uid;
     }
 
     match /{allPaths=**} {
