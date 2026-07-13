@@ -2863,7 +2863,7 @@ button.message-avatar {
 ══════════════════════════════════ */
 .main-content {
   max-width: 860px;
-  margin: 2rem auto 4rem;
+  margin: 2rem auto 1.25rem;
   padding: 0 1rem;
 }
 .main-content.hidden { display: none; }
@@ -3275,10 +3275,13 @@ button.message-avatar {
 ══════════════════════════════════ */
 .site-footer {
   text-align: center;
-  padding: 1.5rem;
+  padding: .85rem 1rem 1rem;
   font-size: .8rem;
   color: var(--c-muted);
   border-top: 1px solid var(--c-border);
+}
+.site-footer p {
+  margin: .15rem 0;
 }
 .site-footer a {
   color: var(--c-blue);
@@ -5706,7 +5709,7 @@ body:not(.group-locked) .main-content:not(.hidden) {
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
-  padding-bottom: 2.75rem;
+  padding-bottom: 1rem;
 }
 body.admin-mode .main-content:not(.hidden) {
   max-height: calc(100dvh - 7.5rem);
@@ -5770,7 +5773,7 @@ body:not(.group-locked) .main-content:not(.hidden)::-webkit-scrollbar-thumb {
     max-width: 100vw;
     max-height: calc(100dvh - 7.25rem);
     margin: 0 auto;
-    padding: .75rem .75rem 2.75rem;
+    padding: .75rem .75rem 1.1rem;
     overflow-x: hidden;
     overflow-y: auto;
   }

@@ -2003,6 +2003,11 @@ function mostrarSeccion(sec) {
   if (usuarioActual) {
     localStorage.setItem(STORAGE_SECCION_ACTIVA, sec);
   }
+  requestAnimationFrame(() => {
+    const activeSection = document.querySelector(".main-content:not(.hidden)");
+    if (activeSection) activeSection.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  });
 }
 
 function hayBorradorMensajeProfesor() {
@@ -9209,7 +9214,7 @@ function programarLimpiezaDisponibilidadExamen() {
   }, 5000);
 }
 
-async function renderExamAccessPanel({ fetchServer = false } = {}) {
+async function renderExamAccessPanel({ fetchServer = false, showSummary = false, fillForm = false } = {}) {
   const classSelect = document.getElementById("examAccessClassSelect");
   const levelSelect = document.getElementById("examAccessLevelSelect");
   const summary = document.getElementById("examAccessSummary");
@@ -9239,14 +9244,21 @@ async function renderExamAccessPanel({ fetchServer = false } = {}) {
       }
     }
   }
-  aplicarFechaHoraFormulario("examStart", config.startAt);
-  aplicarFechaHoraFormulario("examEnd", config.endAt);
-  document.getElementById("examFeedbackPublished").checked = config.feedbackPublished === true;
+  if (fillForm) {
+    aplicarFechaHoraFormulario("examStart", config.startAt);
+    aplicarFechaHoraFormulario("examEnd", config.endAt);
+    const feedback = document.getElementById("examFeedbackPublished");
+    if (feedback) feedback.checked = config.feedbackPublished === true;
+  }
   const cached = examAccessStateCache[`${classId}::${level}`];
   const state = cached || {
     status: estadoExamenDesdeConfig(config),
     serverNowLabel: "Hora oficial pendiente de sincronizar"
   };
+  if (!showSummary) {
+    summary.innerHTML = "";
+    return;
+  }
   summary.innerHTML = `
     <article class="exam-access-card ${escapeHtml(state.status || "pending")}">
       <strong>${escapeHtml(nombreExamen(level))}</strong>
@@ -9574,8 +9586,8 @@ document.getElementById("bankNivelSelect")?.addEventListener("change", renderBan
 ["examAccessClassSelect", "examAccessLevelSelect"].forEach(id => {
   document.getElementById(id)?.addEventListener("change", () => {
     cancelarLimpiezaDisponibilidadExamen();
-    limpiarMensajeDisponibilidadExamen();
-    renderExamAccessPanel({ fetchServer: true });
+    limpiarFormularioDisponibilidadExamen();
+    renderExamAccessPanel();
   });
 });
 
@@ -9621,7 +9633,7 @@ document.getElementById("btnSaveExamAccess")?.addEventListener("click", async ()
       status.textContent = `Configuración guardada. Estado: ${estadoExamenTexto(result.status)}. Retroalimentación: ${result.feedbackPublished ? "publicada" : "oculta"}.`;
       status.className = "bank-status success";
     }
-    await renderExamAccessPanel();
+    await renderExamAccessPanel({ showSummary: true });
     programarLimpiezaDisponibilidadExamen();
   } catch (err) {
     console.error(err);
