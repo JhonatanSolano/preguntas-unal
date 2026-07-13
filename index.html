@@ -10,7 +10,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="style.css?v=20260712-02" />
+  <link rel="stylesheet" href="style.css?v=20260712-03" />
 </head>
 <body class="group-locked">
   <div class="welcome-splash hidden" id="welcomeSplash" aria-live="polite">
@@ -1595,6 +1595,29 @@
           <p class="bank-status" id="bankStatus"></p>
         </details>
         <details class="accordion-card">
+          <summary>Disponibilidad y retroalimentación</summary>
+          <p>Programa cuándo se abre cada examen y decide cuándo publicar la retroalimentación para el aula seleccionada.</p>
+          <div class="bank-grid">
+            <label>Aula<select id="examAccessClassSelect" class="admin-input"></select></label>
+            <label>Examen<select id="examAccessLevelSelect" class="admin-input"><option value="diagnostico">Diagnóstico</option><option value="nivel1">Nivel Medio</option><option value="examen">Examen Final</option></select></label>
+          </div>
+          <div class="bank-grid schedule-grid">
+            <label>Fecha de inicio<input type="date" id="examStartDate" class="admin-input" /></label>
+            <label>Hora de inicio<input type="time" id="examStartTime" class="admin-input" /></label>
+            <label>Inicio<select id="examStartPeriod" class="admin-input"><option value="AM">a.m.</option><option value="PM">p.m.</option></select></label>
+            <label>Fecha de cierre<input type="date" id="examEndDate" class="admin-input" /></label>
+            <label>Hora de cierre<input type="time" id="examEndTime" class="admin-input" /></label>
+            <label>Cierre<select id="examEndPeriod" class="admin-input"><option value="AM">a.m.</option><option value="PM">p.m.</option></select></label>
+          </div>
+          <label class="check-row">
+            <input type="checkbox" id="examFeedbackPublished" />
+            <span>Publicar retroalimentación para estudiantes que ya presentaron este examen</span>
+          </label>
+          <div class="exam-access-summary" id="examAccessSummary"></div>
+          <button class="btn btn-secondary" id="btnSaveExamAccess" type="button">Guardar disponibilidad</button>
+          <p class="bank-status" id="examAccessStatus"></p>
+        </details>
+        <details class="accordion-card">
           <summary>Registrar estudiantes</summary>
           <p>Ingresa correos separados por coma, espacio o salto de línea. Cada correo quedará asociado al aula elegida.</p>
           <textarea id="bulkStudentEmails" class="admin-input" rows="5" placeholder="correo1@gmail.com&#10;correo2@gmail.com"></textarea>
@@ -1993,6 +2016,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260712-03"></script>
+  <script type="module" src="script.js?v=20260712-04"></script>
 </body>
 </html>

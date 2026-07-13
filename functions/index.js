@@ -938,3 +938,162 @@ exports.deleteInstitutionDeep = onRequest({ region: "us-central1" }, async (req,
 
   return res.status(200).json({ ok: true, deleted, authUsersQueued: authUids.size });
 });
+
+function colombiaNow() {
+  const now = new Date();
+  return {
+    date: now,
+    iso: now.toISOString(),
+    label: new Intl.DateTimeFormat("es-CO", {
+      timeZone: "America/Bogota",
+      dateStyle: "medium",
+      timeStyle: "short",
+      hour12: true
+    }).format(now)
+  };
+}
+
+function normalizeExamLevel(level) {
+  const value = String(level || "").trim();
+  return ["diagnostico", "nivel1", "examen"].includes(value) ? value : "";
+}
+
+function toMillisDate(value) {
+  if (!value) return null;
+  if (typeof value.toMillis === "function") return value.toMillis();
+  const millis = new Date(value).getTime();
+  return Number.isFinite(millis) ? millis : null;
+}
+
+function examAccessStatus(config = {}, nowMs = Date.now()) {
+  const startMs = toMillisDate(config.startAt);
+  const endMs = toMillisDate(config.endAt);
+  if (startMs && nowMs < startMs) return "scheduled";
+  if (endMs && nowMs > endMs) return "closed";
+  return "available";
+}
+
+function publicExamState(config = {}, nowInfo = colombiaNow()) {
+  const nowMs = nowInfo.date.getTime();
+  const status = examAccessStatus(config, nowMs);
+  return {
+    status,
+    available: status === "available",
+    feedbackPublished: config.feedbackPublished === true,
+    startAt: config.startAt || "",
+    endAt: config.endAt || "",
+    updatedAt: config.updatedAt || "",
+    serverNow: nowInfo.iso,
+    serverNowLabel: nowInfo.label
+  };
+}
+
+exports.getExamAccessState = onRequest({ region: "us-central1" }, async (req, res) => {
+  setCors(res);
+  if (req.method === "OPTIONS") return res.status(204).send("");
+  if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
+
+  let decoded;
+  try {
+    decoded = await requireAuth(req);
+  } catch {
+    return res.status(401).json({ error: "Debes iniciar sesión." });
+  }
+
+  const classId = String(req.body?.classId || "").trim();
+  const level = normalizeExamLevel(req.body?.level);
+  if (!classId || !level) return res.status(400).json({ error: "Faltan aula o examen." });
+
+  const db = admin.firestore();
+  const [permissionSnap, classSnap, userSnap] = await Promise.all([
+    db.collection("classPermissions").doc(classId).get(),
+    db.collection("classes").doc(classId).get(),
+    db.collection("users").doc(decoded.uid).get()
+  ]);
+
+  if (!classSnap.exists) return res.status(404).json({ error: "Aula no encontrada." });
+  const classData = classSnap.data() || {};
+  const userData = userSnap.exists ? userSnap.data() : {};
+  const isTeacherOwner = classData.ownerUid === decoded.uid;
+  const isStudentInClass = userData.classId === classId || userData.claseId === classId || userData.aulaId === classId;
+  const isPlatformOwner = String(decoded.email || "").toLowerCase() === "solanojhonatan2000@gmail.com";
+  if (!isPlatformOwner && !isTeacherOwner && !isStudentInClass) {
+    return res.status(403).json({ error: "No tienes acceso a esta aula." });
+  }
+
+  const permissions = permissionSnap.exists ? permissionSnap.data() : {};
+  const config = permissions.examSettings?.[level] || {};
+  return res.status(200).json({
+    ok: true,
+    classId,
+    level,
+    ...publicExamState(config, colombiaNow())
+  });
+});
+
+exports.updateExamAccessConfig = onRequest({ region: "us-central1" }, async (req, res) => {
+  setCors(res);
+  if (req.method === "OPTIONS") return res.status(204).send("");
+  if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
+
+  let decoded;
+  try {
+    decoded = await requireAuth(req);
+  } catch {
+    return res.status(401).json({ error: "Debes iniciar sesión." });
+  }
+
+  const classId = String(req.body?.classId || "").trim();
+  const level = normalizeExamLevel(req.body?.level);
+  if (!classId || !level) return res.status(400).json({ error: "Faltan aula o examen." });
+
+  const startAt = String(req.body?.startAt || "").trim();
+  const endAt = String(req.body?.endAt || "").trim();
+  const feedbackPublished = req.body?.feedbackPublished === true;
+  const startMs = startAt ? new Date(startAt).getTime() : null;
+  const endMs = endAt ? new Date(endAt).getTime() : null;
+  if (startAt && !Number.isFinite(startMs)) return res.status(400).json({ error: "Fecha de inicio inválida." });
+  if (endAt && !Number.isFinite(endMs)) return res.status(400).json({ error: "Fecha de cierre inválida." });
+  if (startMs && endMs && endMs <= startMs) {
+    return res.status(400).json({ error: "La fecha de cierre debe ser posterior a la fecha de inicio." });
+  }
+
+  const db = admin.firestore();
+  const classSnap = await db.collection("classes").doc(classId).get();
+  if (!classSnap.exists) return res.status(404).json({ error: "Aula no encontrada." });
+  const classData = classSnap.data() || {};
+  const callerEmail = String(decoded.email || "").toLowerCase();
+  const isPlatformOwner = callerEmail === "solanojhonatan2000@gmail.com";
+  if (!isPlatformOwner && classData.ownerUid !== decoded.uid) {
+    return res.status(403).json({ error: "Solo el profesor dueño del aula puede configurar el examen." });
+  }
+
+  const permissionRef = db.collection("classPermissions").doc(classId);
+  const nextConfig = {
+    startAt: startAt || "",
+    endAt: endAt || "",
+    feedbackPublished,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    updatedByUid: decoded.uid,
+    updatedByEmail: callerEmail
+  };
+  await permissionRef.set({
+    classId,
+    ownerUid: classData.ownerUid || decoded.uid,
+    className: classData.name || "",
+    institutionDane: classData.institutionDane || "",
+    examSettings: {
+      [level]: nextConfig
+    },
+    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+  }, { merge: true });
+
+  const savedSnap = await permissionRef.get();
+  const saved = savedSnap.data()?.examSettings?.[level] || nextConfig;
+  return res.status(200).json({
+    ok: true,
+    classId,
+    level,
+    ...publicExamState(saved, colombiaNow())
+  });
+});

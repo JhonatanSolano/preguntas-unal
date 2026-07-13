@@ -62,6 +62,8 @@ const APP_CONFIG = {
   passwordResetEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/sendPasswordResetEmailCustom",
   emailVerificationEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/sendEmailVerificationCustom",
   deepDeleteEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/deleteInstitutionDeep",
+  examAccessEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/getExamAccessState",
+  examAccessUpdateEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/updateExamAccessConfig",
   payments: {
     provider: "Wompi",
     checkoutReady: false,
@@ -1380,14 +1382,45 @@ function aplicarVisibilidadResultadoIntento(clave, sectionId, retryButtonId) {
   const section = document.getElementById(sectionId);
   if (!section) return;
   const usados = intentosUsados(clave);
-  const esPrimerIntento = usados === 1;
+  if (!usados) return;
+  const feedbackPublicado = retroalimentacionPublicada(clave);
+  const esPrimerIntento = usados === 1 && !feedbackPublicado;
   const intentosAgotados = usados >= 2;
   section.classList.toggle("first-attempt-result", esPrimerIntento);
+  section.classList.toggle("feedback-locked-result", !feedbackPublicado);
+  renderAvisoRetroalimentacion(section, clave, feedbackPublicado);
 
   const retryButton = document.getElementById(retryButtonId);
   if (!retryButton) return;
   retryButton.hidden = intentosAgotados;
   retryButton.textContent = esPrimerIntento ? "↺ Hacer último intento (2 de 2)" : "↺ Hacer intento";
+}
+
+function retroalimentacionPublicada(clave) {
+  if (modoAdmin) return true;
+  if (!grupoActivo) return false;
+  const cached = examAccessStateCache[`${grupoActivo}::${clave}`];
+  if (cached) return cached.feedbackPublished === true;
+  return normalizarExamSettings(examSettingsGrupo[grupoActivo] || {})[clave]?.feedbackPublished === true;
+}
+
+function renderAvisoRetroalimentacion(section, clave, publicada) {
+  let aviso = section.querySelector("[data-feedback-pending]");
+  if (publicada) {
+    aviso?.remove();
+    return;
+  }
+  if (!aviso) {
+    aviso = document.createElement("div");
+    aviso.dataset.feedbackPending = "true";
+    aviso.className = "feedback-pending-card";
+    const target = section.querySelector(".result-actions") || section.firstElementChild;
+    section.insertBefore(aviso, target || null);
+  }
+  aviso.innerHTML = `
+    <strong>Retroalimentación pendiente de publicación</strong>
+    <p>Tu resultado general ya está guardado. Las respuestas correctas, explicaciones y soluciones aparecerán cuando el profesor publique la retroalimentación de ${escapeHtml(nombreExamen(clave))} para tu aula.</p>
+  `;
 }
 
 function iniciarIntentoActivo(tipo, clave, total) {
@@ -2197,10 +2230,25 @@ function renderExamenesHub() {
       : "Elige el examen que vas a presentar o revisar.";
   }
   document.querySelectorAll("[data-go-exam]").forEach(btn => {
-    const bloqueadoGratis = tienePruebaDiagnosticoGratis() && btn.dataset.goExam !== "diagnostico";
-    btn.disabled = sinAula || bloqueadoGratis;
-    btn.classList.toggle("disabled", sinAula || bloqueadoGratis);
-    btn.title = bloqueadoGratis ? "Disponible con Plan Premium." : "";
+    const clave = btn.dataset.goExam;
+    const bloqueadoGratis = tienePruebaDiagnosticoGratis() && clave !== "diagnostico";
+    const config = normalizarExamSettings(examSettingsGrupo[grupoActivo] || {})[clave] || {};
+    const estado = estadoExamenDesdeConfig(config);
+    const noDisponible = !bloqueadoGratis && !sinAula && estado !== "available";
+    btn.disabled = sinAula || bloqueadoGratis || noDisponible;
+    btn.classList.toggle("disabled", sinAula || bloqueadoGratis || noDisponible);
+    btn.title = bloqueadoGratis ? "Disponible con Plan Premium." : noDisponible ? estadoExamenTexto(estado) : "";
+    let badge = btn.querySelector(".exam-status-badge");
+    if (!badge) {
+      badge = document.createElement("small");
+      badge.className = "exam-status-badge";
+      btn.appendChild(badge);
+    }
+    badge.textContent = sinAula
+      ? "Sin aula"
+      : bloqueadoGratis
+      ? "Premium"
+      : estadoExamenTexto(estado);
   });
 }
 
@@ -4290,6 +4338,7 @@ document.getElementById("btnIniciarDiag").addEventListener("click", async () => 
     alert("Ya usaste los 2 intentos permitidos para el diagnóstico.");
     return;
   }
+  if (!(await validarDisponibilidadExamen("diagnostico"))) return;
   await prepararPreguntasActivas("diagnostico");
   iniciarIntentoActivo("diag", "diagnostico", PREGUNTAS.length);
   // Generar preguntas en el momento de iniciar
@@ -4500,8 +4549,15 @@ const STORAGE_PERMISOS = "preguntasUnalPermisosPorAula";
 const STORAGE_BANCOS = "preguntasUnalBancosPorAula";
 const DEFAULT_HABILITADOS = { diagnostico: true, nivel1: false, examen: false };
 const DEFAULT_BANCOS = { diagnostico: "principal", nivel1: "principal", examen: "principal" };
+const DEFAULT_EXAM_SETTINGS = {
+  diagnostico: { startAt: "", endAt: "", feedbackPublished: false },
+  nivel1: { startAt: "", endAt: "", feedbackPublished: false },
+  examen: { startAt: "", endAt: "", feedbackPublished: false }
+};
 let permisosGrupo = cargarPermisosGrupo();
 let bancosGrupo = cargarBancosGrupo();
+let examSettingsGrupo = {};
+let examAccessStateCache = {};
 let grupoActivo = localStorage.getItem(STORAGE_GRUPO) || "";
 let modoAdmin = grupoActivo === "admin";
 let adminGrupoActual = adminClaseActiva || "";
@@ -4538,6 +4594,90 @@ function guardarBancosGrupo() {
   localStorage.setItem(STORAGE_BANCOS, JSON.stringify(bancosGrupo));
 }
 
+function normalizarExamSettings(settings = {}) {
+  const normalizados = {};
+  Object.keys(DEFAULT_EXAM_SETTINGS).forEach(clave => {
+    normalizados[clave] = { ...DEFAULT_EXAM_SETTINGS[clave], ...(settings?.[clave] || {}) };
+  });
+  return normalizados;
+}
+
+async function postBackendAutenticado(endpoint, payload = {}) {
+  if (!usuarioActual) throw new Error("Debes iniciar sesión.");
+  const idToken = await usuarioActual.getIdToken();
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${idToken}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || "No fue posible completar la solicitud.");
+  return data;
+}
+
+function nombreExamen(clave) {
+  if (clave === "diagnostico") return "Diagnóstico";
+  if (clave === "nivel1") return "Nivel Medio";
+  if (clave === "examen") return "Examen Final";
+  return "Examen";
+}
+
+function estadoExamenTexto(status = "") {
+  if (status === "scheduled") return "Programado";
+  if (status === "closed") return "Finalizado";
+  if (status === "available") return "Disponible";
+  return "Sin programación";
+}
+
+function fechaHoraColombiaLabel(value = "") {
+  if (!value) return "Sin definir";
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "Sin definir";
+  return new Intl.DateTimeFormat("es-CO", {
+    timeZone: "America/Bogota",
+    dateStyle: "medium",
+    timeStyle: "short",
+    hour12: true
+  }).format(date);
+}
+
+function colombiaPartsFromIso(value = "") {
+  if (!value) return null;
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return null;
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Bogota",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true
+  }).formatToParts(date).reduce((acc, part) => {
+    acc[part.type] = part.value;
+    return acc;
+  }, {});
+  return {
+    date: `${parts.year}-${parts.month}-${parts.day}`,
+    time: `${parts.hour}:${parts.minute}`,
+    period: String(parts.dayPeriod || "AM").toUpperCase().startsWith("P") ? "PM" : "AM"
+  };
+}
+
+function isoDesdeFechaHoraColombia(dateValue, timeValue, period) {
+  if (!dateValue || !timeValue) return "";
+  const [year, month, day] = dateValue.split("-").map(Number);
+  let [hour, minute] = timeValue.split(":").map(Number);
+  if (![year, month, day, hour, minute].every(Number.isFinite)) return "";
+  if (period === "PM" && hour < 12) hour += 12;
+  if (period === "AM" && hour === 12) hour = 0;
+  const utc = Date.UTC(year, month - 1, day, hour + 5, minute, 0, 0);
+  return new Date(utc).toISOString();
+}
+
 async function guardarPermisoGrupoRemoto(grupo, examen, valor) {
   permisosGrupo[grupo] = { ...DEFAULT_HABILITADOS, ...(permisosGrupo[grupo] || {}), [examen]: valor };
   guardarPermisosGrupo();
@@ -4556,21 +4696,54 @@ async function guardarBancoGrupoRemoto(grupo, nivel, banco) {
   }, { merge: true });
 }
 
+async function consultarEstadoExamenServidor(classId, level) {
+  if (!classId || !level) return null;
+  const data = await postBackendAutenticado(APP_CONFIG.examAccessEndpoint, { classId, level });
+  examAccessStateCache[`${classId}::${level}`] = data;
+  examSettingsGrupo[classId] = {
+    ...normalizarExamSettings(examSettingsGrupo[classId] || {}),
+    [level]: {
+      startAt: data.startAt || "",
+      endAt: data.endAt || "",
+      feedbackPublished: data.feedbackPublished === true
+    }
+  };
+  return data;
+}
+
+async function guardarConfiguracionExamenServidor(payload) {
+  const data = await postBackendAutenticado(APP_CONFIG.examAccessUpdateEndpoint, payload);
+  const { classId, level } = payload;
+  examAccessStateCache[`${classId}::${level}`] = data;
+  examSettingsGrupo[classId] = {
+    ...normalizarExamSettings(examSettingsGrupo[classId] || {}),
+    [level]: {
+      startAt: data.startAt || payload.startAt || "",
+      endAt: data.endAt || payload.endAt || "",
+      feedbackPublished: data.feedbackPublished === true
+    }
+  };
+  return data;
+}
+
 async function cargarPermisosRemotos(aulas = []) {
   const permisos = {};
   const bancos = {};
+  const examSettings = {};
   const ids = [...new Set((aulas.length ? aulas : [grupoActivo]).filter(id => id && id !== "admin"))];
   await Promise.all(ids.map(async grupo => {
     const snap = await getDoc(refPermisosGrupo(grupo));
     const data = snap.exists() ? snap.data() : {};
     permisos[grupo] = { ...DEFAULT_HABILITADOS, ...(data.permisos || {}) };
     bancos[grupo] = { ...DEFAULT_BANCOS, ...(data.bancos || {}) };
+    examSettings[grupo] = normalizarExamSettings(data.examSettings || {});
     if (!snap.exists()) {
-      await setDoc(refPermisosGrupo(grupo), { permisos: permisos[grupo], bancos: bancos[grupo], updatedAt: serverTimestamp() }, { merge: true });
+      await setDoc(refPermisosGrupo(grupo), { permisos: permisos[grupo], bancos: bancos[grupo], examSettings: examSettings[grupo], updatedAt: serverTimestamp() }, { merge: true });
     }
   }));
   permisosGrupo = permisos;
   bancosGrupo = bancos;
+  examSettingsGrupo = examSettings;
   guardarPermisosGrupo();
   guardarBancosGrupo();
 }
@@ -4581,11 +4754,19 @@ function escucharPermisosGrupo(grupo) {
     const data = snap.exists() ? snap.data() : {};
     permisosGrupo[grupo] = { ...DEFAULT_HABILITADOS, ...(data.permisos || {}) };
     bancosGrupo[grupo] = { ...DEFAULT_BANCOS, ...(data.bancos || {}) };
+    examSettingsGrupo[grupo] = normalizarExamSettings(data.examSettings || {});
     guardarPermisosGrupo();
     guardarBancosGrupo();
     actualizarEstadoDiagnostico();
+    refrescarVisibilidadResultadosActuales();
     if (nivelActual) abrirNivel(nivelActual);
   });
+}
+
+function refrescarVisibilidadResultadosActuales() {
+  aplicarVisibilidadResultadoIntento("diagnostico", "resultsSection", "btnRestart");
+  aplicarVisibilidadResultadoIntento("nivel1", "resultsSectionNivel", "btnRestartNivel");
+  aplicarVisibilidadResultadoIntento("examen", "resultsSectionExamen", "btnRestartExamen");
 }
 
 function refrescarPermisosGrupo() {
@@ -4596,6 +4777,29 @@ function permisoDirecto(clave) {
   refrescarPermisosGrupo();
   if (modoAdmin) return true;
   return !!grupoActivo && !!{ ...DEFAULT_HABILITADOS, ...(permisosGrupo[grupoActivo] || {}) }[clave];
+}
+
+async function validarDisponibilidadExamen(clave) {
+  if (modoAdmin) return true;
+  if (!grupoActivo || grupoActivo === "admin") {
+    alert("Debes pertenecer a un aula para presentar este examen.");
+    return false;
+  }
+  try {
+    const state = await consultarEstadoExamenServidor(grupoActivo, clave);
+    if (state.available) return true;
+    const apertura = fechaHoraColombiaLabel(state.startAt);
+    const cierre = fechaHoraColombiaLabel(state.endAt);
+    const mensaje = state.status === "scheduled"
+      ? `${nombreExamen(clave)} aún no está disponible.\n\nApertura: ${apertura}\nHora oficial Colombia: ${state.serverNowLabel}`
+      : `${nombreExamen(clave)} ya finalizó.\n\nCierre: ${cierre}\nHora oficial Colombia: ${state.serverNowLabel}`;
+    alert(mensaje);
+    return false;
+  } catch (err) {
+    console.error("No se pudo validar disponibilidad del examen.", err);
+    alert(err.message || "No fue posible validar la disponibilidad del examen.");
+    return false;
+  }
 }
 
 function requisitoCumplido(clave) {
@@ -4875,6 +5079,7 @@ document.getElementById("btnIniciarNivel").addEventListener("click", async () =>
     alert("Ya usaste los 2 intentos permitidos para este nivel.");
     return;
   }
+  if (!(await validarDisponibilidadExamen(nivelActual))) return;
   await prepararPreguntasActivas("nivel1");
   iniciarIntentoActivo("nivel", nivelActual, PREGUNTAS_NIVELES[nivelActual].length);
   nivelIniciado = true;
@@ -5725,6 +5930,7 @@ function renderClassSelectors() {
   const bulkClass = document.getElementById("bulkStudentClass");
   const studentClass = document.getElementById("adminStudentGroupSelect");
   const metricsClass = document.getElementById("adminMetricsClassSelect");
+  const examAccessClass = document.getElementById("examAccessClassSelect");
   const options = adminClases.length
     ? adminClases.map(c => `<option value="${c.id}">${c.name} (${c.code})</option>`).join("")
     : `<option value="">Sin aulas creadas</option>`;
@@ -5746,6 +5952,11 @@ function renderClassSelectors() {
       ? `<option value="best">Mejor aula</option>${adminClases.map(c => `<option value="${c.id}">${c.name} (${c.code})</option>`).join("")}`
       : `<option value="">Sin aulas creadas</option>`;
     metricsClass.value = adminClases.some(c => c.id === current) || current === "best" ? current : "best";
+  }
+  if (examAccessClass) {
+    const current = examAccessClass.value || adminClaseActiva || "";
+    examAccessClass.innerHTML = options;
+    examAccessClass.value = adminClases.some(c => c.id === current) ? current : (adminClaseActiva || idsAulasAdmin()[0] || "");
   }
 }
 
@@ -8826,6 +9037,7 @@ function renderAdminPanel() {
     list.appendChild(row);
   });
   renderBankPanel();
+  renderExamAccessPanel();
   if (!document.getElementById("adminMetricsPanel")?.hidden) renderAdminStats();
 }
 
@@ -8840,6 +9052,72 @@ function renderBankPanel() {
   adminGrupoActual = adminClaseActiva || adminGrupoActual || idsAulasAdmin()[0] || "";
   const nivel = nivelSelect.value || "diagnostico";
   bancoSelect.value = bancosGrupo[adminGrupoActual]?.[nivel] || "principal";
+}
+
+function aplicarFechaHoraFormulario(prefix, iso = "") {
+  const parts = colombiaPartsFromIso(iso);
+  document.getElementById(`${prefix}Date`).value = parts?.date || "";
+  document.getElementById(`${prefix}Time`).value = parts?.time || "";
+  document.getElementById(`${prefix}Period`).value = parts?.period || "AM";
+}
+
+async function renderExamAccessPanel({ fetchServer = false } = {}) {
+  const classSelect = document.getElementById("examAccessClassSelect");
+  const levelSelect = document.getElementById("examAccessLevelSelect");
+  const summary = document.getElementById("examAccessSummary");
+  const statusEl = document.getElementById("examAccessStatus");
+  if (!classSelect || !levelSelect || !summary) return;
+  renderClassSelectors();
+  const classId = classSelect.value || adminClaseActiva || idsAulasAdmin()[0] || "";
+  const level = levelSelect.value || "diagnostico";
+  if (!classId) {
+    summary.innerHTML = `<p class="muted">Crea o selecciona un aula para programar exámenes.</p>`;
+    return;
+  }
+  let config = normalizarExamSettings(examSettingsGrupo[classId] || {})[level];
+  if (fetchServer) {
+    try {
+      const remote = await consultarEstadoExamenServidor(classId, level);
+      config = {
+        startAt: remote.startAt || "",
+        endAt: remote.endAt || "",
+        feedbackPublished: remote.feedbackPublished === true
+      };
+    } catch (err) {
+      console.warn("No se pudo consultar estado de examen.", err);
+      if (statusEl) {
+        statusEl.textContent = err.message || "No se pudo consultar el estado.";
+        statusEl.className = "bank-status error";
+      }
+    }
+  }
+  aplicarFechaHoraFormulario("examStart", config.startAt);
+  aplicarFechaHoraFormulario("examEnd", config.endAt);
+  document.getElementById("examFeedbackPublished").checked = config.feedbackPublished === true;
+  const cached = examAccessStateCache[`${classId}::${level}`];
+  const state = cached || {
+    status: estadoExamenDesdeConfig(config),
+    serverNowLabel: "Hora oficial pendiente de sincronizar"
+  };
+  summary.innerHTML = `
+    <article class="exam-access-card ${escapeHtml(state.status || "pending")}">
+      <strong>${escapeHtml(nombreExamen(level))}</strong>
+      <span>Estado: ${escapeHtml(estadoExamenTexto(state.status))}</span>
+      <span>Apertura: ${escapeHtml(fechaHoraColombiaLabel(config.startAt))}</span>
+      <span>Cierre: ${escapeHtml(fechaHoraColombiaLabel(config.endAt))}</span>
+      <span>Retroalimentación: ${config.feedbackPublished ? "Publicada" : "Oculta"}</span>
+      <small>Hora oficial Colombia: ${escapeHtml(state.serverNowLabel || "Sin sincronizar")}</small>
+    </article>
+  `;
+}
+
+function estadoExamenDesdeConfig(config = {}) {
+  const now = Date.now();
+  const start = config.startAt ? new Date(config.startAt).getTime() : null;
+  const end = config.endAt ? new Date(config.endAt).getTime() : null;
+  if (start && now < start) return "scheduled";
+  if (end && now > end) return "closed";
+  return "available";
 }
 
 async function renderAdminStats() {
@@ -8949,6 +9227,61 @@ document.getElementById("adminMetricsClassSelect")?.addEventListener("change", (
 });
 
 document.getElementById("bankNivelSelect")?.addEventListener("change", renderBankPanel);
+
+["examAccessClassSelect", "examAccessLevelSelect"].forEach(id => {
+  document.getElementById(id)?.addEventListener("change", () => {
+    renderExamAccessPanel({ fetchServer: true });
+  });
+});
+
+document.getElementById("btnSaveExamAccess")?.addEventListener("click", async () => {
+  const classId = document.getElementById("examAccessClassSelect")?.value || adminClaseActiva || adminGrupoActual;
+  const level = document.getElementById("examAccessLevelSelect")?.value || "diagnostico";
+  const status = document.getElementById("examAccessStatus");
+  const startAt = isoDesdeFechaHoraColombia(
+    document.getElementById("examStartDate")?.value,
+    document.getElementById("examStartTime")?.value,
+    document.getElementById("examStartPeriod")?.value
+  );
+  const endAt = isoDesdeFechaHoraColombia(
+    document.getElementById("examEndDate")?.value,
+    document.getElementById("examEndTime")?.value,
+    document.getElementById("examEndPeriod")?.value
+  );
+  const feedbackPublished = document.getElementById("examFeedbackPublished")?.checked === true;
+  if (!classId) {
+    if (status) {
+      status.textContent = "Primero crea o selecciona un aula.";
+      status.className = "bank-status error";
+    }
+    return;
+  }
+  if (startAt && endAt && new Date(endAt).getTime() <= new Date(startAt).getTime()) {
+    if (status) {
+      status.textContent = "La fecha de cierre debe ser posterior a la fecha de inicio.";
+      status.className = "bank-status error";
+    }
+    return;
+  }
+  if (status) {
+    status.textContent = "Guardando disponibilidad...";
+    status.className = "bank-status";
+  }
+  try {
+    const result = await guardarConfiguracionExamenServidor({ classId, level, startAt, endAt, feedbackPublished });
+    if (status) {
+      status.textContent = `Configuración guardada. Estado: ${estadoExamenTexto(result.status)}. Retroalimentación: ${result.feedbackPublished ? "publicada" : "oculta"}.`;
+      status.className = "bank-status success";
+    }
+    await renderExamAccessPanel();
+  } catch (err) {
+    console.error(err);
+    if (status) {
+      status.textContent = err.message || "No se pudo guardar la configuración.";
+      status.className = "bank-status error";
+    }
+  }
+});
 
 document.getElementById("btnGuardarBanco")?.addEventListener("click", async () => {
   const grupo = adminClaseActiva || adminGrupoActual;
@@ -9073,6 +9406,7 @@ document.getElementById("btnIniciarExamen").addEventListener("click", async () =
     alert("Ya usaste los 2 intentos permitidos para el examen final.");
     return;
   }
+  if (!(await validarDisponibilidadExamen("examen"))) return;
   await prepararPreguntasActivas("examen");
   iniciarIntentoActivo("examen", "examen", PREGUNTAS_EXAMEN.length);
   examenIniciado = true;
