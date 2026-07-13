@@ -629,6 +629,7 @@ let clasePendienteIngreso = null;
 let adminClaseActiva = localStorage.getItem(STORAGE_ADMIN_CLASE) || "";
 let adminClases = [];
 let authIntent = "login";
+let examAccessCleanupTimer = null;
 
 function rolUsuario(perfil = perfilActual) {
   if (usuarioActual?.email?.toLowerCase() === ADMIN_EMAIL) return "teacher";
@@ -9156,6 +9157,41 @@ function aplicarFechaHoraFormulario(prefix, iso = "") {
   document.getElementById(`${prefix}Period`).value = parts?.period || "AM";
 }
 
+function cancelarLimpiezaDisponibilidadExamen() {
+  if (!examAccessCleanupTimer) return;
+  clearTimeout(examAccessCleanupTimer);
+  examAccessCleanupTimer = null;
+}
+
+function limpiarMensajeDisponibilidadExamen() {
+  const status = document.getElementById("examAccessStatus");
+  if (!status) return;
+  status.textContent = "";
+  status.className = "bank-status";
+}
+
+function limpiarFormularioDisponibilidadExamen() {
+  ["examStartDate", "examStartTime", "examEndDate", "examEndTime"].forEach(id => {
+    const input = document.getElementById(id);
+    if (input) input.value = "";
+  });
+  ["examStartPeriod", "examEndPeriod"].forEach(id => {
+    const select = document.getElementById(id);
+    if (select) select.value = "AM";
+  });
+  const feedback = document.getElementById("examFeedbackPublished");
+  if (feedback) feedback.checked = false;
+  limpiarMensajeDisponibilidadExamen();
+}
+
+function programarLimpiezaDisponibilidadExamen() {
+  cancelarLimpiezaDisponibilidadExamen();
+  examAccessCleanupTimer = setTimeout(() => {
+    limpiarFormularioDisponibilidadExamen();
+    examAccessCleanupTimer = null;
+  }, 5000);
+}
+
 async function renderExamAccessPanel({ fetchServer = false } = {}) {
   const classSelect = document.getElementById("examAccessClassSelect");
   const levelSelect = document.getElementById("examAccessLevelSelect");
@@ -9325,6 +9361,8 @@ document.getElementById("bankNivelSelect")?.addEventListener("change", renderBan
 
 ["examAccessClassSelect", "examAccessLevelSelect"].forEach(id => {
   document.getElementById(id)?.addEventListener("change", () => {
+    cancelarLimpiezaDisponibilidadExamen();
+    limpiarMensajeDisponibilidadExamen();
     renderExamAccessPanel({ fetchServer: true });
   });
 });
@@ -9358,6 +9396,9 @@ document.getElementById("btnSaveExamAccess")?.addEventListener("click", async ()
     }
     return;
   }
+  const confirmado = confirm("¿Está seguro de guardar estos cambios de disponibilidad y retroalimentación? Esta acción actualizará la programación del examen para el aula seleccionada.");
+  if (!confirmado) return;
+  cancelarLimpiezaDisponibilidadExamen();
   if (status) {
     status.textContent = "Guardando disponibilidad...";
     status.className = "bank-status";
@@ -9369,6 +9410,7 @@ document.getElementById("btnSaveExamAccess")?.addEventListener("click", async ()
       status.className = "bank-status success";
     }
     await renderExamAccessPanel();
+    programarLimpiezaDisponibilidadExamen();
   } catch (err) {
     console.error(err);
     if (status) {
