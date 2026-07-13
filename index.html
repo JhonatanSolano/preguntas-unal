@@ -10,7 +10,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="style.css?v=20260712-03" />
+  <link rel="stylesheet" href="style.css?v=20260713-01" />
 </head>
 <body class="group-locked">
   <div class="welcome-splash hidden" id="welcomeSplash" aria-live="polite">
@@ -684,6 +684,7 @@
     <button class="drawer-link" data-section="examenes" type="button">Exámenes</button>
     <button class="drawer-link student-only" data-section="estadisticas" type="button">Estadísticas</button>
     <button class="drawer-link admin-only" data-section="adminMetricas" type="button">Métricas y estadísticas</button>
+    <button class="drawer-link admin-only" data-section="reportes" type="button">Reportes</button>
     <button class="drawer-link" data-section="mensajes" type="button">Mensajes</button>
     <button class="drawer-link" data-section="asesorIA" type="button">Asesor IA</button>
     <button class="drawer-link" data-section="suscripcion" type="button">Suscripción</button>
@@ -1604,10 +1605,8 @@
           <div class="bank-grid schedule-grid">
             <label>Fecha de inicio<input type="date" id="examStartDate" class="admin-input" /></label>
             <label>Hora de inicio<input type="time" id="examStartTime" class="admin-input" /></label>
-            <label>Inicio<select id="examStartPeriod" class="admin-input"><option value="AM">a.m.</option><option value="PM">p.m.</option></select></label>
             <label>Fecha de cierre<input type="date" id="examEndDate" class="admin-input" /></label>
             <label>Hora de cierre<input type="time" id="examEndTime" class="admin-input" /></label>
-            <label>Cierre<select id="examEndPeriod" class="admin-input"><option value="AM">a.m.</option><option value="PM">p.m.</option></select></label>
           </div>
           <label class="check-row">
             <input type="checkbox" id="examFeedbackPublished" />
@@ -1727,6 +1726,56 @@
           </select>
         </label>
         <div class="stats-grid" id="adminStats"></div>
+      </section>
+    </div>
+  </main>
+
+  <main class="main-content hidden" id="sectionReportes">
+    <div class="start-screen admin-panel report-panel">
+      <span class="cs-icon">📋</span>
+      <h2>Reportes académicos</h2>
+      <p>Consulta y descarga el rendimiento oficial de tus estudiantes por aula y tipo de examen.</p>
+      <section class="report-shell">
+        <div class="bank-grid">
+          <label>Aula<select id="reportClassSelect" class="admin-input"></select></label>
+          <label>Tipo de examen
+            <select id="reportExamSelect" class="admin-input">
+              <option value="diagnostico">Diagnóstico</option>
+              <option value="nivel1">Nivel Medio</option>
+              <option value="examen">Examen Final</option>
+            </select>
+          </label>
+        </div>
+        <div class="report-actions">
+          <input type="search" id="reportSearchInput" class="admin-input" placeholder="Buscar estudiante, correo o aula" />
+          <button class="btn btn-outline" id="btnLoadReport" type="button">Consultar reporte</button>
+          <button class="btn btn-secondary" id="btnDownloadReport" type="button" disabled>Descargar reporte</button>
+        </div>
+        <p class="bank-status" id="reportStatus"></p>
+        <div class="report-table-wrap">
+          <table class="summary-table report-table">
+            <thead>
+              <tr>
+                <th data-report-sort="studentName">Estudiante</th>
+                <th data-report-sort="email">Correo</th>
+                <th data-report-sort="className">Aula</th>
+                <th data-report-sort="examName">Examen</th>
+                <th data-report-sort="correctas">Correctas</th>
+                <th data-report-sort="incorrectas">Incorrectas</th>
+                <th data-report-sort="segundosPorPregunta">Seg/preg.</th>
+                <th data-report-sort="tiempoTotalSegundos">Tiempo total</th>
+                <th data-report-sort="nota">Nota</th>
+                <th data-report-sort="presentedAtMs">Presentación</th>
+              </tr>
+            </thead>
+            <tbody id="reportTableBody"></tbody>
+          </table>
+        </div>
+        <div class="report-pagination">
+          <button class="btn btn-outline" id="btnReportPrev" type="button">Anterior</button>
+          <span id="reportPageInfo">Página 1 de 1</span>
+          <button class="btn btn-outline" id="btnReportNext" type="button">Siguiente</button>
+        </div>
       </section>
     </div>
   </main>
@@ -2016,6 +2065,7 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260713-02"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script type="module" src="script.js?v=20260713-03"></script>
 </body>
 </html>

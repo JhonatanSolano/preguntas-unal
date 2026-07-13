@@ -3147,6 +3147,60 @@ button.message-avatar {
 .tag-ok  { color: var(--c-green); font-weight: 700; }
 .tag-bad { color: var(--c-red);   font-weight: 700; }
 
+.report-panel {
+  max-width: 1180px;
+}
+
+.report-shell {
+  width: 100%;
+  display: grid;
+  gap: 1rem;
+  text-align: left;
+}
+
+.report-actions {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto auto;
+  gap: .85rem;
+  align-items: center;
+}
+
+.report-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-md);
+  background: var(--c-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.report-table {
+  min-width: 1120px;
+}
+
+.report-table th {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.report-table td {
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+.report-table small {
+  color: var(--c-muted);
+}
+
+.report-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .9rem;
+  flex-wrap: wrap;
+}
+
 /* ══════════════════════════════════
    RETROALIMENTACIÓN
 ══════════════════════════════════ */
@@ -6056,6 +6110,15 @@ body:not(.group-locked) .main-content:not(.hidden)::-webkit-scrollbar-thumb {
   .billing-payment-row,
   .billing-history-row {
     grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .report-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .report-pagination .btn {
+    width: auto;
+    min-width: 120px;
   }
 
   .billing-payment-icon {

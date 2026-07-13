@@ -64,6 +64,7 @@ const APP_CONFIG = {
   deepDeleteEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/deleteInstitutionDeep",
   examAccessEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/getExamAccessState",
   examAccessUpdateEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/updateExamAccessConfig",
+  academicReportEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/getAcademicReport",
   payments: {
     provider: "Wompi",
     checkoutReady: false,
@@ -154,14 +155,18 @@ let seccionActual = "inicio";
 let historialSecciones = [];
 let historialAdelante = [];
 let savedRichSelection = null;
+let teacherReportRows = [];
+let teacherReportFiltered = [];
+let teacherReportPage = 1;
+let teacherReportSort = { key: "studentName", dir: "asc" };
 const attachmentPreviewUrls = new Map();
 const EMOJIS_MENSAJE = [
   ["😀", "feliz sonrisa alegre"], ["😃", "sonrisa feliz"], ["😄", "risa feliz"], ["😁", "sonrisa grande"], ["😆", "risa"], ["😅", "risa sudor"], ["😂", "llorando risa fuerte"], ["🤣", "carcajada llorando fuerte"], ["😭", "cara llorando fuerte"], ["😉", "guiño"], ["😘", "beso"], ["😗", "beso"], ["😙", "beso feliz"], ["😚", "beso tierno"], ["🥰", "amor cariño"], ["😍", "enamorado corazones"], ["🤩", "estrella emoción"], ["🥳", "celebración fiesta"], ["🤔", "pensando duda"], ["🙄", "ojos arriba"], ["🙂", "sonrisa suave"], ["🥲", "sonrisa lágrima"], ["🥺", "tierno triste"], ["😊", "feliz amable"], ["😌", "tranquilo"], ["😔", "triste"], ["😇", "ángel"], ["😈", "diablo"], ["⭐", "estrella"], ["👍", "bien pulgar"], ["❤️", "corazón amor"]
 ];
 const SECCIONES_ESTUDIANTE = new Set(["inicio", "perfil", "examenes", "diagnostico", "nivel1", "examen", "estadisticas", "mensajes", "asesorIA", "suscripcion", "configuracion", "facturacion", "soporte"]);
-const SECCIONES_PROFESOR = new Set(["admin", "perfil", "examenes", "adminMetricas", "mensajes", "asesorIA", "suscripcion", "configuracion", "facturacion", "soporte"]);
+const SECCIONES_PROFESOR = new Set(["admin", "perfil", "examenes", "adminMetricas", "reportes", "mensajes", "asesorIA", "suscripcion", "configuracion", "facturacion", "soporte"]);
 const SECCIONES_ESTUDIANTE_INSTITUCIONAL = new Set(["inicio", "perfil", "examenes", "diagnostico", "nivel1", "examen", "estadisticas", "mensajes", "asesorIA", "configuracion", "soporte"]);
-const SECCIONES_PROFESOR_INSTITUCIONAL = new Set(["admin", "perfil", "examenes", "adminMetricas", "mensajes", "asesorIA", "configuracion", "soporte"]);
+const SECCIONES_PROFESOR_INSTITUCIONAL = new Set(["admin", "perfil", "examenes", "adminMetricas", "reportes", "mensajes", "asesorIA", "configuracion", "soporte"]);
 const SECCIONES_INSTITUCION = new Set(["inicio", "perfil", "adminMetricas", "suscripcion", "facturacion", "configuracion", "soporte"]);
 const PHONE_CODE_DURATION_MS = 2 * 60 * 1000;
 const MAX_PROFILE_PHOTO_INPUT_MB = 12;
@@ -170,6 +175,7 @@ const PROFILE_PHOTO_MAX_SIDE = 900;
 const PROFILE_PHOTO_QUALITY = 0.82;
 const PROFILE_PHOTO_FULL_MAX_SIDE = 1800;
 const PROFILE_PHOTO_FULL_QUALITY = 0.92;
+const REPORT_PAGE_SIZE = 10;
 
 const PHONE_CODES = [
   { code: "+57", label: "Colombia (+57)", flag: "", country: "Colombia" },
@@ -1972,6 +1978,7 @@ function mostrarSeccion(sec) {
   document.getElementById("sectionConfiguracion").classList.toggle("hidden", sec !== "configuracion");
   document.getElementById("sectionAdmin").classList.toggle("hidden", sec !== "admin");
   document.getElementById("sectionAdminMetricas").classList.toggle("hidden", sec !== "adminMetricas");
+  document.getElementById("sectionReportes")?.classList.toggle("hidden", sec !== "reportes");
   document.getElementById("sectionSoporte").classList.toggle("hidden", sec !== "soporte");
   document.getElementById("sectionMensajes")?.classList.toggle("hidden", sec !== "mensajes");
   document.getElementById("sectionAsesorIA")?.classList.toggle("hidden", sec !== "asesorIA");
@@ -1986,6 +1993,7 @@ function mostrarSeccion(sec) {
   if (sec === "asesorIA") renderAsesorInfo();
   if (sec === "suscripcion") renderSubscriptionPanel();
   if (sec === "facturacion") renderBillingPanel();
+  if (sec === "reportes") renderTeacherReportsPanel();
   if (sec === "admin") renderAdminWelcome();
   if (sec === "adminMetricas") {
     document.getElementById("adminMetricsPanel").hidden = false;
@@ -6027,6 +6035,7 @@ function renderClassSelectors() {
   const studentClass = document.getElementById("adminStudentGroupSelect");
   const metricsClass = document.getElementById("adminMetricsClassSelect");
   const examAccessClass = document.getElementById("examAccessClassSelect");
+  const reportClass = document.getElementById("reportClassSelect");
   const options = adminClases.length
     ? adminClases.map(c => `<option value="${c.id}">${c.name} (${c.code})</option>`).join("")
     : `<option value="">Sin aulas creadas</option>`;
@@ -6053,6 +6062,11 @@ function renderClassSelectors() {
     const current = examAccessClass.value || adminClaseActiva || "";
     examAccessClass.innerHTML = options;
     examAccessClass.value = adminClases.some(c => c.id === current) ? current : (adminClaseActiva || idsAulasAdmin()[0] || "");
+  }
+  if (reportClass) {
+    const current = reportClass.value || adminClaseActiva || "";
+    reportClass.innerHTML = options;
+    reportClass.value = adminClases.some(c => c.id === current) ? current : (adminClaseActiva || idsAulasAdmin()[0] || "");
   }
 }
 
@@ -9154,7 +9168,8 @@ function aplicarFechaHoraFormulario(prefix, iso = "") {
   const parts = partsFromIsoUsuario(iso);
   document.getElementById(`${prefix}Date`).value = parts?.date || "";
   document.getElementById(`${prefix}Time`).value = parts?.time || "";
-  document.getElementById(`${prefix}Period`).value = parts?.period || "AM";
+  const period = document.getElementById(`${prefix}Period`);
+  if (period) period.value = parts?.period || "AM";
 }
 
 function cancelarLimpiezaDisponibilidadExamen() {
@@ -9339,6 +9354,157 @@ async function renderAdminStats() {
   cont.appendChild(card);
 }
 
+function setReportStatus(message = "", type = "") {
+  const status = document.getElementById("reportStatus");
+  if (!status) return;
+  status.textContent = message;
+  status.className = `bank-status${type ? ` ${type}` : ""}`;
+}
+
+function valorReporteComparable(row, key) {
+  const value = row?.[key];
+  if (typeof value === "number") return value;
+  return String(value || "").toLowerCase();
+}
+
+function renderTeacherReportsPanel() {
+  renderClassSelectors();
+  renderReportTable();
+}
+
+function filtrarOrdenarReporte() {
+  const search = (document.getElementById("reportSearchInput")?.value || "").trim().toLowerCase();
+  teacherReportFiltered = teacherReportRows.filter(row => {
+    if (!search) return true;
+    return [
+      row.studentName,
+      row.email,
+      row.className,
+      row.classCode,
+      row.examName
+    ].some(value => String(value || "").toLowerCase().includes(search));
+  }).sort((a, b) => {
+    const av = valorReporteComparable(a, teacherReportSort.key);
+    const bv = valorReporteComparable(b, teacherReportSort.key);
+    if (av < bv) return teacherReportSort.dir === "asc" ? -1 : 1;
+    if (av > bv) return teacherReportSort.dir === "asc" ? 1 : -1;
+    return 0;
+  });
+}
+
+function renderReportTable() {
+  const body = document.getElementById("reportTableBody");
+  const pageInfo = document.getElementById("reportPageInfo");
+  const prev = document.getElementById("btnReportPrev");
+  const next = document.getElementById("btnReportNext");
+  const download = document.getElementById("btnDownloadReport");
+  if (!body) return;
+  filtrarOrdenarReporte();
+  const totalPages = Math.max(1, Math.ceil(teacherReportFiltered.length / REPORT_PAGE_SIZE));
+  teacherReportPage = Math.min(Math.max(1, teacherReportPage), totalPages);
+  const start = (teacherReportPage - 1) * REPORT_PAGE_SIZE;
+  const rows = teacherReportFiltered.slice(start, start + REPORT_PAGE_SIZE);
+  if (!rows.length) {
+    body.innerHTML = `<tr><td colspan="10">No hay resultados para mostrar.</td></tr>`;
+  } else {
+    body.innerHTML = rows.map(row => `
+      <tr>
+        <td>${escapeHtml(row.studentName || "Sin nombre")}</td>
+        <td>${escapeHtml(row.email || "")}</td>
+        <td>${escapeHtml(row.className || "")}<br><small>${escapeHtml(row.classCode || "")}</small></td>
+        <td>${escapeHtml(row.examName || "")}</td>
+        <td>${Number(row.correctas || 0)}</td>
+        <td>${Number(row.incorrectas || 0)}</td>
+        <td>${Number(row.segundosPorPregunta || 0).toFixed(1)}</td>
+        <td>${escapeHtml(row.tiempoTotalLabel || formatTiempo(Number(row.tiempoTotalSegundos || 0)))}</td>
+        <td>${Number(row.nota || 0).toFixed(1)}</td>
+        <td>${escapeHtml(row.presentedDate || "")}<br><small>${escapeHtml(row.presentedTime || "")}</small></td>
+      </tr>
+    `).join("");
+  }
+  if (pageInfo) pageInfo.textContent = `Página ${teacherReportPage} de ${totalPages} · ${teacherReportFiltered.length} registro(s)`;
+  if (prev) prev.disabled = teacherReportPage <= 1;
+  if (next) next.disabled = teacherReportPage >= totalPages;
+  if (download) download.disabled = !teacherReportRows.length;
+}
+
+async function cargarReporteAcademico() {
+  const classId = document.getElementById("reportClassSelect")?.value || adminClaseActiva || "";
+  const level = document.getElementById("reportExamSelect")?.value || "diagnostico";
+  if (!classId) {
+    setReportStatus("Primero crea o selecciona un aula.", "error");
+    return;
+  }
+  setReportStatus("Consultando reporte oficial...", "");
+  teacherReportRows = [];
+  teacherReportFiltered = [];
+  teacherReportPage = 1;
+  renderReportTable();
+  try {
+    const data = await postBackendAutenticado(APP_CONFIG.academicReportEndpoint, {
+      classId,
+      level,
+      ...timezoneUsuarioPayload()
+    });
+    teacherReportRows = Array.isArray(data.rows) ? data.rows : [];
+    teacherReportPage = 1;
+    renderReportTable();
+    setReportStatus(teacherReportRows.length
+      ? `Reporte cargado: ${teacherReportRows.length} registro(s).`
+      : "No hay intentos registrados para esta aula y examen.", teacherReportRows.length ? "success" : "");
+  } catch (err) {
+    console.error(err);
+    setReportStatus(err.message || "No se pudo cargar el reporte.", "error");
+  }
+}
+
+function nombreArchivoSeguro(text = "") {
+  return String(text || "Reporte")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^A-Za-z0-9_-]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 80) || "Reporte";
+}
+
+function exportTeacherReportXlsx() {
+  if (!teacherReportRows.length) {
+    setReportStatus("Primero consulta un reporte con datos.", "error");
+    return;
+  }
+  if (!window.XLSX) {
+    setReportStatus("No se pudo cargar el exportador Excel. Revisa la conexión e intenta de nuevo.", "error");
+    return;
+  }
+  const rows = teacherReportRows.map(row => ({
+    "Nombre del estudiante": row.studentName || "",
+    "Correo electrónico": row.email || "",
+    "Aula": row.className || "",
+    "Código del aula": row.classCode || "",
+    "Tipo de examen": row.examName || "",
+    "Fecha de presentación": row.presentedDate || "",
+    "Hora de presentación": row.presentedTime || "",
+    "Número de preguntas": Number(row.totalQuestions || 0),
+    "Preguntas correctas": Number(row.correctas || 0),
+    "Preguntas incorrectas": Number(row.incorrectas || 0),
+    "Tiempo por pregunta (segundos)": Number(row.segundosPorPregunta || 0),
+    "Tiempo total del examen": row.tiempoTotalLabel || formatTiempo(Number(row.tiempoTotalSegundos || 0)),
+    "Nota definitiva": Number(row.nota || 0)
+  }));
+  const worksheet = window.XLSX.utils.json_to_sheet(rows);
+  worksheet["!cols"] = [
+    { wch: 28 }, { wch: 34 }, { wch: 24 }, { wch: 16 }, { wch: 18 },
+    { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 20 },
+    { wch: 28 }, { wch: 22 }, { wch: 16 }
+  ];
+  const book = window.XLSX.utils.book_new();
+  window.XLSX.utils.book_append_sheet(book, worksheet, "Reporte");
+  const first = teacherReportRows[0] || {};
+  const today = new Date().toISOString().slice(0, 10);
+  const fileName = `Reporte_${nombreArchivoSeguro(first.className)}_${nombreArchivoSeguro(first.examName)}_${today}.xlsx`;
+  window.XLSX.writeFile(book, fileName);
+}
+
 document.getElementById("adminGrupoSelect")?.addEventListener("change", (e) => {
   adminGrupoActual = e.target.value;
   renderAdminPanel();
@@ -9357,6 +9523,50 @@ document.getElementById("bankGrupoSelect")?.addEventListener("change", (e) => {
 
 document.getElementById("adminMetricsClassSelect")?.addEventListener("change", () => {
   renderAdminStats().catch(err => console.warn("No se pudieron actualizar métricas.", err));
+});
+
+document.getElementById("btnLoadReport")?.addEventListener("click", () => {
+  cargarReporteAcademico();
+});
+
+document.getElementById("btnDownloadReport")?.addEventListener("click", exportTeacherReportXlsx);
+
+document.getElementById("reportSearchInput")?.addEventListener("input", () => {
+  teacherReportPage = 1;
+  renderReportTable();
+});
+
+["reportClassSelect", "reportExamSelect"].forEach(id => {
+  document.getElementById(id)?.addEventListener("change", () => {
+    teacherReportRows = [];
+    teacherReportFiltered = [];
+    teacherReportPage = 1;
+    setReportStatus("");
+    renderReportTable();
+  });
+});
+
+document.getElementById("btnReportPrev")?.addEventListener("click", () => {
+  teacherReportPage -= 1;
+  renderReportTable();
+});
+
+document.getElementById("btnReportNext")?.addEventListener("click", () => {
+  teacherReportPage += 1;
+  renderReportTable();
+});
+
+document.querySelectorAll("[data-report-sort]").forEach(th => {
+  th.addEventListener("click", () => {
+    const key = th.dataset.reportSort;
+    if (!key) return;
+    if (teacherReportSort.key === key) {
+      teacherReportSort.dir = teacherReportSort.dir === "asc" ? "desc" : "asc";
+    } else {
+      teacherReportSort = { key, dir: "asc" };
+    }
+    renderReportTable();
+  });
 });
 
 document.getElementById("bankNivelSelect")?.addEventListener("change", renderBankPanel);

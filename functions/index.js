@@ -1177,3 +1177,187 @@ exports.updateExamAccessConfig = onRequest({ region: "us-central1" }, async (req
     ...publicExamState(saved, nowInfo, timezoneConfig)
   });
 });
+
+function examLevelName(level = "") {
+  if (level === "diagnostico") return "Diagnóstico";
+  if (level === "nivel1") return "Nivel Medio";
+  if (level === "examen") return "Examen Final";
+  return String(level || "Examen");
+}
+
+function baseResultKey(key = "") {
+  const value = String(key || "");
+  return value.includes("::") ? value.split("::").pop() : value;
+}
+
+function shouldUseResultKey(resultados = {}, key = "", level = "") {
+  if (baseResultKey(key) !== level) return false;
+  if (!String(key).includes("::") && resultados[`principal::${level}`]) return false;
+  return true;
+}
+
+function formatSeconds(totalSeconds = 0) {
+  const total = Math.max(0, Math.round(Number(totalSeconds) || 0));
+  const minutes = Math.floor(total / 60);
+  const seconds = total % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
+function attemptMetrics(level = "", attempt = {}) {
+  const answerKey = Array.isArray(attempt.answerKey) ? attempt.answerKey : [];
+  const snapshot = Array.isArray(attempt.questionSnapshot) ? attempt.questionSnapshot : [];
+  const total = Number(attempt.total || answerKey.length || snapshot.length || (level === "diagnostico" ? 15 : 10));
+  const respuestas = Array.isArray(attempt.respuestas) ? attempt.respuestas : [];
+  const correctas = answerKey.length
+    ? answerKey.reduce((acc, correct, index) => acc + (respuestas[index] === correct ? 1 : 0), 0)
+    : 0;
+  const incorrectas = Math.max(0, total - correctas);
+  const tiempoRestante = Math.max(0, Number(attempt.restante || 0));
+  const tiempoTotalSegundos = Math.max(0, 15 * 60 - tiempoRestante);
+  const pct = total ? Math.round((correctas / total) * 100) : 0;
+  const nota = Math.round((pct / 100 * 5) * 10) / 10;
+  return {
+    totalQuestions: total,
+    correctas,
+    incorrectas,
+    tiempoTotalSegundos,
+    tiempoTotalLabel: formatSeconds(tiempoTotalSegundos),
+    segundosPorPregunta: total ? tiempoTotalSegundos / total : 0,
+    nota
+  };
+}
+
+function attemptPresentedMillis(attempt = {}) {
+  return toMillisDate(attempt.guardado) ||
+    toMillisDate(attempt.presentedAt) ||
+    toMillisDate(attempt.createdAt) ||
+    toMillisDate(attempt.updatedAt) ||
+    null;
+}
+
+function formatReportDateParts(ms, timezoneConfig = COUNTRY_TIMEZONES.CO) {
+  if (!ms) return { date: "", time: "" };
+  const date = new Date(ms);
+  return {
+    date: new Intl.DateTimeFormat("es-CO", {
+      timeZone: timezoneConfig.timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit"
+    }).format(date),
+    time: new Intl.DateTimeFormat("es-CO", {
+      timeZone: timezoneConfig.timeZone,
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true
+    }).format(date)
+  };
+}
+
+exports.getAcademicReport = onRequest({ region: "us-central1" }, async (req, res) => {
+  setCors(res);
+  if (req.method === "OPTIONS") return res.status(204).send("");
+  if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
+
+  let decoded;
+  try {
+    decoded = await requireAuth(req);
+  } catch {
+    return res.status(401).json({ error: "Debes iniciar sesión." });
+  }
+
+  const classId = String(req.body?.classId || "").trim();
+  const level = normalizeExamLevel(req.body?.level);
+  if (!classId || !level) return res.status(400).json({ error: "Faltan aula o examen." });
+
+  const db = admin.firestore();
+  const [classSnap, userSnap] = await Promise.all([
+    db.collection("classes").doc(classId).get(),
+    db.collection("users").doc(decoded.uid).get()
+  ]);
+  if (!classSnap.exists) return res.status(404).json({ error: "Aula no encontrada." });
+
+  const classData = classSnap.data() || {};
+  const callerEmail = String(decoded.email || "").toLowerCase();
+  const isPlatformOwner = callerEmail === "solanojhonatan2000@gmail.com";
+  if (!isPlatformOwner && classData.ownerUid !== decoded.uid) {
+    return res.status(403).json({ error: "Solo el profesor propietario del aula puede consultar este reporte." });
+  }
+
+  const userData = userSnap.exists ? userSnap.data() : {};
+  const timezoneConfig = timezoneConfigFromProfile(userData, req.body || {});
+  const [membersSnap, aulaStatesSnap, classStatesSnap] = await Promise.all([
+    db.collection("classStudents").where("classId", "==", classId).get(),
+    db.collection("studentState").where("aulaId", "==", classId).get(),
+    db.collection("studentState").where("claseId", "==", classId).get()
+  ]);
+
+  const states = new Map();
+  [...aulaStatesSnap.docs, ...classStatesSnap.docs].forEach(docSnap => {
+    states.set(docSnap.id, { id: docSnap.id, ...docSnap.data() });
+  });
+
+  const members = new Map();
+  membersSnap.docs.forEach(docSnap => {
+    const data = docSnap.data() || {};
+    const key = data.userUid || data.uid || data.email || docSnap.id;
+    members.set(String(key), { id: docSnap.id, ...data });
+  });
+  states.forEach(state => {
+    const key = state.uid || state.userUid || state.email || state.id;
+    if (!members.has(String(key))) {
+      members.set(String(key), {
+        id: state.id,
+        userUid: state.uid || state.userUid || state.id,
+        email: state.email || "",
+        name: state.name || state.displayName || state.username || ""
+      });
+    }
+  });
+
+  const rows = [];
+  for (const member of members.values()) {
+    const memberUid = member.userUid || member.uid || member.id;
+    const state = states.get(memberUid) ||
+      [...states.values()].find(item => item.email && member.email && String(item.email).toLowerCase() === String(member.email).toLowerCase()) ||
+      {};
+    const resultados = state.resultados || {};
+    Object.entries(resultados).forEach(([key, value]) => {
+      if (!shouldUseResultKey(resultados, key, level)) return;
+      const attempts = Array.isArray(value?.intentos) ? value.intentos : [];
+      attempts.forEach((attempt, index) => {
+        const metrics = attemptMetrics(level, attempt);
+        const presentedAtMs = attemptPresentedMillis(attempt);
+        const parts = formatReportDateParts(presentedAtMs, timezoneConfig);
+        rows.push({
+          studentUid: memberUid || state.uid || state.userUid || "",
+          studentName: member.name || state.name || state.displayName || state.username || "Sin nombre",
+          email: member.email || state.email || "",
+          classId,
+          className: classData.name || classData.className || "Aula",
+          classCode: classData.code || "",
+          examType: level,
+          examName: examLevelName(level),
+          attemptNumber: index + 1,
+          presentedAt: presentedAtMs ? new Date(presentedAtMs).toISOString() : "",
+          presentedAtMs: presentedAtMs || 0,
+          presentedDate: parts.date,
+          presentedTime: parts.time,
+          ...metrics
+        });
+      });
+    });
+  }
+
+  rows.sort((a, b) => String(a.studentName).localeCompare(String(b.studentName), "es") || a.presentedAtMs - b.presentedAtMs);
+  return res.status(200).json({
+    ok: true,
+    classId,
+    className: classData.name || "",
+    classCode: classData.code || "",
+    level,
+    examName: examLevelName(level),
+    generatedAt: new Date().toISOString(),
+    rows
+  });
+});
