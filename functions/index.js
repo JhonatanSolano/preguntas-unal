@@ -939,13 +939,82 @@ exports.deleteInstitutionDeep = onRequest({ region: "us-central1" }, async (req,
   return res.status(200).json({ ok: true, deleted, authUsersQueued: authUids.size });
 });
 
-function colombiaNow() {
+const COUNTRY_TIMEZONES = {
+  CO: {
+    countryCode: "CO",
+    countryNames: ["colombia"],
+    label: "Colombia",
+    timeZone: "America/Bogota",
+    offsetMinutes: -300
+  },
+  VE: {
+    countryCode: "VE",
+    countryNames: ["venezuela"],
+    label: "Venezuela",
+    timeZone: "America/Caracas",
+    offsetMinutes: -240
+  }
+};
+
+function normalizeTimezoneText(value = "") {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+}
+
+function timezoneConfigFromProfile(profile = {}, fallback = {}) {
+  const candidates = [
+    profile.timeZone,
+    fallback.timeZone,
+    profile.countryCode,
+    profile.countryId,
+    profile.countryIso2,
+    profile.countryName,
+    profile.country,
+    profile.pais,
+    profile.institutionCountryCode,
+    profile.institutionCountryId,
+    profile.institutionCountryName,
+    fallback.countryCode,
+    fallback.countryId,
+    fallback.countryName,
+    fallback.country
+  ].filter(Boolean);
+
+  const explicitTimeZone = candidates.find(value => String(value).includes("/") && /^[A-Za-z_/-]+$/.test(String(value)));
+  if (explicitTimeZone) {
+    const known = Object.values(COUNTRY_TIMEZONES).find(item => item.timeZone === explicitTimeZone);
+    return known || {
+      countryCode: "",
+      countryNames: [],
+      label: String(explicitTimeZone).replace(/_/g, " "),
+      timeZone: String(explicitTimeZone),
+      offsetMinutes: -300
+    };
+  }
+
+  for (const raw of candidates) {
+    const value = String(raw || "").trim();
+    const upper = value.toUpperCase();
+    if (COUNTRY_TIMEZONES[upper]) return COUNTRY_TIMEZONES[upper];
+    const normalized = normalizeTimezoneText(value);
+    const match = Object.values(COUNTRY_TIMEZONES).find(item =>
+      item.countryNames.some(name => normalized === name || normalized.includes(name))
+    );
+    if (match) return match;
+  }
+  return COUNTRY_TIMEZONES.CO;
+}
+
+function zonedNow(timezoneConfig = COUNTRY_TIMEZONES.CO) {
   const now = new Date();
   return {
     date: now,
     iso: now.toISOString(),
     label: new Intl.DateTimeFormat("es-CO", {
-      timeZone: "America/Bogota",
+      timeZone: timezoneConfig.timeZone,
       dateStyle: "medium",
       timeStyle: "short",
       hour12: true
@@ -973,7 +1042,7 @@ function examAccessStatus(config = {}, nowMs = Date.now()) {
   return "available";
 }
 
-function publicExamState(config = {}, nowInfo = colombiaNow()) {
+function publicExamState(config = {}, nowInfo = zonedNow(), timezoneConfig = COUNTRY_TIMEZONES.CO) {
   const nowMs = nowInfo.date.getTime();
   const status = examAccessStatus(config, nowMs);
   return {
@@ -984,7 +1053,10 @@ function publicExamState(config = {}, nowInfo = colombiaNow()) {
     endAt: config.endAt || "",
     updatedAt: config.updatedAt || "",
     serverNow: nowInfo.iso,
-    serverNowLabel: nowInfo.label
+    serverNowLabel: nowInfo.label,
+    timeZone: timezoneConfig.timeZone,
+    timeZoneLabel: `${timezoneConfig.label} (${timezoneConfig.timeZone.replace(/_/g, " ")})`,
+    countryCode: timezoneConfig.countryCode || ""
   };
 }
 
@@ -1023,11 +1095,13 @@ exports.getExamAccessState = onRequest({ region: "us-central1" }, async (req, re
 
   const permissions = permissionSnap.exists ? permissionSnap.data() : {};
   const config = permissions.examSettings?.[level] || {};
+  const timezoneConfig = timezoneConfigFromProfile(userData, req.body || {});
+  const nowInfo = zonedNow(timezoneConfig);
   return res.status(200).json({
     ok: true,
     classId,
     level,
-    ...publicExamState(config, colombiaNow())
+    ...publicExamState(config, nowInfo, timezoneConfig)
   });
 });
 
@@ -1059,9 +1133,13 @@ exports.updateExamAccessConfig = onRequest({ region: "us-central1" }, async (req
   }
 
   const db = admin.firestore();
-  const classSnap = await db.collection("classes").doc(classId).get();
+  const [classSnap, userSnap] = await Promise.all([
+    db.collection("classes").doc(classId).get(),
+    db.collection("users").doc(decoded.uid).get()
+  ]);
   if (!classSnap.exists) return res.status(404).json({ error: "Aula no encontrada." });
   const classData = classSnap.data() || {};
+  const userData = userSnap.exists ? userSnap.data() : {};
   const callerEmail = String(decoded.email || "").toLowerCase();
   const isPlatformOwner = callerEmail === "solanojhonatan2000@gmail.com";
   if (!isPlatformOwner && classData.ownerUid !== decoded.uid) {
@@ -1090,10 +1168,12 @@ exports.updateExamAccessConfig = onRequest({ region: "us-central1" }, async (req
 
   const savedSnap = await permissionRef.get();
   const saved = savedSnap.data()?.examSettings?.[level] || nextConfig;
+  const timezoneConfig = timezoneConfigFromProfile(userData, req.body || {});
+  const nowInfo = zonedNow(timezoneConfig);
   return res.status(200).json({
     ok: true,
     classId,
     level,
-    ...publicExamState(saved, colombiaNow())
+    ...publicExamState(saved, nowInfo, timezoneConfig)
   });
 });

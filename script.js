@@ -96,6 +96,22 @@ const ADMIN_EMAIL = "solanojhonatan2000@gmail.com";
 const INDEPENDENT_CLASS_CODE = "J5AEDJ";
 const INDEPENDENT_CLASS_NAME = "Matemáticas En Tu Bolsillo";
 const SIMBOLOS_PERMITIDOS = "!@#$%^&*()_+-=[]{};:,.?";
+const TIMEZONE_BY_COUNTRY = {
+  CO: {
+    countryCode: "CO",
+    countryNames: ["colombia"],
+    label: "Colombia",
+    timeZone: "America/Bogota",
+    offsetMinutes: -300
+  },
+  VE: {
+    countryCode: "VE",
+    countryNames: ["venezuela"],
+    label: "Venezuela",
+    timeZone: "America/Caracas",
+    offsetMinutes: -240
+  }
+};
 let usuarioActual = null;
 let perfilActual = null;
 let unsubscribePermisos = null;
@@ -4632,24 +4648,94 @@ function estadoExamenTexto(status = "") {
   return "Sin programación";
 }
 
-function fechaHoraColombiaLabel(value = "") {
+function normalizarTextoZona(value = "") {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+}
+
+function timezoneConfigUsuario(perfil = perfilActual, fallback = {}) {
+  const candidates = [
+    perfil?.timeZone,
+    fallback.timeZone,
+    perfil?.countryCode,
+    perfil?.countryId,
+    perfil?.countryIso2,
+    perfil?.countryName,
+    perfil?.country,
+    perfil?.pais,
+    perfil?.institutionCountryCode,
+    perfil?.institutionCountryId,
+    perfil?.institutionCountryName,
+    fallback.countryCode,
+    fallback.countryId,
+    fallback.countryName,
+    fallback.country
+  ].filter(Boolean);
+
+  const explicitTimeZone = candidates.find(value => String(value).includes("/") && /^[A-Za-z_/-]+$/.test(String(value)));
+  if (explicitTimeZone) {
+    const known = Object.values(TIMEZONE_BY_COUNTRY).find(item => item.timeZone === explicitTimeZone);
+    return known || {
+      countryCode: "",
+      countryNames: [],
+      label: String(explicitTimeZone).replace(/_/g, " "),
+      timeZone: String(explicitTimeZone),
+      offsetMinutes: -300
+    };
+  }
+
+  for (const raw of candidates) {
+    const value = String(raw || "").trim();
+    const upper = value.toUpperCase();
+    if (TIMEZONE_BY_COUNTRY[upper]) return TIMEZONE_BY_COUNTRY[upper];
+    const normalized = normalizarTextoZona(value);
+    const match = Object.values(TIMEZONE_BY_COUNTRY).find(item =>
+      item.countryNames.some(name => normalized === name || normalized.includes(name))
+    );
+    if (match) return match;
+  }
+  return TIMEZONE_BY_COUNTRY.CO;
+}
+
+function timezoneUsuario(perfil = perfilActual, fallback = {}) {
+  return timezoneConfigUsuario(perfil, fallback).timeZone;
+}
+
+function timezoneUsuarioPayload(perfil = perfilActual) {
+  const config = timezoneConfigUsuario(perfil);
+  return {
+    timeZone: config.timeZone,
+    countryCode: config.countryCode,
+    countryName: config.label
+  };
+}
+
+function etiquetaZonaUsuario(perfil = perfilActual, fallback = {}) {
+  const config = timezoneConfigUsuario(perfil, fallback);
+  return `${config.label} (${config.timeZone.replace(/_/g, " ")})`;
+}
+
+function fechaHoraUsuarioLabel(value = "", perfil = perfilActual, fallback = {}) {
   if (!value) return "Sin definir";
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return "Sin definir";
   return new Intl.DateTimeFormat("es-CO", {
-    timeZone: "America/Bogota",
+    timeZone: timezoneUsuario(perfil, fallback),
     dateStyle: "medium",
     timeStyle: "short",
     hour12: true
   }).format(date);
 }
 
-function colombiaPartsFromIso(value = "") {
+function partsFromIsoUsuario(value = "", perfil = perfilActual, fallback = {}) {
   if (!value) return null;
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return null;
   const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Bogota",
+    timeZone: timezoneUsuario(perfil, fallback),
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -4667,14 +4753,15 @@ function colombiaPartsFromIso(value = "") {
   };
 }
 
-function isoDesdeFechaHoraColombia(dateValue, timeValue, period) {
+function isoDesdeFechaHoraUsuario(dateValue, timeValue, period, perfil = perfilActual, fallback = {}) {
   if (!dateValue || !timeValue) return "";
   const [year, month, day] = dateValue.split("-").map(Number);
   let [hour, minute] = timeValue.split(":").map(Number);
   if (![year, month, day, hour, minute].every(Number.isFinite)) return "";
   if (period === "PM" && hour < 12) hour += 12;
   if (period === "AM" && hour === 12) hour = 0;
-  const utc = Date.UTC(year, month - 1, day, hour + 5, minute, 0, 0);
+  const offsetMinutes = timezoneConfigUsuario(perfil, fallback).offsetMinutes;
+  const utc = Date.UTC(year, month - 1, day, hour, minute, 0, 0) - (offsetMinutes * 60 * 1000);
   return new Date(utc).toISOString();
 }
 
@@ -4698,7 +4785,11 @@ async function guardarBancoGrupoRemoto(grupo, nivel, banco) {
 
 async function consultarEstadoExamenServidor(classId, level) {
   if (!classId || !level) return null;
-  const data = await postBackendAutenticado(APP_CONFIG.examAccessEndpoint, { classId, level });
+  const data = await postBackendAutenticado(APP_CONFIG.examAccessEndpoint, {
+    classId,
+    level,
+    ...timezoneUsuarioPayload()
+  });
   examAccessStateCache[`${classId}::${level}`] = data;
   examSettingsGrupo[classId] = {
     ...normalizarExamSettings(examSettingsGrupo[classId] || {}),
@@ -4712,7 +4803,10 @@ async function consultarEstadoExamenServidor(classId, level) {
 }
 
 async function guardarConfiguracionExamenServidor(payload) {
-  const data = await postBackendAutenticado(APP_CONFIG.examAccessUpdateEndpoint, payload);
+  const data = await postBackendAutenticado(APP_CONFIG.examAccessUpdateEndpoint, {
+    ...payload,
+    ...timezoneUsuarioPayload()
+  });
   const { classId, level } = payload;
   examAccessStateCache[`${classId}::${level}`] = data;
   examSettingsGrupo[classId] = {
@@ -4788,11 +4882,12 @@ async function validarDisponibilidadExamen(clave) {
   try {
     const state = await consultarEstadoExamenServidor(grupoActivo, clave);
     if (state.available) return true;
-    const apertura = fechaHoraColombiaLabel(state.startAt);
-    const cierre = fechaHoraColombiaLabel(state.endAt);
+    const zona = state.timeZoneLabel || etiquetaZonaUsuario();
+    const apertura = fechaHoraUsuarioLabel(state.startAt, perfilActual, state);
+    const cierre = fechaHoraUsuarioLabel(state.endAt, perfilActual, state);
     const mensaje = state.status === "scheduled"
-      ? `${nombreExamen(clave)} aún no está disponible.\n\nApertura: ${apertura}\nHora oficial Colombia: ${state.serverNowLabel}`
-      : `${nombreExamen(clave)} ya finalizó.\n\nCierre: ${cierre}\nHora oficial Colombia: ${state.serverNowLabel}`;
+      ? `${nombreExamen(clave)} aún no está disponible.\n\nApertura: ${apertura}\nHora oficial ${zona}: ${state.serverNowLabel}`
+      : `${nombreExamen(clave)} ya finalizó.\n\nCierre: ${cierre}\nHora oficial ${zona}: ${state.serverNowLabel}`;
     alert(mensaje);
     return false;
   } catch (err) {
@@ -9055,7 +9150,7 @@ function renderBankPanel() {
 }
 
 function aplicarFechaHoraFormulario(prefix, iso = "") {
-  const parts = colombiaPartsFromIso(iso);
+  const parts = partsFromIsoUsuario(iso);
   document.getElementById(`${prefix}Date`).value = parts?.date || "";
   document.getElementById(`${prefix}Time`).value = parts?.time || "";
   document.getElementById(`${prefix}Period`).value = parts?.period || "AM";
@@ -9103,10 +9198,10 @@ async function renderExamAccessPanel({ fetchServer = false } = {}) {
     <article class="exam-access-card ${escapeHtml(state.status || "pending")}">
       <strong>${escapeHtml(nombreExamen(level))}</strong>
       <span>Estado: ${escapeHtml(estadoExamenTexto(state.status))}</span>
-      <span>Apertura: ${escapeHtml(fechaHoraColombiaLabel(config.startAt))}</span>
-      <span>Cierre: ${escapeHtml(fechaHoraColombiaLabel(config.endAt))}</span>
+      <span>Apertura: ${escapeHtml(fechaHoraUsuarioLabel(config.startAt, perfilActual, state))}</span>
+      <span>Cierre: ${escapeHtml(fechaHoraUsuarioLabel(config.endAt, perfilActual, state))}</span>
       <span>Retroalimentación: ${config.feedbackPublished ? "Publicada" : "Oculta"}</span>
-      <small>Hora oficial Colombia: ${escapeHtml(state.serverNowLabel || "Sin sincronizar")}</small>
+      <small>Hora oficial ${escapeHtml(state.timeZoneLabel || etiquetaZonaUsuario())}: ${escapeHtml(state.serverNowLabel || "Sin sincronizar")}</small>
     </article>
   `;
 }
@@ -9238,12 +9333,12 @@ document.getElementById("btnSaveExamAccess")?.addEventListener("click", async ()
   const classId = document.getElementById("examAccessClassSelect")?.value || adminClaseActiva || adminGrupoActual;
   const level = document.getElementById("examAccessLevelSelect")?.value || "diagnostico";
   const status = document.getElementById("examAccessStatus");
-  const startAt = isoDesdeFechaHoraColombia(
+  const startAt = isoDesdeFechaHoraUsuario(
     document.getElementById("examStartDate")?.value,
     document.getElementById("examStartTime")?.value,
     document.getElementById("examStartPeriod")?.value
   );
-  const endAt = isoDesdeFechaHoraColombia(
+  const endAt = isoDesdeFechaHoraUsuario(
     document.getElementById("examEndDate")?.value,
     document.getElementById("examEndTime")?.value,
     document.getElementById("examEndPeriod")?.value
