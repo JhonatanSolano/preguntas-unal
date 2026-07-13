@@ -9181,6 +9181,8 @@ function limpiarFormularioDisponibilidadExamen() {
   });
   const feedback = document.getElementById("examFeedbackPublished");
   if (feedback) feedback.checked = false;
+  const summary = document.getElementById("examAccessSummary");
+  if (summary) summary.innerHTML = "";
   limpiarMensajeDisponibilidadExamen();
 }
 
@@ -9396,7 +9398,7 @@ document.getElementById("btnSaveExamAccess")?.addEventListener("click", async ()
     }
     return;
   }
-  const confirmado = confirm("¿Está seguro de guardar estos cambios de disponibilidad y retroalimentación? Esta acción actualizará la programación del examen para el aula seleccionada.");
+  const confirmado = confirm("¿Está seguro de guardar estos cambios? Si ya existía una programación para esta misma aula y este mismo examen, será reemplazada por esta última configuración.");
   if (!confirmado) return;
   cancelarLimpiezaDisponibilidadExamen();
   if (status) {
