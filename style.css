@@ -6137,3 +6137,260 @@ body:not(.group-locked) .main-content:not(.hidden)::-webkit-scrollbar-thumb {
     object-fit: contain;
   }
 }
+
+/* ═══════════════════════════════════════════════════════
+   UX polish layer · Minimal premium system
+   Solo apariencia: no cambia lógica ni estructura.
+═══════════════════════════════════════════════════════ */
+:root {
+  --c-bg: #f6fafc;
+  --c-surface: #ffffff;
+  --c-surface-soft: #f9fdff;
+  --c-border: #d8e7ef;
+  --c-border-strong: #b9d5e3;
+  --c-navy: #043257;
+  --c-blue: #075c86;
+  --c-teal-deep: #078c98;
+  --c-cyan: #16b8b2;
+  --c-accent: #ffb547;
+  --shadow-xs: 0 1px 2px rgba(4, 50, 87, .06);
+  --shadow-sm: 0 6px 18px rgba(4, 50, 87, .08);
+  --shadow-md: 0 18px 44px rgba(4, 50, 87, .13);
+  --shadow-glow: 0 16px 36px rgba(22, 184, 178, .24);
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+}
+
+body {
+  background:
+    radial-gradient(circle at 12% 8%, rgba(22, 184, 178, .11), transparent 28rem),
+    radial-gradient(circle at 90% 12%, rgba(255, 181, 71, .10), transparent 24rem),
+    linear-gradient(180deg, #f7fbfd 0%, #eef6fa 100%);
+}
+
+body::selection {
+  background: rgba(22, 184, 178, .24);
+  color: var(--c-navy);
+}
+
+.landing-nav,
+.app-download-banner,
+.start-screen,
+.profile-panel,
+.admin-panel,
+.messages-panel,
+.billing-card,
+.subscription-heading,
+.subscription-status-card,
+.payment-carousel,
+.teacher-message-compose,
+.teacher-builder-card,
+.question-card,
+.accordion-card,
+.support-email-card,
+.report-shell {
+  border: 1px solid rgba(185, 213, 227, .82);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: saturate(1.08);
+}
+
+.landing-nav,
+.app-download-banner,
+.start-screen,
+.profile-panel,
+.admin-panel,
+.messages-panel,
+.billing-card,
+.subscription-heading,
+.subscription-status-card,
+.payment-carousel,
+.teacher-message-compose,
+.teacher-builder-card,
+.support-email-card,
+.report-shell {
+  background: rgba(255, 255, 255, .94);
+}
+
+.btn,
+.drawer-link,
+.landing-menu-link,
+.admin-input,
+button,
+input,
+select,
+textarea {
+  transition:
+    transform .18s ease,
+    box-shadow .18s ease,
+    border-color .18s ease,
+    background-color .18s ease,
+    color .18s ease,
+    opacity .18s ease;
+}
+
+.btn {
+  min-height: 44px;
+  border-radius: 999px;
+  font-weight: 850;
+  letter-spacing: .005em;
+}
+
+.btn-primary,
+.btn-secondary {
+  border: 0;
+  background: linear-gradient(135deg, var(--c-blue), var(--c-cyan));
+  color: #fff;
+  box-shadow: 0 10px 24px rgba(7, 92, 134, .22);
+}
+
+.btn-primary:hover,
+.btn-secondary:hover {
+  filter: saturate(1.05) brightness(1.03);
+  box-shadow: var(--shadow-glow);
+  transform: translateY(-1px);
+}
+
+.btn-outline {
+  border: 2px solid rgba(7, 92, 134, .82);
+  background: rgba(255, 255, 255, .72);
+  color: var(--c-blue);
+}
+
+.btn-outline:hover {
+  background: #eaf8f8;
+  border-color: var(--c-cyan);
+  color: var(--c-navy);
+}
+
+.admin-input,
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="date"],
+input[type="time"],
+input[type="search"],
+select,
+textarea {
+  border-radius: 14px;
+  border: 1.5px solid var(--c-border);
+  background: linear-gradient(180deg, #fff, #fbfdfe);
+  color: var(--c-text);
+  box-shadow: var(--shadow-xs);
+}
+
+.admin-input:focus,
+input:focus,
+select:focus,
+textarea:focus,
+[contenteditable="true"]:focus {
+  outline: 3px solid rgba(22, 184, 178, .18);
+  border-color: var(--c-cyan);
+  box-shadow: 0 0 0 1px rgba(22, 184, 178, .18), var(--shadow-sm);
+}
+
+.drawer-link,
+.landing-menu-link {
+  border-radius: 14px;
+}
+
+.drawer-link:hover,
+.drawer-link.active,
+.landing-menu-link:hover {
+  background: linear-gradient(135deg, rgba(22, 184, 178, .14), rgba(7, 92, 134, .08));
+  color: var(--c-navy);
+}
+
+.accordion-card {
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .98), rgba(249, 253, 255, .96));
+}
+
+.accordion-card summary {
+  border-radius: 16px;
+}
+
+.accordion-card[open] summary {
+  color: var(--c-blue);
+}
+
+.question-card,
+.teacher-created-question,
+.message-card,
+.stats-card,
+.report-table-wrap {
+  border-radius: 18px;
+}
+
+.question-card:hover,
+.teacher-created-question:hover,
+.message-card:hover,
+.support-email-card:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.landing-hero {
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+}
+
+.landing-equation {
+  box-shadow: 0 18px 38px rgba(0, 0, 0, .18);
+}
+
+.landing-menu {
+  box-shadow: var(--shadow-md);
+}
+
+.support-email-card {
+  align-items: center;
+  text-align: left;
+}
+
+.gmail-icon {
+  box-shadow: 0 8px 18px rgba(7, 92, 134, .14);
+}
+
+.site-footer {
+  background: rgba(255, 255, 255, .72);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: .001ms !important;
+    scroll-behavior: auto !important;
+    transition-duration: .001ms !important;
+  }
+}
+
+@media (max-width: 720px) {
+  .landing-nav,
+  .app-download-banner,
+  .start-screen,
+  .profile-panel,
+  .admin-panel,
+  .messages-panel,
+  .billing-card,
+  .teacher-message-compose,
+  .teacher-builder-card,
+  .question-card,
+  .accordion-card {
+    border-radius: 18px;
+  }
+
+  .btn {
+    min-height: 48px;
+  }
+
+  .admin-input,
+  input,
+  select,
+  textarea {
+    min-height: 48px;
+    font-size: 16px;
+  }
+}
