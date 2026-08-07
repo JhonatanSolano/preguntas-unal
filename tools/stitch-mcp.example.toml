@@ -1,0 +1,8 @@
+# Copia este contenido en tu configuración local privada de Codex/MCP.
+# No pegues la API key real dentro del repositorio.
+
+[mcp_servers.stitch]
+url = "https://stitch.googleapis.com/mcp"
+
+[mcp_servers.stitch.http_headers]
+"X-Goog-Api-Key" = "TU_API_KEY_PRIVADA"

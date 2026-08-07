@@ -3,3 +3,5 @@ service-account*.json
 tools/output/
 node_modules/
 functions/node_modules/
+.codex/
+*.local.toml

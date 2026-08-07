@@ -5350,18 +5350,56 @@ function actualizarBloqueoScrollPublico() {
   document.body.classList.toggle("public-modal-open", modalPublicoAbierto());
 }
 
+function enfocarModalPublico(cardId) {
+  const card = document.getElementById(cardId);
+  const panel = card?.querySelector(".auth-gate");
+  if (card) card.scrollTop = 0;
+  if (panel) panel.scrollTop = 0;
+  requestAnimationFrame(() => {
+    card?.scrollTo?.({ top: 0, left: 0, behavior: "auto" });
+    panel?.scrollTo?.({ top: 0, left: 0, behavior: "auto" });
+  });
+}
+
+function limpiarCamposPublicos(cardId) {
+  const card = document.getElementById(cardId);
+  if (!card) return;
+  card.querySelectorAll("input").forEach(input => {
+    if (["checkbox", "radio"].includes(input.type)) input.checked = false;
+    else input.value = "";
+  });
+  card.querySelectorAll("textarea").forEach(textarea => { textarea.value = ""; });
+  card.querySelectorAll("select").forEach(select => { select.value = ""; });
+  card.querySelectorAll("details").forEach(detail => { detail.open = false; });
+  card.querySelectorAll(".bank-status, .message-status, .status, [id$='Status']").forEach(status => {
+    status.textContent = "";
+    status.classList.remove("ok", "error");
+  });
+}
+
+function limpiarAuthPublico() {
+  limpiarCamposPublicos("loginCard");
+  clasePendienteIngreso = null;
+  document.getElementById("classCodeStep")?.classList.remove("hidden");
+  document.getElementById("groupCodeStep")?.classList.add("hidden");
+}
+
 function mostrarLoginCard() {
+  limpiarAuthPublico();
   document.getElementById("loginCard")?.classList.remove("hidden");
   mostrarAuthInicial("login");
   document.getElementById("loginCard")?.classList.remove("hidden");
   actualizarBloqueoScrollPublico();
+  enfocarModalPublico("loginCard");
 }
 
 function mostrarRegisterCard() {
+  limpiarAuthPublico();
   document.getElementById("loginCard")?.classList.remove("hidden");
   mostrarAuthInicial("register");
   document.getElementById("loginCard")?.classList.remove("hidden");
   actualizarBloqueoScrollPublico();
+  enfocarModalPublico("loginCard");
 }
 
 function mostrarInstitutionInfo() {
@@ -5385,13 +5423,16 @@ function cerrarInstitutionInfo() {
 
 function mostrarFaqCard() {
   cerrarLandingMenu();
+  limpiarCamposPublicos("faqCard");
   document.getElementById("loginCard")?.classList.add("hidden");
   document.getElementById("institutionInfoCard")?.classList.add("hidden");
   document.getElementById("faqCard")?.classList.remove("hidden");
   actualizarBloqueoScrollPublico();
+  enfocarModalPublico("faqCard");
 }
 
 function cerrarFaqCard() {
+  limpiarCamposPublicos("faqCard");
   document.getElementById("faqCard")?.classList.add("hidden");
   actualizarBloqueoScrollPublico();
 }
@@ -5401,11 +5442,14 @@ function cerrarAuthCard() {
     mostrarEntradaGrupo();
     return;
   }
+  limpiarAuthPublico();
   document.getElementById("loginCard")?.classList.add("hidden");
   actualizarBloqueoScrollPublico();
 }
 
 function cerrarFlujosAuth() {
+  limpiarAuthPublico();
+  limpiarCamposPublicos("faqCard");
   document.getElementById("loginCard")?.classList.add("hidden");
   document.getElementById("forgotUserCard")?.classList.add("hidden");
   document.getElementById("forgotPasswordCard")?.classList.add("hidden");
