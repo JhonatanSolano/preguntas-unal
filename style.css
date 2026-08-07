@@ -6394,3 +6394,259 @@ textarea:focus,
     font-size: 16px;
   }
 }
+
+/* ═══════════════════════════════════════════════════════
+   Final UX pass · una sola barra y apariencia más marcada
+═══════════════════════════════════════════════════════ */
+html {
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+body:not(.group-locked):not(.public-modal-open):not(.landing-menu-open) {
+  overflow-x: hidden;
+  overflow-y: visible;
+}
+
+body:not(.group-locked) .main-content:not(.hidden),
+body.admin-mode .main-content:not(.hidden),
+body.exam-active .main-content:not(.hidden) {
+  max-height: none !important;
+  overflow: visible !important;
+  overscroll-behavior: auto;
+  scrollbar-gutter: auto;
+  padding-bottom: clamp(2.25rem, 5vw, 4rem);
+}
+
+body::-webkit-scrollbar {
+  width: 11px;
+}
+
+body::-webkit-scrollbar-track {
+  background: #eaf3f7;
+}
+
+body::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #075c86, #16b8b2);
+  border: 3px solid #eaf3f7;
+  border-radius: 999px;
+}
+
+.main-content {
+  animation: contentRise .28s ease both;
+}
+
+@keyframes contentRise {
+  from {
+    opacity: .72;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.landing-nav,
+.section-nav {
+  position: relative;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .98), rgba(250, 254, 255, .94)),
+    radial-gradient(circle at 8% 0%, rgba(22, 184, 178, .12), transparent 18rem);
+  border: 1px solid rgba(185, 213, 227, .9);
+  box-shadow: 0 14px 38px rgba(4, 50, 87, .12);
+}
+
+.landing-nav::after,
+.section-nav::after {
+  content: "";
+  position: absolute;
+  inset: auto 1.25rem -1px;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgba(22, 184, 178, .75), transparent);
+  pointer-events: none;
+}
+
+.drawer-toggle,
+.landing-menu-toggle,
+.notification-btn,
+.section-back,
+.section-forward {
+  border: 1px solid rgba(185, 213, 227, .82);
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.95), rgba(235,249,250,.9));
+  color: var(--c-navy);
+  box-shadow: 0 10px 24px rgba(4, 50, 87, .12);
+}
+
+.drawer-toggle,
+.landing-menu-toggle {
+  background: linear-gradient(135deg, #075c86, #16b8b2);
+  color: #fff;
+  box-shadow: 0 16px 34px rgba(7, 92, 134, .25);
+}
+
+.drawer-toggle:hover,
+.landing-menu-toggle:hover,
+.notification-btn:hover,
+.section-back:not(:disabled):hover,
+.section-forward:not(:disabled):hover {
+  transform: translateY(-1px) scale(1.01);
+}
+
+.start-screen,
+.welcome-panel,
+.profile-panel,
+.admin-panel,
+.messages-panel,
+.billing-card,
+.subscription-status-card,
+.teacher-message-compose,
+.teacher-builder-card,
+.report-shell {
+  position: relative;
+  overflow: hidden;
+}
+
+.start-screen::before,
+.welcome-panel::before,
+.profile-panel::before,
+.admin-panel::before,
+.messages-panel::before,
+.billing-card::before,
+.subscription-status-card::before,
+.teacher-message-compose::before,
+.teacher-builder-card::before,
+.report-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 4px;
+  background: linear-gradient(90deg, #075c86, #16b8b2, #ffb547);
+  opacity: .88;
+  pointer-events: none;
+}
+
+.start-screen,
+.welcome-panel,
+.profile-panel,
+.admin-panel,
+.messages-panel,
+.billing-card,
+.subscription-status-card,
+.teacher-message-compose,
+.teacher-builder-card,
+.report-shell,
+.question-card,
+.accordion-card {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.98), rgba(249,253,255,.96)),
+    radial-gradient(circle at 100% 0%, rgba(22, 184, 178, .08), transparent 18rem);
+}
+
+.section-kicker,
+.landing-section .section-kicker {
+  color: var(--c-teal-deep);
+  letter-spacing: .08em;
+  font-weight: 900;
+}
+
+.hero-copy h1,
+.start-screen h2,
+.welcome-panel h2,
+.billing-heading h2,
+.message-detail-card h2,
+.profile-card h2 {
+  color: var(--c-navy);
+  letter-spacing: 0;
+  text-wrap: balance;
+}
+
+.btn-primary,
+.btn-secondary,
+.support-link,
+.payment-cta,
+.checkout-submit,
+.report-actions .btn {
+  background:
+    linear-gradient(135deg, #06345f 0%, #078c98 58%, #16b8b2 100%);
+  box-shadow:
+    0 13px 26px rgba(7, 92, 134, .25),
+    inset 0 1px 0 rgba(255,255,255,.22);
+}
+
+.btn-primary:active,
+.btn-secondary:active,
+.support-link:active,
+.payment-cta:active,
+.checkout-submit:active {
+  transform: translateY(1px) scale(.99);
+}
+
+.message-card,
+.reply-card,
+.notification-item,
+.billing-payment-row,
+.billing-history-row,
+.report-table-wrap,
+.teacher-created-question {
+  background: linear-gradient(180deg, #fff, #f8fcfe);
+  border-color: rgba(185, 213, 227, .88);
+}
+
+.message-card:hover,
+.notification-item:hover,
+.billing-payment-row:hover,
+.billing-history-row:hover {
+  border-color: rgba(22, 184, 178, .45);
+}
+
+.support-email-grid {
+  align-items: stretch;
+}
+
+.support-email-card {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: .8rem;
+}
+
+.support-email-card strong,
+.support-email-card a {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+@media (max-width: 1024px) {
+  body:not(.group-locked) .main-content:not(.hidden),
+  body.admin-mode .main-content:not(.hidden),
+  body.exam-active .main-content:not(.hidden) {
+    max-height: none !important;
+    overflow: visible !important;
+    padding-bottom: 3rem;
+  }
+}
+
+@media (max-width: 720px) {
+  body::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .landing-nav,
+  .section-nav {
+    margin-inline: .65rem;
+    width: calc(100% - 1.3rem);
+  }
+
+  .support-email-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .support-email-card {
+    grid-template-columns: auto minmax(0, 1fr);
+    text-align: left;
+  }
+}
