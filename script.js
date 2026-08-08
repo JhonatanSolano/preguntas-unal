@@ -5355,9 +5355,11 @@ function enfocarModalPublico(cardId) {
   const panel = card?.querySelector(".auth-gate");
   if (card) card.scrollTop = 0;
   if (panel) panel.scrollTop = 0;
+  window.scrollTo({ top: 0, left: 0, behavior: "auto" });
   requestAnimationFrame(() => {
     card?.scrollTo?.({ top: 0, left: 0, behavior: "auto" });
     panel?.scrollTo?.({ top: 0, left: 0, behavior: "auto" });
+    panel?.focus?.({ preventScroll: true });
   });
 }
 
@@ -5385,6 +5387,7 @@ function limpiarAuthPublico() {
 }
 
 function mostrarLoginCard() {
+  cerrarLandingMenu();
   limpiarAuthPublico();
   document.getElementById("loginCard")?.classList.remove("hidden");
   mostrarAuthInicial("login");
@@ -5394,6 +5397,7 @@ function mostrarLoginCard() {
 }
 
 function mostrarRegisterCard() {
+  cerrarLandingMenu();
   limpiarAuthPublico();
   document.getElementById("loginCard")?.classList.remove("hidden");
   mostrarAuthInicial("register");
