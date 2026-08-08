@@ -6650,3 +6650,377 @@ body::-webkit-scrollbar-thumb {
     text-align: left;
   }
 }
+
+/* ═══════════════════════════════════════════════════════
+   Stitch-informed visual pass · landing y superficies premium
+═══════════════════════════════════════════════════════ */
+:root {
+  --surface-glass: rgba(255, 255, 255, .82);
+  --surface-ice: #f2fbfc;
+  --accent-warm: #f4a261;
+  --accent-gold: #ffd166;
+  --ink-soft: #41576a;
+}
+
+.public-home {
+  background:
+    radial-gradient(circle at 10% 8%, rgba(22, 184, 178, .16), transparent 24rem),
+    radial-gradient(circle at 92% 20%, rgba(244, 162, 97, .13), transparent 20rem),
+    linear-gradient(180deg, #f7fbfd 0%, #edf8fa 45%, #f8fbfd 100%);
+}
+
+.landing-nav {
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.landing-nav .btn {
+  letter-spacing: 0;
+}
+
+.landing-nav .btn-outline,
+.public-actions .btn-outline,
+.pricing-card .btn-outline {
+  background: rgba(255, 255, 255, .72);
+  border-color: rgba(7, 92, 134, .56);
+  box-shadow: 0 10px 24px rgba(4, 50, 87, .08);
+}
+
+.landing-hero {
+  isolation: isolate;
+  min-height: clamp(620px, 76vh, 820px);
+  border: 1px solid rgba(117, 210, 211, .62);
+  background:
+    linear-gradient(120deg, rgba(255, 255, 255, .94), rgba(234, 250, 251, .78) 46%, rgba(255, 255, 255, .9)),
+    radial-gradient(circle at 22% 24%, rgba(255, 209, 102, .13), transparent 18rem);
+  box-shadow: 0 26px 70px rgba(4, 50, 87, .12);
+}
+
+.landing-hero::before {
+  opacity: .62;
+  background-image:
+    linear-gradient(rgba(7, 92, 134, .08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(7, 92, 134, .08) 1px, transparent 1px),
+    radial-gradient(circle at 74% 20%, rgba(22, 184, 178, .18), transparent 16rem);
+  background-size: 42px 42px, 42px 42px, auto;
+}
+
+.hero-copy {
+  align-self: center;
+  max-width: 620px;
+}
+
+.hero-logo {
+  filter: drop-shadow(0 16px 34px rgba(4, 50, 87, .13));
+}
+
+.brand-pill.public-pill {
+  width: fit-content;
+  border: 1px solid rgba(7, 92, 134, .18);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .88), rgba(244, 250, 252, .86));
+  color: var(--c-navy);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.8);
+}
+
+.public-hero h1 {
+  max-width: 12ch;
+  font-size: clamp(3rem, 8vw, 5.9rem);
+  line-height: .92;
+  letter-spacing: 0;
+}
+
+.hero-copy p {
+  max-width: 58ch;
+  color: var(--ink-soft);
+  font-size: clamp(1.05rem, 1.4vw, 1.28rem);
+}
+
+.public-actions {
+  gap: .85rem;
+}
+
+.public-actions .btn,
+.pricing-card .btn,
+.android-promo .google-play-badge {
+  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+
+.public-actions .btn:hover,
+.pricing-card .btn:hover {
+  transform: translateY(-2px);
+}
+
+.math-showcase {
+  min-height: 520px;
+  border: 1px solid rgba(9, 147, 150, .34);
+  background:
+    radial-gradient(circle at 50% 48%, rgba(22, 184, 178, .22), transparent 8rem),
+    radial-gradient(circle at 32% 30%, rgba(255, 209, 102, .12), transparent 10rem),
+    linear-gradient(145deg, #062d52, #073b64 48%, #06405b);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.2),
+    0 26px 58px rgba(4, 50, 87, .22);
+}
+
+.math-showcase::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(circle at 50% 50%, transparent 0 5rem, rgba(111, 217, 219, .2) 5.05rem 5.12rem, transparent 5.18rem),
+    radial-gradient(circle at 50% 50%, transparent 0 10rem, rgba(111, 217, 219, .16) 10.05rem 10.12rem, transparent 10.18rem),
+    radial-gradient(circle at 50% 50%, transparent 0 15rem, rgba(111, 217, 219, .12) 15.05rem 15.12rem, transparent 15.18rem);
+  opacity: .72;
+  pointer-events: none;
+}
+
+.math-stage-grid {
+  opacity: .28;
+}
+
+.math-core {
+  z-index: 1;
+  background:
+    radial-gradient(circle, rgba(255,255,255,.95), rgba(255,255,255,.74) 58%, rgba(22,184,178,.16));
+  box-shadow: 0 0 0 1px rgba(255,255,255,.38), 0 18px 44px rgba(0,0,0,.2);
+}
+
+.landing-equation {
+  z-index: 2;
+  border: 1px solid rgba(130, 232, 232, .42);
+  background:
+    linear-gradient(180deg, rgba(9, 78, 109, .94), rgba(5, 65, 98, .92));
+  color: #f7ffff;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, .22);
+}
+
+.landing-equation small {
+  color: #7ee8e7;
+}
+
+.landing-equation:hover {
+  transform: translateY(-3px) scale(1.01);
+  border-color: rgba(255, 209, 102, .72);
+}
+
+.mini-dashboard {
+  z-index: 3;
+  border: 1px solid rgba(255,255,255,.62);
+  background: rgba(244, 251, 253, .9);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, .18);
+}
+
+.landing-section {
+  position: relative;
+}
+
+.landing-section > h2,
+.landing-section > p {
+  text-wrap: balance;
+}
+
+.pricing-grid {
+  gap: clamp(1rem, 2.4vw, 1.6rem);
+}
+
+.pricing-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(185, 213, 227, .85);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,253,254,.96)),
+    radial-gradient(circle at 94% 4%, rgba(22,184,178,.13), transparent 13rem);
+  box-shadow: 0 18px 48px rgba(4, 50, 87, .1);
+}
+
+.pricing-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: linear-gradient(180deg, #075c86, #16b8b2);
+  opacity: .74;
+}
+
+.pricing-card.featured {
+  border-color: rgba(22, 184, 178, .68);
+  box-shadow: 0 22px 56px rgba(7, 92, 134, .15);
+}
+
+.pricing-card.featured::after {
+  content: "Recomendado";
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  padding: .35rem .65rem;
+  border-radius: 999px;
+  background: rgba(255, 209, 102, .24);
+  color: #7a4a00;
+  font-size: .72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.pricing-list li,
+.landing-section li {
+  color: var(--ink-soft);
+}
+
+.pricing-list li::marker {
+  color: var(--c-teal);
+}
+
+.timeline-grid article,
+.feature-card,
+.audience-grid article {
+  border: 1px solid rgba(185, 213, 227, .82);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.98), rgba(247,252,254,.96));
+  box-shadow: 0 16px 38px rgba(4, 50, 87, .08);
+}
+
+.timeline-grid article:hover,
+.feature-card:hover,
+.audience-grid article:hover,
+.pricing-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 22px 52px rgba(4, 50, 87, .13);
+}
+
+.public-footer {
+  background:
+    linear-gradient(180deg, #073b64, #021b35);
+  color: rgba(255,255,255,.86);
+  border: 0;
+}
+
+.public-footer a,
+.footer-columns span,
+.footer-brand span {
+  color: rgba(255,255,255,.82);
+}
+
+.footer-brand strong,
+.footer-columns strong {
+  color: #fff;
+}
+
+.footer-social a {
+  background: rgba(255,255,255,.1);
+  border-color: rgba(255,255,255,.18);
+}
+
+.footer-bottom {
+  border-top-color: rgba(255,255,255,.16);
+}
+
+@media (max-width: 900px) {
+  .landing-hero {
+    min-height: 0;
+  }
+
+  .public-hero h1 {
+    max-width: 10ch;
+  }
+
+  .math-showcase {
+    min-height: 420px;
+  }
+}
+
+@media (max-width: 720px) {
+  .public-home {
+    padding-inline: clamp(.85rem, 3.4vw, 1.1rem);
+  }
+
+  .landing-nav,
+  .app-download-banner,
+  .android-promo {
+    margin-inline: 0;
+    width: 100%;
+  }
+
+  .landing-nav {
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: .85rem;
+  }
+
+  .landing-nav > .brand-lockup {
+    min-width: 0;
+  }
+
+  .landing-nav > .brand-lockup strong {
+    font-size: clamp(.95rem, 4vw, 1.12rem);
+    white-space: normal;
+  }
+
+  .landing-menu-toggle {
+    width: 58px;
+    height: 58px;
+    border-radius: 16px;
+  }
+
+  .public-hero h1 {
+    max-width: 9ch;
+    font-size: clamp(3rem, 16vw, 4.3rem);
+  }
+
+  .hero-copy {
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .hero-copy p {
+    font-size: 1.05rem;
+  }
+
+  .public-actions {
+    width: 100%;
+  }
+
+  .public-actions .btn {
+    width: 100%;
+  }
+
+  .math-showcase {
+    min-height: 420px;
+    border-radius: 22px;
+  }
+
+  .landing-equation {
+    max-width: min(78vw, 340px);
+    font-size: .92rem;
+  }
+
+  .equation-gauss,
+  .equation-calculus {
+    right: .8rem;
+  }
+
+  .equation-fourier,
+  .equation-identity {
+    left: .8rem;
+  }
+
+  .mini-dashboard {
+    right: .85rem;
+    top: .95rem;
+  }
+
+  .pricing-card,
+  .timeline-grid article,
+  .feature-card,
+  .audience-grid article {
+    border-radius: 18px;
+  }
+
+  .pricing-card.featured::after {
+    position: static;
+    display: inline-flex;
+    width: fit-content;
+    margin-bottom: .55rem;
+  }
+}
