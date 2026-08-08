@@ -7365,3 +7365,102 @@ body:not(.group-locked) .back-to-top {
     text-align: center;
   }
 }
+
+/* Stitch polish pass: readable hero + expressive emoji cards */
+.landing-hero {
+  grid-template-columns: minmax(0, .88fr) minmax(320px, .92fr);
+  align-items: center;
+}
+
+.hero-copy,
+.math-showcase {
+  min-width: 0;
+}
+
+.public-hero h1 {
+  width: auto !important;
+  max-width: min(100%, 10.5ch) !important;
+  font-size: clamp(3rem, 6.2vw, 5.2rem) !important;
+  line-height: .97 !important;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.hero-copy {
+  max-width: 590px;
+}
+
+.math-showcase {
+  justify-self: end;
+  width: min(100%, 560px);
+}
+
+.landing-highlights {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+}
+
+.landing-highlights article,
+.feature-card {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.landing-highlights article p,
+.feature-card p {
+  overflow-wrap: anywhere;
+}
+
+.feature-icon {
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Segoe UI Symbol", system-ui, sans-serif !important;
+  display: inline-grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  color: initial !important;
+  font-size: 1.35rem !important;
+  line-height: 1;
+  background:
+    radial-gradient(circle at 32% 22%, rgba(255,255,255,.55), transparent 36%),
+    linear-gradient(135deg, #10b8b2, #075c86) !important;
+  box-shadow:
+    0 14px 26px rgba(8, 137, 152, .22),
+    inset 0 1px 0 rgba(255,255,255,.45);
+}
+
+@media (min-width: 1180px) {
+  .landing-hero {
+    grid-template-columns: minmax(0, 1fr) minmax(410px, 560px);
+  }
+}
+
+@media (max-width: 980px) {
+  .landing-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .math-showcase {
+    justify-self: stretch;
+    width: 100%;
+  }
+
+  .public-hero h1 {
+    max-width: min(100%, 9.2ch) !important;
+    font-size: clamp(2.85rem, 10vw, 4.7rem) !important;
+  }
+}
+
+@media (max-width: 720px) {
+  .public-hero h1 {
+    width: auto !important;
+    max-width: min(100%, 8.8ch) !important;
+    font-size: clamp(2.45rem, 11.6vw, 3.75rem) !important;
+    line-height: 1 !important;
+  }
+
+  .feature-icon {
+    width: 42px;
+    height: 42px;
+    font-size: 1.22rem !important;
+  }
+}
