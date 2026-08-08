@@ -8405,11 +8405,13 @@ document.querySelectorAll(".footer-social a").forEach(link => {
   link.addEventListener("click", event => event.preventDefault());
 });
 const btnBackToTop = document.getElementById("btnBackToTop");
-window.addEventListener("scroll", () => {
-  const visible = window.scrollY > Math.min(560, window.innerHeight * .7);
+function actualizarBotonSubirLanding() {
+  const visible = window.scrollY > Math.min(280, window.innerHeight * .32);
   btnBackToTop?.classList.toggle("visible", visible);
   if (visible) evitarSolapamientoWhatsapp();
-}, { passive: true });
+}
+window.addEventListener("scroll", actualizarBotonSubirLanding, { passive: true });
+actualizarBotonSubirLanding();
 btnBackToTop?.addEventListener("click", () => {
   window.scrollTo({ top: 0, behavior: "smooth" });
 });
