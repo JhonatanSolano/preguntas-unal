@@ -7137,6 +7137,12 @@ function prepararWhatsappFlotante() {
   ajustarLadoWhatsapp();
 }
 
+function prepararBotonSubirFlotante() {
+  const btn = document.getElementById("btnBackToTop");
+  if (!btn) return;
+  if (btn.parentElement !== document.body) document.body.appendChild(btn);
+}
+
 function ajustarWhatsappAlBorde() {
   const widget = document.getElementById("whatsappWidget");
   if (!widget) return;
@@ -8418,8 +8424,9 @@ document.querySelectorAll(".footer-social a").forEach(link => {
   link.addEventListener("click", event => event.preventDefault());
 });
 const btnBackToTop = document.getElementById("btnBackToTop");
+prepararBotonSubirFlotante();
 function actualizarBotonSubirLanding() {
-  const visible = window.scrollY > Math.min(280, window.innerHeight * .32);
+  const visible = window.scrollY > Math.min(180, window.innerHeight * .22);
   btnBackToTop?.classList.toggle("visible", visible);
   if (visible) evitarSolapamientoWhatsapp();
 }
