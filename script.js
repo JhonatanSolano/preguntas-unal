@@ -7125,6 +7125,18 @@ function ajustarLadoWhatsapp() {
   widget.classList.toggle("side-right", rect.left < window.innerWidth / 2);
 }
 
+function prepararWhatsappFlotante() {
+  const widget = document.getElementById("whatsappWidget");
+  if (!widget) return;
+  if (widget.parentElement !== document.body) document.body.appendChild(widget);
+  widget.style.position = "fixed";
+  if (!widget.style.left && !widget.style.top) {
+    widget.style.right = "";
+    widget.style.bottom = "";
+  }
+  ajustarLadoWhatsapp();
+}
+
 function ajustarWhatsappAlBorde() {
   const widget = document.getElementById("whatsappWidget");
   if (!widget) return;
@@ -7161,6 +7173,7 @@ function activarArrastreWhatsapp() {
   const widget = document.getElementById("whatsappWidget");
   const btn = document.getElementById("btnWhatsappInfo");
   if (!widget || !btn) return;
+  prepararWhatsappFlotante();
 
   let arrastrando = false;
   let movido = false;
@@ -8416,6 +8429,7 @@ btnBackToTop?.addEventListener("click", () => {
   window.scrollTo({ top: 0, behavior: "smooth" });
 });
 document.getElementById("btnWhatsappClose")?.addEventListener("click", cerrarWhatsappWidget);
+prepararWhatsappFlotante();
 document.addEventListener("pointerdown", event => {
   const widget = document.getElementById("whatsappWidget");
   if (widget?.classList.contains("open") && !widget.contains(event.target)) {
