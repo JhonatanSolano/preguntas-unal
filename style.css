@@ -9688,3 +9688,325 @@ body:not(.app-active) .audience-grid article {
     grid-template-columns: 1fr !important;
   }
 }
+
+/* Impeccable internal polish · Suscripción, Facturación y Soporte */
+.subscription-shell,
+.billing-shell,
+.support-panel {
+  isolation: isolate;
+}
+
+.subscription-shell,
+.billing-shell {
+  width: min(100%, 1080px) !important;
+}
+
+.subscription-heading,
+.billing-heading,
+.support-panel {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(20, 54, 79, .12) !important;
+  border-radius: 26px !important;
+  background:
+    linear-gradient(180deg, #fffdf8 0%, #f7fbfb 100%) !important;
+  box-shadow: 0 18px 40px rgba(20, 54, 79, .1) !important;
+}
+
+.subscription-heading::after,
+.billing-heading::after,
+.support-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 8% 8%, rgba(37, 125, 128, .1), transparent 14rem),
+    radial-gradient(circle at 92% 0%, rgba(214, 168, 76, .12), transparent 13rem);
+  z-index: -1;
+}
+
+.subscription-heading h2,
+.billing-heading h2,
+.support-panel h2 {
+  color: #12233a !important;
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 4vw, 2.85rem) !important;
+  line-height: 1.06;
+  letter-spacing: -.02em;
+}
+
+.subscription-heading p,
+.billing-heading p,
+.support-panel > p {
+  color: #4c6072 !important;
+  font-size: 1.02rem;
+  line-height: 1.65;
+}
+
+.subscription-status-card {
+  border: 1px solid rgba(214, 168, 76, .34) !important;
+  border-radius: 20px !important;
+  background: linear-gradient(135deg, #fff7e6, #fffefa) !important;
+  box-shadow: 0 12px 26px rgba(122, 82, 19, .08) !important;
+}
+
+.subscription-status-card.active {
+  border-color: rgba(37, 125, 128, .28) !important;
+  background: linear-gradient(135deg, #ecfaf7, #ffffff) !important;
+}
+
+.subscription-status-card > span {
+  background: #ffffff !important;
+  color: #227d80 !important;
+  box-shadow: 0 8px 18px rgba(20, 54, 79, .1);
+}
+
+.payment-carousel,
+.billing-card {
+  border: 1px solid rgba(20, 54, 79, .12) !important;
+  border-radius: 24px !important;
+  background: #fffefa !important;
+  box-shadow: 0 14px 32px rgba(20, 54, 79, .08) !important;
+}
+
+.payment-steps {
+  background: #f0f7f6;
+  border: 1px solid rgba(34, 125, 128, .12);
+  border-radius: 999px;
+  padding: .55rem .75rem;
+}
+
+.payment-steps span {
+  border-color: rgba(34, 125, 128, .25) !important;
+  background: #ffffff;
+  color: #227d80 !important;
+}
+
+.payment-steps span.active,
+.payment-steps span.complete {
+  background: #227d80 !important;
+  border-color: #227d80 !important;
+  color: #ffffff !important;
+}
+
+.payment-steps i {
+  background: rgba(34, 125, 128, .2) !important;
+}
+
+.subscription-plan,
+.checkout-summary-card {
+  border-radius: 18px !important;
+  border: 1px solid rgba(34, 125, 128, .16) !important;
+  background: linear-gradient(135deg, #effaf8, #ffffff) !important;
+  color: #12233a !important;
+}
+
+.checkout-summary-card strong,
+.checkout-summary-card span,
+.checkout-summary-card small {
+  color: #12233a !important;
+}
+
+.subscription-price,
+.billing-label,
+.payment-slide-kicker {
+  color: #227d80 !important;
+}
+
+.payment-method {
+  border-color: rgba(20, 54, 79, .14) !important;
+  border-radius: 18px !important;
+  background: #ffffff !important;
+  box-shadow: 0 8px 20px rgba(20, 54, 79, .06);
+}
+
+.payment-method:hover,
+.payment-method.active {
+  border-color: #227d80 !important;
+  box-shadow: 0 12px 26px rgba(34, 125, 128, .14) !important;
+  transform: translateY(-1px);
+}
+
+.payment-carousel-actions .btn,
+.billing-card .btn,
+.support-panel .btn {
+  min-height: 46px;
+  border-radius: 999px !important;
+}
+
+.billing-heading {
+  align-items: center !important;
+}
+
+.billing-status {
+  padding: .55rem .85rem !important;
+  border-radius: 999px !important;
+  background: #fff1df !important;
+  color: #855211 !important;
+  box-shadow: inset 0 0 0 1px rgba(133, 82, 17, .12);
+}
+
+.billing-status.active {
+  background: #e7f8f3 !important;
+  color: #126452 !important;
+}
+
+.billing-tabs {
+  padding: .45rem !important;
+  border-color: rgba(34, 125, 128, .16) !important;
+  background: #edf8f7 !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .62);
+}
+
+.billing-tabs button {
+  color: #17324a !important;
+}
+
+.billing-tabs button.active {
+  background: linear-gradient(135deg, #12233a, #227d80) !important;
+  box-shadow: 0 10px 22px rgba(20, 54, 79, .18) !important;
+}
+
+.billing-card h3,
+.billing-card-title h3 {
+  color: #12233a !important;
+}
+
+.billing-dates p,
+.billing-payment-row,
+.billing-history-row {
+  border-color: rgba(20, 54, 79, .12) !important;
+}
+
+.billing-dates p {
+  align-items: baseline;
+}
+
+.billing-dates strong,
+.billing-payment-row strong,
+.billing-history-row strong {
+  color: #12233a !important;
+}
+
+.billing-renewal-copy {
+  border-left: 4px solid #227d80 !important;
+  border-radius: 14px;
+  background: #effaf8 !important;
+  color: #29475f;
+}
+
+.billing-payment-icon {
+  background: linear-gradient(135deg, #12233a, #227d80) !important;
+  border-radius: 12px !important;
+}
+
+.billing-warning {
+  border-radius: 16px;
+  border-color: rgba(214, 168, 76, .38) !important;
+  background: #fff8e8 !important;
+  color: #6b4414 !important;
+}
+
+.support-panel {
+  width: min(100%, 820px) !important;
+  padding: clamp(1.35rem, 4vw, 2.3rem) !important;
+  text-align: center;
+}
+
+.support-panel .cs-icon {
+  display: inline-grid !important;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  margin: 0 auto .85rem !important;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #effaf8, #fff8e8);
+  box-shadow: 0 12px 26px rgba(20, 54, 79, .1);
+  font-size: 2.05rem !important;
+}
+
+.support-link {
+  width: fit-content;
+  margin: .75rem auto 1.3rem;
+  padding-inline: 1.6rem !important;
+  background: linear-gradient(135deg, #12233a, #227d80) !important;
+}
+
+.support-email-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 1rem !important;
+}
+
+.support-email-card {
+  grid-template-columns: auto minmax(0, 1fr) !important;
+  align-items: center !important;
+  min-width: 0;
+  padding: 1rem !important;
+  border-color: rgba(20, 54, 79, .12) !important;
+  border-radius: 18px !important;
+  background: #ffffff !important;
+  box-shadow: 0 10px 24px rgba(20, 54, 79, .07) !important;
+}
+
+.support-email-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(34, 125, 128, .26) !important;
+  box-shadow: 0 14px 28px rgba(20, 54, 79, .11) !important;
+}
+
+.support-email-card strong {
+  color: #12233a !important;
+  font-size: 1rem;
+  line-height: 1.2 !important;
+  overflow-wrap: normal;
+}
+
+.support-email-card small {
+  color: #4c6072 !important;
+  font-size: .87rem;
+  overflow-wrap: anywhere !important;
+  word-break: normal !important;
+}
+
+.gmail-icon {
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 14px !important;
+  box-shadow: 0 8px 18px rgba(20, 54, 79, .12);
+}
+
+@media (max-width: 760px) {
+  .subscription-heading,
+  .billing-heading,
+  .support-panel,
+  .payment-carousel,
+  .billing-card {
+    border-radius: 20px !important;
+  }
+
+  .subscription-heading,
+  .billing-heading {
+    display: grid !important;
+  }
+
+  .payment-steps {
+    border-radius: 18px;
+  }
+
+  .checkout-layout,
+  .payment-method-grid,
+  .billing-grid,
+  .support-email-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .billing-tabs {
+    border-radius: 18px !important;
+  }
+
+  .support-email-card {
+    grid-template-columns: 48px minmax(0, 1fr) !important;
+    text-align: left;
+  }
+}
