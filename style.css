@@ -9044,3 +9044,238 @@ body:not(.app-active) .public-footer p {
     font-size: clamp(2.55rem, 13vw, 3.45rem) !important;
   }
 }
+
+/* Aula Viva · modales, legales y aviso Android refinados */
+body:not(.app-active) .public-home,
+.legal-page {
+  background:
+    linear-gradient(180deg, #f7fbff 0%, #fffaf0 44%, #f4fbf8 100%) !important;
+}
+
+body:not(.app-active) .process-section,
+body:not(.app-active) .cta-band,
+body:not(.app-active) .public-footer,
+.legal-hero {
+  background:
+    linear-gradient(135deg, #13213c 0%, #17375d 48%, #0f6f72 100%) !important;
+}
+
+body:not(.app-active) .pricing-section {
+  background:
+    linear-gradient(135deg, #fffaf0 0%, #f3fbff 52%, #effaf4 100%) !important;
+}
+
+body:not(.app-active) .android-promo {
+  grid-template-columns: minmax(0, 1fr) auto auto !important;
+  align-items: center !important;
+  padding: .78rem 3.1rem .78rem 1.15rem !important;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, .96), rgba(247, 251, 255, .9)) !important;
+  border: 1px solid rgba(19, 33, 60, .08) !important;
+  box-shadow: 0 10px 24px rgba(19, 33, 60, .08) !important;
+}
+
+body:not(.app-active) .android-promo > img {
+  display: none !important;
+}
+
+body:not(.app-active) .android-promo > div {
+  min-width: 0;
+}
+
+body:not(.app-active) .android-promo strong {
+  color: #13213c !important;
+  font-size: clamp(.95rem, 1.5vw, 1.05rem) !important;
+}
+
+body:not(.app-active) .android-promo > div span {
+  color: #4b6076 !important;
+  line-height: 1.35;
+}
+
+body:not(.app-active) .google-play-badge {
+  width: auto !important;
+  min-width: 176px;
+  min-height: 48px;
+  padding: .55rem .8rem !important;
+  background: #101820 !important;
+  border: 1px solid rgba(255, 255, 255, .12) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 8px 18px rgba(16, 24, 32, .18) !important;
+}
+
+body:not(.app-active) .google-play-badge span {
+  color: #fff !important;
+}
+
+body:not(.app-active) .google-play-badge small {
+  color: #dce8f2 !important;
+}
+
+body.group-locked.public-modal-open .auth-shell:not(.hidden) {
+  align-items: center !important;
+  justify-content: center !important;
+  padding: clamp(.9rem, 3vw, 2rem) !important;
+  background:
+    rgba(19, 33, 60, .52) !important;
+  backdrop-filter: blur(12px) saturate(120%);
+}
+
+body.group-locked.public-modal-open .auth-shell:not(.hidden) .auth-gate,
+body.group-locked.public-modal-open .auth-shell:not(.hidden) .start-screen,
+body.group-locked.public-modal-open #faqCard:not(.hidden) .auth-gate,
+body.group-locked.public-modal-open #institutionInfoCard:not(.hidden) .auth-gate {
+  width: min(100%, 760px) !important;
+  max-height: min(88vh, 820px) !important;
+  overflow-y: auto !important;
+  padding: clamp(1.25rem, 3.5vw, 2.2rem) !important;
+  background:
+    linear-gradient(180deg, #fffdf8 0%, #f7fbff 100%) !important;
+  border: 1px solid rgba(19, 33, 60, .1) !important;
+  border-radius: 26px !important;
+  box-shadow: 0 22px 46px rgba(4, 21, 38, .22) !important;
+  color: #13213c !important;
+}
+
+body.group-locked.public-modal-open .auth-shell:not(.hidden) .auth-logo {
+  width: clamp(88px, 16vw, 132px) !important;
+  margin-bottom: .75rem !important;
+}
+
+body.group-locked.public-modal-open .auth-shell:not(.hidden) h2 {
+  color: #13213c !important;
+  font-size: clamp(1.9rem, 5vw, 3rem) !important;
+  line-height: 1.05 !important;
+  letter-spacing: 0 !important;
+}
+
+body.group-locked.public-modal-open .auth-shell:not(.hidden) p,
+body.group-locked.public-modal-open .auth-shell:not(.hidden) label,
+body.group-locked.public-modal-open .auth-shell:not(.hidden) .mini-help {
+  color: #445a70 !important;
+}
+
+body.group-locked.public-modal-open .auth-shell:not(.hidden) .admin-input,
+body.group-locked.public-modal-open .auth-shell:not(.hidden) input,
+body.group-locked.public-modal-open .auth-shell:not(.hidden) select,
+body.group-locked.public-modal-open .auth-shell:not(.hidden) textarea {
+  background: #ffffff !important;
+  border: 1.5px solid rgba(19, 33, 60, .14) !important;
+  border-radius: 14px !important;
+  color: #13213c !important;
+  box-shadow: none !important;
+}
+
+body.group-locked.public-modal-open .auth-shell:not(.hidden) .admin-input:focus,
+body.group-locked.public-modal-open .auth-shell:not(.hidden) input:focus,
+body.group-locked.public-modal-open .auth-shell:not(.hidden) select:focus,
+body.group-locked.public-modal-open .auth-shell:not(.hidden) textarea:focus {
+  border-color: #0f6f72 !important;
+  box-shadow: 0 0 0 4px rgba(15, 111, 114, .12) !important;
+}
+
+body.group-locked.public-modal-open .auth-shell:not(.hidden) .auth-close,
+body.group-locked.public-modal-open .auth-shell:not(.hidden) .landing-menu-close {
+  background: #eef8f5 !important;
+  color: #13213c !important;
+  border: 1px solid rgba(19, 33, 60, .08) !important;
+  box-shadow: none !important;
+}
+
+body.group-locked.public-modal-open .faq-list {
+  gap: .85rem !important;
+}
+
+body.group-locked.public-modal-open .faq-list details {
+  background: #ffffff !important;
+  border: 1px solid rgba(19, 33, 60, .1) !important;
+  border-radius: 16px !important;
+  box-shadow: none !important;
+}
+
+body.group-locked.public-modal-open .faq-list summary {
+  color: #13213c !important;
+}
+
+body.group-locked.public-modal-open .faq-list p {
+  color: #445a70 !important;
+}
+
+.legal-page {
+  min-height: 100vh;
+  padding: clamp(1rem, 3vw, 2rem) !important;
+  color: #13213c !important;
+}
+
+.legal-hero {
+  border-radius: 28px !important;
+  box-shadow: 0 18px 38px rgba(4, 21, 38, .18) !important;
+  color: #ffffff !important;
+}
+
+.legal-hero h1,
+.legal-hero p,
+.legal-hero .public-pill {
+  color: #ffffff !important;
+}
+
+.legal-panel {
+  width: min(100%, 980px) !important;
+  margin: clamp(1rem, 3vw, 1.6rem) auto 0 !important;
+  padding: clamp(1.1rem, 3vw, 2rem) !important;
+  background: #fffdf8 !important;
+  border: 1px solid rgba(19, 33, 60, .1) !important;
+  border-radius: 24px !important;
+  box-shadow: 0 14px 30px rgba(19, 33, 60, .08) !important;
+}
+
+.legal-panel h2 {
+  color: #13213c !important;
+  font-size: clamp(1.25rem, 2.2vw, 1.65rem) !important;
+  line-height: 1.18 !important;
+  margin-top: 1.35rem !important;
+}
+
+.legal-panel p,
+.legal-panel li {
+  color: #364b60 !important;
+  font-size: 1rem !important;
+  line-height: 1.72 !important;
+}
+
+.legal-panel .btn {
+  margin-top: .85rem;
+  margin-right: .5rem;
+}
+
+@media (max-width: 720px) {
+  body:not(.app-active) .android-promo {
+    grid-template-columns: 1fr auto !important;
+    padding: .9rem 3.2rem .9rem 1rem !important;
+  }
+
+  body:not(.app-active) .google-play-badge {
+    grid-column: 1 / -1;
+    justify-self: start;
+    width: min(100%, 250px) !important;
+  }
+
+  body.group-locked.public-modal-open .auth-shell:not(.hidden) {
+    align-items: flex-start !important;
+    padding: .75rem !important;
+  }
+
+  body.group-locked.public-modal-open .auth-shell:not(.hidden) .auth-gate,
+  body.group-locked.public-modal-open .auth-shell:not(.hidden) .start-screen {
+    max-height: calc(100dvh - 1.5rem) !important;
+    border-radius: 22px !important;
+  }
+
+  .legal-page {
+    padding: .75rem !important;
+  }
+
+  .legal-panel {
+    border-radius: 20px !important;
+  }
+}
