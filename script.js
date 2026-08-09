@@ -67,7 +67,7 @@ const APP_CONFIG = {
   academicReportEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/getAcademicReport",
   payments: {
     provider: "Wompi",
-    checkoutReady: false,
+    checkoutReady: true,
     checkoutEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/createPaymentIntent",
     studentPriceCOP: 10000,
     teacherPriceCOP: null
@@ -150,6 +150,7 @@ let teacherQuestions = [];
 let teacherQuestionImageFile = null;
 let paymentStep = 0;
 let selectedPaymentMethod = "pse";
+let selectedCheckoutPlanId = "";
 let billingHistoryItems = [];
 let activeBillingTab = "subscription";
 let messageHistoryClassId = "";
@@ -220,12 +221,12 @@ const PLANES_COMERCIALES = {
     benefits: ["Acceso mensual individual", "Exámenes y estadísticas", "Mensajes y Asesor IA", "Sin institución asociada"]
   },
   institution: [
-    { range: "1 a 10 estudiantes", label: "Institución inicial" },
-    { range: "11 a 25 estudiantes", label: "Institución básica" },
-    { range: "26 a 60 estudiantes", label: "Institución media" },
-    { range: "61 a 100 estudiantes", label: "Institución avanzada" },
-    { range: "101 a 200 estudiantes", label: "Institución amplia" },
-    { range: "Más de 200 estudiantes", label: "Institución corporativa" }
+    { id: "institution-0010", range: "1 a 10 estudiantes", label: "Institución inicial", priceCOP: 50000, includes: "1 usuario de institución, 2 profesores y 10 alumnos" },
+    { id: "institution-1125", range: "11 a 25 estudiantes", label: "Institución básica", priceCOP: 100000, includes: "1 usuario de institución, 2 profesores y 25 alumnos" },
+    { id: "institution-2660", range: "26 a 60 estudiantes", label: "Institución media", priceCOP: 150000, includes: "2 usuarios de institución, 2 profesores y 60 alumnos" },
+    { id: "institution-61100", range: "61 a 100 estudiantes", label: "Institución avanzada", priceCOP: 200000, includes: "2 usuarios de institución, 3 profesores y 100 alumnos" },
+    { id: "institution-101200", range: "101 a 200 estudiantes", label: "Institución amplia", priceCOP: 250000, includes: "3 usuarios de institución, 4 profesores y 200 alumnos" },
+    { id: "institution-200plus", range: "Más de 200 estudiantes", label: "Institución corporativa", priceCOP: 350000, includes: "4 usuarios de institución, 5 profesores y más de 200 alumnos" }
   ]
 };
 
@@ -763,7 +764,7 @@ function exigirSuscripcion(mensaje = "Activa tu suscripción para usar esta func
 }
 
 function precioSuscripcion() {
-  return esProfesor() ? APP_CONFIG.payments.teacherPriceCOP : APP_CONFIG.payments.studentPriceCOP;
+  return planPagoSeleccionado()?.priceCOP || 0;
 }
 
 function formatoPrecioCOP(value) {
@@ -773,6 +774,39 @@ function formatoPrecioCOP(value) {
     currency: "COP",
     maximumFractionDigits: 0
   }).format(Number(value));
+}
+
+function planesDisponiblesPago() {
+  if (esInstitucion()) {
+    return PLANES_COMERCIALES.institution.map(plan => ({
+      ...plan,
+      name: plan.label,
+      subtitle: `${plan.range}. Incluye ${plan.includes}.`
+    }));
+  }
+  if (esEstudianteIndependiente()) {
+    const plan = PLANES_COMERCIALES.independentStudent;
+    return [{
+      id: plan.id,
+      name: plan.name,
+      subtitle: plan.subtitle,
+      priceCOP: plan.priceCOP,
+      includes: "Un estudiante independiente"
+    }];
+  }
+  return [];
+}
+
+function planPagoSeleccionado() {
+  const available = planesDisponiblesPago();
+  if (!available.length) return null;
+  return available.find(plan => plan.id === selectedCheckoutPlanId) || available[0];
+}
+
+function asegurarPlanPagoSeleccionado() {
+  const selected = planPagoSeleccionado();
+  selectedCheckoutPlanId = selected?.id || "";
+  return selected;
 }
 
 function normalizarDane(value = "") {
@@ -814,6 +848,7 @@ async function institucionTienePlanActivo(dane) {
 function nombreMetodoPago(method = selectedPaymentMethod) {
   return {
     pse: "PSE · débito bancario",
+    nequi: "Nequi",
     "credit-card": "Tarjeta de crédito",
     "debit-card": "Tarjeta débito",
     card: "Tarjeta guardada"
@@ -821,7 +856,9 @@ function nombreMetodoPago(method = selectedPaymentMethod) {
 }
 
 function tipoMetodoWompi(method = selectedPaymentMethod) {
-  return method === "pse" ? "PSE" : "CARD";
+  if (method === "pse") return "PSE";
+  if (method === "nequi") return "NEQUI";
+  return "CARD";
 }
 
 function renderPasoPago() {
@@ -841,7 +878,8 @@ function renderPasoPago() {
 
 function renderSubscriptionPanel() {
   const active = suscripcionActiva();
-  const role = esProfesor() ? "Profesor" : "Estudiante";
+  const selectedPlan = asegurarPlanPagoSeleccionado();
+  const role = esInstitucion() ? "Institución" : (esProfesor() ? "Profesor" : "Estudiante");
   const price = formatoPrecioCOP(precioSuscripcion());
   const title = document.getElementById("subscriptionStatusTitle");
   const text = document.getElementById("subscriptionStatusText");
@@ -856,11 +894,24 @@ function renderSubscriptionPanel() {
   document.getElementById("subscriptionStatusCard")?.classList.toggle("active", active);
   const planName = document.getElementById("subscriptionPlanName");
   const planDescription = document.getElementById("subscriptionPlanDescription");
-  if (planName) planName.textContent = esProfesor() ? "Plan institucional para docentes" : "Plan estudiante independiente";
+  const availablePlans = planesDisponiblesPago();
+  const planGrid = document.querySelector(".checkout-plan-grid");
+  if (planGrid) {
+    planGrid.innerHTML = availablePlans.length
+      ? availablePlans.map(plan => `
+          <button class="checkout-plan-card ${plan.id === selectedCheckoutPlanId ? "active" : ""}" type="button" data-checkout-plan="${escapeHtml(plan.id)}">
+            <span>${escapeHtml(plan.name)}</span>
+            <strong>${escapeHtml(formatoPrecioCOP(plan.priceCOP))}/mes</strong>
+            <small>${escapeHtml(plan.subtitle || plan.includes || "")}</small>
+          </button>
+        `).join("")
+      : `<div class="checkout-plan-card active"><span>Plan institucional</span><strong>Incluido por la institución</strong><small>La facturación la administra la institución educativa.</small></div>`;
+  }
+  if (planName) planName.textContent = selectedPlan?.name || (esProfesor() ? "Plan institucional para docentes" : "Plan estudiante independiente");
   if (planDescription) {
-    planDescription.textContent = esProfesor()
+    planDescription.textContent = selectedPlan?.subtitle || (esProfesor()
       ? "Para docentes autorizados por una institución. La institución administra cupos, profesores y estudiantes."
-      : "Acceso individual mensual para practicar, presentar exámenes, revisar métricas y usar el Asesor IA.";
+      : "Acceso individual mensual para practicar, presentar exámenes, revisar métricas y usar el Asesor IA.");
   }
   const priceLabel = document.querySelector(".subscription-price");
   if (priceLabel) priceLabel.textContent = price;
@@ -869,7 +920,7 @@ function renderSubscriptionPanel() {
   const method = document.getElementById("paymentSummaryMethod");
   const taxes = document.getElementById("paymentSummaryTaxes");
   if (email) email.textContent = usuarioActual?.email || "—";
-  if (plan) plan.textContent = `Plan ${role} · ${price}`;
+  if (plan) plan.textContent = `${selectedPlan?.name || `Plan ${role}`} · ${price}`;
   if (method) method.textContent = nombreMetodoPago();
   if (taxes) taxes.textContent = "Incluidos cuando aplique según la pasarela y la normativa colombiana.";
   const bigPrice = document.getElementById("checkoutBigPrice");
@@ -8829,18 +8880,11 @@ document.querySelectorAll("[data-payment-method]").forEach(button => {
     renderSubscriptionPanel();
   });
 });
-document.querySelectorAll("[data-checkout-plan]").forEach(button => {
-  button.addEventListener("click", () => {
-    document.querySelectorAll("[data-checkout-plan]").forEach(item => item.classList.toggle("active", item === button));
-    if (button.dataset.checkoutPlan === "institutional") {
-      const status = document.getElementById("paymentStatus");
-      if (status) {
-        status.textContent = "Los planes institucionales se cotizan por cupos. Escríbenos a info@matematicasentubolsillo.com para activar el proceso.";
-        status.className = "bank-status";
-      }
-      mostrarInstitutionInfo();
-    }
-  });
+document.querySelector(".checkout-plan-grid")?.addEventListener("click", event => {
+  const button = event.target.closest("[data-checkout-plan]");
+  if (!button) return;
+  selectedCheckoutPlanId = button.dataset.checkoutPlan || "";
+  renderSubscriptionPanel();
 });
 document.getElementById("btnPaymentPrevious")?.addEventListener("click", () => {
   paymentStep = Math.max(0, paymentStep - 1);
@@ -8866,9 +8910,17 @@ document.getElementById("btnStartSecureCheckout")?.addEventListener("click", asy
     status.className = "bank-status";
   }
   try {
+    const selectedPlan = asegurarPlanPagoSeleccionado();
+    if (!selectedPlan) {
+      if (status) {
+        status.textContent = "Este tipo de cuenta no tiene un plan de pago directo disponible.";
+        status.className = "bank-status error";
+      }
+      return;
+    }
     if (!APP_CONFIG.payments.checkoutReady || !Number(precioSuscripcion())) {
       await registrarSolicitudFacturacion("payment-intent", {
-        planId: esProfesor() ? "teacher-monthly" : "student-monthly",
+        planId: selectedPlan.id,
         paymentMethod: selectedPaymentMethod,
         providerPaymentMethod: tipoMetodoWompi(),
         savePaymentMethod: !!saveMethod,
@@ -8882,7 +8934,7 @@ document.getElementById("btnStartSecureCheckout")?.addEventListener("click", asy
       return;
     }
     const result = await solicitarIntencionPago({
-      planId: esProfesor() ? "teacher-monthly" : "student-monthly",
+      planId: selectedPlan.id,
       role: rolUsuario(),
       paymentMethod: selectedPaymentMethod,
       providerPaymentMethod: tipoMetodoWompi(),

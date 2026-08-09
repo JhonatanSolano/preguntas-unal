@@ -21,8 +21,62 @@ const BILLING_PLANS = {
   "student-monthly": {
     role: "student",
     name: "Plan Estudiante mensual",
-    amountCOP: null,
+    amountCOP: 10000,
     benefits: ["Exámenes", "Estadísticas", "Mensajería académica", "Asesor IA"]
+  },
+  "institution-0010": {
+    role: "institution",
+    name: "Plan Institución 1 a 10 estudiantes",
+    amountCOP: 50000,
+    maxInstitutionUsers: 1,
+    maxTeachers: 2,
+    maxStudents: 10,
+    benefits: ["1 usuario de institución", "2 profesores", "10 estudiantes"]
+  },
+  "institution-1125": {
+    role: "institution",
+    name: "Plan Institución 11 a 25 estudiantes",
+    amountCOP: 100000,
+    maxInstitutionUsers: 1,
+    maxTeachers: 2,
+    maxStudents: 25,
+    benefits: ["1 usuario de institución", "2 profesores", "25 estudiantes"]
+  },
+  "institution-2660": {
+    role: "institution",
+    name: "Plan Institución 26 a 60 estudiantes",
+    amountCOP: 150000,
+    maxInstitutionUsers: 2,
+    maxTeachers: 2,
+    maxStudents: 60,
+    benefits: ["2 usuarios de institución", "2 profesores", "60 estudiantes"]
+  },
+  "institution-61100": {
+    role: "institution",
+    name: "Plan Institución 61 a 100 estudiantes",
+    amountCOP: 200000,
+    maxInstitutionUsers: 2,
+    maxTeachers: 3,
+    maxStudents: 100,
+    benefits: ["2 usuarios de institución", "3 profesores", "100 estudiantes"]
+  },
+  "institution-101200": {
+    role: "institution",
+    name: "Plan Institución 101 a 200 estudiantes",
+    amountCOP: 250000,
+    maxInstitutionUsers: 3,
+    maxTeachers: 4,
+    maxStudents: 200,
+    benefits: ["3 usuarios de institución", "4 profesores", "200 estudiantes"]
+  },
+  "institution-200plus": {
+    role: "institution",
+    name: "Plan Institución más de 200 estudiantes",
+    amountCOP: 350000,
+    maxInstitutionUsers: 4,
+    maxTeachers: 5,
+    maxStudents: 999999,
+    benefits: ["4 usuarios de institución", "5 profesores", "Más de 200 estudiantes"]
   },
   "teacher-monthly": {
     role: "teacher",
@@ -536,7 +590,6 @@ exports.createPaymentIntent = onRequest({
   const body = req.body || {};
   const planId = String(body.planId || "").trim();
   const plan = BILLING_PLANS[planId];
-  const userRole = String(body.role || "").trim();
   const paymentMethod = String(body.paymentMethod || "pse").trim();
   const providerPaymentMethod = String(body.providerPaymentMethod || "").trim() || (paymentMethod === "pse" ? "PSE" : "CARD");
   const savePaymentMethod = body.savePaymentMethod === true;
@@ -544,13 +597,30 @@ exports.createPaymentIntent = onRequest({
   const acceptTerms = body.acceptTerms === true;
 
   if (!plan) return res.status(400).json({ error: "Plan inválido." });
-  if (plan.role !== userRole) return res.status(400).json({ error: "El plan no corresponde al tipo de cuenta." });
   if (!acceptTerms) return res.status(400).json({ error: "Debes aceptar las condiciones del servicio." });
   if (savePaymentMethod && !acceptRecurring) {
     return res.status(400).json({ error: "Para guardar un método debes autorizar la renovación automática." });
   }
 
   const db = admin.firestore();
+  const userSnap = await db.collection("users").doc(decoded.uid).get();
+  if (!userSnap.exists) return res.status(403).json({ error: "Tu perfil no está registrado para facturación." });
+  const userProfile = userSnap.data() || {};
+  const userRole = String(userProfile.role || userProfile.tipoCuenta || "").trim();
+  const accountMode = String(userProfile.accountMode || userProfile.billingMode || "").trim();
+  const institutionDane = String(userProfile.institutionDane || "").replace(/\D/g, "");
+  if (plan.role === "student" && (userRole !== "student" || accountMode === "institutional" || institutionDane)) {
+    return res.status(403).json({ error: "Este plan es exclusivo para estudiantes independientes." });
+  }
+  if (plan.role === "institution" && userRole !== "institution") {
+    return res.status(403).json({ error: "Este plan es exclusivo para instituciones educativas." });
+  }
+  if (plan.role === "institution" && !institutionDane) {
+    return res.status(400).json({ error: "La institución no tiene código DANE asociado." });
+  }
+  if (plan.role === "teacher") {
+    return res.status(403).json({ error: "Los profesores institucionales no pagan plan propio. La facturación corresponde a la institución." });
+  }
   const reference = `MB-${decoded.uid.slice(0, 8).toUpperCase()}-${Date.now()}`;
   const amountInCents = priceToCents(plan.amountCOP);
   const intentRef = db.collection("paymentIntents").doc(reference);
@@ -569,6 +639,11 @@ exports.createPaymentIntent = onRequest({
     amountCOP: plan.amountCOP,
     amountInCents,
     currency: "COP",
+    institutionDane: plan.role === "institution" ? institutionDane : "",
+    institutionName: plan.role === "institution" ? (userProfile.institutionName || "") : "",
+    maxInstitutionUsers: plan.maxInstitutionUsers || null,
+    maxTeachers: plan.maxTeachers || null,
+    maxStudents: plan.maxStudents || null,
     reference,
     status: "configuration_pending",
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -595,7 +670,7 @@ exports.createPaymentIntent = onRequest({
     return res.status(200).json({
       ready: false,
       reference,
-      message: "El módulo de pagos está listo, pero falta configurar precios y credenciales Sandbox de Wompi para habilitar cobros reales."
+      message: "El módulo de pagos está listo, pero falta configurar las credenciales de Wompi en Firebase Secrets para habilitar cobros reales."
     });
   }
 
@@ -665,7 +740,9 @@ exports.wompiWebhook = onRequest({
     planId: intent.planId,
     planName: intent.planName,
     paymentMethod: intent.paymentMethod,
-    paymentMethodLabel: intent.paymentMethod === "pse" ? "PSE" : "Tarjeta",
+    paymentMethodLabel: intent.paymentMethod === "pse" ? "PSE" : (intent.paymentMethod === "nequi" ? "Nequi" : "Tarjeta"),
+    institutionDane: intent.institutionDane || "",
+    institutionName: intent.institutionName || "",
     amountInCents: transaction.amount_in_cents || intent.amountInCents,
     amountCOP: (transaction.amount_in_cents || intent.amountInCents || 0) / 100,
     currency: transaction.currency || "COP",
@@ -711,6 +788,25 @@ exports.wompiWebhook = onRequest({
       });
     }
     await db.collection("users").doc(intent.uid).set(userUpdate, { merge: true });
+    if (intent.role === "institution" && intent.institutionDane) {
+      await db.collection("institutions").doc(String(intent.institutionDane)).set({
+        subscriptionStatus: "active",
+        subscriptionPlan: intent.planName,
+        subscriptionPlanId: intent.planId,
+        subscriptionStartedAt: admin.firestore.Timestamp.fromDate(now),
+        subscriptionExpiresAt: admin.firestore.Timestamp.fromDate(expiresAt),
+        subscriptionAmountCOP: transactionPayload.amountCOP,
+        subscriptionAutoRenew: intent.savePaymentMethod === true,
+        subscriptionPaymentPaused: intent.savePaymentMethod !== true,
+        subscriptionNextBillingAt: intent.savePaymentMethod === true ? admin.firestore.Timestamp.fromDate(expiresAt) : null,
+        paymentProvider: "Wompi",
+        lastPaymentId: String(transactionId || reference),
+        maxInstitutionUsers: intent.maxInstitutionUsers || null,
+        maxTeachers: intent.maxTeachers || null,
+        maxStudents: intent.maxStudents || null,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+    }
     await db.collection("notifications").add({
       targetUid: intent.uid,
       targetEmail: intent.email || "",
