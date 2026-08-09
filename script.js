@@ -3210,10 +3210,7 @@ async function cambiarNotificaciones(e) {
   const status = document.getElementById(toggle.id === "adminNotificationToggle" ? "adminNotificationStatus" : "studentNotificationStatus");
   if (!soporteNotificaciones()) {
     toggle.checked = false;
-    if (status) {
-      status.textContent = "Este navegador no permite notificaciones.";
-      status.classList.add("error");
-    }
+    if (status) setStatusTemporal(status.id, "Este navegador no permite notificaciones.", "error");
     return;
   }
   if (!quiereActivar) {
@@ -3229,7 +3226,13 @@ async function cambiarNotificaciones(e) {
     toggle.checked = false;
     await guardarPerfilUsuario({ notificationsEnabled: false, notificationPermission: permission });
     actualizarEstadoNotificaciones();
-    setStatusTemporal(status?.id || notificationStatusId(), "No se activaron las notificaciones.", "error");
+    setStatusTemporal(
+      status?.id || notificationStatusId(),
+      permission === "denied"
+        ? "El navegador bloqueó las notificaciones. Actívalas en permisos del sitio."
+        : "No se activaron las notificaciones. Acepta el permiso del navegador para usarlas.",
+      "error"
+    );
     return;
   }
   await guardarPerfilUsuario({ notificationsEnabled: true, notificationPermission: permission });
@@ -6712,9 +6715,11 @@ async function loginEmail() {
 
 function loginCoincideConTipo(profile, expectedType, email = "") {
   const normalizedEmail = String(email || profile.email || "").toLowerCase();
-  if (normalizedEmail === ADMIN_EMAIL) return true;
   const role = profile.role || profile.tipoCuenta || "";
   const institutional = profile.accountMode === "institutional" || !!profile.institutionDane;
+  if (normalizedEmail === ADMIN_EMAIL) {
+    return expectedType === "teacher" || (expectedType === "institution" && role === "institution");
+  }
   if (expectedType === "institution") return role === "institution";
   if (expectedType === "teacher") return role === "teacher";
   if (expectedType === "institutionalStudent") return role === "student" && institutional;

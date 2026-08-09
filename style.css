@@ -10212,11 +10212,22 @@ body:not(.app-active) .pricing-card .btn-institution-info:hover {
 }
 
 body:not(.app-active) .public-footer .footer-faq-link {
-  color: #ffffff !important;
+  appearance: none !important;
+  display: block !important;
+  width: fit-content !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: rgba(255,255,255,.82) !important;
   font-family: inherit !important;
   font-size: inherit !important;
-  font-weight: inherit !important;
+  font-weight: 800 !important;
   line-height: inherit !important;
+  letter-spacing: inherit !important;
+  text-align: left !important;
+  text-decoration: none !important;
+  text-shadow: none !important;
+  box-shadow: none !important;
 }
 
 .bank-status.info {
