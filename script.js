@@ -3192,11 +3192,15 @@ function actualizarEstadoNotificaciones() {
   const statusId = notificationStatusId();
   const status = document.getElementById(statusId);
   if (!status) return;
-  status.classList.toggle("error", !supported || Notification.permission === "denied");
-  if (!supported) status.textContent = "Este navegador no permite notificaciones.";
-  else if (Notification.permission === "denied") status.textContent = "El permiso está bloqueado. Actívalo desde la configuración del navegador o dispositivo.";
-  else if (enabled) status.textContent = "Notificaciones activadas.";
-  else status.textContent = "Notificaciones desactivadas.";
+  status.className = "bank-status";
+  if (!supported) {
+    status.className = "bank-status error";
+    status.textContent = "Este navegador no permite notificaciones.";
+  } else if (Notification.permission === "denied") {
+    status.className = "bank-status error";
+    status.textContent = "El permiso está bloqueado. Actívalo desde la configuración del navegador o dispositivo.";
+  }
+  else status.textContent = "";
 }
 
 async function cambiarNotificaciones(e) {
@@ -3215,6 +3219,7 @@ async function cambiarNotificaciones(e) {
   if (!quiereActivar) {
     await guardarPerfilUsuario({ notificationsEnabled: false, notificationPermission: Notification.permission });
     actualizarEstadoNotificaciones();
+    setStatusTemporal(status?.id || notificationStatusId(), "Notificaciones desactivadas.", "info");
     return;
   }
   const permission = Notification.permission === "default"
@@ -3224,10 +3229,12 @@ async function cambiarNotificaciones(e) {
     toggle.checked = false;
     await guardarPerfilUsuario({ notificationsEnabled: false, notificationPermission: permission });
     actualizarEstadoNotificaciones();
+    setStatusTemporal(status?.id || notificationStatusId(), "No se activaron las notificaciones.", "error");
     return;
   }
   await guardarPerfilUsuario({ notificationsEnabled: true, notificationPermission: permission });
   actualizarEstadoNotificaciones();
+  setStatusTemporal(status?.id || notificationStatusId(), "Notificaciones activadas.", "success");
   try {
     new Notification(APP_CONFIG.name, {
       body: "Notificaciones activadas correctamente.",
@@ -5553,11 +5560,23 @@ function limpiarWarn() {
   warn.classList.remove("error");
 }
 
+const statusTimers = {};
 function setStatus(id, msg, tipo = "ok") {
   const el = document.getElementById(id);
   if (!el) return;
   el.textContent = msg;
-  el.classList.toggle("error", tipo === "error");
+  el.className = `bank-status${tipo ? ` ${tipo}` : ""}`;
+}
+
+function setStatusTemporal(id, msg, tipo = "ok", ms = 5000) {
+  setStatus(id, msg, tipo);
+  clearTimeout(statusTimers[id]);
+  statusTimers[id] = setTimeout(() => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = "";
+    el.className = "bank-status";
+  }, ms);
 }
 
 function mostrarReloadSesion() {
@@ -6649,25 +6668,26 @@ async function loginEmail() {
   const email = document.getElementById("loginEmail").value.trim().toLowerCase();
   const password = document.getElementById("loginPassword").value;
   const expectedType = document.getElementById("loginAccountType")?.value || "";
+  setStatus("loginStatus", "");
   if (!expectedType) {
-    mostrarWarn("Selecciona primero el tipo de cuenta.");
+    setStatus("loginStatus", "Selecciona primero el tipo de cuenta.", "error");
     return;
   }
   try {
     const cred = await signInWithEmailAndPassword(auth, email, password);
     if (requiereVerificacionEmail(cred.user) && cred.user.email?.toLowerCase() !== ADMIN_EMAIL) {
       await signOut(auth);
-      mostrarWarn("Debes verificar tu correo. Abre el enlace de verificación antes de iniciar sesión.");
+      setStatus("loginStatus", "Debes verificar tu correo. Abre el enlace de verificación antes de iniciar sesión.", "error");
       return;
     }
     const snap = await getDoc(doc(db, "users", cred.user.uid));
     const profile = snap.exists() ? snap.data() : {};
     if (!loginCoincideConTipo(profile, expectedType, cred.user.email)) {
       await signOut(auth);
-      mostrarWarn(mensajeTipoCuentaNoAutorizado(expectedType));
+      setStatus("loginStatus", "Correo o contraseña incorrecta.", "error");
     }
   } catch (err) {
-    mostrarWarn("No se pudo ingresar. Revisa correo y contraseña.");
+    setStatus("loginStatus", "Correo o contraseña incorrecta.", "error");
   }
 }
 
@@ -8799,15 +8819,16 @@ document.getElementById("billingPauseToggle")?.addEventListener("change", async 
   }
   try {
     await registrarSolicitudFacturacion(pause ? "pause-renewal" : "resume-renewal");
+    await guardarPerfilUsuario({ subscriptionPaymentPaused: pause, subscriptionAutoRenew: !pause });
     if (status) {
-      status.textContent = pause
-        ? "Solicitud de suspensión registrada. Se aplicará cuando la pasarela de pagos la confirme."
-        : "Solicitud de reactivación registrada. Se aplicará cuando la pasarela de pagos la confirme.";
-      status.className = "bank-status success";
+      setStatusTemporal("billingActionStatus", pause
+          ? "Suspensión registrada."
+          : "Reactivación registrada.",
+        "success");
     }
   } catch (error) {
     console.error(error);
-    event.target.checked = !pause;
+    event.target.checked = perfilActual?.subscriptionPaymentPaused === true || perfilActual?.subscriptionAutoRenew === false;
     if (status) {
       status.textContent = "No fue posible registrar la solicitud. Intenta nuevamente.";
       status.className = "bank-status error";
