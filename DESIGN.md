@@ -155,6 +155,35 @@ Stitch no debe:
 - Reemplazar validaciones backend.
 - Modificar datos reales de estudiantes, profesores o instituciones.
 
+## Integración de Impeccable
+
+Impeccable queda como arnés local de diseño para revisar, criticar y endurecer interfaces antes de publicar. Debe usarse en tareas visuales de landing page, app interna, modales, menús, formularios, mensajes, exámenes, reportes, facturación y estados vacíos.
+
+Comandos recomendados:
+
+```powershell
+node .agents\skills\impeccable\scripts\context.mjs --target index.html
+npx impeccable update
+```
+
+Cuando una tarea sea de diseño, usar el comando o playbook que corresponda:
+
+- `adapt`: responsive móvil/tablet/escritorio.
+- `layout`: espaciado, ritmo y jerarquía.
+- `colorize`: paletas y acentos.
+- `typeset`: tipografía y legibilidad.
+- `polish`: acabado final antes de publicar.
+- `audit`: accesibilidad, rendimiento y defectos visuales.
+
+Reglas para Impeccable:
+
+- Leer `PRODUCT.md` y `DESIGN.md` antes de proponer cambios grandes.
+- Mantener el producto y la lógica existentes como verdad.
+- No reemplazar copy legal, precios, roles ni permisos sin instrucción explícita.
+- Diseñar primero para móvil sin degradar escritorio.
+- Validar que no haya doble scroll innecesario, textos cortados ni acciones fuera de pantalla.
+- Si una propuesta cambia la identidad visual durable, actualizar `DESIGN.md`.
+
 ## Checklist antes de publicar
 
 - `node --check script.js`

@@ -5,3 +5,4 @@ node_modules/
 functions/node_modules/
 .codex/
 *.local.toml
+.claude/settings.local.json
