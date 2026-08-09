@@ -10208,6 +10208,10 @@ body:not(.app-active) .pricing-card .btn-institution-info:hover {
   text-decoration: none !important;
 }
 
+body:not(.app-active) .public-footer .footer-faq-link {
+  color: #ffffff !important;
+}
+
 @media (max-width: 760px) {
   .billing-tabs {
     display: grid !important;
