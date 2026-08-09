@@ -127,6 +127,7 @@ let renderizandoAdminStudents = false;
 let classMembershipValid = true;
 let registroEnCurso = false;
 let loginExpectedTypePending = "";
+let loginRejectMessagePending = "";
 let phoneVerificationId = "";
 let phoneVerificationExpiresAt = 0;
 let recaptchaVerifier = null;
@@ -5435,6 +5436,31 @@ function mostrarLoginCard() {
   enfocarModalPublico("loginCard");
 }
 
+function mostrarLoginConError(message) {
+  authIntent = "login";
+  document.getElementById("loginCard")?.classList.remove("hidden");
+  document.getElementById("forgotUserCard")?.classList.add("hidden");
+  document.getElementById("forgotPasswordCard")?.classList.add("hidden");
+  document.getElementById("roleChoiceCard")?.classList.add("hidden");
+  document.getElementById("institutionInfoCard")?.classList.add("hidden");
+  document.getElementById("groupEntry")?.classList.add("hidden");
+  document.getElementById("loginTypeStep")?.classList.add("hidden");
+  document.querySelector(".auth-tabs")?.classList.remove("hidden");
+  document.getElementById("googleInstitutionPanel")?.classList.add("hidden");
+  document.getElementById("loginPanel")?.classList.remove("hidden");
+  document.getElementById("registerPanel")?.classList.add("hidden");
+  document.getElementById("tabLogin")?.classList.add("active");
+  document.getElementById("tabRegister")?.classList.remove("active");
+  document.getElementById("tabInstitutionRegister")?.classList.remove("active");
+  document.getElementById("btnAuthClose")?.classList.remove("hidden");
+  const title = document.getElementById("authTitle");
+  if (title) title.textContent = "Ingreso Matemáticas En Tu Bolsillo";
+  actualizarLoginAccountType();
+  setStatus("loginStatus", message || "Tipo de cuenta equivocado. Selecciona el tipo correcto e intenta nuevamente.", "error");
+  actualizarBloqueoScrollPublico();
+  enfocarModalPublico("loginCard");
+}
+
 function mostrarRegisterCard() {
   cerrarLandingMenu();
   limpiarAuthPublico();
@@ -6735,10 +6761,18 @@ async function loginEmail() {
     }
     const snap = await getDoc(doc(db, "users", cred.user.uid));
     const profile = snap.exists() ? snap.data() : {};
-    if (!loginCoincideConTipo(profile, expectedType, cred.user.email)) {
+    if (!snap.exists()) {
       await signOut(auth);
       clearPendingLoginType();
       setStatus("loginStatus", "Correo o contraseña incorrecta.", "error");
+      return;
+    }
+    if (!loginCoincideConTipo(profile, expectedType, cred.user.email)) {
+      const message = "Tipo de cuenta equivocado. Selecciona el tipo de cuenta correcto e intenta nuevamente.";
+      loginRejectMessagePending = message;
+      await signOut(auth);
+      clearPendingLoginType();
+      setStatus("loginStatus", message, "error");
       return;
     }
   } catch (err) {
@@ -6942,7 +6976,7 @@ async function loginGoogle() {
     if (!snap.exists() || !loginCoincideConTipo(profile, expectedType, cred.user.email)) {
       await signOut(auth);
       clearPendingLoginType();
-      mostrarWarn(expectedType === "independentStudent"
+      mostrarLoginConError(expectedType === "independentStudent"
         ? "Google solo puede usarse con un correo ya registrado como estudiante independiente."
         : mensajeTipoCuentaNoAutorizado(expectedType));
       return;
@@ -9252,7 +9286,13 @@ onAuthStateChanged(auth, async user => {
     document.getElementById("advisorWidget")?.classList.add("hidden");
     cerrarAsesorIA();
     document.body.classList.add("group-locked");
-    mostrarAuthInicial();
+    if (loginRejectMessagePending) {
+      const message = loginRejectMessagePending;
+      loginRejectMessagePending = "";
+      mostrarLoginConError(message);
+    } else {
+      mostrarAuthInicial();
+    }
     return;
   }
   if (registroEnCurso) {
@@ -9281,12 +9321,11 @@ onAuthStateChanged(auth, async user => {
   const rolLogin = rolUsuario(perfilLogin);
   const expectedLoginType = getPendingLoginType();
   if (expectedLoginType && !loginCoincideConTipo(perfilLogin, expectedLoginType, user.email)) {
+    loginRejectMessagePending = "Tipo de cuenta equivocado. Selecciona el tipo de cuenta correcto e intenta nuevamente.";
     await signOut(auth);
     clearPendingLoginType();
     ocultarReloadSesion();
     document.body.classList.add("group-locked");
-    mostrarAuthInicial("login");
-    setStatus("loginStatus", "Correo o contraseña incorrecta.", "error");
     return;
   }
   if (!rolLogin) {
