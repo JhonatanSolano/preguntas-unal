@@ -10181,6 +10181,31 @@ body:not(.app-active) .public-hero .public-actions .btn:hover {
   transform: translateY(-1px);
 }
 
+body:not(.app-active) .cta-band .public-actions .btn {
+  background: linear-gradient(180deg, #f8fbfc, #dce6eb) !important;
+  color: #12233a !important;
+  border: 2px solid rgba(18, 35, 58, .26) !important;
+  box-shadow: 0 10px 22px rgba(7, 28, 48, .18), inset 0 1px 0 rgba(255, 255, 255, .84) !important;
+}
+
+body:not(.app-active) .cta-band .public-actions .btn:hover {
+  background: linear-gradient(180deg, #ffffff, #e8f0f3) !important;
+  color: #0b3448 !important;
+  transform: translateY(-1px);
+}
+
+body:not(.app-active) .pricing-card .btn-institution-info {
+  color: #ffffff !important;
+  background: linear-gradient(135deg, #13677b 0%, #119598 100%) !important;
+  border-color: transparent !important;
+  box-shadow: 0 14px 28px rgba(17, 149, 152, .2) !important;
+}
+
+body:not(.app-active) .pricing-card .btn-institution-info:hover {
+  color: #ffffff !important;
+  background: linear-gradient(135deg, #0f5b70 0%, #0f8f91 100%) !important;
+}
+
 @media (max-width: 760px) {
   .billing-tabs {
     display: grid !important;
