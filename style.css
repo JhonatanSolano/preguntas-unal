@@ -9640,6 +9640,24 @@ body:not(.app-active) .audience-grid article {
     overflow: visible !important;
   }
 
+  body:not(.app-active) .pricing-card.featured {
+    padding-top: 3.35rem !important;
+  }
+
+  body:not(.app-active) .pricing-card.featured::after {
+    top: 1rem !important;
+    right: 1rem !important;
+    bottom: auto !important;
+    left: auto !important;
+    transform: none !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    max-width: calc(100% - 2rem) !important;
+    white-space: nowrap !important;
+    z-index: 2 !important;
+  }
+
   body:not(.app-active) .landing-highlights article::after {
     inset: auto 1rem .8rem 1rem !important;
   }
