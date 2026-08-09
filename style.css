@@ -8214,3 +8214,405 @@ body {
     padding-block: 2.15rem;
   }
 }
+
+/* Impeccable visual sprint · claridad, contraste y responsive sin tocar lógica */
+:root {
+  --mb-page: #f7fbfc;
+  --mb-ink: #082f49;
+  --mb-ink-2: #24495f;
+  --mb-teal: #0b7f86;
+  --mb-teal-2: #0f9f9a;
+  --mb-card: rgba(255, 255, 255, .96);
+  --mb-line: rgba(8, 47, 73, .12);
+  --mb-shadow: 0 18px 44px rgba(8, 47, 73, .10);
+  --mb-shadow-soft: 0 10px 26px rgba(8, 47, 73, .075);
+}
+
+.public-home {
+  max-width: 1220px;
+  background:
+    radial-gradient(circle at 12% 14%, rgba(15, 159, 154, .12), transparent 18rem),
+    radial-gradient(circle at 92% 24%, rgba(244, 184, 96, .10), transparent 16rem),
+    linear-gradient(180deg, #fbfefe 0%, var(--mb-page) 42%, #ffffff 100%);
+}
+
+.landing-nav {
+  border: 1px solid var(--mb-line);
+  background: rgba(255, 255, 255, .96);
+  box-shadow: var(--mb-shadow-soft);
+}
+
+.landing-nav .btn,
+.public-actions .btn,
+.pricing-card .btn,
+.whatsapp-chat-link {
+  color: #fff;
+  background: linear-gradient(135deg, #07516f 0%, var(--mb-teal) 62%, var(--mb-teal-2) 100%);
+  box-shadow: 0 12px 24px rgba(11, 127, 134, .22);
+}
+
+.landing-nav .btn-outline,
+.public-actions .btn-outline,
+.pricing-card .btn-outline {
+  color: var(--mb-ink);
+  background: #fff;
+  border-color: rgba(8, 47, 73, .22);
+  box-shadow: 0 8px 20px rgba(8, 47, 73, .06);
+}
+
+.landing-menu-toggle,
+.drawer-toggle {
+  background: linear-gradient(135deg, #07516f, #0f9f9a) !important;
+}
+
+.landing-hero {
+  grid-template-columns: minmax(0, 1.08fr) minmax(260px, .62fr) !important;
+  align-items: center;
+  gap: clamp(1.25rem, 3vw, 2rem);
+  padding: clamp(1.7rem, 4.2vw, 3.2rem);
+  min-height: auto;
+  overflow: hidden;
+  border: 1px solid rgba(11, 127, 134, .18);
+  background:
+    radial-gradient(circle at 12% 82%, rgba(15, 159, 154, .11), transparent 18rem),
+    linear-gradient(135deg, #ffffff 0%, #f2fbfb 64%, #e9f8f7 100%);
+  box-shadow: var(--mb-shadow);
+}
+
+.landing-hero::before,
+.landing-hero::after {
+  opacity: .24;
+}
+
+.hero-copy {
+  min-width: 0;
+  max-width: 720px;
+}
+
+.hero-logo {
+  width: clamp(74px, 8vw, 108px);
+  height: auto;
+  margin-bottom: clamp(.8rem, 2vw, 1.2rem);
+}
+
+.public-hero h1 {
+  max-width: 100% !important;
+  color: var(--mb-ink) !important;
+  font-family: "Hanken Grotesk", "Segoe UI", system-ui, sans-serif;
+  font-size: clamp(2.65rem, 5.25vw, 4.85rem) !important;
+  line-height: .95 !important;
+  letter-spacing: 0 !important;
+  overflow-wrap: normal;
+  hyphens: none;
+  text-shadow: none !important;
+}
+
+.hero-copy p,
+.section-lead,
+.landing-grid p,
+.landing-highlights span,
+.public-grid span,
+.pricing-list,
+.timeline-grid p,
+.audience-grid p,
+.stats-strip span {
+  color: var(--mb-ink-2);
+}
+
+.math-showcase {
+  width: min(100%, 350px);
+  min-height: 350px;
+  justify-self: end;
+  opacity: .78;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(234, 248, 248, .70), transparent 5.6rem),
+    linear-gradient(155deg, #07324a, #0a4f66 58%, #0b636b);
+  box-shadow: 0 18px 38px rgba(8, 47, 73, .16);
+}
+
+.math-stage-grid {
+  opacity: .18;
+  background-size: 44px 44px;
+}
+
+.math-core {
+  width: 78px;
+  height: 78px;
+  opacity: .62;
+  box-shadow: 0 12px 28px rgba(8, 47, 73, .16);
+}
+
+.math-core span {
+  font-size: 2rem;
+}
+
+.landing-equation {
+  max-width: 150px;
+  padding: .45rem .55rem;
+  border-radius: 8px;
+  color: #f5ffff;
+  background: rgba(9, 93, 105, .78);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, .16);
+  font-size: .68rem;
+}
+
+.landing-equation small {
+  color: #d8fffb;
+  font-size: .42rem;
+  letter-spacing: .03em;
+}
+
+.landing-equation .katex {
+  font-size: .9em;
+}
+
+.equation-quadratic,
+.equation-angle-sum {
+  display: none;
+}
+
+.mini-dashboard {
+  top: 1rem;
+  right: 1rem;
+  width: 112px;
+  padding: .55rem;
+  border-radius: 8px;
+}
+
+.mini-dashboard span {
+  color: #4c6474;
+  font-size: .68rem;
+}
+
+.mini-dashboard strong {
+  font-size: 1.45rem;
+}
+
+.landing-highlights,
+.landing-grid,
+.public-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+  gap: clamp(.85rem, 2vw, 1.1rem);
+}
+
+.landing-highlights article,
+.landing-grid article,
+.pricing-card,
+.timeline-grid article,
+.audience-grid article,
+.public-grid article,
+.landing-support {
+  min-width: 0;
+  overflow: visible;
+  border: 1px solid var(--mb-line);
+  background: var(--mb-card);
+  box-shadow: var(--mb-shadow-soft);
+}
+
+.landing-highlights article {
+  min-height: 0;
+}
+
+.feature-icon,
+.landing-grid article span {
+  color: initial !important;
+  background:
+    linear-gradient(180deg, #ffffff, #edfafa) !important;
+  border: 1px solid rgba(11, 127, 134, .16);
+  box-shadow: 0 8px 18px rgba(8, 47, 73, .08);
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif !important;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.landing-grid article span:not(.feature-icon) {
+  color: var(--mb-teal) !important;
+  font-family: "Hanken Grotesk", "Segoe UI", system-ui, sans-serif !important;
+}
+
+.pricing-card::before,
+.start-screen::before,
+.welcome-panel::before,
+.profile-panel::before,
+.admin-panel::before,
+.messages-panel::before,
+.billing-card::before,
+.subscription-status-card::before,
+.teacher-message-compose::before,
+.teacher-builder-card::before,
+.report-shell::before {
+  display: none;
+}
+
+.pricing-card.featured {
+  background:
+    linear-gradient(180deg, #ffffff, #f1fbfa);
+}
+
+.pricing-card.featured::after {
+  color: #6d4300;
+  background: #fff1c7;
+}
+
+.process-section,
+.stats-strip,
+.cta-band,
+.public-footer {
+  background:
+    linear-gradient(135deg, #07324a, #07516f 52%, #0b636b);
+}
+
+.process-section {
+  box-shadow: var(--mb-shadow);
+}
+
+.back-to-top {
+  position: fixed !important;
+  left: clamp(1rem, 3vw, 1.4rem) !important;
+  right: auto !important;
+  bottom: clamp(5.2rem, 9vh, 6.5rem) !important;
+  z-index: 91 !important;
+  color: var(--mb-ink);
+  background: #ffffff;
+  border-color: rgba(8, 47, 73, .18);
+  box-shadow: 0 14px 30px rgba(8, 47, 73, .14);
+}
+
+.whatsapp-widget {
+  z-index: 92;
+}
+
+@media (max-width: 980px) {
+  .landing-hero {
+    grid-template-columns: 1fr !important;
+  }
+
+  .math-showcase {
+    justify-self: center;
+    width: min(100%, 420px);
+    min-height: 320px;
+  }
+
+  .public-hero h1 {
+    font-size: clamp(2.6rem, 9vw, 4.15rem) !important;
+    line-height: .98 !important;
+  }
+}
+
+@media (max-width: 720px) {
+  .public-home {
+    width: 100%;
+    max-width: 100%;
+    padding-inline: clamp(.75rem, 4vw, 1rem);
+  }
+
+  .landing-nav,
+  .android-promo,
+  .landing-hero,
+  .landing-section,
+  .public-footer {
+    width: 100%;
+    margin-inline: 0;
+  }
+
+  .landing-nav {
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: .7rem;
+    border-radius: 18px;
+  }
+
+  .landing-menu-toggle {
+    flex-basis: 48px;
+    width: 48px;
+    height: 48px;
+  }
+
+  .android-promo {
+    grid-template-columns: auto minmax(0, 1fr);
+    padding: .85rem 3rem .85rem .8rem;
+  }
+
+  .google-play-badge {
+    grid-column: 1 / -1;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .landing-hero {
+    padding: 1.15rem;
+    border-radius: 22px;
+  }
+
+  .hero-logo {
+    width: clamp(82px, 28vw, 132px);
+  }
+
+  .public-hero h1 {
+    max-width: 100% !important;
+    font-size: clamp(2.45rem, 13vw, 3.45rem) !important;
+  }
+
+  .hero-copy p {
+    font-size: 1rem;
+  }
+
+  .public-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .math-showcase {
+    min-height: 250px;
+    width: min(100%, 320px);
+  }
+
+  .math-core {
+    width: 58px;
+    height: 58px;
+  }
+
+  .math-core span {
+    font-size: 1.45rem;
+  }
+
+  .landing-equation {
+    max-width: 122px;
+    font-size: .54rem;
+    padding: .32rem .4rem;
+  }
+
+  .equation-calculus,
+  .equation-gauss {
+    display: none;
+  }
+
+  .mini-dashboard {
+    width: 102px;
+    top: .75rem;
+    right: .75rem;
+  }
+
+  .landing-section {
+    padding: 1.7rem 0;
+  }
+
+  .landing-highlights article,
+  .landing-grid article,
+  .pricing-card,
+  .timeline-grid article,
+  .audience-grid article,
+  .public-grid article {
+    padding: 1rem;
+  }
+
+  .back-to-top {
+    bottom: calc(5.25rem + env(safe-area-inset-bottom)) !important;
+    left: 1rem !important;
+  }
+
+  .whatsapp-widget {
+    right: 1rem;
+    bottom: calc(1rem + env(safe-area-inset-bottom));
+  }
+}
