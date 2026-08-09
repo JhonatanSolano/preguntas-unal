@@ -13,7 +13,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="style.css?v=20260809-01" />
+  <link rel="stylesheet" href="style.css?v=20260809-02" />
 </head>
 <body class="group-locked">
   <div class="welcome-splash hidden" id="welcomeSplash" aria-live="polite">
@@ -36,6 +36,23 @@
       </a>
       <div class="landing-nav-actions">
         <button class="btn btn-primary" id="btnShowLoginNav" type="button">Iniciar sesión</button>
+        <aside class="android-promo" id="androidPromo" aria-label="Aplicación para Android">
+          <button class="android-promo-close" id="btnAndroidPromoClose" type="button" aria-label="Cerrar aviso">×</button>
+          <img src="assets/icon-180.png" alt="" />
+          <div>
+            <strong>Matemáticas En Tu Bolsillo para Android</strong>
+            <span>Tu aprendizaje, tus aulas y tus resultados también en el móvil.</span>
+          </div>
+          <span class="google-play-badge" aria-label="Próximamente en Google Play">
+            <svg viewBox="0 0 32 36" aria-hidden="true">
+              <path class="play-cyan" d="M2 2l17 17L2 34z"></path>
+              <path class="play-green" d="M2 2l21 12-4 5z"></path>
+              <path class="play-yellow" d="M19 19l4 3L2 34z"></path>
+              <path class="play-red" d="M23 14l7 4-7 4-4-3z"></path>
+            </svg>
+            <span><small>PRÓXIMAMENTE EN</small>Google Play</span>
+          </span>
+        </aside>
         <button class="btn btn-outline" id="btnShowRegisterTop" type="button">Crear cuenta</button>
         <button class="landing-menu-toggle" id="btnLandingMenu" type="button" aria-label="Abrir menú" aria-controls="landingMenu" aria-expanded="false">
           <span></span><span></span><span></span>
@@ -62,24 +79,6 @@
       </div>
     </nav>
     <button class="landing-menu-backdrop" id="landingMenuBackdrop" type="button" aria-label="Cerrar menú"></button>
-
-    <aside class="android-promo" id="androidPromo" aria-label="Aplicación para Android">
-      <button class="android-promo-close" id="btnAndroidPromoClose" type="button" aria-label="Cerrar aviso">×</button>
-      <img src="assets/icon-180.png" alt="" />
-      <div>
-        <strong>Matemáticas En Tu Bolsillo para Android</strong>
-        <span>Tu aprendizaje, tus aulas y tus resultados también en el móvil.</span>
-      </div>
-      <span class="google-play-badge" aria-label="Próximamente en Google Play">
-        <svg viewBox="0 0 32 36" aria-hidden="true">
-          <path class="play-cyan" d="M2 2l17 17L2 34z"></path>
-          <path class="play-green" d="M2 2l21 12-4 5z"></path>
-          <path class="play-yellow" d="M19 19l4 3L2 34z"></path>
-          <path class="play-red" d="M23 14l7 4-7 4-4-3z"></path>
-        </svg>
-        <span><small>PRÓXIMAMENTE EN</small>Google Play</span>
-      </span>
-    </aside>
 
     <section class="public-hero landing-hero" aria-labelledby="publicTitle">
       <div class="hero-copy">
