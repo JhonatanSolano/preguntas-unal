@@ -1082,7 +1082,7 @@ function escucharHistorialFacturacion() {
 }
 
 function requiereSeleccionRol(perfil = perfilActual) {
-  return !!usuarioActual && !rolUsuario(perfil);
+  return !!usuarioActual && !!perfil && !rolUsuario(perfil);
 }
 
 function aulaActualValida() {
@@ -6768,6 +6768,10 @@ async function registrarEmail() {
     mostrarWarn("Escribe un correo electrónico válido.");
     return;
   }
+  if (email === ADMIN_EMAIL && role !== "teacher") {
+    mostrarWarn("Este correo pertenece al dueño de la app. Debe registrarse o ingresar como profesor.");
+    return;
+  }
   if (accountMode === "independent" && !email.endsWith("@gmail.com")) {
     mostrarWarn("Para estudiante independiente solo se permiten correos @gmail.com.");
     return;
@@ -6984,6 +6988,11 @@ async function loginGoogleInstitucional() {
 
 async function registrarIndependienteGoogle(user) {
   const email = (user.email || "").toLowerCase();
+  if (email === ADMIN_EMAIL) {
+    await signOut(auth);
+    mostrarWarn("Este correo pertenece al dueño de la app. Debe ingresar como profesor.");
+    return;
+  }
   if (!email.endsWith("@gmail.com")) {
     await signOut(auth);
     mostrarWarn("Para estudiante independiente con Google debes usar un correo @gmail.com.");
@@ -9213,6 +9222,25 @@ onAuthStateChanged(auth, async user => {
     return;
   }
   limpiarWarn();
+  const userSnap = await getDoc(doc(db, "users", user.uid));
+  if (!userSnap.exists()) {
+    await signOut(auth);
+    ocultarReloadSesion();
+    document.body.classList.add("group-locked");
+    mostrarAuthInicial("login");
+    setStatus("loginStatus", "Correo o contraseña incorrecta.", "error");
+    return;
+  }
+  const perfilLogin = userSnap.data();
+  const rolLogin = rolUsuario(perfilLogin);
+  if (!rolLogin) {
+    await signOut(auth);
+    ocultarReloadSesion();
+    document.body.classList.add("group-locked");
+    mostrarAuthInicial("login");
+    setStatus("loginStatus", "Correo o contraseña incorrecta.", "error");
+    return;
+  }
   if (user.providerData?.some(provider => provider.providerId === "google.com")) {
     await guardarDatosGoogleIniciales(user);
   }

@@ -55,6 +55,40 @@ service cloud.firestore {
       ]);
     }
 
+    function validUserIdentity(data) {
+      return data.email == request.auth.token.email &&
+        (
+          (
+            data.role == "student" &&
+            data.tipoCuenta == "student" &&
+            data.accountMode in ["independent", "institutional"]
+          ) ||
+          (
+            data.role == "teacher" &&
+            data.tipoCuenta == "teacher"
+          ) ||
+          (
+            data.role == "institution" &&
+            data.tipoCuenta == "institution"
+          )
+        );
+    }
+
+    function protectsAccountIdentityFields() {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+        "role",
+        "tipoCuenta",
+        "accountMode",
+        "billingMode",
+        "isAdmin",
+        "institutionDane",
+        "institutionName",
+        "institutionOwnerUid",
+        "institutionSubscriptionStatus",
+        "subscriptionInherited"
+      ]);
+    }
+
     function hasClassAccess(classId) {
       return isPlatformOwner() || (
         signedIn() &&
@@ -108,6 +142,7 @@ service cloud.firestore {
       allow create: if isPlatformOwner() || (
         signedIn() &&
         request.auth.uid == uid &&
+        validUserIdentity(request.resource.data) &&
         !request.resource.data.keys().hasAny([
           "subscriptionStatus",
           "subscriptionExpiresAt",
@@ -130,7 +165,8 @@ service cloud.firestore {
           ownsInstitution(resource.data.institutionDane) ||
           (isAdmin() && resource.data.classOwnerUid == request.auth.uid)
         ) &&
-        protectsSubscriptionFields()
+        protectsSubscriptionFields() &&
+        protectsAccountIdentityFields()
       );
       allow delete: if isPlatformOwner() ||
         (signedIn() && request.auth.uid == uid) ||
