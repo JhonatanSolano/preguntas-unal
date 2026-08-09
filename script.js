@@ -5382,7 +5382,8 @@ function limpiarCamposPublicos(cardId) {
   card.querySelectorAll("details").forEach(detail => { detail.open = false; });
   card.querySelectorAll(".bank-status, .message-status, .status, [id$='Status']").forEach(status => {
     status.textContent = "";
-    status.classList.remove("ok", "error");
+    if (status.classList.contains("bank-status")) status.className = "bank-status";
+    else status.classList.remove("ok", "error", "success", "info");
   });
 }
 
@@ -5486,6 +5487,24 @@ function mostrarEntradaGrupo() {
   document.getElementById("groupCodeStep")?.classList.add("hidden");
   document.getElementById("groupEntryText").textContent = "Cuenta validada. Ingresa el código del aula compartido por tu profesor o continúa más tarde desde configuración.";
   actualizarBloqueoScrollPublico();
+}
+
+function configurarCamposProgramacionMovil() {
+  const esMovil = window.matchMedia("(max-width: 760px), (pointer: coarse)").matches;
+  ["examStartDate", "examEndDate", "examStartTime", "examEndTime"].forEach(id => {
+    const input = document.getElementById(id);
+    if (!input) return;
+    if (!input.dataset.originalType) input.dataset.originalType = input.type || "text";
+    if (esMovil) {
+      input.type = "text";
+      input.inputMode = "numeric";
+      input.autocomplete = "off";
+      input.placeholder = id.includes("Time") ? "HH:MM" : "AAAA-MM-DD";
+    } else {
+      input.type = input.dataset.originalType;
+      input.placeholder = "";
+    }
+  });
 }
 
 function toggleLandingMenu() {
@@ -7046,15 +7065,18 @@ async function enviarVerificacionEmailPersonalizada(email) {
 }
 
 function abrirPanelRecuperarPassword() {
+  limpiarCamposPublicos("loginCard");
   document.getElementById("loginCard")?.classList.add("hidden");
   document.getElementById("forgotPasswordCard")?.classList.remove("hidden");
   document.getElementById("forgotPasswordPanel")?.classList.remove("hidden");
-  document.getElementById("forgotPasswordEmail").value = document.getElementById("loginEmail")?.value || "";
+  document.getElementById("forgotPasswordEmail").value = "";
   setStatus("forgotPasswordStatus", "");
   actualizarBloqueoScrollPublico();
+  enfocarModalPublico("forgotPasswordCard");
 }
 
 function abrirPanelRecuperarUsuario() {
+  limpiarCamposPublicos("loginCard");
   document.getElementById("loginCard")?.classList.add("hidden");
   document.getElementById("forgotUserCard")?.classList.remove("hidden");
   document.getElementById("recoverEmailPanel")?.classList.remove("hidden");
@@ -7065,6 +7087,7 @@ function abrirPanelRecuperarUsuario() {
   setStatus("recoverStatus", "");
   mostrarSoporteRecuperacion(false);
   actualizarBloqueoScrollPublico();
+  enfocarModalPublico("forgotUserCard");
 }
 
 function mostrarSeleccionRol() {
@@ -8347,6 +8370,8 @@ document.getElementById("btnForgotPassword")?.addEventListener("click", abrirPan
 document.getElementById("btnSendPasswordRecovery")?.addEventListener("click", recuperarPassword);
 document.getElementById("btnForgotPasswordBack")?.addEventListener("click", volverLoginDesdeRecuperacion);
 document.getElementById("btnRecoverPasswordClose")?.addEventListener("click", volverLoginDesdeRecuperacion);
+configurarCamposProgramacionMovil();
+window.addEventListener("resize", configurarCamposProgramacionMovil);
 document.getElementById("btnShowLogin")?.addEventListener("click", mostrarLoginCard);
 document.getElementById("btnShowLoginNav")?.addEventListener("click", mostrarLoginCard);
 document.getElementById("btnShowLoginMenu")?.addEventListener("click", () => {
@@ -8811,10 +8836,7 @@ document.getElementById("billingPauseToggle")?.addEventListener("change", async 
   const pause = event.target.checked;
   if (!suscripcionActiva()) {
     event.target.checked = false;
-    if (status) {
-      status.textContent = "No tienes una suscripción activa para administrar.";
-      status.className = "bank-status error";
-    }
+    if (status) setStatusTemporal("billingActionStatus", "No tienes una suscripción activa para administrar.", "error");
     return;
   }
   try {
@@ -8829,10 +8851,7 @@ document.getElementById("billingPauseToggle")?.addEventListener("change", async 
   } catch (error) {
     console.error(error);
     event.target.checked = perfilActual?.subscriptionPaymentPaused === true || perfilActual?.subscriptionAutoRenew === false;
-    if (status) {
-      status.textContent = "No fue posible registrar la solicitud. Intenta nuevamente.";
-      status.className = "bank-status error";
-    }
+    if (status) setStatusTemporal("billingActionStatus", "No fue posible registrar la solicitud. Intenta nuevamente.", "error");
   }
 });
 document.getElementById("billingPaymentMethods")?.addEventListener("click", async event => {

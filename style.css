@@ -5135,7 +5135,10 @@ body.public-modal-open {
   width: auto;
 }
 .bank-status.success { color: var(--c-green); }
-.bank-status.error { color: var(--c-red); }
+.bank-status.error {
+  color: #c62839 !important;
+  font-weight: 900 !important;
+}
 
 @media (max-width: 900px) {
   .welcome-grid,
@@ -10219,6 +10222,14 @@ body:not(.app-active) .public-footer .footer-faq-link {
 .bank-status.info {
   color: #0d6780;
   font-weight: 800;
+}
+
+#loginStatus.bank-status.error,
+#forgotPasswordStatus.bank-status.error,
+#recoverStatus.bank-status.error,
+#loginTypeStatus.bank-status.error {
+  color: #c62839 !important;
+  font-weight: 900 !important;
 }
 
 @media (max-width: 760px) {
