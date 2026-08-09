@@ -5405,6 +5405,7 @@ function mensajePasswordFirebase(err) {
 
 function mostrarAuthInicial(intent = "login") {
   authIntent = intent;
+  limpiarLoginCredenciales();
   document.getElementById("loginCard")?.classList.add("hidden");
   document.getElementById("forgotUserCard")?.classList.add("hidden");
   document.getElementById("forgotPasswordCard")?.classList.add("hidden");
@@ -5429,6 +5430,22 @@ function mostrarAuthInicial(intent = "login") {
   if (accountType) accountType.value = "";
   setStatus("loginTypeStatus", "");
   actualizarLoginAccountType();
+}
+
+function limpiarLoginCredenciales() {
+  const campos = [
+    "loginEmail",
+    "loginPassword",
+    "googleInstitutionDane"
+  ];
+  campos.forEach(id => {
+    const input = document.getElementById(id);
+    if (input) input.value = "";
+  });
+  setStatus("loginStatus", "");
+  setStatus("loginTypeStatus", "");
+  setStatus("googleInstitutionStatus", "");
+  document.getElementById("googleInstitutionPanel")?.classList.add("hidden");
 }
 
 function modalPublicoAbierto() {
@@ -7787,6 +7804,7 @@ function sincronizarRegistroConTipoLogin(type) {
 
 function volverSelectorAuth(intent = authIntent) {
   document.getElementById("loginCard")?.classList.remove("hidden");
+  limpiarLoginCredenciales();
   mostrarAuthInicial(intent);
   document.getElementById("loginCard")?.classList.remove("hidden");
   actualizarBloqueoScrollPublico();
