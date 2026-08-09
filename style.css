@@ -10196,14 +10196,16 @@ body:not(.app-active) .cta-band .public-actions .btn:hover {
 
 body:not(.app-active) .pricing-card .btn-institution-info {
   color: #ffffff !important;
-  background: linear-gradient(135deg, #13677b 0%, #119598 100%) !important;
+  background: linear-gradient(135deg, #0f3145 0%, #075f63 100%) !important;
   border-color: transparent !important;
   box-shadow: 0 14px 28px rgba(17, 149, 152, .2) !important;
+  text-decoration: none !important;
 }
 
 body:not(.app-active) .pricing-card .btn-institution-info:hover {
   color: #ffffff !important;
-  background: linear-gradient(135deg, #0f5b70 0%, #0f8f91 100%) !important;
+  background: linear-gradient(135deg, #0b293b 0%, #064f53 100%) !important;
+  text-decoration: none !important;
 }
 
 @media (max-width: 760px) {
