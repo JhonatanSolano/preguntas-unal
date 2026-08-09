@@ -2267,7 +2267,7 @@ function aplicarModoUsuario() {
 function actualizarGrupoActualPanel() {
   const panel = document.getElementById("grupoActualPanel");
   if (!panel) return;
-  if (modoAdmin || !aulaActualValida()) {
+  if (modoAdmin || esInstitucion() || !aulaActualValida()) {
     panel.hidden = true;
     panel.textContent = "";
     return;
@@ -5513,7 +5513,7 @@ function mostrarLoginConError(message) {
   document.getElementById("institutionInfoCard")?.classList.add("hidden");
   document.getElementById("groupEntry")?.classList.add("hidden");
   document.getElementById("loginTypeStep")?.classList.add("hidden");
-  document.querySelector(".auth-tabs")?.classList.remove("hidden");
+  document.querySelector(".auth-tabs")?.classList.add("hidden");
   document.getElementById("googleInstitutionPanel")?.classList.add("hidden");
   document.getElementById("loginPanel")?.classList.remove("hidden");
   document.getElementById("registerPanel")?.classList.add("hidden");
