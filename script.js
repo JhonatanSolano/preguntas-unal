@@ -94,6 +94,7 @@ setPersistence(auth, browserLocalPersistence);
 document.title = APP_CONFIG.name;
 
 const ADMIN_EMAIL = "solanojhonatan2000@gmail.com";
+const STORAGE_LOGIN_EXPECTED_TYPE = "matematicasBolsilloLoginExpectedType";
 const INDEPENDENT_CLASS_CODE = "J5AEDJ";
 const INDEPENDENT_CLASS_NAME = "Matemáticas En Tu Bolsillo";
 const SIMBOLOS_PERMITIDOS = "!@#$%^&*()_+-=[]{};:,.?";
@@ -125,6 +126,7 @@ let unsubscribeBillingHistory = null;
 let renderizandoAdminStudents = false;
 let classMembershipValid = true;
 let registroEnCurso = false;
+let loginExpectedTypePending = "";
 let phoneVerificationId = "";
 let phoneVerificationExpiresAt = 0;
 let recaptchaVerifier = null;
@@ -181,6 +183,32 @@ const PHONE_CODES = [
   { code: "+57", label: "Colombia (+57)", flag: "", country: "Colombia" },
   { code: "+58", label: "Venezuela (+58)", flag: "", country: "Venezuela" }
 ];
+
+function setPendingLoginType(type) {
+  loginExpectedTypePending = type || "";
+  try {
+    if (loginExpectedTypePending) {
+      sessionStorage.setItem(STORAGE_LOGIN_EXPECTED_TYPE, loginExpectedTypePending);
+    } else {
+      sessionStorage.removeItem(STORAGE_LOGIN_EXPECTED_TYPE);
+    }
+  } catch {}
+}
+
+function getPendingLoginType() {
+  try {
+    return loginExpectedTypePending || sessionStorage.getItem(STORAGE_LOGIN_EXPECTED_TYPE) || "";
+  } catch {
+    return loginExpectedTypePending || "";
+  }
+}
+
+function clearPendingLoginType() {
+  loginExpectedTypePending = "";
+  try {
+    sessionStorage.removeItem(STORAGE_LOGIN_EXPECTED_TYPE);
+  } catch {}
+}
 
 const PLANES_COMERCIALES = {
   independentStudent: {
@@ -6287,6 +6315,7 @@ async function cargarPerfilUsuario() {
 
 async function prepararSesionAutenticada() {
   await cargarPerfilUsuario();
+  clearPendingLoginType();
   cerrarFlujosAuth();
   if (requiereSeleccionRol()) {
     await mostrarSplashBienvenida();
@@ -6696,9 +6725,11 @@ async function loginEmail() {
     return;
   }
   try {
+    setPendingLoginType(expectedType);
     const cred = await signInWithEmailAndPassword(auth, email, password);
     if (requiereVerificacionEmail(cred.user) && cred.user.email?.toLowerCase() !== ADMIN_EMAIL) {
       await signOut(auth);
+      clearPendingLoginType();
       setStatus("loginStatus", "Debes verificar tu correo. Abre el enlace de verificación antes de iniciar sesión.", "error");
       return;
     }
@@ -6706,9 +6737,12 @@ async function loginEmail() {
     const profile = snap.exists() ? snap.data() : {};
     if (!loginCoincideConTipo(profile, expectedType, cred.user.email)) {
       await signOut(auth);
+      clearPendingLoginType();
       setStatus("loginStatus", "Correo o contraseña incorrecta.", "error");
+      return;
     }
   } catch (err) {
+    clearPendingLoginType();
     setStatus("loginStatus", "Correo o contraseña incorrecta.", "error");
   }
 }
@@ -6895,24 +6929,29 @@ async function loginGoogle() {
     return;
   }
   try {
+    if (authIntent === "login") setPendingLoginType(expectedType);
     const cred = await signInWithPopup(auth, new GoogleAuthProvider());
     const snap = await getDoc(doc(db, "users", cred.user.uid));
     const profile = snap.exists() ? snap.data() : {};
     if (authIntent === "register" && expectedType === "independentStudent" && !snap.exists()) {
+      clearPendingLoginType();
       await registrarIndependienteGoogle(cred.user);
       await prepararSesionAutenticada();
       return;
     }
     if (!snap.exists() || !loginCoincideConTipo(profile, expectedType, cred.user.email)) {
       await signOut(auth);
+      clearPendingLoginType();
       mostrarWarn(expectedType === "independentStudent"
         ? "Google solo puede usarse con un correo ya registrado como estudiante independiente."
         : mensajeTipoCuentaNoAutorizado(expectedType));
       return;
     }
+    clearPendingLoginType();
     await guardarDatosGoogleIniciales(cred.user);
     await prepararSesionAutenticada();
   } catch (err) {
+    clearPendingLoginType();
     mostrarWarn("No se pudo ingresar con Google.");
   }
 }
@@ -6926,6 +6965,7 @@ async function loginGoogleInstitucional() {
     return;
   }
   try {
+    setPendingLoginType(expectedType);
     const cred = await signInWithPopup(auth, new GoogleAuthProvider());
     const email = (cred.user.email || "").toLowerCase();
     const snap = await getDoc(doc(db, "users", cred.user.uid));
@@ -6934,9 +6974,11 @@ async function loginGoogleInstitucional() {
     if (snap.exists()) {
       if (!loginCoincideConTipo(profile, expectedType, email) || normalizarDane(profile.institutionDane) !== dane) {
         await signOut(auth);
+        clearPendingLoginType();
         setStatus("googleInstitutionStatus", "No tienes permisos de acceso por ninguna institución con ese correo y código DANE.", "error");
         return;
       }
+      clearPendingLoginType();
       await guardarDatosGoogleIniciales(cred.user);
       await prepararSesionAutenticada();
       return;
@@ -6944,12 +6986,14 @@ async function loginGoogleInstitucional() {
     const member = await buscarMiembroInstitucional(email, dane);
     if (!member || member.role !== expectedRole || member.status === "removed" || member.status === "blocked") {
       await signOut(auth);
+      clearPendingLoginType();
       setStatus("googleInstitutionStatus", "No tienes permisos de acceso por ninguna institución con ese correo y código DANE.", "error");
       return;
     }
     const institutionState = await institucionTienePlanActivo(dane);
     if (!institutionState.active) {
       await signOut(auth);
+      clearPendingLoginType();
       setStatus("googleInstitutionStatus", "La institución no tiene una suscripción activa.", "error");
       return;
     }
@@ -6979,8 +7023,10 @@ async function loginGoogleInstitucional() {
       registeredAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
+    clearPendingLoginType();
     await prepararSesionAutenticada();
   } catch (err) {
+    clearPendingLoginType();
     console.error(err);
     setStatus("googleInstitutionStatus", "No fue posible ingresar con Google. Revisa el código DANE o intenta de nuevo.", "error");
   }
@@ -9233,6 +9279,16 @@ onAuthStateChanged(auth, async user => {
   }
   const perfilLogin = userSnap.data();
   const rolLogin = rolUsuario(perfilLogin);
+  const expectedLoginType = getPendingLoginType();
+  if (expectedLoginType && !loginCoincideConTipo(perfilLogin, expectedLoginType, user.email)) {
+    await signOut(auth);
+    clearPendingLoginType();
+    ocultarReloadSesion();
+    document.body.classList.add("group-locked");
+    mostrarAuthInicial("login");
+    setStatus("loginStatus", "Correo o contraseña incorrecta.", "error");
+    return;
+  }
   if (!rolLogin) {
     await signOut(auth);
     ocultarReloadSesion();

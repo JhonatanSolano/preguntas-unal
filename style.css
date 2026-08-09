@@ -2679,9 +2679,15 @@ button.message-avatar {
   font-size: .74rem;
   font-weight: 700;
   line-height: 1.35;
+  transition: color .18s ease, transform .18s ease;
 }
 .password-rules p.valid {
-  color: var(--c-green);
+  color: #0f9f7a !important;
+  transform: translateX(2px);
+}
+.password-rules p.valid::before {
+  content: "✓ ";
+  font-weight: 900;
 }
 .password-rules.compact {
   padding: .5rem .65rem;
