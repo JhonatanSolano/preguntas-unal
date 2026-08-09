@@ -10010,3 +10010,184 @@ body:not(.app-active) .audience-grid article {
     text-align: left;
   }
 }
+
+/* Impeccable correction pass · legibilidad real en pagos y soporte */
+.payment-carousel-actions .btn-primary,
+.billing-card .btn-primary,
+.support-panel .btn-primary,
+.support-link,
+.billing-tabs button.active,
+.payment-steps span.active,
+.payment-steps span.complete {
+  color: #ffffff !important;
+}
+
+.payment-carousel-actions .btn-outline,
+.billing-card .btn-outline {
+  color: #12233a !important;
+  background: #ffffff !important;
+  border-color: rgba(18, 35, 58, .2) !important;
+}
+
+.payment-carousel-actions .btn-outline:hover,
+.billing-card .btn-outline:hover {
+  color: #ffffff !important;
+  background: #12233a !important;
+  border-color: #12233a !important;
+}
+
+.billing-tabs button {
+  min-width: 0;
+  overflow-wrap: normal;
+}
+
+.billing-tabs button.active {
+  color: #ffffff !important;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, .18);
+}
+
+.support-panel {
+  display: grid;
+  justify-items: center;
+}
+
+.support-email-grid {
+  width: 100%;
+  max-width: 720px;
+}
+
+.support-email-card {
+  display: grid !important;
+  grid-template-columns: 52px minmax(0, 1fr) !important;
+  grid-template-rows: auto auto;
+  column-gap: .9rem !important;
+  row-gap: .18rem !important;
+  align-items: center !important;
+  justify-items: start !important;
+  text-align: left !important;
+  min-height: 112px;
+  padding: 1rem 1.05rem !important;
+}
+
+.support-email-card .gmail-icon {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+}
+
+.support-email-card strong {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: start !important;
+  max-width: 100%;
+  color: #12233a !important;
+  font-size: 1.05rem !important;
+  line-height: 1.16 !important;
+  text-align: left !important;
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+  hyphens: none !important;
+}
+
+.support-email-card small {
+  grid-column: 2;
+  grid-row: 2;
+  justify-self: start !important;
+  max-width: 100%;
+  color: #52677a !important;
+  font-size: .88rem !important;
+  line-height: 1.25 !important;
+  text-align: left !important;
+  overflow-wrap: anywhere !important;
+}
+
+.support-email-card::after {
+  content: "Enviar correo";
+  grid-column: 1 / -1;
+  justify-self: start;
+  margin-top: .62rem;
+  padding: .42rem .7rem;
+  border-radius: 999px;
+  background: #eff8f6;
+  color: #1d6f73;
+  font-size: .78rem;
+  font-weight: 850;
+}
+
+.gmail-icon {
+  background:
+    linear-gradient(135deg, #ffffff 0%, #ffffff 100%) padding-box,
+    linear-gradient(135deg, #ea4335, #fbbc04 35%, #34a853 65%, #4285f4) border-box !important;
+  border: 2px solid transparent;
+  color: #12233a !important;
+  font-size: 0 !important;
+}
+
+.gmail-icon::before {
+  content: "✉";
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.subscription-heading,
+.billing-heading,
+.support-panel,
+.payment-carousel,
+.billing-card,
+.support-email-card {
+  backdrop-filter: none !important;
+}
+
+.billing-card,
+.payment-carousel,
+.support-email-card {
+  background: #ffffff !important;
+}
+
+.subscription-heading,
+.billing-heading,
+.support-panel {
+  background: #fffdf8 !important;
+}
+
+@media (max-width: 760px) {
+  .billing-tabs {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: .45rem !important;
+    padding: .45rem !important;
+  }
+
+  .billing-tabs button {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .payment-carousel-actions {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+  }
+
+  .payment-carousel-actions .btn,
+  .billing-card .btn,
+  .support-panel .btn {
+    width: 100%;
+  }
+
+  .support-panel {
+    padding: 1.15rem !important;
+  }
+
+  .support-email-card {
+    grid-template-columns: 46px minmax(0, 1fr) !important;
+    min-height: 108px;
+    padding: .92rem !important;
+  }
+
+  .support-email-card strong {
+    font-size: 1rem !important;
+  }
+
+  .support-email-card small {
+    font-size: .82rem !important;
+  }
+}
