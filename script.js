@@ -1045,6 +1045,7 @@ function construirComprobantePagoHtml(item) {
   const date = fechaFacturacion(item.paidAt || item.createdAt);
   const method = item.paymentMethodLabel || nombreMetodoPago(String(item.paymentMethod || "").toLowerCase());
   const reference = item.reference || item.transactionId || item.id || "—";
+  const receiptTitle = nombreComprobantePago(item);
   const plan = item.planName || item.planId || "Plan";
   const buyer = perfilActual?.institutionName || perfilActual?.displayName || usuarioActual?.displayName || usuarioActual?.email || "Usuario";
   const logoSrc = new URL("assets/icon-180.png", window.location.href).href;
@@ -1055,7 +1056,7 @@ function construirComprobantePagoHtml(item) {
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <title>Comprobante ${escapeHtml(reference)}</title>
+  <title>${escapeHtml(receiptTitle)}</title>
   <style>
     body{font-family:Arial,sans-serif;background:#f4fbfc;color:#162838;margin:0;padding:32px}
     main{max-width:760px;margin:auto;background:white;border:1px solid #d8e8ee;border-radius:18px;padding:32px}
@@ -1100,6 +1101,12 @@ function construirComprobantePagoHtml(item) {
 </html>`;
 }
 
+function nombreComprobantePago(item) {
+  const rawReference = item?.reference || item?.transactionId || item?.id || "sin-referencia";
+  const reference = String(rawReference).replace(/[\\/:*?"<>|]+/g, "-").trim() || "sin-referencia";
+  return `Comprobante ${reference}`;
+}
+
 function descargarComprobantePago(transactionId) {
   const item = billingHistoryItems.find(row => row.id === transactionId);
   if (!item) return;
@@ -1108,6 +1115,7 @@ function descargarComprobantePago(transactionId) {
 
 function abrirComprobantePago(item) {
   document.getElementById("receiptViewerOverlay")?.remove();
+  const receiptTitle = nombreComprobantePago(item);
   const overlay = document.createElement("div");
   overlay.id = "receiptViewerOverlay";
   overlay.setAttribute("role", "dialog");
@@ -1126,15 +1134,27 @@ function abrirComprobantePago(item) {
           <button type="button" data-close-receipt aria-label="Cerrar" style="width:42px;height:42px;border:0;border-radius:50%;background:#eaf4f7;color:#06345f;font-size:24px;font-weight:800;cursor:pointer">×</button>
         </div>
       </header>
-      <iframe title="Comprobante de pago" style="width:100%;height:100%;border:0;background:#f4fbfc"></iframe>
+      <iframe title="${escapeHtml(receiptTitle)}" style="width:100%;height:100%;border:0;background:#f4fbfc"></iframe>
     </section>
   `;
   const iframe = overlay.querySelector("iframe");
   iframe.srcdoc = construirComprobantePagoHtml(item);
+  iframe.addEventListener("load", () => {
+    try {
+      iframe.contentDocument.title = receiptTitle;
+    } catch (error) {
+      console.warn("No se pudo asignar el título del comprobante.", error);
+    }
+  });
   const close = () => overlay.remove();
   overlay.addEventListener("click", event => {
     if (event.target === overlay || event.target.closest("[data-close-receipt]")) close();
     if (event.target.closest("[data-print-receipt]")) {
+      try {
+        iframe.contentDocument.title = receiptTitle;
+      } catch (error) {
+        console.warn("No se pudo preparar el nombre sugerido del PDF.", error);
+      }
       iframe.contentWindow?.focus();
       iframe.contentWindow?.print();
     }
@@ -2176,7 +2196,10 @@ function mostrarSeccion(sec) {
   if (sec === "mensajes") renderMessagesPanel();
   if (sec === "asesorIA") renderAsesorInfo();
   if (sec === "suscripcion") renderSubscriptionPanel();
-  if (sec === "facturacion") renderBillingPanel();
+  if (sec === "facturacion") {
+    if (seccionActual !== "facturacion") activeBillingTab = "subscription";
+    renderBillingPanel();
+  }
   if (sec === "reportes") renderTeacherReportsPanel();
   if (sec === "admin") renderAdminWelcome();
   if (sec === "adminMetricas") {
@@ -2407,9 +2430,9 @@ function actualizarBienvenida() {
       ? "Desde aquí puedes presentar los exámenes habilitados por tu profesor, revisar tu avance, recibir mensajes del aula, consultar estadísticas y apoyarte en el Asesor IA para estudiar mejor."
       : "Completa tu perfil y entra a un aula con el código de tu profesor para desbloquear exámenes, mensajes, estadísticas y herramientas de estudio.";
   }
-  panel.querySelector(".bank-progress-panel")?.classList.toggle("hidden", !suscripcionActiva());
+  panel.querySelector(".bank-progress-panel")?.classList.toggle("hidden", esInstitucion() || !suscripcionActiva());
   panel.hidden = false;
-  if (suscripcionActiva()) actualizarBancoEstudiante();
+  if (!esInstitucion() && suscripcionActiva()) actualizarBancoEstudiante();
 }
 
 function renderExamenesHub() {
@@ -9115,6 +9138,7 @@ document.getElementById("billingHistory")?.addEventListener("click", event => {
 document.getElementById("billingPauseToggle")?.addEventListener("change", async event => {
   const status = document.getElementById("billingActionStatus");
   const pause = event.target.checked;
+  const wasPaused = perfilActual?.subscriptionPaymentPaused === true || perfilActual?.subscriptionAutoRenew === false;
   if (!suscripcionActiva()) {
     event.target.checked = false;
     if (status) setStatusTemporal("billingActionStatus", "No tienes una suscripción activa para administrar.", "error");
@@ -9131,7 +9155,9 @@ document.getElementById("billingPauseToggle")?.addEventListener("change", async 
     }
   } catch (error) {
     console.error(error);
-    event.target.checked = perfilActual?.subscriptionPaymentPaused === true || perfilActual?.subscriptionAutoRenew === false;
+    event.target.checked = !pause && wasPaused
+      ? true
+      : (perfilActual?.subscriptionPaymentPaused === true || perfilActual?.subscriptionAutoRenew === false);
     if (status) setStatusTemporal("billingActionStatus", "No fue posible registrar la solicitud. Intenta nuevamente.", "error");
   }
 });
