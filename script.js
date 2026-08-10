@@ -28,6 +28,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  documentId,
   getDoc,
   getDocs,
   getFirestore,
@@ -6372,10 +6373,18 @@ function renderClassSelectors() {
   }
   if (metricsClass) {
     const current = metricsClass.value || "best";
-    metricsClass.innerHTML = adminClases.length
-      ? `<option value="best">Mejor aula</option>${adminClases.map(c => `<option value="${c.id}">${c.name} (${c.code})</option>`).join("")}`
-      : `<option value="">Sin aulas creadas</option>`;
-    metricsClass.value = adminClases.some(c => c.id === current) || current === "best" ? current : "best";
+    if (esInstitucion()) {
+      const grades = gradosInstitucion();
+      metricsClass.innerHTML = grades.length
+        ? grades.map(grade => `<option value="${grade}">${grade}</option>`).join("")
+        : `<option value="">Sin grados configurados</option>`;
+      metricsClass.value = grades.includes(current) ? current : (grades[0] || "");
+    } else {
+      metricsClass.innerHTML = adminClases.length
+        ? `<option value="best">Mejor aula</option>${adminClases.map(c => `<option value="${c.id}">${c.name} (${c.code})</option>`).join("")}`
+        : `<option value="">Sin aulas creadas</option>`;
+      metricsClass.value = adminClases.some(c => c.id === current) || current === "best" ? current : "best";
+    }
   }
   if (examAccessClass) {
     const current = examAccessClass.value || adminClaseActiva || "";
@@ -9697,9 +9706,92 @@ function estadoExamenDesdeConfig(config = {}) {
   return "available";
 }
 
+function actualizarTextosPanelMetricas() {
+  const institution = esInstitucion();
+  const title = document.getElementById("adminMetricsTitle");
+  const subtitle = document.getElementById("adminMetricsSubtitle");
+  const panelTitle = document.getElementById("adminMetricsPanelTitle");
+  const selectLabel = document.getElementById("adminMetricsSelectLabel");
+  if (title) title.textContent = institution ? "Métricas por grado" : "Métricas del profesor";
+  if (subtitle) {
+    subtitle.textContent = institution
+      ? "Consulta estadísticas generales por curso según los grados configurados por la institución."
+      : "Métricas por aula, estadísticas por aula, ranking de aulas y comparativas entre aulas.";
+  }
+  if (panelTitle) panelTitle.textContent = institution ? "Panel comparativo por grado" : "Panel comparativo por aula";
+  if (selectLabel) selectLabel.textContent = institution ? "Selecciona el grado que deseas revisar" : "Selecciona qué deseas revisar";
+}
+
+async function estadosPorUids(uids = []) {
+  const unique = [...new Set(uids.filter(Boolean))];
+  if (!unique.length) return [];
+  const batches = [];
+  for (let i = 0; i < unique.length; i += 10) {
+    batches.push(unique.slice(i, i + 10));
+  }
+  const snaps = await Promise.all(batches.map(batch =>
+    getDocs(query(collection(db, "studentState"), where(documentId(), "in", batch)))
+  ));
+  return snaps.flatMap(snap => snap.docs.map(item => ({ id: item.id, ...item.data() })));
+}
+
+async function renderInstitutionGradeStats() {
+  const cont = document.getElementById("adminStats");
+  if (!cont) return;
+  cont.innerHTML = `<div class="stats-card"><h3>Métricas por grado</h3><p>Cargando datos institucionales...</p></div>`;
+  renderClassSelectors();
+  const selectedGrade = document.getElementById("adminMetricsClassSelect")?.value || "";
+  const grades = gradosInstitucion();
+  if (!grades.length) {
+    cont.innerHTML = `<div class="stats-card"><h3>Sin grados configurados</h3><p>La institución aún no tiene cursos creados desde su registro.</p></div>`;
+    return;
+  }
+  const members = await miembrosInstitucionActual().catch(() => []);
+  const students = members.filter(item => item.role === "student" && item.status !== "removed");
+  const teachers = members.filter(item => item.role === "teacher" && item.status !== "removed");
+  const gradeStudents = students.filter(item => item.grade === selectedGrade);
+  const gradeTeachers = teachers.filter(item => !item.grade || item.grade === selectedGrade);
+  const states = await estadosPorUids(gradeStudents.map(item => item.userUid));
+  const activeStudents = new Set();
+  const totals = { intentos: 0, correctas: 0, incorrectas: 0, nota: 0, tiempo: 0 };
+  states.forEach(data => {
+    activeStudents.add(data.id);
+    Object.entries(data.resultados || {}).forEach(([clave, value]) => {
+      if (!String(clave).includes("::") && data.resultados?.[`principal::${clave}`]) return;
+      (value.intentos || []).forEach(intento => {
+        const m = metricasIntento(clave, intento);
+        totals.intentos++;
+        totals.correctas += m.correctas;
+        totals.incorrectas += m.incorrectas;
+        totals.nota += Number(m.nota);
+        totals.tiempo += m.tiempoEmpleado;
+      });
+    });
+  });
+  const n = totals.intentos || 1;
+  cont.innerHTML = `
+    <article class="stats-card">
+      <h3>Grado ${escapeHtml(selectedGrade || "sin seleccionar")}</h3>
+      <p><strong>Estudiantes autorizados:</strong> ${gradeStudents.length}</p>
+      <p><strong>Estudiantes activos:</strong> ${activeStudents.size}</p>
+      <p><strong>Profesores asociados:</strong> ${gradeTeachers.length}</p>
+      <p><strong>Intentos registrados:</strong> ${totals.intentos}</p>
+      <p><strong>Promedio nota:</strong> ${(totals.nota / n).toFixed(1)}</p>
+      <p><strong>Promedio correctas:</strong> ${(totals.correctas / n).toFixed(1)}</p>
+      <p><strong>Promedio incorrectas:</strong> ${(totals.incorrectas / n).toFixed(1)}</p>
+      <p><strong>Promedio tiempo:</strong> ${formatTiempo(Math.round(totals.tiempo / n))}</p>
+    </article>
+  `;
+}
+
 async function renderAdminStats() {
   const cont = document.getElementById("adminStats");
   if (!cont || !modoAdmin) return;
+  actualizarTextosPanelMetricas();
+  if (esInstitucion()) {
+    await renderInstitutionGradeStats();
+    return;
+  }
   cont.innerHTML = `<div class="stats-card"><h3>Métricas</h3><p>Cargando datos...</p></div>`;
   renderClassSelectors();
   const metricsSelection = document.getElementById("adminMetricsClassSelect")?.value || "best";

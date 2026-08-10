@@ -1719,12 +1719,12 @@
   <main class="main-content hidden" id="sectionAdminMetricas">
     <div class="start-screen admin-panel">
       <span class="cs-icon">📊</span>
-      <h2>Métricas del profesor</h2>
-      <p>Métricas por aula, estadísticas por aula, ranking de aulas y comparativas entre aulas.</p>
+      <h2 id="adminMetricsTitle">Métricas del profesor</h2>
+      <p id="adminMetricsSubtitle">Métricas por aula, estadísticas por aula, ranking de aulas y comparativas entre aulas.</p>
       <section class="admin-metrics-panel" id="adminMetricsPanel" hidden>
-        <h3>Panel comparativo por aula</h3>
+        <h3 id="adminMetricsPanelTitle">Panel comparativo por aula</h3>
         <label class="admin-metrics-selector">
-          <span>Selecciona qué deseas revisar</span>
+          <span id="adminMetricsSelectLabel">Selecciona qué deseas revisar</span>
           <select class="admin-input" id="adminMetricsClassSelect">
             <option value="best">Mejor aula</option>
           </select>
@@ -2070,6 +2070,6 @@
     });"></script>
 
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script type="module" src="script.js?v=20260810-02"></script>
+  <script type="module" src="script.js?v=20260810-03"></script>
 </body>
 </html>
