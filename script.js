@@ -1046,6 +1046,7 @@ function construirComprobantePagoHtml(item) {
   const reference = item.reference || item.transactionId || item.id || "—";
   const plan = item.planName || item.planId || "Plan";
   const buyer = perfilActual?.institutionName || perfilActual?.displayName || usuarioActual?.displayName || usuarioActual?.email || "Usuario";
+  const logoSrc = new URL("assets/icon-180.png", window.location.href).href;
   const institution = item.institutionName
     ? `<tr><td>Institución</td><td>${escapeHtml(item.institutionName)}</td></tr>`
     : "";
@@ -1057,6 +1058,8 @@ function construirComprobantePagoHtml(item) {
   <style>
     body{font-family:Arial,sans-serif;background:#f4fbfc;color:#162838;margin:0;padding:32px}
     main{max-width:760px;margin:auto;background:white;border:1px solid #d8e8ee;border-radius:18px;padding:32px}
+    .receipt-head{display:flex;gap:14px;align-items:center;margin-bottom:18px}
+    .receipt-head img{width:62px;height:62px;object-fit:contain;border:1px solid #e3edf2;border-radius:16px;background:#fff;box-shadow:0 8px 22px rgba(15,58,84,.12)}
     h1{color:#06345f;margin:0 0 8px}.brand{color:#0d9488;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
     table{width:100%;border-collapse:collapse;margin:24px 0;background:#fbfdff;border-radius:12px;overflow:hidden}
     td{padding:13px;border-bottom:1px solid #e3edf2}td:first-child{color:#66788a;width:36%}td:last-child{font-weight:700}
@@ -1072,8 +1075,13 @@ function construirComprobantePagoHtml(item) {
     <div class="actions">
       <button type="button" onclick="window.print()">Imprimir / guardar PDF</button>
     </div>
-    <p class="brand">Matemáticas En Tu Bolsillo</p>
-    <h1>Comprobante de pago</h1>
+    <div class="receipt-head">
+      <img src="${escapeHtml(logoSrc)}" alt="Matemáticas En Tu Bolsillo">
+      <div>
+        <p class="brand">Matemáticas En Tu Bolsillo</p>
+        <h1>Comprobante de pago</h1>
+      </div>
+    </div>
     <p>Hola ${escapeHtml(buyer)}, este documento soporta el pago aprobado de tu suscripción.</p>
     <table>
       <tbody>
@@ -1096,19 +1104,15 @@ function construirComprobantePagoHtml(item) {
 function descargarComprobantePago(transactionId) {
   const item = billingHistoryItems.find(row => row.id === transactionId);
   if (!item) return;
-  const blob = new Blob([construirComprobantePagoHtml(item)], { type: "text/html;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const opened = window.open(url, "_blank", "noopener,noreferrer");
+  const opened = window.open("", "_blank", "noopener");
   if (!opened) {
-    const reference = item.reference || item.transactionId || item.id || "pago";
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `Comprobante_${nombreArchivoSeguro(reference)}.html`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
+    alert("El navegador bloqueó la ventana del comprobante. Permite ventanas emergentes para abrirlo.");
+    return;
   }
-  setTimeout(() => URL.revokeObjectURL(url), 60000);
+  opened.document.open();
+  opened.document.write(construirComprobantePagoHtml(item));
+  opened.document.close();
+  opened.focus();
 }
 
 function renderBillingPanel() {
