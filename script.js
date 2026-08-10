@@ -1064,9 +1064,7 @@ function construirComprobantePagoHtml(item) {
     table{width:100%;border-collapse:collapse;margin:24px 0;background:#fbfdff;border-radius:12px;overflow:hidden}
     td{padding:13px;border-bottom:1px solid #e3edf2}td:first-child{color:#66788a;width:36%}td:last-child{font-weight:700}
     .ok{color:#0d9488}.note{font-size:13px;color:#66788a;line-height:1.55}
-    .actions{display:flex;justify-content:flex-end;margin-bottom:18px}
-    button{border:0;border-radius:999px;background:linear-gradient(135deg,#0f3a54,#0f766e);color:white;font-weight:700;padding:12px 20px;cursor:pointer}
-    button:hover{filter:brightness(1.05)}
+    .actions{display:none}
     @media print{body{background:white;padding:0}.actions{display:none}main{border:0}}
   </style>
 </head>
@@ -1104,15 +1102,43 @@ function construirComprobantePagoHtml(item) {
 function descargarComprobantePago(transactionId) {
   const item = billingHistoryItems.find(row => row.id === transactionId);
   if (!item) return;
-  const opened = window.open("", "_blank", "noopener");
-  if (!opened) {
-    alert("El navegador bloqueó la ventana del comprobante. Permite ventanas emergentes para abrirlo.");
-    return;
-  }
-  opened.document.open();
-  opened.document.write(construirComprobantePagoHtml(item));
-  opened.document.close();
-  opened.focus();
+  abrirComprobantePago(item);
+}
+
+function abrirComprobantePago(item) {
+  document.getElementById("receiptViewerOverlay")?.remove();
+  const overlay = document.createElement("div");
+  overlay.id = "receiptViewerOverlay";
+  overlay.setAttribute("role", "dialog");
+  overlay.setAttribute("aria-modal", "true");
+  overlay.style.cssText = `
+    position:fixed;inset:0;z-index:9999;background:rgba(5,25,40,.72);
+    display:flex;align-items:center;justify-content:center;padding:18px;
+    backdrop-filter:blur(8px);
+  `;
+  overlay.innerHTML = `
+    <section style="width:min(980px,100%);height:min(92vh,860px);background:#fff;border-radius:22px;overflow:hidden;box-shadow:0 26px 80px rgba(0,0,0,.35);display:flex;flex-direction:column">
+      <header style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid #dbe8ee;background:#f8fbfc">
+        <strong style="color:#06345f">Comprobante de pago</strong>
+        <div style="display:flex;gap:10px;align-items:center">
+          <button type="button" data-print-receipt style="border:0;border-radius:999px;background:linear-gradient(135deg,#0f3a54,#0f766e);color:#fff;font-weight:800;padding:10px 16px;cursor:pointer">Imprimir / guardar PDF</button>
+          <button type="button" data-close-receipt aria-label="Cerrar" style="width:42px;height:42px;border:0;border-radius:50%;background:#eaf4f7;color:#06345f;font-size:24px;font-weight:800;cursor:pointer">×</button>
+        </div>
+      </header>
+      <iframe title="Comprobante de pago" style="width:100%;height:100%;border:0;background:#f4fbfc"></iframe>
+    </section>
+  `;
+  const iframe = overlay.querySelector("iframe");
+  iframe.srcdoc = construirComprobantePagoHtml(item);
+  const close = () => overlay.remove();
+  overlay.addEventListener("click", event => {
+    if (event.target === overlay || event.target.closest("[data-close-receipt]")) close();
+    if (event.target.closest("[data-print-receipt]")) {
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+    }
+  });
+  document.body.appendChild(overlay);
 }
 
 function renderBillingPanel() {
