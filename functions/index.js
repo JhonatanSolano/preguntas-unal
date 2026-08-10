@@ -132,8 +132,8 @@ function verifyWompiEventSignature(body, secret) {
   const concatenated = properties.map(prop => {
     const value = getByPath(body.data, prop);
     return value === undefined || value === null ? "" : String(value);
-  }).join("") + secret;
-  return sha256(concatenated) === checksum;
+  }).join("") + String(body.timestamp || "") + secret;
+  return sha256(concatenated).toLowerCase() === String(checksum).toLowerCase();
 }
 
 function buildWompiCheckoutUrl({ publicKey, integritySecret, reference, amountInCents, customerEmail }) {
