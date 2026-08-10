@@ -1167,13 +1167,18 @@ function abrirComprobantePago(item) {
   overlay.addEventListener("click", event => {
     if (event.target === overlay || event.target.closest("[data-close-receipt]")) close();
     if (event.target.closest("[data-print-receipt]")) {
+      const previousTitle = document.title;
       try {
+        document.title = receiptTitle;
         iframe.contentDocument.title = receiptTitle;
       } catch (error) {
         console.warn("No se pudo preparar el nombre sugerido del PDF.", error);
       }
       iframe.contentWindow?.focus();
       iframe.contentWindow?.print();
+      window.setTimeout(() => {
+        document.title = previousTitle || APP_CONFIG.name;
+      }, 1200);
     }
   });
   document.body.appendChild(overlay);
