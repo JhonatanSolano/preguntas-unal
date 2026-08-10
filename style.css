@@ -5677,6 +5677,111 @@ body.public-modal-open {
   border: 1px solid #f1d49d;
 }
 
+.app-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(1rem, 3vw, 2rem);
+  background: rgba(6, 23, 39, .62);
+  backdrop-filter: blur(8px);
+}
+
+.plan-change-modal {
+  position: relative;
+  width: min(960px, 100%);
+  max-height: min(88vh, 820px);
+  overflow: auto;
+  padding: clamp(1.1rem, 3vw, 1.7rem);
+  border: 1px solid var(--c-border);
+  border-radius: 18px;
+  background: linear-gradient(180deg, #ffffff 0%, #f6fbfb 100%);
+  box-shadow: 0 28px 90px rgba(7, 34, 54, .28);
+}
+
+.plan-change-modal h2 {
+  margin: .25rem 0 .35rem;
+  color: var(--c-navy);
+}
+
+.modal-x {
+  position: absolute;
+  top: .85rem;
+  right: .85rem;
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 50%;
+  color: var(--c-navy);
+  background: #eaf5f7;
+  font-size: 1.45rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.plan-change-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .8rem;
+  margin-top: 1rem;
+}
+
+.plan-change-card {
+  display: grid;
+  gap: .35rem;
+  min-height: 132px;
+  padding: 1rem;
+  border: 1px solid #cfe4eb;
+  border-radius: 14px;
+  color: var(--c-navy);
+  text-align: left;
+  background: #fff;
+  cursor: pointer;
+  box-shadow: 0 12px 30px rgba(7, 34, 54, .08);
+  transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+}
+
+.plan-change-card:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: var(--c-teal);
+  box-shadow: 0 18px 38px rgba(0, 109, 119, .16);
+}
+
+.plan-change-card span,
+.plan-change-card strong {
+  font-weight: 900;
+}
+
+.plan-change-card small {
+  color: var(--c-muted);
+  line-height: 1.45;
+}
+
+.plan-change-card em {
+  width: max-content;
+  margin-top: .25rem;
+  padding: .28rem .55rem;
+  border-radius: 999px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--c-navy), var(--c-teal));
+  font-size: .78rem;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.plan-change-card.current {
+  cursor: not-allowed;
+  opacity: .72;
+  background: #eef5f7;
+}
+
+.plan-change-card.current em {
+  color: #76510a;
+  background: #fff1bd;
+}
+
 @media (max-width: 700px) {
   .billing-heading,
   .billing-card-title {
@@ -5706,6 +5811,12 @@ body.public-modal-open {
   .billing-history-row .btn {
     grid-column: 1 / -1;
     width: 100%;
+  }
+  .plan-change-grid {
+    grid-template-columns: 1fr;
+  }
+  .plan-change-modal {
+    max-height: 86vh;
   }
 }
 

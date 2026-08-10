@@ -154,6 +154,7 @@ let selectedPaymentMethod = "pse";
 let selectedCheckoutPlanId = "";
 let billingHistoryItems = [];
 let activeBillingTab = "subscription";
+let planChangeInProgress = false;
 let messageHistoryClassId = "";
 let recoverAttemptCount = 0;
 let seccionActual = "inicio";
@@ -804,6 +805,22 @@ function planPagoSeleccionado() {
   return available.find(plan => plan.id === selectedCheckoutPlanId) || available[0];
 }
 
+function planActualFacturacionId() {
+  const direct = perfilActual?.subscriptionPlanId || perfilActual?.planId || "";
+  const available = planesDisponiblesPago();
+  if (direct && available.some(plan => plan.id === direct)) return direct;
+  const amount = Number(perfilActual?.subscriptionAmountCOP || 0);
+  if (amount) {
+    const byAmount = available.find(plan => Number(plan.priceCOP) === amount);
+    if (byAmount) return byAmount.id;
+  }
+  const planName = String(perfilActual?.subscriptionPlan || "").toLowerCase();
+  return available.find(plan =>
+    planName.includes(String(plan.name || "").toLowerCase()) ||
+    planName.includes(String(plan.label || "").toLowerCase())
+  )?.id || "";
+}
+
 function asegurarPlanPagoSeleccionado() {
   const selected = planPagoSeleccionado();
   selectedCheckoutPlanId = selected?.id || "";
@@ -926,7 +943,7 @@ function renderSubscriptionPanel() {
   if (taxes) taxes.textContent = "Incluidos cuando aplique según la pasarela y la normativa colombiana.";
   const bigPrice = document.getElementById("checkoutBigPrice");
   if (bigPrice) bigPrice.textContent = price;
-  document.getElementById("paymentCarousel")?.classList.toggle("hidden", active);
+  document.getElementById("paymentCarousel")?.classList.toggle("hidden", active && !planChangeInProgress);
   renderPasoPago();
 }
 
@@ -1162,6 +1179,59 @@ function abrirComprobantePago(item) {
   document.body.appendChild(overlay);
 }
 
+function abrirSelectorCambioPlan() {
+  if (!esInstitucion()) {
+    paymentStep = 0;
+    activarNav("suscripcion");
+    return;
+  }
+  document.getElementById("planChangeOverlay")?.remove();
+  const currentPlanId = planActualFacturacionId();
+  const plans = PLANES_COMERCIALES.institution;
+  const overlay = document.createElement("div");
+  overlay.id = "planChangeOverlay";
+  overlay.className = "app-modal-overlay";
+  overlay.setAttribute("role", "dialog");
+  overlay.setAttribute("aria-modal", "true");
+  overlay.innerHTML = `
+    <section class="plan-change-modal">
+      <button class="modal-x" type="button" data-close-plan-change aria-label="Cerrar">×</button>
+      <span class="section-kicker">Planes institucionales</span>
+      <h2>Cambiar o mejorar plan</h2>
+      <p class="mini-help">Selecciona el nuevo rango institucional. Tu plan actual aparece bloqueado para evitar comprar el mismo plan.</p>
+      <div class="plan-change-grid">
+        ${plans.map(plan => {
+          const current = plan.id === currentPlanId;
+          return `
+            <button class="plan-change-card ${current ? "current" : ""}" type="button" data-change-plan="${escapeHtml(plan.id)}" ${current ? "disabled" : ""}>
+              <span>${escapeHtml(plan.label)}</span>
+              <strong>${escapeHtml(formatoPrecioCOP(plan.priceCOP))}/mes</strong>
+              <small>${escapeHtml(plan.range)} · ${escapeHtml(plan.includes)}</small>
+              ${current ? `<em>Plan actual</em>` : `<em>Seleccionar</em>`}
+            </button>
+          `;
+        }).join("")}
+      </div>
+    </section>
+  `;
+  const close = () => overlay.remove();
+  overlay.addEventListener("click", event => {
+    if (event.target === overlay || event.target.closest("[data-close-plan-change]")) {
+      close();
+      return;
+    }
+    const button = event.target.closest("[data-change-plan]");
+    if (!button || button.disabled) return;
+    selectedCheckoutPlanId = button.dataset.changePlan || "";
+    planChangeInProgress = true;
+    paymentStep = 1;
+    close();
+    activarNav("suscripcion");
+    renderSubscriptionPanel();
+  });
+  document.body.appendChild(overlay);
+}
+
 function renderBillingPanel() {
   const active = suscripcionActiva();
   const plan = perfilActual?.subscriptionPlan || (active ? `Plan ${esProfesor() ? "Profesor" : "Estudiante"}` : "Sin suscripción activa");
@@ -1200,6 +1270,12 @@ function renderBillingPanel() {
   }
   const benefits = document.getElementById("billingBenefits");
   if (benefits) benefits.innerHTML = beneficiosPlan().map(item => `<li>${escapeHtml(item)}</li>`).join("");
+  const upgradeButton = document.getElementById("btnUpgradePlan");
+  if (upgradeButton) {
+    const canChangePlan = esInstitucion();
+    upgradeButton.hidden = !canChangePlan;
+    upgradeButton.textContent = "Cambiar o mejorar plan";
+  }
   const toggle = document.getElementById("billingPauseToggle");
   if (toggle) {
     toggle.checked = paused;
@@ -2170,6 +2246,7 @@ function mostrarSeccion(sec) {
   if (sec !== "perfil") limpiarVerificacionTelefonoTemporal();
   if (sec !== "mensajes") limpiarBorradorMensajeProfesor();
   if (sec !== "examenes") limpiarBorradorPreguntaProfesor();
+  if (sec !== "suscripcion") planChangeInProgress = false;
   document.getElementById("sectionInicio").classList.toggle("hidden", sec !== "inicio");
   document.getElementById("sectionSuscripcion")?.classList.toggle("hidden", sec !== "suscripcion");
   document.getElementById("sectionFacturacion")?.classList.toggle("hidden", sec !== "facturacion");
@@ -9113,14 +9190,15 @@ document.getElementById("btnStartSecureCheckout")?.addEventListener("click", asy
   }
 });
 document.getElementById("btnUpgradePlan")?.addEventListener("click", () => {
-  paymentStep = 0;
-  activarNav("suscripcion");
+  abrirSelectorCambioPlan();
 });
 document.getElementById("btnAddPaymentMethod")?.addEventListener("click", () => {
+  planChangeInProgress = false;
   paymentStep = 1;
   activarNav("suscripcion");
 });
 document.getElementById("btnPayFromBilling")?.addEventListener("click", () => {
+  planChangeInProgress = false;
   paymentStep = 0;
   activarNav("suscripcion");
 });
@@ -9812,7 +9890,7 @@ async function renderInstitutionGradeStats() {
 
 async function renderAdminStats() {
   const cont = document.getElementById("adminStats");
-  if (!cont || !modoAdmin) return;
+  if (!cont || (!modoAdmin && !esInstitucion())) return;
   actualizarTextosPanelMetricas();
   if (esInstitucion()) {
     await renderInstitutionGradeStats();
