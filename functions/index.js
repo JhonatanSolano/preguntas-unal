@@ -448,7 +448,7 @@ function buildPaymentReceiptHtml(transaction, options = {}) {
           </tbody>
         </table>
         <p style="font-size:13px;color:#66788a">Este comprobante es emitido por Matemáticas En Tu Bolsillo como soporte interno del pago confirmado por Wompi. No reemplaza factura electrónica si la normatividad aplicable exige un documento adicional.</p>
-        <p style="font-size:12px;color:#66788a">Soporte: soporte@matematicasentubolsillo.com · Información: info@matematicasentubolsillo.com</p>
+        <p style="font-size:12px;color:#66788a">Soporte: soporte@matematicasentubolsillo.com</p>
       </div>
     </div>`;
 }

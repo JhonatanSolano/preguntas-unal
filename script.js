@@ -1061,11 +1061,17 @@ function construirComprobantePagoHtml(item) {
     table{width:100%;border-collapse:collapse;margin:24px 0;background:#fbfdff;border-radius:12px;overflow:hidden}
     td{padding:13px;border-bottom:1px solid #e3edf2}td:first-child{color:#66788a;width:36%}td:last-child{font-weight:700}
     .ok{color:#0d9488}.note{font-size:13px;color:#66788a;line-height:1.55}
-    @media print{body{background:white;padding:0}main{border:0}}
+    .actions{display:flex;justify-content:flex-end;margin-bottom:18px}
+    button{border:0;border-radius:999px;background:linear-gradient(135deg,#0f3a54,#0f766e);color:white;font-weight:700;padding:12px 20px;cursor:pointer}
+    button:hover{filter:brightness(1.05)}
+    @media print{body{background:white;padding:0}.actions{display:none}main{border:0}}
   </style>
 </head>
 <body>
   <main>
+    <div class="actions">
+      <button type="button" onclick="window.print()">Imprimir / guardar PDF</button>
+    </div>
     <p class="brand">Matemáticas En Tu Bolsillo</p>
     <h1>Comprobante de pago</h1>
     <p>Hola ${escapeHtml(buyer)}, este documento soporta el pago aprobado de tu suscripción.</p>
@@ -1081,7 +1087,7 @@ function construirComprobantePagoHtml(item) {
       </tbody>
     </table>
     <p class="note">Este comprobante es emitido por Matemáticas En Tu Bolsillo como soporte interno del pago confirmado por Wompi. No reemplaza factura electrónica si la normatividad aplicable exige un documento adicional.</p>
-    <p class="note">Soporte: soporte@matematicasentubolsillo.com · Información: info@matematicasentubolsillo.com</p>
+    <p class="note">Soporte: soporte@matematicasentubolsillo.com</p>
   </main>
 </body>
 </html>`;
@@ -1090,16 +1096,19 @@ function construirComprobantePagoHtml(item) {
 function descargarComprobantePago(transactionId) {
   const item = billingHistoryItems.find(row => row.id === transactionId);
   if (!item) return;
-  const reference = item.reference || item.transactionId || item.id || "pago";
   const blob = new Blob([construirComprobantePagoHtml(item)], { type: "text/html;charset=utf-8" });
   const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `Comprobante_${nombreArchivoSeguro(reference)}.html`;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  const opened = window.open(url, "_blank", "noopener,noreferrer");
+  if (!opened) {
+    const reference = item.reference || item.transactionId || item.id || "pago";
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Comprobante_${nombreArchivoSeguro(reference)}.html`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  }
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
 
 function renderBillingPanel() {
