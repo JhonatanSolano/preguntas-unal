@@ -1022,6 +1022,7 @@ function renderBillingHistory() {
     const method = item.paymentMethodLabel || nombreMetodoPago(String(item.paymentMethod || "").toLowerCase());
     const status = estadoPagoLegible(item.status);
     const reference = item.reference || item.transactionId || item.id || "—";
+    const canDownloadReceipt = String(item.status || "").toUpperCase() === "APPROVED" || status === "Aprobado";
     return `
       <article class="billing-history-row">
         <div>
@@ -1032,10 +1033,73 @@ function renderBillingHistory() {
           <strong>${escapeHtml(amount)}</strong>
           <small>${escapeHtml(status)} · Ref. ${escapeHtml(reference)}</small>
         </div>
-        ${item.receiptUrl ? `<a class="btn btn-outline" href="${escapeHtml(item.receiptUrl)}" target="_blank" rel="noopener">Comprobante</a>` : `<button class="btn btn-outline" type="button" disabled>Sin comprobante</button>`}
+        ${canDownloadReceipt ? `<button class="btn btn-outline" type="button" data-download-receipt="${escapeHtml(item.id)}">Comprobante</button>` : `<button class="btn btn-outline" type="button" disabled>Sin comprobante</button>`}
       </article>
     `;
   }).join("");
+}
+
+function construirComprobantePagoHtml(item) {
+  const amount = formatoPrecioCOP(item.amountInCents ? Number(item.amountInCents) / 100 : item.amountCOP);
+  const date = fechaFacturacion(item.paidAt || item.createdAt);
+  const method = item.paymentMethodLabel || nombreMetodoPago(String(item.paymentMethod || "").toLowerCase());
+  const reference = item.reference || item.transactionId || item.id || "—";
+  const plan = item.planName || item.planId || "Plan";
+  const buyer = perfilActual?.institutionName || perfilActual?.displayName || usuarioActual?.displayName || usuarioActual?.email || "Usuario";
+  const institution = item.institutionName
+    ? `<tr><td>Institución</td><td>${escapeHtml(item.institutionName)}</td></tr>`
+    : "";
+  return `<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Comprobante ${escapeHtml(reference)}</title>
+  <style>
+    body{font-family:Arial,sans-serif;background:#f4fbfc;color:#162838;margin:0;padding:32px}
+    main{max-width:760px;margin:auto;background:white;border:1px solid #d8e8ee;border-radius:18px;padding:32px}
+    h1{color:#06345f;margin:0 0 8px}.brand{color:#0d9488;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+    table{width:100%;border-collapse:collapse;margin:24px 0;background:#fbfdff;border-radius:12px;overflow:hidden}
+    td{padding:13px;border-bottom:1px solid #e3edf2}td:first-child{color:#66788a;width:36%}td:last-child{font-weight:700}
+    .ok{color:#0d9488}.note{font-size:13px;color:#66788a;line-height:1.55}
+    @media print{body{background:white;padding:0}main{border:0}}
+  </style>
+</head>
+<body>
+  <main>
+    <p class="brand">Matemáticas En Tu Bolsillo</p>
+    <h1>Comprobante de pago</h1>
+    <p>Hola ${escapeHtml(buyer)}, este documento soporta el pago aprobado de tu suscripción.</p>
+    <table>
+      <tbody>
+        <tr><td>Plan adquirido</td><td>${escapeHtml(plan)}</td></tr>
+        ${institution}
+        <tr><td>Valor pagado</td><td>${escapeHtml(amount)}</td></tr>
+        <tr><td>Estado</td><td class="ok">Aprobado</td></tr>
+        <tr><td>Medio de pago</td><td>${escapeHtml(method)}</td></tr>
+        <tr><td>Referencia</td><td>${escapeHtml(reference)}</td></tr>
+        <tr><td>Fecha</td><td>${escapeHtml(date)}</td></tr>
+      </tbody>
+    </table>
+    <p class="note">Este comprobante es emitido por Matemáticas En Tu Bolsillo como soporte interno del pago confirmado por Wompi. No reemplaza factura electrónica si la normatividad aplicable exige un documento adicional.</p>
+    <p class="note">Soporte: soporte@matematicasentubolsillo.com · Información: info@matematicasentubolsillo.com</p>
+  </main>
+</body>
+</html>`;
+}
+
+function descargarComprobantePago(transactionId) {
+  const item = billingHistoryItems.find(row => row.id === transactionId);
+  if (!item) return;
+  const reference = item.reference || item.transactionId || item.id || "pago";
+  const blob = new Blob([construirComprobantePagoHtml(item)], { type: "text/html;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `Comprobante_${nombreArchivoSeguro(reference)}.html`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function renderBillingPanel() {
@@ -8994,6 +9058,11 @@ document.querySelectorAll("[data-billing-tab]").forEach(button => {
     activeBillingTab = button.dataset.billingTab || "subscription";
     renderBillingPanel();
   });
+});
+document.getElementById("billingHistory")?.addEventListener("click", event => {
+  const button = event.target.closest("[data-download-receipt]");
+  if (!button) return;
+  descargarComprobantePago(button.dataset.downloadReceipt || "");
 });
 document.getElementById("billingPauseToggle")?.addEventListener("change", async event => {
   const status = document.getElementById("billingActionStatus");

@@ -402,6 +402,66 @@ async function sendEmail({ to, subject, html }) {
   if (!response.ok) throw new Error(await response.text());
 }
 
+function formatCOP(value = 0) {
+  return new Intl.NumberFormat("es-CO", {
+    style: "currency",
+    currency: "COP",
+    maximumFractionDigits: 0
+  }).format(Number(value || 0));
+}
+
+function formatBogotaDate(value = new Date()) {
+  const date = value instanceof Date ? value : new Date(value);
+  return new Intl.DateTimeFormat("es-CO", {
+    timeZone: "America/Bogota",
+    dateStyle: "long",
+    timeStyle: "short"
+  }).format(Number.isNaN(date.getTime()) ? new Date() : date);
+}
+
+function buildPaymentReceiptHtml(transaction, options = {}) {
+  const paidDate = options.paidDate || new Date();
+  const title = "Comprobante de pago";
+  const amount = formatCOP(transaction.amountCOP);
+  const planName = transaction.planName || transaction.planId || "Plan";
+  const reference = transaction.reference || transaction.transactionId || "";
+  const method = transaction.paymentMethodLabel || transaction.paymentMethod || "Wompi";
+  const buyer = options.displayName || transaction.institutionName || transaction.email || "Usuario";
+  const institution = transaction.institutionName
+    ? `<tr><td>Institución</td><td>${escapeHtml(transaction.institutionName)}</td></tr>`
+    : "";
+  return `
+    <div style="font-family:Arial,sans-serif;line-height:1.55;color:#162838;max-width:720px;margin:auto;padding:28px;background:#f6fbfc">
+      <div style="background:#ffffff;border:1px solid #d9e8ee;border-radius:18px;padding:28px">
+        <p style="margin:0 0 8px;color:#0d9488;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Matemáticas En Tu Bolsillo</p>
+        <h1 style="margin:0 0 16px;color:#06345f">${title}</h1>
+        <p>Hola ${escapeHtml(buyer)}, recibimos y aprobamos tu pago. Tu suscripción quedó activa en la plataforma.</p>
+        <table style="width:100%;border-collapse:collapse;margin:22px 0;background:#fbfdff;border-radius:12px;overflow:hidden">
+          <tbody>
+            <tr><td style="padding:12px;border-bottom:1px solid #e4edf2;color:#66788a">Plan adquirido</td><td style="padding:12px;border-bottom:1px solid #e4edf2;font-weight:700">${escapeHtml(planName)}</td></tr>
+            ${institution}
+            <tr><td style="padding:12px;border-bottom:1px solid #e4edf2;color:#66788a">Valor pagado</td><td style="padding:12px;border-bottom:1px solid #e4edf2;font-weight:700">${escapeHtml(amount)}</td></tr>
+            <tr><td style="padding:12px;border-bottom:1px solid #e4edf2;color:#66788a">Estado</td><td style="padding:12px;border-bottom:1px solid #e4edf2;font-weight:700;color:#0d9488">Aprobado</td></tr>
+            <tr><td style="padding:12px;border-bottom:1px solid #e4edf2;color:#66788a">Medio de pago</td><td style="padding:12px;border-bottom:1px solid #e4edf2">${escapeHtml(method)}</td></tr>
+            <tr><td style="padding:12px;border-bottom:1px solid #e4edf2;color:#66788a">Referencia</td><td style="padding:12px;border-bottom:1px solid #e4edf2">${escapeHtml(reference)}</td></tr>
+            <tr><td style="padding:12px;color:#66788a">Fecha de aprobación</td><td style="padding:12px">${escapeHtml(formatBogotaDate(paidDate))}</td></tr>
+          </tbody>
+        </table>
+        <p style="font-size:13px;color:#66788a">Este comprobante es emitido por Matemáticas En Tu Bolsillo como soporte interno del pago confirmado por Wompi. No reemplaza factura electrónica si la normatividad aplicable exige un documento adicional.</p>
+        <p style="font-size:12px;color:#66788a">Soporte: soporte@matematicasentubolsillo.com · Información: info@matematicasentubolsillo.com</p>
+      </div>
+    </div>`;
+}
+
+async function sendPaymentReceiptEmail(transaction, options = {}) {
+  if (!transaction.email) return;
+  await sendEmail({
+    to: transaction.email,
+    subject: `Comprobante de pago - ${transaction.planName || "Matemáticas En Tu Bolsillo"}`,
+    html: buildPaymentReceiptHtml(transaction, options)
+  });
+}
+
 exports.sendClassInviteEmail = onDocumentWritten({
   region: "us-central1",
   document: "classInvites/{inviteId}",
@@ -700,7 +760,7 @@ exports.createPaymentIntent = onRequest({
 
 exports.wompiWebhook = onRequest({
   region: "us-central1",
-  secrets: [wompiEventsSecret]
+  secrets: [wompiEventsSecret, resendApiKey]
 }, async (req, res) => {
   if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
   const secret = wompiEventsSecret.value();
@@ -816,6 +876,20 @@ exports.wompiWebhook = onRequest({
       read: false,
       createdAt: admin.firestore.FieldValue.serverTimestamp()
     });
+    try {
+      await sendPaymentReceiptEmail(transactionPayload, { paidDate: now, displayName: intent.institutionName || "" });
+      await db.collection("billingTransactions").doc(String(transactionId || reference)).set({
+        receiptEmailStatus: "sent",
+        receiptEmailSentAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+    } catch (emailError) {
+      console.warn("No se pudo enviar comprobante de pago.", emailError);
+      await db.collection("billingTransactions").doc(String(transactionId || reference)).set({
+        receiptEmailStatus: "error",
+        receiptEmailError: String(emailError?.message || emailError).slice(0, 500),
+        receiptEmailUpdatedAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+    }
   }
 
   if (["DECLINED", "ERROR", "VOIDED"].includes(status)) {
