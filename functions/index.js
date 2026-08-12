@@ -6,6 +6,7 @@ const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { defineSecret } = require("firebase-functions/params");
 
 admin.initializeApp();
+const db = admin.firestore();
 
 const geminiApiKey = defineSecret("GEMINI_API_KEY");
 const resendApiKey = defineSecret("RESEND_API_KEY");
@@ -135,6 +136,10 @@ function priceToCents(amountCOP) {
 
 function normalizeEmail(email) {
   return String(email || "").trim().toLowerCase();
+}
+
+function safeEmailId(email = "") {
+  return normalizeEmail(email).replace(/[^a-z0-9_-]+/g, "_");
 }
 
 function normalizeDane(value) {
@@ -564,10 +569,12 @@ exports.sendInternalNotificationEmail = onDocumentWritten({
   const before = event.data.before.exists ? event.data.before.data() : null;
   const after = event.data.after.exists ? event.data.after.data() : null;
   if (!after || before || after.emailSentAt || ["class-message", "billing-reminder"].includes(after.type)) return;
-  const targetEmail = after.targetEmail;
-  if (!targetEmail) return;
-  const users = await admin.firestore().collection("users").where("email", "==", targetEmail).limit(1).get();
-  const user = users.docs[0]?.data();
+  const targetEmail = normalizeEmail(after.targetEmail);
+  const targetUid = String(after.targetUid || "");
+  if (!targetEmail || !targetUid) return;
+  const userSnap = await admin.firestore().collection("users").doc(targetUid).get();
+  const user = userSnap.exists ? userSnap.data() : null;
+  if (normalizeEmail(user?.email) !== targetEmail) return;
   if (!user?.notificationsEnabled) return;
   const html = `
     <div style="font-family:Arial,sans-serif;line-height:1.6;color:#162838;max-width:640px;margin:auto;padding:24px">
@@ -1462,7 +1469,7 @@ exports.getExamAccessState = onRequest({ region: "us-central1" }, async (req, re
   const classData = classSnap.data() || {};
   const userData = userSnap.exists ? userSnap.data() : {};
   const isTeacherOwner = classData.ownerUid === decoded.uid;
-  const isStudentInClass = userData.classId === classId || userData.claseId === classId || userData.aulaId === classId;
+  const isStudentInClass = await isActiveClassMember(classId, decoded, userData);
   const isPlatformOwner = String(decoded.email || "").toLowerCase() === "solanojhonatan2000@gmail.com";
   if (!isPlatformOwner && !isTeacherOwner && !isStudentInClass) {
     return res.status(403).json({ error: "No tienes acceso a esta aula." });
@@ -1510,10 +1517,7 @@ exports.getTeacherExamQuestions = onRequest({ region: "us-central1" }, async (re
   const callerEmail = normalizeEmail(decoded.email);
   const isPlatformOwner = callerEmail === "solanojhonatan2000@gmail.com";
   const isTeacherOwner = classData.ownerUid === decoded.uid && ownerUid === decoded.uid;
-  const isStudentInClass =
-    userData.classId === classId ||
-    userData.claseId === classId ||
-    userData.aulaId === classId;
+  const isStudentInClass = await isActiveClassMember(classId, decoded, userData);
   if (!isPlatformOwner && !isTeacherOwner && !isStudentInClass) {
     return res.status(403).json({ error: "No tienes acceso a estas preguntas." });
   }
@@ -1715,6 +1719,24 @@ async function getBaseQuestionsFor(level = "", bank = "principal", classId = "au
   }));
 }
 
+async function isActiveClassMember(classId = "", decoded = {}, userData = {}) {
+  const email = normalizeEmail(decoded.email || userData.email);
+  const uid = decoded.uid || userData.uid || userData.userUid || "";
+  if (!classId || (!email && !uid)) return false;
+  const directId = email ? `${classId}_${safeEmailId(email)}` : "";
+  const checks = [];
+  if (directId) checks.push(db.collection("classStudents").doc(directId).get());
+  if (uid) checks.push(db.collection("classStudents").where("classId", "==", classId).where("userUid", "==", uid).limit(1).get());
+  if (email) checks.push(db.collection("classStudents").where("classId", "==", classId).where("email", "==", email).limit(1).get());
+  const results = await Promise.all(checks);
+  const docs = results.flatMap(result => result.docs ? result.docs : (result.exists ? [result] : []));
+  return docs.some(docSnap => {
+    const data = docSnap.data() || {};
+    const status = String(data.status || "activo").toLowerCase();
+    return status !== "bloqueado" && status !== "blocked" && status !== "removed" && status !== "eliminado";
+  });
+}
+
 function safeDocPart(value = "") {
   return String(value || "")
     .trim()
@@ -1846,10 +1868,7 @@ exports.submitExamAttempt = onRequest({ region: "us-central1" }, async (req, res
   const classData = classSnap.data() || {};
   const userData = userSnap.exists ? userSnap.data() : {};
   const userEmail = normalizeEmail(decoded.email);
-  const isStudentInClass =
-    userData.classId === classId ||
-    userData.claseId === classId ||
-    userData.aulaId === classId;
+  const isStudentInClass = await isActiveClassMember(classId, decoded, userData);
   const isPlatformOwner = userEmail === "solanojhonatan2000@gmail.com";
   if (!isPlatformOwner && !isStudentInClass) {
     return res.status(403).json({ error: "No tienes acceso a esta aula." });
@@ -1940,6 +1959,11 @@ exports.submitExamAttempt = onRequest({ region: "us-central1" }, async (req, res
   });
 
   const total = gradedSnapshot.length;
+  if (total && verifiedQuestions !== total) {
+    return res.status(400).json({
+      error: "El examen contiene preguntas no verificadas por el servidor. Actualiza la app e intenta nuevamente."
+    });
+  }
   const incorrectas = Math.max(0, total - correctas);
   const porcentaje = total ? Math.round((correctas / total) * 100) : 0;
   const nota = calcNotaFromPercent(porcentaje);
@@ -2030,17 +2054,10 @@ exports.getAcademicReport = onRequest({ region: "us-central1" }, async (req, res
 
   const userData = userSnap.exists ? userSnap.data() : {};
   const timezoneConfig = timezoneConfigFromProfile(userData, req.body || {});
-  const [membersSnap, aulaStatesSnap, classStatesSnap, officialAttemptsSnap] = await Promise.all([
+  const [membersSnap, officialAttemptsSnap] = await Promise.all([
     db.collection("classStudents").where("classId", "==", classId).get(),
-    db.collection("studentState").where("aulaId", "==", classId).get(),
-    db.collection("studentState").where("claseId", "==", classId).get(),
     db.collection("examAttempts").where("classId", "==", classId).get()
   ]);
-
-  const states = new Map();
-  [...aulaStatesSnap.docs, ...classStatesSnap.docs].forEach(docSnap => {
-    states.set(docSnap.id, { id: docSnap.id, ...docSnap.data() });
-  });
 
   const members = new Map();
   membersSnap.docs.forEach(docSnap => {
@@ -2048,26 +2065,13 @@ exports.getAcademicReport = onRequest({ region: "us-central1" }, async (req, res
     const key = data.userUid || data.uid || data.email || docSnap.id;
     members.set(String(key), { id: docSnap.id, ...data });
   });
-  states.forEach(state => {
-    const key = state.uid || state.userUid || state.email || state.id;
-    if (!members.has(String(key))) {
-      members.set(String(key), {
-        id: state.id,
-        userUid: state.uid || state.userUid || state.id,
-        email: state.email || "",
-        name: state.name || state.displayName || state.username || ""
-      });
-    }
-  });
 
   const rows = [];
-  const officialStudentKeys = new Set();
   officialAttemptsSnap.docs.forEach(docSnap => {
     const attempt = docSnap.data() || {};
     if (attempt.level !== level) return;
     const studentUid = attempt.studentUid || "";
     const studentEmail = attempt.studentEmail || "";
-    officialStudentKeys.add(studentUid || studentEmail);
     const member = members.get(studentUid) ||
       [...members.values()].find(item => item.email && studentEmail && normalizeEmail(item.email) === normalizeEmail(studentEmail)) ||
       {};
@@ -2091,41 +2095,6 @@ exports.getAcademicReport = onRequest({ region: "us-central1" }, async (req, res
       ...attemptMetricsFromOfficialAttempt(attempt)
     });
   });
-
-  for (const member of members.values()) {
-    const memberUid = member.userUid || member.uid || member.id;
-    const memberEmail = normalizeEmail(member.email);
-    if (officialStudentKeys.has(memberUid) || officialStudentKeys.has(memberEmail)) continue;
-    const state = states.get(memberUid) ||
-      [...states.values()].find(item => item.email && member.email && String(item.email).toLowerCase() === String(member.email).toLowerCase()) ||
-      {};
-    const resultados = state.resultados || {};
-    Object.entries(resultados).forEach(([key, value]) => {
-      if (!shouldUseResultKey(resultados, key, level)) return;
-      const attempts = Array.isArray(value?.intentos) ? value.intentos : [];
-      attempts.forEach((attempt, index) => {
-        const metrics = attemptMetrics(level, attempt);
-        const presentedAtMs = attemptPresentedMillis(attempt);
-        const parts = formatReportDateParts(presentedAtMs, timezoneConfig);
-        rows.push({
-          studentUid: memberUid || state.uid || state.userUid || "",
-          studentName: member.name || state.name || state.displayName || state.username || "Sin nombre",
-          email: member.email || state.email || "",
-          classId,
-          className: classData.name || classData.className || "Aula",
-          classCode: classData.code || "",
-          examType: level,
-          examName: examLevelName(level),
-          attemptNumber: index + 1,
-          presentedAt: presentedAtMs ? new Date(presentedAtMs).toISOString() : "",
-          presentedAtMs: presentedAtMs || 0,
-          presentedDate: parts.date,
-          presentedTime: parts.time,
-          ...metrics
-        });
-      });
-    });
-  }
 
   rows.sort((a, b) => String(a.studentName).localeCompare(String(b.studentName), "es") || a.presentedAtMs - b.presentedAtMs);
   return res.status(200).json({

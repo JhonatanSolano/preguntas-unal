@@ -3976,6 +3976,8 @@ async function estudiantesActivosDeClase(classId) {
 async function crearNotificacion(payload) {
   await setDoc(doc(collection(db, "notifications")), {
     ...payload,
+    fromUid: usuarioActual?.uid || "",
+    fromEmail: usuarioActual?.email || "",
     read: false,
     createdAt: serverTimestamp()
   });

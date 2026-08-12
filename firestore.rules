@@ -182,7 +182,6 @@ service cloud.firestore {
     match /examAttempts/{attemptId} {
       allow read: if hasActiveSubscription() && (
         isPlatformOwner() ||
-        resource.data.studentUid == request.auth.uid ||
         ownsClass(resource.data.classId) ||
         ownsInstitutionOfClass(resource.data.classId)
       );
@@ -403,7 +402,9 @@ service cloud.firestore {
         resource.data.targetUid == request.auth.uid ||
         resource.data.targetEmail == request.auth.token.email
       );
-      allow create: if hasActiveSubscription();
+      allow create: if hasActiveSubscription() &&
+        request.resource.data.fromUid == request.auth.uid &&
+        !request.resource.data.keys().hasAny(["emailNotification", "emailBody", "emailSubject"]);
       allow update: if hasActiveSubscription() && (
         resource.data.targetUid == request.auth.uid ||
         resource.data.targetEmail == request.auth.token.email
@@ -446,8 +447,12 @@ service cloud.firestore {
     }
 
     match /recoveryContacts/{phoneId} {
-      allow read: if true;
-      allow create, update: if isAdmin() || (signedIn() && request.resource.data.uid == request.auth.uid);
+      allow read: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
+      allow create, update: if isAdmin() || (
+        signedIn() &&
+        request.resource.data.uid == request.auth.uid &&
+        request.resource.data.email == request.auth.token.email
+      );
       allow delete: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
     }
   }
