@@ -32,7 +32,9 @@ import {
   getDoc,
   getDocs,
   getFirestore,
+  limit,
   onSnapshot,
+  orderBy,
   query,
   serverTimestamp,
   setDoc,
@@ -1463,7 +1465,7 @@ function escucharHistorialFacturacion() {
     renderBillingHistory();
     return;
   }
-  const q = query(collection(db, "billingTransactions"), where("uid", "==", usuarioActual.uid));
+  const q = query(collection(db, "billingTransactions"), where("uid", "==", usuarioActual.uid), orderBy("createdAt", "desc"), limit(50));
   unsubscribeBillingHistory = onSnapshot(q, snap => {
     billingHistoryItems = snap.docs
       .map(docSnap => ({ id: docSnap.id, ...docSnap.data() }))
@@ -3857,7 +3859,7 @@ function iniciarListenersComunicacion() {
   detenerListenersComunicacion();
   const email = usuarioActual.email.toLowerCase();
   unsubscribeNotifications = onSnapshot(
-    query(collection(db, "notifications"), where("targetEmail", "==", email)),
+    query(collection(db, "notifications"), where("targetEmail", "==", email), orderBy("createdAt", "desc"), limit(50)),
     snap => {
       const prevUnread = internalNotifications.filter(n => !n.read).length;
       internalNotifications = snap.docs.map(d => ({ id: d.id, ...d.data() }))
@@ -3874,16 +3876,16 @@ function iniciarListenersComunicacion() {
     err => console.warn("No se pudieron escuchar notificaciones.", err)
   );
   const messageQuery = modoAdmin
-    ? query(collection(db, "classMessages"), where("ownerUid", "==", usuarioActual.uid))
-    : query(collection(db, "classMessages"), where("toEmails", "array-contains", email));
+    ? query(collection(db, "classMessages"), where("ownerUid", "==", usuarioActual.uid), orderBy("createdAt", "desc"), limit(50))
+    : query(collection(db, "classMessages"), where("toEmails", "array-contains", email), orderBy("createdAt", "desc"), limit(50));
   unsubscribeMessages = onSnapshot(messageQuery, snap => {
     internalMessages = snap.docs.map(d => ({ id: d.id, ...d.data() }))
       .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
     renderMessagesPanel();
   }, err => console.warn("No se pudieron escuchar mensajes.", err));
   const repliesQuery = modoAdmin
-    ? query(collection(db, "messageReplies"), where("ownerUid", "==", usuarioActual.uid))
-    : query(collection(db, "messageReplies"), where("fromEmail", "==", email));
+    ? query(collection(db, "messageReplies"), where("ownerUid", "==", usuarioActual.uid), orderBy("createdAt", "desc"), limit(100))
+    : query(collection(db, "messageReplies"), where("fromEmail", "==", email), orderBy("createdAt", "desc"), limit(100));
   unsubscribeReplies = onSnapshot(repliesQuery, snap => {
     internalReplies = snap.docs.map(d => ({ id: d.id, ...d.data() }))
       .sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
@@ -4423,7 +4425,7 @@ function updateRichToolbarState() {
 async function cargarRespuestasDelMensaje(messageId) {
   if (!messageId) return;
   try {
-    const snap = await getDocs(query(collection(db, "messageReplies"), where("messageId", "==", messageId)));
+    const snap = await getDocs(query(collection(db, "messageReplies"), where("messageId", "==", messageId), orderBy("createdAt", "asc"), limit(100)));
     mezclarRespuestas(snap.docs.map(d => ({ id: d.id, ...d.data() })));
   } catch (err) {
     console.warn("No se pudieron cargar todas las respuestas del mensaje.", err);

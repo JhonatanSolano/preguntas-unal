@@ -535,10 +535,17 @@ exports.sendClassMessageEmail = onDocumentWritten({
   if (!emails.length) return;
   const db = admin.firestore();
   const enabledEmails = [];
-  for (const email of emails) {
-    const users = await db.collection("users").where("email", "==", email).limit(1).get();
-    const user = users.docs[0]?.data();
-    if (user?.notificationsEnabled) enabledEmails.push(email);
+  const uniqueEmails = [...new Set(emails.map(normalizeEmail).filter(Boolean))];
+  for (let i = 0; i < uniqueEmails.length; i += 30) {
+    const batch = uniqueEmails.slice(i, i + 30);
+    const usersSnap = await db.collection("users").where("email", "in", batch).get();
+    const enabledSet = new Set(
+      usersSnap.docs
+        .map(docSnap => docSnap.data() || {})
+        .filter(user => user.notificationsEnabled)
+        .map(user => normalizeEmail(user.email))
+    );
+    enabledEmails.push(...batch.filter(email => enabledSet.has(email)));
   }
   if (!enabledEmails.length) return;
   const messageContent = after.bodyHtml || escapeHtml(after.body || "").replace(/\n/g, "<br>");
@@ -568,7 +575,12 @@ exports.sendInternalNotificationEmail = onDocumentWritten({
 }, async event => {
   const before = event.data.before.exists ? event.data.before.data() : null;
   const after = event.data.after.exists ? event.data.after.data() : null;
-  if (!after || before || after.emailSentAt || ["class-message", "billing-reminder"].includes(after.type)) return;
+  if (!after || before || after.emailSentAt || [
+    "class-message",
+    "billing-reminder",
+    "exam-finished",
+    "student-exam-finished"
+  ].includes(after.type)) return;
   const targetEmail = normalizeEmail(after.targetEmail);
   const targetUid = String(after.targetUid || "");
   if (!targetEmail || !targetUid) return;
