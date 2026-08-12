@@ -94,6 +94,13 @@ Eres "Asesor IA", un tutor experto de Matemáticas En Tu Bolsillo para estudiant
 Puedes resolver preguntas, crear ejercicios tipo examen, proponer práctica por tema, revisar errores y crear planes de estudio. Responde en español claro, con tono profesional y cercano. Usa Markdown y LaTeX cuando haya fórmulas. No inventes datos oficiales si no son necesarios. Si falta información, haz una sola pregunta concreta.
 `;
 
+const AI_RATE_LIMIT = {
+  perMinute: 6,
+  perDay: 120,
+  maxInputChars: 4000,
+  maxHistoryItems: 12
+};
+
 function setCors(res) {
   res.set("Access-Control-Allow-Origin", APP_ORIGIN);
   res.set("Vary", "Origin");
@@ -116,6 +123,33 @@ async function requireAuth(req) {
   const match = header.match(/^Bearer\s+(.+)$/i);
   if (!match) throw new Error("AUTH_REQUIRED");
   return admin.auth().verifyIdToken(match[1]);
+}
+
+async function assertAiRateLimit(uid) {
+  const now = new Date();
+  const minuteKey = Math.floor(now.getTime() / 60000);
+  const dayKey = now.toISOString().slice(0, 10);
+  const ref = db.collection("aiRateLimits").doc(uid);
+  return db.runTransaction(async tx => {
+    const snap = await tx.get(ref);
+    const data = snap.exists ? snap.data() || {} : {};
+    const currentMinuteCount = data.minuteKey === minuteKey ? Number(data.minuteCount || 0) : 0;
+    const currentDayCount = data.dayKey === dayKey ? Number(data.dayCount || 0) : 0;
+    if (currentMinuteCount >= AI_RATE_LIMIT.perMinute) {
+      return { allowed: false, retryAfterSeconds: 60 };
+    }
+    if (currentDayCount >= AI_RATE_LIMIT.perDay) {
+      return { allowed: false, retryAfterSeconds: 60 * 60 };
+    }
+    tx.set(ref, {
+      minuteKey,
+      minuteCount: currentMinuteCount + 1,
+      dayKey,
+      dayCount: currentDayCount + 1,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+    return { allowed: true };
+  });
 }
 
 function sha256(value) {
@@ -230,16 +264,26 @@ exports.generateAiResponse = onRequest({ region: "us-central1", secrets: [gemini
   const apiKey = geminiApiKey.value();
   const { history = [], currentUserInput = "", currentData = {} } = req.body || {};
   if (!apiKey) return res.status(500).json({ error: "Falta configurar GEMINI_API_KEY." });
-  if (!String(currentUserInput).trim()) return res.status(400).json({ error: "Mensaje vacío." });
+  const input = String(currentUserInput).trim();
+  if (!input) return res.status(400).json({ error: "Mensaje vacío." });
+  if (input.length > AI_RATE_LIMIT.maxInputChars) {
+    return res.status(400).json({ error: `Mensaje demasiado largo. Máximo ${AI_RATE_LIMIT.maxInputChars} caracteres.` });
+  }
 
   try {
+    const decoded = await requireAuth(req);
+    const rateLimit = await assertAiRateLimit(decoded.uid);
+    if (!rateLimit.allowed) {
+      res.set("Retry-After", String(rateLimit.retryAfterSeconds || 60));
+      return res.status(429).json({ error: "Has alcanzado el límite temporal del Asesor IA. Intenta nuevamente en unos minutos." });
+    }
     const prompt = [
       `Datos actuales del usuario: ${JSON.stringify(currentData)}`,
-      `Mensaje actual del usuario: ${currentUserInput}`,
+      `Mensaje actual del usuario: ${input}`,
       "Responde directamente al usuario en Markdown claro y con LaTeX cuando corresponda."
     ].join("\n\n");
     const contents = [
-      ...history.slice(-12),
+      ...history.slice(-AI_RATE_LIMIT.maxHistoryItems),
       { role: "user", parts: [{ text: prompt }] }
     ];
     const models = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-lite-latest"];
@@ -258,6 +302,9 @@ exports.generateAiResponse = onRequest({ region: "us-central1", secrets: [gemini
     throw lastError;
   } catch (err) {
     console.error("Gemini error", err);
+    if (String(err.message) === "AUTH_REQUIRED") {
+      return res.status(401).json({ error: "Debes iniciar sesión para usar el Asesor IA." });
+    }
     return res.status(500).json({ error: "No se pudo generar la respuesta con Gemini." });
   }
 });

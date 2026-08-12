@@ -8883,7 +8883,10 @@ async function enviarMensajeAsesor(text) {
       .map(msg => ({ role: msg.sender === "bot" ? "model" : "user", parts: [{ text: msg.text }] }));
     const response = await fetch(APP_CONFIG.asesorEndpoint, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${await usuarioActual.getIdToken()}`
+      },
       body: JSON.stringify({ history, currentUserInput: input, currentData: contextoAsesor(modeForRequest) })
     });
     const data = await response.json().catch(() => ({}));
@@ -8894,7 +8897,7 @@ async function enviarMensajeAsesor(text) {
     advisorMessages.push({
       id: `${Date.now()}-bot`,
       sender: "bot",
-      text: "No pude conectar con el Asesor IA en este momento. Revisa que la Cloud Function `generateAiResponse` esté desplegada y que la variable GEMINI_API_KEY esté configurada."
+      text: err.message || "No pude conectar con el Asesor IA en este momento. Intenta nuevamente en unos minutos."
     });
   } finally {
     advisorLoading = false;
@@ -11191,13 +11194,31 @@ function nombreArchivoSeguro(text = "") {
     .slice(0, 80) || "Reporte";
 }
 
-function exportTeacherReportXlsx() {
+let xlsxLoadPromise = null;
+
+function ensureXlsxLoaded() {
+  if (window.XLSX) return Promise.resolve(window.XLSX);
+  if (xlsxLoadPromise) return xlsxLoadPromise;
+  xlsxLoadPromise = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";
+    script.async = true;
+    script.onload = () => window.XLSX ? resolve(window.XLSX) : reject(new Error("No se pudo inicializar el exportador Excel."));
+    script.onerror = () => reject(new Error("No se pudo cargar el exportador Excel. Revisa la conexión e intenta de nuevo."));
+    document.head.appendChild(script);
+  });
+  return xlsxLoadPromise;
+}
+
+async function exportTeacherReportXlsx() {
   if (!teacherReportRows.length) {
     setReportStatus("Primero consulta un reporte con datos.", "error");
     return;
   }
-  if (!window.XLSX) {
-    setReportStatus("No se pudo cargar el exportador Excel. Revisa la conexión e intenta de nuevo.", "error");
+  try {
+    await ensureXlsxLoaded();
+  } catch (err) {
+    setReportStatus(err.message || "No se pudo cargar el exportador Excel. Revisa la conexión e intenta de nuevo.", "error");
     return;
   }
   const rows = teacherReportRows.map(row => ({
