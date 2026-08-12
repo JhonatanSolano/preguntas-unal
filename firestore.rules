@@ -301,6 +301,10 @@ service cloud.firestore {
         resource.data.ownerUid == request.auth.uid;
     }
 
+    match /baseQuestionSets/{setId} {
+      allow read, write: if isPlatformOwner();
+    }
+
     match /classStudents/{studentId} {
       allow read: if hasActiveSubscription() && (
         isPlatformOwner() ||

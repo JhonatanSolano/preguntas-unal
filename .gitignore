@@ -3,6 +3,8 @@ service-account*.json
 tools/output/
 node_modules/
 functions/node_modules/
+functions/baseQuestions.js
+tools/seed-base-questions.js
 .codex/
 *.local.toml
 .claude/settings.local.json

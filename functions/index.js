@@ -1566,6 +1566,48 @@ exports.getTeacherExamQuestions = onRequest({ region: "us-central1" }, async (re
   return res.status(200).json({ ok: true, classId, ownerUid, level, bank, questions });
 });
 
+exports.getExamAttemptFeedback = onRequest({ region: "us-central1" }, async (req, res) => {
+  setCors(res);
+  if (req.method === "OPTIONS") return res.status(204).send("");
+  if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
+
+  let decoded;
+  try {
+    decoded = await requireAuth(req);
+  } catch {
+    return res.status(401).json({ error: "Debes iniciar sesión." });
+  }
+
+  const attemptId = String(req.body?.attemptId || "").trim();
+  if (!attemptId) return res.status(400).json({ error: "Falta el intento." });
+
+  const db = admin.firestore();
+  const attemptSnap = await db.collection("examAttempts").doc(attemptId).get();
+  if (!attemptSnap.exists) return res.status(404).json({ error: "Intento no encontrado." });
+  const attempt = attemptSnap.data() || {};
+  const callerEmail = normalizeEmail(decoded.email);
+  const isPlatformOwner = callerEmail === "solanojhonatan2000@gmail.com";
+  const ownsAttempt = attempt.studentUid === decoded.uid;
+  const ownsClassAttempt = attempt.ownerUid === decoded.uid;
+  if (!isPlatformOwner && !ownsAttempt && !ownsClassAttempt) {
+    return res.status(403).json({ error: "No tienes acceso a este intento." });
+  }
+
+  const permissionSnap = await db.collection("classPermissions").doc(attempt.classId || "").get();
+  const feedbackPublished = permissionSnap.exists &&
+    permissionSnap.data()?.examSettings?.[attempt.level]?.feedbackPublished === true;
+  if (!feedbackPublished && !isPlatformOwner && !ownsClassAttempt) {
+    return res.status(403).json({ error: "La retroalimentación aún no ha sido publicada." });
+  }
+
+  return res.status(200).json({
+    ok: true,
+    attemptId,
+    feedbackPublished,
+    gradedSnapshot: Array.isArray(attempt.gradedSnapshot) ? attempt.gradedSnapshot : []
+  });
+});
+
 exports.updateExamAccessConfig = onRequest({ region: "us-central1" }, async (req, res) => {
   setCors(res);
   if (req.method === "OPTIONS") return res.status(204).send("");
@@ -1648,6 +1690,29 @@ function examLevelName(level = "") {
 
 function normalizeExamBank(bank = "") {
   return String(bank || "principal").trim() || "principal";
+}
+
+function mediumGroupForBank(bank = "principal", classId = "aula") {
+  const seed = `${classId || "aula"}-${normalizeExamBank(bank)}`;
+  const idx = [...seed].reduce((acc, char) => acc + char.charCodeAt(0), 0) % 5 + 1;
+  return `nivel${idx}`;
+}
+
+function baseQuestionSetId(level = "", bank = "principal", classId = "aula") {
+  if (level === "diagnostico") return "diagnostico";
+  if (level === "examen") return "examen";
+  return `nivel1_${mediumGroupForBank(bank, classId)}`;
+}
+
+async function getBaseQuestionsFor(level = "", bank = "principal", classId = "aula") {
+  const setId = baseQuestionSetId(level, bank, classId);
+  const snap = await db.collection("baseQuestionSets").doc(setId).get();
+  const data = snap.exists ? (snap.data() || {}) : {};
+  const questions = Array.isArray(data.questions) ? data.questions : [];
+  return questions.map(question => ({
+    ...question,
+    opciones: Array.isArray(question.opciones) ? [...question.opciones] : []
+  }));
 }
 
 function safeDocPart(value = "") {
@@ -1817,6 +1882,20 @@ exports.submitExamAttempt = onRequest({ region: "us-central1" }, async (req, res
     if (data.classId && data.classId !== classId) return;
     teacherQuestionsById.set(docSnap.id, { id: docSnap.id, ...data });
   });
+  const baseQuestionsById = new Map(
+    (await getBaseQuestionsFor(level, bank, classId)).map(question => [
+      String(question._questionId || `base-${question.id}`),
+      question
+    ])
+  );
+  const requiresBaseBank = questionSnapshot.some(question =>
+    String(question?._questionSource || question?.source || "") === "base"
+  );
+  if (requiresBaseBank && !baseQuestionsById.size) {
+    return res.status(503).json({
+      error: "El banco base seguro aún no está disponible. Intenta nuevamente en unos minutos."
+    });
+  }
 
   let correctas = 0;
   let verifiedQuestions = 0;
@@ -1824,11 +1903,15 @@ exports.submitExamAttempt = onRequest({ region: "us-central1" }, async (req, res
     const source = String(question?._questionSource || question?.source || "legacy");
     const questionId = String(question?._questionId || question?.questionId || question?.id || "");
     const teacherQuestion = source === "teacher" ? teacherQuestionsById.get(questionId) : null;
+    const baseQuestion = source === "base" ? baseQuestionsById.get(questionId) : null;
+    const officialQuestion = teacherQuestion || baseQuestion || null;
     const trustedCorrect = teacherQuestion
       ? Number(teacherQuestion.correctOption)
-      : Number(question?.correcta ?? question?.correctOption);
+      : baseQuestion
+        ? Number(baseQuestion.correcta)
+        : Number(question?.correcta ?? question?.correctOption);
     const hasTrustedCorrect = Number.isInteger(trustedCorrect) && trustedCorrect >= 0 && trustedCorrect <= 3;
-    if (teacherQuestion) verifiedQuestions++;
+    if (teacherQuestion || baseQuestion) verifiedQuestions++;
     const answer = Number(respuestas[index]);
     const ok = hasTrustedCorrect && answer === trustedCorrect;
     if (ok) correctas++;
@@ -1836,9 +1919,22 @@ exports.submitExamAttempt = onRequest({ region: "us-central1" }, async (req, res
       id: Number(question?.id || index + 1),
       questionId,
       source,
+      pregunta: officialQuestion?.questionText || officialQuestion?.pregunta || question?.pregunta || "",
+      formula: officialQuestion?.questionLatex
+        ? `\\[${officialQuestion.questionLatex}\\]`
+        : (officialQuestion?.formula || question?.formula || ""),
+      opciones: Array.isArray(officialQuestion?.options)
+        ? officialQuestion.options
+        : (officialQuestion?.opciones || question?.opciones || question?.options || []),
+      imageUrl: officialQuestion?.imageUrl || question?.imageUrl || "",
+      imageAlt: officialQuestion?.imageAlt || question?.imageAlt || "",
       respuesta: Number.isInteger(answer) ? answer : -1,
       correcta: hasTrustedCorrect ? trustedCorrect : -1,
-      verifiedByServer: Boolean(teacherQuestion),
+      explicacion: [
+        officialQuestion?.explanationText || officialQuestion?.explicacion || question?.explicacion || "",
+        officialQuestion?.explanationLatex ? `\\[${officialQuestion.explanationLatex}\\]` : ""
+      ].filter(Boolean).join("<br>"),
+      verifiedByServer: Boolean(teacherQuestion || baseQuestion),
       ok
     };
   });

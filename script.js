@@ -68,6 +68,7 @@ const APP_CONFIG = {
   examAccessUpdateEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/updateExamAccessConfig",
   teacherExamQuestionsEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/getTeacherExamQuestions",
   examAttemptSubmitEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/submitExamAttempt",
+  examAttemptFeedbackEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/getExamAttemptFeedback",
   academicReportEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/getAcademicReport",
   payments: {
     provider: "Wompi",
@@ -267,149 +268,229 @@ const institutionCatalogCache = {
 ──────────────────────────────────────────────────── */
 const PREGUNTAS = [
   {
-    id: 1,
-    pregunta: "Si \\(x = -2\\), ¿cuánto vale",
-    formula: "\\[ 3x^2 - 5x + 1 \\]",
-    opciones: ["11", "23", "15", "7"],
-    correcta: 1,
-    explicacion: "Sustituimos \\(x = -2\\):<br>\\(3(-2)^2 - 5(-2) + 1 = 3(4) + 10 + 1 = 12 + 10 + 1 = 23\\)."
+    "id": 1,
+    "pregunta": "Si \\(x = -2\\), ¿cuánto vale",
+    "formula": "\\[ 3x^2 - 5x + 1 \\]",
+    "opciones": [
+      "11",
+      "23",
+      "15",
+      "7"
+    ],
+    "correcta": -1,
+    "explicacion": "",
+    "_questionSource": "base",
+    "_questionId": "base-1"
   },
   {
-    id: 2,
-    pregunta: "Simplifica",
-    formula: "\\[ (4x^3 - 2x) + (x^3 + 7x) \\]",
-    opciones: ["\\(5x^3 + 9x\\)", "\\(5x^3 + 5x\\)", "\\(4x^3 + 5x\\)", "\\(5x^2 + 5x\\)"],
-    correcta: 1,
-    explicacion: "Se suman los términos semejantes: \\((4+1)x^3 + (-2+7)x = 5x^3 + 5x\\)."
+    "id": 2,
+    "pregunta": "Simplifica",
+    "formula": "\\[ (4x^3 - 2x) + (x^3 + 7x) \\]",
+    "opciones": [
+      "\\(5x^3 + 9x\\)",
+      "\\(5x^3 + 5x\\)",
+      "\\(4x^3 + 5x\\)",
+      "\\(5x^2 + 5x\\)"
+    ],
+    "correcta": -1,
+    "explicacion": "",
+    "_questionSource": "base",
+    "_questionId": "base-2"
   },
   {
-    id: 3,
-    pregunta: "Desarrolla el producto notable",
-    formula: "\\[ (x + 4)(x - 4) \\]",
-    opciones: ["\\(x^2 - 8x + 16\\)", "\\(x^2 + 16\\)", "\\(x^2 - 16\\)", "\\(x^2 + 8x - 16\\)"],
-    correcta: 2,
-    explicacion: "Es una diferencia de cuadrados: \\((a+b)(a-b) = a^2 - b^2\\).<br>Con \\(a=x,\\, b=4\\): \\(x^2 - 16\\)."
+    "id": 3,
+    "pregunta": "Desarrolla el producto notable",
+    "formula": "\\[ (x + 4)(x - 4) \\]",
+    "opciones": [
+      "\\(x^2 - 8x + 16\\)",
+      "\\(x^2 + 16\\)",
+      "\\(x^2 - 16\\)",
+      "\\(x^2 + 8x - 16\\)"
+    ],
+    "correcta": -1,
+    "explicacion": "",
+    "_questionSource": "base",
+    "_questionId": "base-3"
   },
   {
-    id: 4,
-    pregunta: "Factoriza completamente",
-    formula: "\\[ 6x^2 - 15x \\]",
-    opciones: ["\\(3x(2x - 5)\\)", "\\(6(x^2 - 15x)\\)", "\\(x(6x - 15)\\)", "\\(2x(3x - 5)\\)"],
-    correcta: 0,
-    explicacion: "Se extrae el máximo factor común \\(3x\\):<br>\\(6x^2 - 15x = 3x \\cdot 2x - 3x \\cdot 5 = 3x(2x - 5)\\)."
+    "id": 4,
+    "pregunta": "Factoriza completamente",
+    "formula": "\\[ 6x^2 - 15x \\]",
+    "opciones": [
+      "\\(3x(2x - 5)\\)",
+      "\\(6(x^2 - 15x)\\)",
+      "\\(x(6x - 15)\\)",
+      "\\(2x(3x - 5)\\)"
+    ],
+    "correcta": -1,
+    "explicacion": "",
+    "_questionSource": "base",
+    "_questionId": "base-4"
   },
   {
-    id: 5,
-    pregunta: "Resuelve la ecuación",
-    formula: "\\[ 3x - 7 = 11 \\]",
-    opciones: ["4", "5", "6", "7"],
-    correcta: 2,
-    explicacion: "\\(3x = 11 + 7 = 18 \\Rightarrow x = \\dfrac{18}{3} = 6\\)."
+    "id": 5,
+    "pregunta": "Resuelve la ecuación",
+    "formula": "\\[ 3x - 7 = 11 \\]",
+    "opciones": [
+      "4",
+      "5",
+      "6",
+      "7"
+    ],
+    "correcta": -1,
+    "explicacion": "",
+    "_questionSource": "base",
+    "_questionId": "base-5"
   },
   {
-    id: 6,
-    pregunta: "Desarrolla el cuadrado del binomio",
-    formula: "\\[ (2x - 3)^2 \\]",
-    opciones: [
+    "id": 6,
+    "pregunta": "Desarrolla el cuadrado del binomio",
+    "formula": "\\[ (2x - 3)^2 \\]",
+    "opciones": [
       "\\(4x^2 - 6x + 9\\)",
       "\\(4x^2 - 12x + 9\\)",
       "\\(2x^2 - 12x + 9\\)",
       "\\(4x^2 + 12x + 9\\)"
     ],
-    correcta: 1,
-    explicacion: "\\((a - b)^2 = a^2 - 2ab + b^2\\).<br>Con \\(a = 2x,\\, b = 3\\):<br>\\((2x)^2 - 2(2x)(3) + 3^2 = 4x^2 - 12x + 9\\)."
+    "correcta": -1,
+    "explicacion": "",
+    "_questionSource": "base",
+    "_questionId": "base-6"
   },
   {
-    id: 7,
-    pregunta: "Factoriza",
-    formula: "\\[ x^2 - 9 \\]",
-    opciones: [
+    "id": 7,
+    "pregunta": "Factoriza",
+    "formula": "\\[ x^2 - 9 \\]",
+    "opciones": [
       "\\((x - 9)(x + 1)\\)",
       "\\((x - 3)^2\\)",
       "\\((x - 3)(x + 3)\\)",
       "\\((x + 9)(x - 1)\\)"
     ],
-    correcta: 2,
-    explicacion: "Diferencia de cuadrados: \\(x^2 - 9 = x^2 - 3^2 = (x-3)(x+3)\\)."
+    "correcta": -1,
+    "explicacion": "",
+    "_questionSource": "base",
+    "_questionId": "base-7"
   },
   {
-    id: 8,
-    pregunta: "Resuelve la ecuación cuadrática",
-    formula: "\\[ x^2 - 5x + 6 = 0 \\]",
-    opciones: ["1 y 6", "2 y 3", "−2 y −3", "5 y 6"],
-    correcta: 1,
-    explicacion: "Se buscan dos números que sumen 5 y multipliquen 6: son 2 y 3.<br>\\((x-2)(x-3) = 0 \\Rightarrow x = 2\\) o \\(x = 3\\)."
+    "id": 8,
+    "pregunta": "Resuelve la ecuación cuadrática",
+    "formula": "\\[ x^2 - 5x + 6 = 0 \\]",
+    "opciones": [
+      "1 y 6",
+      "2 y 3",
+      "−2 y −3",
+      "5 y 6"
+    ],
+    "correcta": -1,
+    "explicacion": "",
+    "_questionSource": "base",
+    "_questionId": "base-8"
   },
   {
-    id: 9,
-    pregunta: "Simplifica la expresión racional",
-    formula: "\\[ \\frac{x^2 - 4}{x - 2} \\]",
-    opciones: [
+    "id": 9,
+    "pregunta": "Simplifica la expresión racional",
+    "formula": "\\[ \\frac{x^2 - 4}{x - 2} \\]",
+    "opciones": [
       "\\(x - 2\\)",
       "\\(x + 2\\)",
       "\\(x + 2,\\; x \\neq 2\\)",
       "\\(x,\\; x \\neq 2\\)"
     ],
-    correcta: 2,
-    explicacion: "\\(x^2 - 4 = (x-2)(x+2)\\), entonces \\(\\dfrac{(x-2)(x+2)}{x-2} = x+2\\), con la restricción \\(x \\neq 2\\)."
+    "correcta": -1,
+    "explicacion": "",
+    "_questionSource": "base",
+    "_questionId": "base-9"
   },
   {
-    id: 10,
-    pregunta: "Si la recta \\(y=2x+b\\) pasa por el punto \\((3,11)\\), entonces \\(b\\) vale:",
-    formula: "",
-    opciones: ["\\(3\\)", "\\(4\\)", "\\(5\\)", "\\(6\\)"],
-    correcta: 2,
-    explicacion: "Sustituimos el punto en la ecuación: \\(11=2(3)+b\\). Entonces \\(11=6+b\\), de donde \\(b=5\\)."
+    "id": 10,
+    "pregunta": "Si la recta \\(y=2x+b\\) pasa por el punto \\((3,11)\\), entonces \\(b\\) vale:",
+    "formula": "",
+    "opciones": [
+      "\\(3\\)",
+      "\\(4\\)",
+      "\\(5\\)",
+      "\\(6\\)"
+    ],
+    "correcta": -1,
+    "explicacion": "",
+    "_questionSource": "base",
+    "_questionId": "base-10"
   },
   {
-    id: 11,
-    pregunta: "¿Para qué valores de \\(x\\) está definida la expresión",
-    formula: "\\[ \\frac{x + 1}{x^2 - 4} \\]",
-    opciones: [
+    "id": 11,
+    "pregunta": "¿Para qué valores de \\(x\\) está definida la expresión",
+    "formula": "\\[ \\frac{x + 1}{x^2 - 4} \\]",
+    "opciones": [
       "Todo número real",
       "\\(x \\neq 2\\)",
       "\\(x \\neq -2\\)",
       "\\(x \\neq 2\\) y \\(x \\neq -2\\)"
     ],
-    correcta: 3,
-    explicacion: "El denominador \\(x^2 - 4 = (x-2)(x+2) = 0\\) cuando \\(x = 2\\) o \\(x = -2\\).<br>La expresión no está definida en esos valores."
+    "correcta": -1,
+    "explicacion": "",
+    "_questionSource": "base",
+    "_questionId": "base-11"
   },
   {
-    id: 12,
-    pregunta: "Resuelve la desigualdad",
-    formula: "\\[ 2x + 5 > 3x - 1 \\]",
-    opciones: ["\\(x > 6\\)", "\\(x < 6\\)", "\\(x = 6\\)", "\\(x \\geq 6\\)"],
-    correcta: 1,
-    explicacion: "\\(2x + 5 > 3x - 1 \\Rightarrow 5 + 1 > 3x - 2x \\Rightarrow 6 > x\\), es decir \\(x < 6\\)."
+    "id": 12,
+    "pregunta": "Resuelve la desigualdad",
+    "formula": "\\[ 2x + 5 > 3x - 1 \\]",
+    "opciones": [
+      "\\(x > 6\\)",
+      "\\(x < 6\\)",
+      "\\(x = 6\\)",
+      "\\(x \\geq 6\\)"
+    ],
+    "correcta": -1,
+    "explicacion": "",
+    "_questionSource": "base",
+    "_questionId": "base-12"
   },
   {
-    id: 13,
-    pregunta: "Factoriza el trinomio",
-    formula: "\\[ x^2 + 7x + 10 \\]",
-    opciones: [
+    "id": 13,
+    "pregunta": "Factoriza el trinomio",
+    "formula": "\\[ x^2 + 7x + 10 \\]",
+    "opciones": [
       "\\((x + 1)(x + 10)\\)",
       "\\((x + 2)(x + 5)\\)",
       "\\((x + 7)(x + 10)\\)",
       "\\((x + 3)(x + 4)\\)"
     ],
-    correcta: 1,
-    explicacion: "Se buscan dos números que sumen 7 y multipliquen 10: 2 y 5.<br>\\(x^2 + 7x + 10 = (x+2)(x+5)\\)."
+    "correcta": -1,
+    "explicacion": "",
+    "_questionSource": "base",
+    "_questionId": "base-13"
   },
   {
-    id: 14,
-    pregunta: "Si \\(\\displaystyle x + \\frac{1}{x} = 3\\), halla el valor de",
-    formula: "\\[ x^2 + \\frac{1}{x^2} \\]",
-    opciones: ["5", "6", "7", "9"],
-    correcta: 2,
-    explicacion: "Se eleva al cuadrado la identidad dada:<br>\\(\\left(x + \\dfrac{1}{x}\\right)^2 = x^2 + 2 + \\dfrac{1}{x^2} = 9\\)<br>Por tanto \\(x^2 + \\dfrac{1}{x^2} = 9 - 2 = 7\\)."
+    "id": 14,
+    "pregunta": "Si \\(\\displaystyle x + \\frac{1}{x} = 3\\), halla el valor de",
+    "formula": "\\[ x^2 + \\frac{1}{x^2} \\]",
+    "opciones": [
+      "5",
+      "6",
+      "7",
+      "9"
+    ],
+    "correcta": -1,
+    "explicacion": "",
+    "_questionSource": "base",
+    "_questionId": "base-14"
   },
   {
-    id: 15,
-    pregunta: "Resuelve la ecuación",
-    formula: "\\[ x^2 - 4x + 4 = 0 \\]",
-    opciones: ["\\(x = 4\\)", "\\(x = 2\\)", "\\(x = -2\\)", "\\(x = 2\\) (raíz doble)"],
-    correcta: 3,
-    explicacion: "\\(x^2 - 4x + 4 = (x-2)^2 = 0 \\Rightarrow x = 2\\) con multiplicidad 2 (raíz doble)."
+    "id": 15,
+    "pregunta": "Resuelve la ecuación",
+    "formula": "\\[ x^2 - 4x + 4 = 0 \\]",
+    "opciones": [
+      "\\(x = 4\\)",
+      "\\(x = 2\\)",
+      "\\(x = -2\\)",
+      "\\(x = 2\\) (raíz doble)"
+    ],
+    "correcta": -1,
+    "explicacion": "",
+    "_questionSource": "base",
+    "_questionId": "base-15"
   }
 ];
 
@@ -1598,6 +1679,40 @@ function tieneClavesRespuesta(preguntas = []) {
   );
 }
 
+function preguntaDesdeFeedbackItem(item = {}, fallback = {}) {
+  return {
+    ...fallback,
+    id: Number(item.id || fallback.id || 0),
+    pregunta: item.pregunta || fallback.pregunta || "",
+    formula: item.formula || fallback.formula || "",
+    imageUrl: item.imageUrl || fallback.imageUrl || "",
+    imageAlt: item.imageAlt || fallback.imageAlt || "",
+    opciones: Array.isArray(item.opciones) ? item.opciones : (fallback.opciones || []),
+    correcta: Number.isInteger(Number(item.correcta)) ? Number(item.correcta) : -1,
+    explicacion: item.explicacion || fallback.explicacion || "",
+    _questionSource: item.source || fallback._questionSource || "",
+    _questionId: item.questionId || fallback._questionId || ""
+  };
+}
+
+async function cargarPreguntasRetroalimentacionOficial(clave, preguntas = []) {
+  if (modoAdmin || !APP_CONFIG.examAttemptFeedbackEndpoint || !retroalimentacionPublicada(clave)) return preguntas;
+  const intento = resultadoActual(clave);
+  if (!intento?.serverAttemptId) return preguntas;
+  try {
+    const data = await postBackendAutenticado(APP_CONFIG.examAttemptFeedbackEndpoint, {
+      attemptId: intento.serverAttemptId,
+      ...timezoneUsuarioPayload()
+    });
+    const graded = Array.isArray(data.gradedSnapshot) ? data.gradedSnapshot : [];
+    if (!data.ok || !graded.length) return preguntas;
+    return graded.map((item, index) => preguntaDesdeFeedbackItem(item, preguntas[index] || { id: index + 1 }));
+  } catch (error) {
+    console.warn("No se pudo cargar la retroalimentación oficial.", error);
+    return preguntas;
+  }
+}
+
 function aplicarMetricasServidorAIntento(intento, serverResult = null) {
   if (!intento || !serverResult?.ok) return intento;
   intento.serverGraded = true;
@@ -2121,7 +2236,7 @@ async function evaluarYMostrar(respuestas, opciones = {}) {
       guardarResultadoSesion("diagnostico", respuestas, segundosRestantes);
     }
   }
-  mostrarResultados(respuestas, correctas, incorrectas, porcentaje, nota, badge);
+  await mostrarResultados(respuestas, correctas, incorrectas, porcentaje, nota, badge);
   mostrarProgreso(PREGUNTAS.length, PREGUNTAS.length);
   resetTimer();
   if (!opciones.restaurando) resultsSection.scrollIntoView({ behavior: "smooth" });
@@ -2131,10 +2246,11 @@ async function evaluarYMostrar(respuestas, opciones = {}) {
    6. PRESENTACIÓN – Resultados
 ──────────────────────────────────────────────────── */
 
-function mostrarResultados(respuestas, correctas, incorrectas, pct, nota, badge) {
+async function mostrarResultados(respuestas, correctas, incorrectas, pct, nota, badge) {
   resultsSection.hidden = false;
   const tiempoEmpleado = DURACION_SEG - segundosRestantes;
-  const puedeMostrarClaves = tieneClavesRespuesta(PREGUNTAS);
+  const preguntasResultado = await cargarPreguntasRetroalimentacionOficial("diagnostico", PREGUNTAS);
+  const puedeMostrarClaves = tieneClavesRespuesta(preguntasResultado);
 
   /* ── Score ring ── */
   const circumference = 2 * Math.PI * 50;
@@ -2148,7 +2264,7 @@ function mostrarResultados(respuestas, correctas, incorrectas, pct, nota, badge)
   document.getElementById("tiempoEmpleado").textContent = formatTiempo(tiempoEmpleado);
   document.getElementById("tiempoRestante").textContent = formatTiempo(segundosRestantes);
   document.getElementById("balanceResultado").textContent =
-    calcBalance(correctas, PREGUNTAS.length, tiempoEmpleado);
+    calcBalance(correctas, preguntasResultado.length, tiempoEmpleado);
 
   const ring = document.getElementById("ringFill");
   if (pct >= 70) ring.style.stroke = "#1a7f5a";
@@ -2162,8 +2278,8 @@ function mostrarResultados(respuestas, correctas, incorrectas, pct, nota, badge)
   barC.setAttribute("data-val", correctas);
   barW.setAttribute("data-val", incorrectas);
   setTimeout(() => {
-    barC.style.height = Math.round((correctas  / PREGUNTAS.length) * MAX_PX) + "px";
-    barW.style.height = Math.round((incorrectas / PREGUNTAS.length) * MAX_PX) + "px";
+    barC.style.height = Math.round((correctas  / preguntasResultado.length) * MAX_PX) + "px";
+    barW.style.height = Math.round((incorrectas / preguntasResultado.length) * MAX_PX) + "px";
   }, 150);
 
   /* ── Tabla resumen (con LaTeX) ── */
@@ -2171,7 +2287,7 @@ function mostrarResultados(respuestas, correctas, incorrectas, pct, nota, badge)
   tbody.innerHTML = "";
   if (!puedeMostrarClaves) {
     tbody.innerHTML = `<tr><td colspan="4">Resultado guardado oficialmente. La retroalimentación se mostrará cuando el profesor la publique.</td></tr>`;
-  } else PREGUNTAS.forEach((q, i) => {
+  } else preguntasResultado.forEach((q, i) => {
     const sinResp = respuestas[i] === -1;
     const ok = !sinResp && respuestas[i] === q.correcta;
     const tr = document.createElement("tr");
@@ -2189,7 +2305,7 @@ function mostrarResultados(respuestas, correctas, incorrectas, pct, nota, badge)
   feedbackEl.innerHTML = "";
   if (!puedeMostrarClaves) {
     feedbackEl.innerHTML = `<div class="feedback-pending-card"><strong>Retroalimentación protegida</strong><p>Las respuestas correctas y explicaciones permanecen ocultas hasta que el profesor las publique.</p></div>`;
-  } else PREGUNTAS.forEach((q, i) => {
+  } else preguntasResultado.forEach((q, i) => {
     const sinResp = respuestas[i] === -1;
     const ok = !sinResp && respuestas[i] === q.correcta;
     const item = document.createElement("div");
@@ -2221,15 +2337,16 @@ function mostrarResultados(respuestas, correctas, incorrectas, pct, nota, badge)
 
   /* Marcar tarjetas visualmente */
   PREGUNTAS.forEach((q, i) => {
+    const qResultado = preguntasResultado[i] || q;
     const card = document.getElementById(`diag-card-${q.id}`);
     if (!card) return;
     const sinResp = respuestas[i] === -1;
-    const ok = !sinResp && respuestas[i] === q.correcta;
+    const ok = !sinResp && respuestas[i] === qResultado.correcta;
     if (puedeMostrarClaves) card.classList.add(ok ? "result-correct" : "result-wrong");
     card.querySelectorAll("input[type='radio']").forEach(inp => { inp.disabled = true; });
     card.querySelectorAll(".option-label").forEach((lbl, idx) => {
       if (!puedeMostrarClaves) return;
-      if (idx === q.correcta) lbl.classList.add("opt-correct");
+      if (idx === qResultado.correcta) lbl.classList.add("opt-correct");
       if (!sinResp && !ok && idx === respuestas[i]) lbl.classList.add("opt-wrong");
     });
   });
@@ -4867,104 +4984,154 @@ document.getElementById("btnIniciarDiag").addEventListener("click", async () => 
 ════════════════════════════════════════════════════════ */
 const PREGUNTAS_EXAMEN = [
   {
-    id: 1,
-    pregunta: "Si \\(\\log_2 x + \\log_2(x-2) = 3\\), el valor de \\(x\\) es:",
-    formula: "",
-    opciones: ["\\(x = 4\\)", "\\(x = -2\\)", "\\(x = 2\\)", "\\(x = 8\\)"],
-    correcta: 0,
-    explicacion: "\\(\\log_2[x(x-2)]=3 \\Rightarrow x(x-2)=8 \\Rightarrow x^2-2x-8=0 \\Rightarrow (x-4)(x+2)=0\\).<br>Como \\(x>2\\) (dominio), la solución es \\(x=4\\)."
+    "id": 1,
+    "pregunta": "Si \\(\\log_2 x + \\log_2(x-2) = 3\\), el valor de \\(x\\) es:",
+    "formula": "",
+    "opciones": [
+      "\\(x = 4\\)",
+      "\\(x = -2\\)",
+      "\\(x = 2\\)",
+      "\\(x = 8\\)"
+    ],
+    "correcta": -1,
+    "explicacion": "",
+    "_questionSource": "base",
+    "_questionId": "base-1"
   },
   {
-    id: 2,
-    pregunta: "Si \\(m^{m^2} = 2\\), entonces ¿cuánto vale \\((m+3)(m-3)\\)?",
-    formula: "",
-    opciones: ["\\(1\\)", "\\(-7\\)", "\\(4\\)", "\\(-5\\)"],
-    correcta: 1,
-    explicacion: "Como \\(\\sqrt{2}^{(\\sqrt{2})^2} = \\sqrt{2}^{2} = 2\\), se puede tomar \\(m = \\sqrt{2}\\).<br>Entonces \\((m+3)(m-3) = m^2 - 9 = (\\sqrt{2})^2 - 9 = 2 - 9 = -7\\)."
+    "id": 2,
+    "pregunta": "Si \\(m^{m^2} = 2\\), entonces ¿cuánto vale \\((m+3)(m-3)\\)?",
+    "formula": "",
+    "opciones": [
+      "\\(1\\)",
+      "\\(-7\\)",
+      "\\(4\\)",
+      "\\(-5\\)"
+    ],
+    "correcta": -1,
+    "explicacion": "",
+    "_questionSource": "base",
+    "_questionId": "base-2"
   },
   {
-    id: 3,
-    pregunta: "¿Cuál es el conjunto solución de la inecuación?",
-    formula: "\\[ \\frac{x^2 - 5x + 6}{x - 1} < 0 \\]",
-    opciones: ["\\((-\\infty,1)\\cup(2,3)\\)", "\\((1,2)\\cup(3,\\infty)\\)", "\\((-\\infty,1)\\cup(3,\\infty)\\)", "\\((1,2)\\)"],
-    correcta: 0,
-    explicacion: "Factorizamos el numerador:<br>\\(\\dfrac{x^2-5x+6}{x-1}=\\dfrac{(x-2)(x-3)}{x-1}\\).<br>Los puntos críticos son \\(1\\), \\(2\\) y \\(3\\). Con el método del cementerio se analizan los signos en los intervalos \\((-\\infty,1)\\), \\((1,2)\\), \\((2,3)\\) y \\((3,\\infty)\\).<br>La expresión resulta negativa en \\((-\\infty,1)\\) y en \\((2,3)\\). Como la desigualdad es estricta y \\(x=1\\) no pertenece al dominio, el conjunto solución es \\((-\\infty,1)\\cup(2,3)\\)."
+    "id": 3,
+    "pregunta": "¿Cuál es el conjunto solución de la inecuación?",
+    "formula": "\\[ \\frac{x^2 - 5x + 6}{x - 1} < 0 \\]",
+    "opciones": [
+      "\\((-\\infty,1)\\cup(2,3)\\)",
+      "\\((1,2)\\cup(3,\\infty)\\)",
+      "\\((-\\infty,1)\\cup(3,\\infty)\\)",
+      "\\((1,2)\\)"
+    ],
+    "correcta": -1,
+    "explicacion": "",
+    "_questionSource": "base",
+    "_questionId": "base-3"
   },
   {
-    id: 4,
-    pregunta: "Si \\(f(x) = x^2 - 1\\) y \\(g(x) = \\sqrt{x+1}\\), entonces \\((g \\circ f)(3)\\) vale:",
-    formula: "",
-    opciones: ["\\(2\\sqrt{2}\\)", "\\(3\\)", "\\(\\sqrt{10}\\)", "\\(2\\)"],
-    correcta: 1,  
-    explicacion: "\\(f(3) = 9 - 1 = 8\\).<br>\\(g(f(3)) = g(8) = \\sqrt{8+1} = \\sqrt{9} = 3\\)."
+    "id": 4,
+    "pregunta": "Si \\(f(x) = x^2 - 1\\) y \\(g(x) = \\sqrt{x+1}\\), entonces \\((g \\circ f)(3)\\) vale:",
+    "formula": "",
+    "opciones": [
+      "\\(2\\sqrt{2}\\)",
+      "\\(3\\)",
+      "\\(\\sqrt{10}\\)",
+      "\\(2\\)"
+    ],
+    "correcta": -1,
+    "explicacion": "",
+    "_questionSource": "base",
+    "_questionId": "base-4"
   },
   {
-    id: 5,
-    pregunta: "Si \\(\\sin\\theta=\\frac{3}{5}\\) y \\(\\theta\\) está en el primer cuadrante, entonces \\(\\tan\\theta\\) vale:",
-    formula: "",
-    opciones: ["\\(\\dfrac{3}{4}\\)", "\\(\\dfrac{4}{3}\\)", "\\(\\dfrac{3}{5}\\)", "\\(\\dfrac{5}{4}\\)"],
-    correcta: 0,
-    explicacion: "Si \\(\\sin\\theta=\\frac35\\), en un triángulo rectángulo el cateto opuesto es 3 y la hipotenusa 5. Por Pitágoras, el cateto adyacente es 4. Entonces \\(\\tan\\theta=\\frac{3}{4}\\)."
+    "id": 5,
+    "pregunta": "Si \\(\\sin\\theta=\\frac{3}{5}\\) y \\(\\theta\\) está en el primer cuadrante, entonces \\(\\tan\\theta\\) vale:",
+    "formula": "",
+    "opciones": [
+      "\\(\\dfrac{3}{4}\\)",
+      "\\(\\dfrac{4}{3}\\)",
+      "\\(\\dfrac{3}{5}\\)",
+      "\\(\\dfrac{5}{4}\\)"
+    ],
+    "correcta": -1,
+    "explicacion": "",
+    "_questionSource": "base",
+    "_questionId": "base-5"
   },
   {
-    id: 6,
-    pregunta: "Si \\(3^w + 9^w = 90\\), entonces \\(w\\) vale:",
-    formula: "",
-    opciones: ["\\(2\\)", "\\(7\\)", "\\(1\\)", "\\(0\\)"],
-    correcta: 0,
-    explicacion: "Sea \\(p=3^w\\). Entonces \\(9^w=(3^2)^w=3^{2w}=(3^w)^2=p^2\\).<br>La ecuación queda \\(p+p^2=90\\), es decir, \\(p^2+p-90=0\\).<br>Factorizando: \\((p+10)(p-9)=0\\). Como \\(p=3^w>0\\), se toma \\(p=9\\).<br>Así, \\(3^w=9=3^2\\), por tanto \\(w=2\\)."
+    "id": 6,
+    "pregunta": "Si \\(3^w + 9^w = 90\\), entonces \\(w\\) vale:",
+    "formula": "",
+    "opciones": [
+      "\\(2\\)",
+      "\\(7\\)",
+      "\\(1\\)",
+      "\\(0\\)"
+    ],
+    "correcta": -1,
+    "explicacion": "",
+    "_questionSource": "base",
+    "_questionId": "base-6"
   },
   {
-    id: 7,
-    pregunta: "La ecuación \\(2\\sin^2\\theta - \\sin\\theta - 1 = 0\\) en \\([0°, 360°)\\) tiene soluciones:",
-    formula: "",
-    opciones: [
+    "id": 7,
+    "pregunta": "La ecuación \\(2\\sin^2\\theta - \\sin\\theta - 1 = 0\\) en \\([0°, 360°)\\) tiene soluciones:",
+    "formula": "",
+    "opciones": [
       "\\(90°\\) y \\(210°\\)",
       "\\(90°, 210°\\) y \\(330°\\)",
       "\\(270°, 210°\\) y \\(330°\\)",
       "\\(270°\\) y \\(30°\\)"
     ],
-    correcta: 1,
-    explicacion: "Factorizando: \\((2\\sin\\theta+1)(\\sin\\theta-1)=0\\).<br>• \\(\\sin\\theta=1 \\Rightarrow \\theta=90°\\)<br>• \\(\\sin\\theta=-\\frac{1}{2} \\Rightarrow \\theta=210°\\) o \\(330°\\).<br>Soluciones: \\(90°, 210°, 330°\\)."
+    "correcta": -1,
+    "explicacion": "",
+    "_questionSource": "base",
+    "_questionId": "base-7"
   },
   {
-    id: 8,
-    pregunta: "Si las raíces de \\(x^2 + px + q = 0\\) son \\(r\\) y \\(s\\), entonces \\(r^2 + s^2\\) equivale a:",
-    formula: "",
-    opciones: [
+    "id": 8,
+    "pregunta": "Si las raíces de \\(x^2 + px + q = 0\\) son \\(r\\) y \\(s\\), entonces \\(r^2 + s^2\\) equivale a:",
+    "formula": "",
+    "opciones": [
       "\\(p^2 - 2q\\)",
       "\\(p^2 + 2q\\)",
       "\\(p^2 - q\\)",
       "\\((p-q)^2\\)"
     ],
-    correcta: 0,
-    explicacion: "Por Vieta: \\(r+s = -p\\) y \\(rs = q\\).<br>\\(r^2+s^2 = (r+s)^2 - 2rs = (-p)^2 - 2q = p^2 - 2q\\)."
+    "correcta": -1,
+    "explicacion": "",
+    "_questionSource": "base",
+    "_questionId": "base-8"
   },
   {
-    id: 9,
-    pregunta: "Calcular \\(E=\\log(1000!)-\\log(999!)\\):",
-    formula: "",
-    opciones: [
+    "id": 9,
+    "pregunta": "Calcular \\(E=\\log(1000!)-\\log(999!)\\):",
+    "formula": "",
+    "opciones": [
       "\\(1\\)",
       "\\(2\\)",
       "\\(0\\)",
       "\\(3\\)"
     ],
-    correcta: 3,
-    explicacion: "Usando la propiedad \\(\\log a-\\log b=\\log\\left(\\dfrac{a}{b}\\right)\\), tenemos:<br>\\(E=\\log\\left(\\dfrac{1000!}{999!}\\right)\\).<br>Como \\(1000! = 1000\\cdot 999!\\), entonces \\(\\dfrac{1000!}{999!}=1000\\).<br>Por tanto, \\(E=\\log(1000)=3\\), porque \\(10^3=1000\\)."
+    "correcta": -1,
+    "explicacion": "",
+    "_questionSource": "base",
+    "_questionId": "base-9"
   },
   {
-    id: 10,
-    pregunta: "En un triángulo con lados \\(a=7\\), \\(b=8\\) y \\(c=9\\), el coseno del ángulo \\(C\\) (opuesto al lado \\(c\\)) es:",
-    formula: "",
-    opciones: [
+    "id": 10,
+    "pregunta": "En un triángulo con lados \\(a=7\\), \\(b=8\\) y \\(c=9\\), el coseno del ángulo \\(C\\) (opuesto al lado \\(c\\)) es:",
+    "formula": "",
+    "opciones": [
       "\\(\\dfrac{1}{7}\\)",
       "\\(\\dfrac{11}{56}\\)",
       "\\(\\dfrac{2}{7}\\)",
       "\\(-\\dfrac{1}{14}\\)"
     ],
-    correcta: 2,
-    explicacion: "Ley de cosenos: \\(c^2 = a^2+b^2-2ab\\cos C\\).<br>\\(81 = 49+64-112\\cos C \\Rightarrow 112\\cos C = 32 \\Rightarrow \\cos C = \\dfrac{32}{112} = \\dfrac{2}{7}\\)."
+    "correcta": -1,
+    "explicacion": "",
+    "_questionSource": "base",
+    "_questionId": "base-10"
   }
 ];
 
@@ -4976,65 +5143,765 @@ const NIVELES_META = {
 };
 
 const PREGUNTAS_NIVELES = {
-  nivel1: [
-    { id: 1, pregunta: "Si \\(f(x)=3x-5\\), entonces el valor de \\(x\\) para el cual \\(f(x)=16\\) es:", formula: "", opciones: ["\\(5\\)", "\\(6\\)", "\\(7\\)", "\\(8\\)"], correcta: 2, explicacion: "Resolvemos \\(3x-5=16\\). Entonces \\(3x=21\\), por tanto \\(x=7\\)." },
-    { id: 2, pregunta: "La suma de los primeros \\(n\\) números impares positivos es 361. Entonces \\(n\\) vale:", formula: "", opciones: ["\\(17\\)", "\\(18\\)", "\\(19\\)", "\\(20\\)"], correcta: 2, explicacion: "La suma de los primeros \\(n\\) impares es \\(n^2\\). Entonces \\(n^2=361\\), de donde \\(n=19\\)." },
-    { id: 3, pregunta: "Si \\(x+\\frac1x=5\\), calcula", formula: "\\[x^2+\\frac1{x^2}\\]", opciones: ["\\(21\\)", "\\(23\\)", "\\(25\\)", "\\(27\\)"], correcta: 1, explicacion: "Elevando al cuadrado: \\((x+\\frac1x)^2=x^2+2+\\frac1{x^2}=25\\). Por tanto, \\(x^2+\\frac1{x^2}=23\\)." },
-    { id: 4, pregunta: "En un triángulo rectángulo, los catetos miden 9 y 12. El radio de la circunferencia inscrita es:", formula: "", opciones: ["\\(2\\)", "\\(3\\)", "\\(4\\)", "\\(6\\)"], correcta: 1, explicacion: "La hipotenusa es \\(15\\). En un triángulo rectángulo, el inradio es \\(r=\\frac{a+b-c}{2}\\). Entonces \\(r=\\frac{9+12-15}{2}=3\\)." },
-    { id: 5, pregunta: "Si \\(a\\) y \\(b\\) son positivos, \\(a+b=12\\) y \\(ab=27\\), entonces \\(a^2+b^2\\) es:", formula: "", opciones: ["\\(72\\)", "\\(84\\)", "\\(90\\)", "\\(108\\)"], correcta: 2, explicacion: "\\(a^2+b^2=(a+b)^2-2ab=144-54=90\\)." },
-    { id: 6, pregunta: "Si \\(\\cos\\theta=\\frac{4}{5}\\) y \\(\\theta\\) está en el primer cuadrante, entonces \\(\\sin\\theta\\) vale:", formula: "", opciones: ["\\(\\frac15\\)", "\\(\\frac35\\)", "\\(\\frac45\\)", "\\(\\frac53\\)"], correcta: 1, explicacion: "En un triángulo rectángulo, el cateto adyacente es 4 y la hipotenusa 5. El cateto opuesto es \\(3\\) por Pitágoras. Así, \\(\\sin\\theta=\\frac35\\)." },
-    { id: 7, pregunta: "Si \\(f(x)=x^2-3x+1\\), entonces \\(f(3-t)-f(t)\\) vale:", formula: "", opciones: ["\\(0\\)", "\\(3\\)", "\\(6t-9\\)", "\\(9-6t\\)"], correcta: 0, explicacion: "\\(f(3-t)=(3-t)^2-3(3-t)+1=t^2-3t+1=f(t)\\). La diferencia es 0." },
-    { id: 8, pregunta: "El menor entero positivo \\(n\\) tal que \\(12n\\) es un cuadrado perfecto es:", formula: "", opciones: ["\\(2\\)", "\\(3\\)", "\\(6\\)", "\\(12\\)"], correcta: 1, explicacion: "\\(12=2^2\\cdot3\\). Para que sea cuadrado, falta otro factor 3. Entonces \\(n=3\\)." },
-    { id: 9, pregunta: "Si \\(2^a=8\\) y \\(3^b=81\\), entonces \\(a+b\\) es:", formula: "", opciones: ["\\(6\\)", "\\(7\\)", "\\(8\\)", "\\(9\\)"], correcta: 1, explicacion: "\\(2^a=2^3\\), entonces \\(a=3\\). \\(3^b=3^4\\), entonces \\(b=4\\). Por tanto, \\(a+b=7\\)." },
-    { id: 10, pregunta: "Tres números enteros consecutivos tienen suma 84. El producto del menor y el mayor es:", formula: "", opciones: ["\\(783\\)", "\\(784\\)", "\\(785\\)", "\\(786\\)"], correcta: 0, explicacion: "Sean \\(n-1,n,n+1\\). Su suma es \\(3n=84\\), así \\(n=28\\). El producto pedido es \\(27\\cdot29=783\\)." }
+  "nivel1": [
+    {
+      "id": 1,
+      "pregunta": "Si \\(f(x)=3x-5\\), entonces el valor de \\(x\\) para el cual \\(f(x)=16\\) es:",
+      "formula": "",
+      "opciones": [
+        "\\(5\\)",
+        "\\(6\\)",
+        "\\(7\\)",
+        "\\(8\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-1"
+    },
+    {
+      "id": 2,
+      "pregunta": "La suma de los primeros \\(n\\) números impares positivos es 361. Entonces \\(n\\) vale:",
+      "formula": "",
+      "opciones": [
+        "\\(17\\)",
+        "\\(18\\)",
+        "\\(19\\)",
+        "\\(20\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-2"
+    },
+    {
+      "id": 3,
+      "pregunta": "Si \\(x+\\frac1x=5\\), calcula",
+      "formula": "\\[x^2+\\frac1{x^2}\\]",
+      "opciones": [
+        "\\(21\\)",
+        "\\(23\\)",
+        "\\(25\\)",
+        "\\(27\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-3"
+    },
+    {
+      "id": 4,
+      "pregunta": "En un triángulo rectángulo, los catetos miden 9 y 12. El radio de la circunferencia inscrita es:",
+      "formula": "",
+      "opciones": [
+        "\\(2\\)",
+        "\\(3\\)",
+        "\\(4\\)",
+        "\\(6\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-4"
+    },
+    {
+      "id": 5,
+      "pregunta": "Si \\(a\\) y \\(b\\) son positivos, \\(a+b=12\\) y \\(ab=27\\), entonces \\(a^2+b^2\\) es:",
+      "formula": "",
+      "opciones": [
+        "\\(72\\)",
+        "\\(84\\)",
+        "\\(90\\)",
+        "\\(108\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-5"
+    },
+    {
+      "id": 6,
+      "pregunta": "Si \\(\\cos\\theta=\\frac{4}{5}\\) y \\(\\theta\\) está en el primer cuadrante, entonces \\(\\sin\\theta\\) vale:",
+      "formula": "",
+      "opciones": [
+        "\\(\\frac15\\)",
+        "\\(\\frac35\\)",
+        "\\(\\frac45\\)",
+        "\\(\\frac53\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-6"
+    },
+    {
+      "id": 7,
+      "pregunta": "Si \\(f(x)=x^2-3x+1\\), entonces \\(f(3-t)-f(t)\\) vale:",
+      "formula": "",
+      "opciones": [
+        "\\(0\\)",
+        "\\(3\\)",
+        "\\(6t-9\\)",
+        "\\(9-6t\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-7"
+    },
+    {
+      "id": 8,
+      "pregunta": "El menor entero positivo \\(n\\) tal que \\(12n\\) es un cuadrado perfecto es:",
+      "formula": "",
+      "opciones": [
+        "\\(2\\)",
+        "\\(3\\)",
+        "\\(6\\)",
+        "\\(12\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-8"
+    },
+    {
+      "id": 9,
+      "pregunta": "Si \\(2^a=8\\) y \\(3^b=81\\), entonces \\(a+b\\) es:",
+      "formula": "",
+      "opciones": [
+        "\\(6\\)",
+        "\\(7\\)",
+        "\\(8\\)",
+        "\\(9\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-9"
+    },
+    {
+      "id": 10,
+      "pregunta": "Tres números enteros consecutivos tienen suma 84. El producto del menor y el mayor es:",
+      "formula": "",
+      "opciones": [
+        "\\(783\\)",
+        "\\(784\\)",
+        "\\(785\\)",
+        "\\(786\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-10"
+    }
   ],
-  nivel2: [
-    { id: 1, pregunta: "Resuelve", formula: "\\[x^2-6x+5<0\\]", opciones: ["\\((1,5)\\)", "\\((-\\infty,1)\\cup(5,\\infty)\\)", "\\([1,5]\\)", "\\((5,\\infty)\\)"], correcta: 0, explicacion: "Factorizamos \\((x-1)(x-5)<0\\). La parábola es negativa entre sus raíces: \\((1,5)\\)." },
-    { id: 2, pregunta: "Si \\(\\frac{x-1}{x+1}=\\frac23\\), entonces \\(x\\) vale:", formula: "", opciones: ["\\(3\\)", "\\(4\\)", "\\(5\\)", "\\(6\\)"], correcta: 2, explicacion: "Producto cruzado: \\(3(x-1)=2(x+1)\\). Entonces \\(3x-3=2x+2\\), de donde \\(x=5\\)." },
-    { id: 3, pregunta: "La parábola \\(y=x^2-6x+11\\) tiene vértice en:", formula: "", opciones: ["\\((3,2)\\)", "\\((3,-2)\\)", "\\((-3,2)\\)", "\\((6,11)\\)"], correcta: 0, explicacion: "Completamos cuadrado: \\(x^2-6x+11=(x-3)^2+2\\). Por tanto, el vértice es \\((3,2)\\)." },
-    { id: 4, pregunta: "Si \\(x^2+y^2=34\\) y \\(xy=15\\), entonces \\((x+y)^2\\) es:", formula: "", opciones: ["\\(49\\)", "\\(54\\)", "\\(64\\)", "\\(68\\)"], correcta: 2, explicacion: "\\((x+y)^2=x^2+y^2+2xy=34+30=64\\)." },
-    { id: 5, pregunta: "Si \\(g(x)=-2x+9\\), entonces el punto donde la gráfica corta al eje \\(x\\) es:", formula: "", opciones: ["\\((0,9)\\)", "\\((\\frac92,0)\\)", "\\((2,5)\\)", "\\((9,0)\\)"], correcta: 1, explicacion: "Para cortar el eje \\(x\\), se toma \\(y=0\\). Entonces \\(-2x+9=0\\), de donde \\(2x=9\\) y \\(x=\\frac92\\). El punto es \\((\\frac92,0)\\)." },
-    { id: 6, pregunta: "Si \\(a\\neq0\\) y \\(a+\\frac1a=3\\), entonces \\(a^3+\\frac1{a^3}\\) vale:", formula: "", opciones: ["\\(9\\)", "\\(12\\)", "\\(18\\)", "\\(27\\)"], correcta: 2, explicacion: "Usamos \\(u^3+v^3=(u+v)^3-3uv(u+v)\\), con \\(u=a\\), \\(v=1/a\\). Resultado: \\(3^3-3(1)(3)=27-9=18\\)." },
-    { id: 7, pregunta: "¿Cuántos divisores positivos tiene \\(360\\)?", formula: "", opciones: ["\\(18\\)", "\\(20\\)", "\\(24\\)", "\\(30\\)"], correcta: 2, explicacion: "\\(360=2^3\\cdot3^2\\cdot5\\). El número de divisores es \\((3+1)(2+1)(1+1)=24\\)." },
-    { id: 8, pregunta: "Si \\(f(x)=\\frac{2x-1}{x+3}\\), entonces \\(f^{-1}(1)\\) vale:", formula: "", opciones: ["\\(-4\\)", "\\(-2\\)", "\\(2\\)", "\\(4\\)"], correcta: 3, explicacion: "Buscar \\(f^{-1}(1)\\) equivale a resolver \\(f(x)=1\\): \\(\\frac{2x-1}{x+3}=1\\Rightarrow 2x-1=x+3\\Rightarrow x=4\\)." },
-    { id: 9, pregunta: "La suma de las raíces de \\(2x^2-7x+3=0\\) es:", formula: "", opciones: ["\\(\\frac32\\)", "\\(\\frac72\\)", "\\(\\frac73\\)", "\\(7\\)"], correcta: 1, explicacion: "Por Vieta, la suma de raíces es \\(-b/a=7/2\\)." },
-    { id: 10, pregunta: "Si \\(x,y\\) son enteros positivos y \\(xy=36\\), ¿cuántos pares ordenados \\((x,y)\\) existen?", formula: "", opciones: ["\\(6\\)", "\\(8\\)", "\\(9\\)", "\\(12\\)"], correcta: 2, explicacion: "Cada divisor positivo de 36 determina un par \\((d,36/d)\\). Como \\(36=2^2\\cdot3^2\\), tiene \\((2+1)(2+1)=9\\) divisores." }
+  "nivel2": [
+    {
+      "id": 1,
+      "pregunta": "Resuelve",
+      "formula": "\\[x^2-6x+5<0\\]",
+      "opciones": [
+        "\\((1,5)\\)",
+        "\\((-\\infty,1)\\cup(5,\\infty)\\)",
+        "\\([1,5]\\)",
+        "\\((5,\\infty)\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-1"
+    },
+    {
+      "id": 2,
+      "pregunta": "Si \\(\\frac{x-1}{x+1}=\\frac23\\), entonces \\(x\\) vale:",
+      "formula": "",
+      "opciones": [
+        "\\(3\\)",
+        "\\(4\\)",
+        "\\(5\\)",
+        "\\(6\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-2"
+    },
+    {
+      "id": 3,
+      "pregunta": "La parábola \\(y=x^2-6x+11\\) tiene vértice en:",
+      "formula": "",
+      "opciones": [
+        "\\((3,2)\\)",
+        "\\((3,-2)\\)",
+        "\\((-3,2)\\)",
+        "\\((6,11)\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-3"
+    },
+    {
+      "id": 4,
+      "pregunta": "Si \\(x^2+y^2=34\\) y \\(xy=15\\), entonces \\((x+y)^2\\) es:",
+      "formula": "",
+      "opciones": [
+        "\\(49\\)",
+        "\\(54\\)",
+        "\\(64\\)",
+        "\\(68\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-4"
+    },
+    {
+      "id": 5,
+      "pregunta": "Si \\(g(x)=-2x+9\\), entonces el punto donde la gráfica corta al eje \\(x\\) es:",
+      "formula": "",
+      "opciones": [
+        "\\((0,9)\\)",
+        "\\((\\frac92,0)\\)",
+        "\\((2,5)\\)",
+        "\\((9,0)\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-5"
+    },
+    {
+      "id": 6,
+      "pregunta": "Si \\(a\\neq0\\) y \\(a+\\frac1a=3\\), entonces \\(a^3+\\frac1{a^3}\\) vale:",
+      "formula": "",
+      "opciones": [
+        "\\(9\\)",
+        "\\(12\\)",
+        "\\(18\\)",
+        "\\(27\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-6"
+    },
+    {
+      "id": 7,
+      "pregunta": "¿Cuántos divisores positivos tiene \\(360\\)?",
+      "formula": "",
+      "opciones": [
+        "\\(18\\)",
+        "\\(20\\)",
+        "\\(24\\)",
+        "\\(30\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-7"
+    },
+    {
+      "id": 8,
+      "pregunta": "Si \\(f(x)=\\frac{2x-1}{x+3}\\), entonces \\(f^{-1}(1)\\) vale:",
+      "formula": "",
+      "opciones": [
+        "\\(-4\\)",
+        "\\(-2\\)",
+        "\\(2\\)",
+        "\\(4\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-8"
+    },
+    {
+      "id": 9,
+      "pregunta": "La suma de las raíces de \\(2x^2-7x+3=0\\) es:",
+      "formula": "",
+      "opciones": [
+        "\\(\\frac32\\)",
+        "\\(\\frac72\\)",
+        "\\(\\frac73\\)",
+        "\\(7\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-9"
+    },
+    {
+      "id": 10,
+      "pregunta": "Si \\(x,y\\) son enteros positivos y \\(xy=36\\), ¿cuántos pares ordenados \\((x,y)\\) existen?",
+      "formula": "",
+      "opciones": [
+        "\\(6\\)",
+        "\\(8\\)",
+        "\\(9\\)",
+        "\\(12\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-10"
+    }
   ],
-  nivel3: [
-    { id: 1, pregunta: "El conjunto solución de", formula: "\\[\\frac{x-4}{x+2}\\geq 0\\]", opciones: ["\\((-\\infty,-2)\\cup[4,\\infty)\\)", "\\((-2,4]\\)", "\\((-\\infty,-2]\\cup[4,\\infty)\\)", "\\([4,\\infty)\\)"], correcta: 0, explicacion: "Puntos críticos: \\(-2\\) y \\(4\\). La expresión es positiva o cero en \\((-\\infty,-2)\\cup[4,\\infty)\\). Se excluye \\(-2\\) por anular el denominador." },
-    { id: 2, pregunta: "Si \\(\\log_2 x+\\log_2(x-2)=3\\), entonces \\(x\\) es:", formula: "", opciones: ["\\(2\\)", "\\(3\\)", "\\(4\\)", "\\(6\\)"], correcta: 2, explicacion: "\\(\\log_2[x(x-2)]=3\\Rightarrow x(x-2)=8\\). Entonces \\(x^2-2x-8=0\\), y por dominio \\(x=4\\)." },
-    { id: 3, pregunta: "Si \\(\\sin\\theta+\\cos\\theta=\\frac75\\), entonces \\(\\sin\\theta\\cos\\theta\\) vale:", formula: "", opciones: ["\\(\\frac{6}{25}\\)", "\\(\\frac{12}{25}\\)", "\\(\\frac{24}{25}\\)", "\\(\\frac15\\)"], correcta: 1, explicacion: "Al cuadrar: \\(1+2\\sin\\theta\\cos\\theta=\\frac{49}{25}\\). Entonces \\(2sc=\\frac{24}{25}\\), y \\(sc=\\frac{12}{25}\\)." },
-    { id: 4, pregunta: "El valor de", formula: "\\[\\sqrt{20+8\\sqrt6}\\]", opciones: ["\\(2+2\\sqrt6\\)", "\\(2\\sqrt2+2\\sqrt3\\)", "\\(4+\\sqrt6\\)", "\\(\\sqrt2+3\\sqrt3\\)"], correcta: 1, explicacion: "Buscamos \\(\\sqrt a+\\sqrt b\\). Se requiere \\(a+b=20\\) y \\(2\\sqrt{ab}=8\\sqrt6\\), luego \\(ab=96\\). Sirven \\(a=8\\), \\(b=12\\), así queda \\(2\\sqrt2+2\\sqrt3\\)." },
-    { id: 5, pregunta: "¿Cuántas formas hay de escoger 2 estudiantes de un grupo de 7?", formula: "", opciones: ["\\(14\\)", "\\(21\\)", "\\(28\\)", "\\(42\\)"], correcta: 1, explicacion: "Es combinación: \\(\\binom72=\\frac{7\\cdot6}{2}=21\\)." },
-    { id: 6, pregunta: "Si \\(2^x+2^{x+1}+2^{x+2}=56\\), entonces \\(x\\) vale:", formula: "", opciones: ["\\(2\\)", "\\(3\\)", "\\(4\\)", "\\(5\\)"], correcta: 1, explicacion: "Factorizamos \\(2^x(1+2+4)=7\\cdot2^x=56\\). Entonces \\(2^x=8\\), por tanto \\(x=3\\)." },
-    { id: 7, pregunta: "La recta que pasa por \\((1,5)\\) y es perpendicular a \\(2x-3y=6\\) tiene pendiente:", formula: "", opciones: ["\\(-\\frac32\\)", "\\(-\\frac23\\)", "\\(\\frac23\\)", "\\(\\frac32\\)"], correcta: 0, explicacion: "La recta dada tiene pendiente \\(2/3\\). Una perpendicular tiene pendiente recíproca negativa: \\(-3/2\\)." },
-    { id: 8, pregunta: "Si \\(x^2-4x+y^2+6y=12\\), el radio de la circunferencia es:", formula: "", opciones: ["\\(4\\)", "\\(5\\)", "\\(6\\)", "\\(7\\)"], correcta: 1, explicacion: "Completando cuadrados: \\((x-2)^2+(y+3)^2=25\\). El radio es 5." },
-    { id: 9, pregunta: "La suma de los coeficientes de \\((2x-1)^5\\) es:", formula: "", opciones: ["\\(-1\\)", "\\(0\\)", "\\(1\\)", "\\(32\\)"], correcta: 2, explicacion: "La suma de coeficientes se obtiene evaluando en \\(x=1\\): \\((2(1)-1)^5=1\\)." },
-    { id: 10, pregunta: "Si \\(a,b,c\\) son raíces de \\(x^3-6x^2+11x-6=0\\), entonces \\(ab+ac+bc\\) es:", formula: "", opciones: ["\\(6\\)", "\\(11\\)", "\\(17\\)", "\\(36\\)"], correcta: 1, explicacion: "Por Vieta, en \\(x^3-s_1x^2+s_2x-s_3\\), se tiene \\(ab+ac+bc=s_2=11\\)." }
+  "nivel3": [
+    {
+      "id": 1,
+      "pregunta": "El conjunto solución de",
+      "formula": "\\[\\frac{x-4}{x+2}\\geq 0\\]",
+      "opciones": [
+        "\\((-\\infty,-2)\\cup[4,\\infty)\\)",
+        "\\((-2,4]\\)",
+        "\\((-\\infty,-2]\\cup[4,\\infty)\\)",
+        "\\([4,\\infty)\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-1"
+    },
+    {
+      "id": 2,
+      "pregunta": "Si \\(\\log_2 x+\\log_2(x-2)=3\\), entonces \\(x\\) es:",
+      "formula": "",
+      "opciones": [
+        "\\(2\\)",
+        "\\(3\\)",
+        "\\(4\\)",
+        "\\(6\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-2"
+    },
+    {
+      "id": 3,
+      "pregunta": "Si \\(\\sin\\theta+\\cos\\theta=\\frac75\\), entonces \\(\\sin\\theta\\cos\\theta\\) vale:",
+      "formula": "",
+      "opciones": [
+        "\\(\\frac{6}{25}\\)",
+        "\\(\\frac{12}{25}\\)",
+        "\\(\\frac{24}{25}\\)",
+        "\\(\\frac15\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-3"
+    },
+    {
+      "id": 4,
+      "pregunta": "El valor de",
+      "formula": "\\[\\sqrt{20+8\\sqrt6}\\]",
+      "opciones": [
+        "\\(2+2\\sqrt6\\)",
+        "\\(2\\sqrt2+2\\sqrt3\\)",
+        "\\(4+\\sqrt6\\)",
+        "\\(\\sqrt2+3\\sqrt3\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-4"
+    },
+    {
+      "id": 5,
+      "pregunta": "¿Cuántas formas hay de escoger 2 estudiantes de un grupo de 7?",
+      "formula": "",
+      "opciones": [
+        "\\(14\\)",
+        "\\(21\\)",
+        "\\(28\\)",
+        "\\(42\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-5"
+    },
+    {
+      "id": 6,
+      "pregunta": "Si \\(2^x+2^{x+1}+2^{x+2}=56\\), entonces \\(x\\) vale:",
+      "formula": "",
+      "opciones": [
+        "\\(2\\)",
+        "\\(3\\)",
+        "\\(4\\)",
+        "\\(5\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-6"
+    },
+    {
+      "id": 7,
+      "pregunta": "La recta que pasa por \\((1,5)\\) y es perpendicular a \\(2x-3y=6\\) tiene pendiente:",
+      "formula": "",
+      "opciones": [
+        "\\(-\\frac32\\)",
+        "\\(-\\frac23\\)",
+        "\\(\\frac23\\)",
+        "\\(\\frac32\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-7"
+    },
+    {
+      "id": 8,
+      "pregunta": "Si \\(x^2-4x+y^2+6y=12\\), el radio de la circunferencia es:",
+      "formula": "",
+      "opciones": [
+        "\\(4\\)",
+        "\\(5\\)",
+        "\\(6\\)",
+        "\\(7\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-8"
+    },
+    {
+      "id": 9,
+      "pregunta": "La suma de los coeficientes de \\((2x-1)^5\\) es:",
+      "formula": "",
+      "opciones": [
+        "\\(-1\\)",
+        "\\(0\\)",
+        "\\(1\\)",
+        "\\(32\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-9"
+    },
+    {
+      "id": 10,
+      "pregunta": "Si \\(a,b,c\\) son raíces de \\(x^3-6x^2+11x-6=0\\), entonces \\(ab+ac+bc\\) es:",
+      "formula": "",
+      "opciones": [
+        "\\(6\\)",
+        "\\(11\\)",
+        "\\(17\\)",
+        "\\(36\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-10"
+    }
   ],
-  nivel4: [
-    { id: 1, pregunta: "Si \\(x^4-1=0\\), ¿cuántas soluciones reales tiene la ecuación?", formula: "", opciones: ["\\(0\\)", "\\(1\\)", "\\(2\\)", "\\(4\\)"], correcta: 2, explicacion: "\\(x^4-1=(x^2-1)(x^2+1)=(x-1)(x+1)(x^2+1)\\). Las soluciones reales son \\(x=1\\) y \\(x=-1\\), porque \\(x^2+1=0\\) no tiene soluciones reales." },
-    { id: 2, pregunta: "Si \\(f(x)=\\frac{x+1}{x-1}\\), entonces \\(f(f(2))\\) es:", formula: "", opciones: ["\\(-2\\)", "\\(-1\\)", "\\(0\\)", "\\(2\\)"], correcta: 3, explicacion: "\\(f(2)=3\\). Luego \\(f(3)=\\frac{4}{2}=2\\)." },
-    { id: 3, pregunta: "El coeficiente de \\(x^3\\) en \\((x-2)^6\\) es:", formula: "", opciones: ["\\(-160\\)", "\\(-120\\)", "\\(120\\)", "\\(160\\)"], correcta: 0, explicacion: "El término con \\(x^3\\) toma 3 factores \\(x\\) y 3 factores \\(-2\\): \\(\\binom63(-2)^3=20(-8)=-160\\)." },
-    { id: 4, pregunta: "La suma", formula: "\\[1\\cdot2+2\\cdot3+\\cdots+10\\cdot11\\]", opciones: ["\\(430\\)", "\\(440\\)", "\\(450\\)", "\\(460\\)"], correcta: 1, explicacion: "\\(k(k+1)=k^2+k\\). Entonces la suma es \\(\\sum k^2+\\sum k=385+55=440\\)." },
-    { id: 5, pregunta: "Si \\(z\\) satisface \\(z^2+z+1=0\\), entonces \\(z^{2026}\\) es:", formula: "", opciones: ["\\(1\\)", "\\(z\\)", "\\(z^2\\)", "\\(-1\\)"], correcta: 1, explicacion: "De \\(z^2+z+1=0\\), se tiene \\(z^3=1\\) y \\(z\\neq1\\). Como \\(2026\\equiv1\\pmod3\\), \\(z^{2026}=z\\)." },
-    { id: 6, pregunta: "¿Cuántos caminos mínimos hay de \\((0,0)\\) a \\((4,3)\\) moviéndose solo derecha o arriba?", formula: "", opciones: ["\\(21\\)", "\\(28\\)", "\\(35\\)", "\\(42\\)"], correcta: 2, explicacion: "Son 7 movimientos: 4 derechas y 3 arriba. Se eligen las posiciones de las 3 subidas: \\(\\binom73=35\\)." },
-    { id: 7, pregunta: "Si \\(\\log_3(x+6)-\\log_3 x=1\\), entonces \\(x\\) vale:", formula: "", opciones: ["\\(2\\)", "\\(3\\)", "\\(4\\)", "\\(6\\)"], correcta: 1, explicacion: "Usamos \\(\\log_3\\left(\\frac{x+6}{x}\\right)=1\\). Entonces \\(\\frac{x+6}{x}=3\\), de modo que \\(x+6=3x\\), y \\(x=3\\)." },
-    { id: 8, pregunta: "Si \\(\\tan\\theta+\\cot\\theta=\\frac{13}{6}\\), entonces \\(\\tan^2\\theta+\\cot^2\\theta\\) vale:", formula: "", opciones: ["\\(\\frac{25}{36}\\)", "\\(\\frac{97}{36}\\)", "\\(\\frac{133}{36}\\)", "\\(\\frac{169}{36}\\)"], correcta: 1, explicacion: "\\((t+1/t)^2=t^2+2+1/t^2\\). Entonces \\(t^2+1/t^2=\\frac{169}{36}-2=\\frac{97}{36}\\)." },
-    { id: 9, pregunta: "En un cuadrado de lado 10 se inscribe un círculo. El área de la región del cuadrado que queda fuera del círculo es:", formula: "", opciones: ["\\(100-25\\pi\\)", "\\(100-50\\pi\\)", "\\(25\\pi\\)", "\\(75\\pi\\)"], correcta: 0, explicacion: "El cuadrado tiene área \\(10^2=100\\). El círculo inscrito tiene radio 5, así que su área es \\(25\\pi\\). La región exterior al círculo dentro del cuadrado mide \\(100-25\\pi\\)." },
-    { id: 10, pregunta: "Si \\(r+s=4\\) y \\(r^3+s^3=28\\), entonces \\(rs\\) vale:", formula: "", opciones: ["\\(2\\)", "\\(3\\)", "\\(4\\)", "\\(5\\)"], correcta: 1, explicacion: "\\(r^3+s^3=(r+s)^3-3rs(r+s)=64-12rs=28\\). Entonces \\(12rs=36\\), así \\(rs=3\\)." }
+  "nivel4": [
+    {
+      "id": 1,
+      "pregunta": "Si \\(x^4-1=0\\), ¿cuántas soluciones reales tiene la ecuación?",
+      "formula": "",
+      "opciones": [
+        "\\(0\\)",
+        "\\(1\\)",
+        "\\(2\\)",
+        "\\(4\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-1"
+    },
+    {
+      "id": 2,
+      "pregunta": "Si \\(f(x)=\\frac{x+1}{x-1}\\), entonces \\(f(f(2))\\) es:",
+      "formula": "",
+      "opciones": [
+        "\\(-2\\)",
+        "\\(-1\\)",
+        "\\(0\\)",
+        "\\(2\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-2"
+    },
+    {
+      "id": 3,
+      "pregunta": "El coeficiente de \\(x^3\\) en \\((x-2)^6\\) es:",
+      "formula": "",
+      "opciones": [
+        "\\(-160\\)",
+        "\\(-120\\)",
+        "\\(120\\)",
+        "\\(160\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-3"
+    },
+    {
+      "id": 4,
+      "pregunta": "La suma",
+      "formula": "\\[1\\cdot2+2\\cdot3+\\cdots+10\\cdot11\\]",
+      "opciones": [
+        "\\(430\\)",
+        "\\(440\\)",
+        "\\(450\\)",
+        "\\(460\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-4"
+    },
+    {
+      "id": 5,
+      "pregunta": "Si \\(z\\) satisface \\(z^2+z+1=0\\), entonces \\(z^{2026}\\) es:",
+      "formula": "",
+      "opciones": [
+        "\\(1\\)",
+        "\\(z\\)",
+        "\\(z^2\\)",
+        "\\(-1\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-5"
+    },
+    {
+      "id": 6,
+      "pregunta": "¿Cuántos caminos mínimos hay de \\((0,0)\\) a \\((4,3)\\) moviéndose solo derecha o arriba?",
+      "formula": "",
+      "opciones": [
+        "\\(21\\)",
+        "\\(28\\)",
+        "\\(35\\)",
+        "\\(42\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-6"
+    },
+    {
+      "id": 7,
+      "pregunta": "Si \\(\\log_3(x+6)-\\log_3 x=1\\), entonces \\(x\\) vale:",
+      "formula": "",
+      "opciones": [
+        "\\(2\\)",
+        "\\(3\\)",
+        "\\(4\\)",
+        "\\(6\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-7"
+    },
+    {
+      "id": 8,
+      "pregunta": "Si \\(\\tan\\theta+\\cot\\theta=\\frac{13}{6}\\), entonces \\(\\tan^2\\theta+\\cot^2\\theta\\) vale:",
+      "formula": "",
+      "opciones": [
+        "\\(\\frac{25}{36}\\)",
+        "\\(\\frac{97}{36}\\)",
+        "\\(\\frac{133}{36}\\)",
+        "\\(\\frac{169}{36}\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-8"
+    },
+    {
+      "id": 9,
+      "pregunta": "En un cuadrado de lado 10 se inscribe un círculo. El área de la región del cuadrado que queda fuera del círculo es:",
+      "formula": "",
+      "opciones": [
+        "\\(100-25\\pi\\)",
+        "\\(100-50\\pi\\)",
+        "\\(25\\pi\\)",
+        "\\(75\\pi\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-9"
+    },
+    {
+      "id": 10,
+      "pregunta": "Si \\(r+s=4\\) y \\(r^3+s^3=28\\), entonces \\(rs\\) vale:",
+      "formula": "",
+      "opciones": [
+        "\\(2\\)",
+        "\\(3\\)",
+        "\\(4\\)",
+        "\\(5\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-10"
+    }
   ],
-  nivel5: [
-    { id: 1, pregunta: "Si \\(x,y>0\\) y \\(x+y=1\\), el mínimo de", formula: "\\[\\frac1x+\\frac1y\\]", opciones: ["\\(2\\)", "\\(3\\)", "\\(4\\)", "\\(5\\)"], correcta: 2, explicacion: "Por AM-HM o Cauchy, \\(\\frac1x+\\frac1y\\geq\\frac{(1+1)^2}{x+y}=4\\). Se alcanza en \\(x=y=1/2\\)." },
-    { id: 2, pregunta: "Si \\(\\tan\\theta=\\frac{3}{4}\\) y \\(\\theta\\) está en el primer cuadrante, entonces \\(\\sin\\theta+\\cos\\theta\\) vale:", formula: "", opciones: ["\\(\\frac75\\)", "\\(\\frac65\\)", "\\(\\frac54\\)", "\\(\\frac43\\)"], correcta: 0, explicacion: "Con \\(\\tan\\theta=\\frac34\\), tomamos catetos 3 y 4, hipotenusa 5. Entonces \\(\\sin\\theta=\\frac35\\) y \\(\\cos\\theta=\\frac45\\). La suma es \\(\\frac75\\)." },
-    { id: 3, pregunta: "Si \\(a,b,c\\) son positivos y \\(abc=1\\), entonces el mínimo de \\(a+b+c\\) es:", formula: "", opciones: ["\\(1\\)", "\\(2\\)", "\\(3\\)", "No tiene mínimo"], correcta: 2, explicacion: "Por AM-GM, \\(a+b+c\\geq3\\sqrt[3]{abc}=3\\). Se alcanza cuando \\(a=b=c=1\\)." },
-    { id: 4, pregunta: "La suma de todos los enteros \\(n\\) tales que \\(n^2-10n+21<0\\) es:", formula: "", opciones: ["\\(12\\)", "\\(15\\)", "\\(18\\)", "\\(25\\)"], correcta: 1, explicacion: "Factorizamos \\((n-3)(n-7)<0\\). Los enteros estrictamente entre 3 y 7 son \\(4,5,6\\). Su suma es \\(15\\)." },
-    { id: 5, pregunta: "Si \\(2^{x+1}+2^x=48\\), entonces \\(x\\) vale:", formula: "", opciones: ["\\(3\\)", "\\(4\\)", "\\(5\\)", "\\(6\\)"], correcta: 1, explicacion: "Factorizamos \\(2^x\\): \\(2^{x+1}+2^x=2\\cdot2^x+2^x=3\\cdot2^x=48\\). Entonces \\(2^x=16\\), por tanto \\(x=4\\)." },
-    { id: 6, pregunta: "Si \\(\\sin\\theta=\\frac{5}{13}\\) y \\(\\theta\\) está en el segundo cuadrante, entonces \\(\\cos\\theta\\) vale:", formula: "", opciones: ["\\(\\frac{12}{13}\\)", "\\(-\\frac{12}{13}\\)", "\\(\\frac{5}{12}\\)", "\\(-\\frac{5}{12}\\)"], correcta: 1, explicacion: "Con hipotenusa 13 y cateto opuesto 5, el cateto adyacente mide 12. En el segundo cuadrante el coseno es negativo, así que \\(\\cos\\theta=-\\frac{12}{13}\\)." },
-    { id: 7, pregunta: "¿Cuántos subconjuntos de \\(\\{1,2,3,4,5,6\\}\\) tienen suma par?", formula: "", opciones: ["\\(16\\)", "\\(24\\)", "\\(32\\)", "\\(36\\)"], correcta: 2, explicacion: "Hay igual cantidad de subconjuntos con suma par e impar porque existe al menos un elemento impar. Total \\(2^6=64\\), por tanto la mitad: 32." },
-    { id: 8, pregunta: "Si \\(x^2-3x+1=0\\), entonces \\(x^4+\\frac1{x^4}\\) vale:", formula: "", opciones: ["\\(47\\)", "\\(49\\)", "\\(51\\)", "\\(53\\)"], correcta: 0, explicacion: "De la ecuación, \\(x+1/x=3\\). Entonces \\(x^2+1/x^2=7\\) y \\(x^4+1/x^4=7^2-2=47\\)." },
-    { id: 9, pregunta: "Si \\(\\log_2(x-1)+\\log_2(x+1)=3\\), entonces \\(x\\) vale:", formula: "", opciones: ["\\(2\\)", "\\(3\\)", "\\(4\\)", "\\(5\\)"], correcta: 1, explicacion: "Se juntan los logaritmos: \\(\\log_2((x-1)(x+1))=3\\). Entonces \\(x^2-1=8\\), de donde \\(x^2=9\\). Por dominio, \\(x>1\\), así que \\(x=3\\)." },
-    { id: 10, pregunta: "Si \\(\\alpha\\) y \\(\\beta\\) son raíces de \\(x^2-x-1=0\\), entonces \\(\\alpha^5+\\beta^5\\) vale:", formula: "", opciones: ["\\(5\\)", "\\(7\\)", "\\(11\\)", "\\(13\\)"], correcta: 2, explicacion: "Sea \\(S_n=\\alpha^n+\\beta^n\\). Como cada raíz cumple \\(x^2=x+1\\), \\(S_n=S_{n-1}+S_{n-2}\\). \\(S_0=2\\), \\(S_1=1\\), luego \\(S_2=3\\), \\(S_3=4\\), \\(S_4=7\\), \\(S_5=11\\)." }
+  "nivel5": [
+    {
+      "id": 1,
+      "pregunta": "Si \\(x,y>0\\) y \\(x+y=1\\), el mínimo de",
+      "formula": "\\[\\frac1x+\\frac1y\\]",
+      "opciones": [
+        "\\(2\\)",
+        "\\(3\\)",
+        "\\(4\\)",
+        "\\(5\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-1"
+    },
+    {
+      "id": 2,
+      "pregunta": "Si \\(\\tan\\theta=\\frac{3}{4}\\) y \\(\\theta\\) está en el primer cuadrante, entonces \\(\\sin\\theta+\\cos\\theta\\) vale:",
+      "formula": "",
+      "opciones": [
+        "\\(\\frac75\\)",
+        "\\(\\frac65\\)",
+        "\\(\\frac54\\)",
+        "\\(\\frac43\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-2"
+    },
+    {
+      "id": 3,
+      "pregunta": "Si \\(a,b,c\\) son positivos y \\(abc=1\\), entonces el mínimo de \\(a+b+c\\) es:",
+      "formula": "",
+      "opciones": [
+        "\\(1\\)",
+        "\\(2\\)",
+        "\\(3\\)",
+        "No tiene mínimo"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-3"
+    },
+    {
+      "id": 4,
+      "pregunta": "La suma de todos los enteros \\(n\\) tales que \\(n^2-10n+21<0\\) es:",
+      "formula": "",
+      "opciones": [
+        "\\(12\\)",
+        "\\(15\\)",
+        "\\(18\\)",
+        "\\(25\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-4"
+    },
+    {
+      "id": 5,
+      "pregunta": "Si \\(2^{x+1}+2^x=48\\), entonces \\(x\\) vale:",
+      "formula": "",
+      "opciones": [
+        "\\(3\\)",
+        "\\(4\\)",
+        "\\(5\\)",
+        "\\(6\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-5"
+    },
+    {
+      "id": 6,
+      "pregunta": "Si \\(\\sin\\theta=\\frac{5}{13}\\) y \\(\\theta\\) está en el segundo cuadrante, entonces \\(\\cos\\theta\\) vale:",
+      "formula": "",
+      "opciones": [
+        "\\(\\frac{12}{13}\\)",
+        "\\(-\\frac{12}{13}\\)",
+        "\\(\\frac{5}{12}\\)",
+        "\\(-\\frac{5}{12}\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-6"
+    },
+    {
+      "id": 7,
+      "pregunta": "¿Cuántos subconjuntos de \\(\\{1,2,3,4,5,6\\}\\) tienen suma par?",
+      "formula": "",
+      "opciones": [
+        "\\(16\\)",
+        "\\(24\\)",
+        "\\(32\\)",
+        "\\(36\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-7"
+    },
+    {
+      "id": 8,
+      "pregunta": "Si \\(x^2-3x+1=0\\), entonces \\(x^4+\\frac1{x^4}\\) vale:",
+      "formula": "",
+      "opciones": [
+        "\\(47\\)",
+        "\\(49\\)",
+        "\\(51\\)",
+        "\\(53\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-8"
+    },
+    {
+      "id": 9,
+      "pregunta": "Si \\(\\log_2(x-1)+\\log_2(x+1)=3\\), entonces \\(x\\) vale:",
+      "formula": "",
+      "opciones": [
+        "\\(2\\)",
+        "\\(3\\)",
+        "\\(4\\)",
+        "\\(5\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-9"
+    },
+    {
+      "id": 10,
+      "pregunta": "Si \\(\\alpha\\) y \\(\\beta\\) son raíces de \\(x^2-x-1=0\\), entonces \\(\\alpha^5+\\beta^5\\) vale:",
+      "formula": "",
+      "opciones": [
+        "\\(5\\)",
+        "\\(7\\)",
+        "\\(11\\)",
+        "\\(13\\)"
+      ],
+      "correcta": -1,
+      "explicacion": "",
+      "_questionSource": "base",
+      "_questionId": "base-10"
+    }
   ]
 };
 
@@ -5593,6 +6460,8 @@ async function evaluarYMostrarNivel(respuestas, opciones = {}) {
   }
   const sec = document.getElementById("resultsSectionNivel");
   sec.hidden = false;
+  const preguntasResultado = await cargarPreguntasRetroalimentacionOficial(nivelActual, preguntas);
+  const puedeMostrarFeedback = tieneClavesRespuesta(preguntasResultado);
 
   const circ = 2 * Math.PI * 50;
   document.getElementById("ringFillNivel").style.strokeDashoffset = circ - (pct / 100) * circ;
@@ -5622,9 +6491,9 @@ async function evaluarYMostrarNivel(respuestas, opciones = {}) {
 
   const tbody = document.getElementById("summaryBodyNivel");
   tbody.innerHTML = "";
-  if (!puedeMostrarClaves) {
+  if (!puedeMostrarFeedback) {
     tbody.innerHTML = `<tr><td colspan="4">Resultado guardado oficialmente. La retroalimentación se mostrará cuando el profesor la publique.</td></tr>`;
-  } else preguntas.forEach((q, i) => {
+  } else preguntasResultado.forEach((q, i) => {
     const sinR = respuestas[i] === -1;
     const ok = !sinR && respuestas[i] === q.correcta;
     const tr = document.createElement("tr");
@@ -5639,9 +6508,9 @@ async function evaluarYMostrarNivel(respuestas, opciones = {}) {
 
   const fbEl = document.getElementById("feedbackItemsNivel");
   fbEl.innerHTML = "";
-  if (!puedeMostrarClaves) {
+  if (!puedeMostrarFeedback) {
     fbEl.innerHTML = `<div class="feedback-pending-card"><strong>Retroalimentación protegida</strong><p>Las respuestas correctas y explicaciones permanecen ocultas hasta que el profesor las publique.</p></div>`;
-  } else preguntas.forEach((q, i) => {
+  } else preguntasResultado.forEach((q, i) => {
     const sinR = respuestas[i] === -1;
     const ok = !sinR && respuestas[i] === q.correcta;
     const item = document.createElement("div");
@@ -5660,15 +6529,16 @@ async function evaluarYMostrarNivel(respuestas, opciones = {}) {
   if (!opciones.restaurando) sec.scrollIntoView({ behavior: "smooth" });
 
   preguntas.forEach((q, i) => {
+    const qResultado = preguntasResultado[i] || q;
     const card = document.getElementById(`nivel-card-${q.id}`);
     if (!card) return;
     const sinR = respuestas[i] === -1;
-    const ok = !sinR && respuestas[i] === q.correcta;
-    if (puedeMostrarClaves) card.classList.add(ok ? "result-correct" : "result-wrong");
+    const ok = !sinR && respuestas[i] === qResultado.correcta;
+    if (puedeMostrarFeedback) card.classList.add(ok ? "result-correct" : "result-wrong");
     card.querySelectorAll("input[type='radio']").forEach(inp => inp.disabled = true);
     card.querySelectorAll(".option-label").forEach((lbl, idx) => {
-      if (!puedeMostrarClaves) return;
-      if (idx === q.correcta) lbl.classList.add("opt-correct");
+      if (!puedeMostrarFeedback) return;
+      if (idx === qResultado.correcta) lbl.classList.add("opt-correct");
       if (!sinR && !ok && idx === respuestas[i]) lbl.classList.add("opt-wrong");
     });
   });
@@ -10664,6 +11534,8 @@ async function evaluarYMostrarExamen(respuestas, opciones = {}) {
 
   const sec = document.getElementById("resultsSectionExamen");
   sec.hidden = false;
+  const preguntasResultado = await cargarPreguntasRetroalimentacionOficial("examen", PREGUNTAS_EXAMEN);
+  const puedeMostrarFeedback = tieneClavesRespuesta(preguntasResultado);
 
   // Score ring
   const circ = 2 * Math.PI * 50;
@@ -10697,9 +11569,9 @@ async function evaluarYMostrarExamen(respuestas, opciones = {}) {
   // Tabla (con LaTeX completo)
   const tbody = document.getElementById("summaryBodyExamen");
   tbody.innerHTML = "";
-  if (!puedeMostrarClaves) {
+  if (!puedeMostrarFeedback) {
     tbody.innerHTML = `<tr><td colspan="4">Resultado guardado oficialmente. La retroalimentación se mostrará cuando el profesor la publique.</td></tr>`;
-  } else PREGUNTAS_EXAMEN.forEach((q, i) => {
+  } else preguntasResultado.forEach((q, i) => {
     const sinR = respuestas[i] === -1;
     const ok   = !sinR && respuestas[i] === q.correcta;
     const tr = document.createElement("tr");
@@ -10715,9 +11587,9 @@ async function evaluarYMostrarExamen(respuestas, opciones = {}) {
   // Retroalimentación
   const fbEl = document.getElementById("feedbackItemsExamen");
   fbEl.innerHTML = "";
-  if (!puedeMostrarClaves) {
+  if (!puedeMostrarFeedback) {
     fbEl.innerHTML = `<div class="feedback-pending-card"><strong>Retroalimentación protegida</strong><p>Las respuestas correctas y explicaciones permanecen ocultas hasta que el profesor las publique.</p></div>`;
-  } else PREGUNTAS_EXAMEN.forEach((q, i) => {
+  } else preguntasResultado.forEach((q, i) => {
     const sinR = respuestas[i] === -1;
     const ok   = !sinR && respuestas[i] === q.correcta;
     const item = document.createElement("div");
@@ -10737,15 +11609,16 @@ async function evaluarYMostrarExamen(respuestas, opciones = {}) {
 
   // Marcar tarjetas
   PREGUNTAS_EXAMEN.forEach((q, i) => {
+    const qResultado = preguntasResultado[i] || q;
     const card = document.getElementById(`examen-card-${q.id}`);
     if (!card) return;
     const sinR = respuestas[i] === -1;
-    const ok   = !sinR && respuestas[i] === q.correcta;
-    if (puedeMostrarClaves) card.classList.add(ok ? "result-correct" : "result-wrong");
+    const ok   = !sinR && respuestas[i] === qResultado.correcta;
+    if (puedeMostrarFeedback) card.classList.add(ok ? "result-correct" : "result-wrong");
     card.querySelectorAll("input[type='radio']").forEach(inp => inp.disabled = true);
     card.querySelectorAll(".option-label").forEach((lbl, idx) => {
-      if (!puedeMostrarClaves) return;
-      if (idx === q.correcta) lbl.classList.add("opt-correct");
+      if (!puedeMostrarFeedback) return;
+      if (idx === qResultado.correcta) lbl.classList.add("opt-correct");
       if (!sinR && !ok && idx === respuestas[i]) lbl.classList.add("opt-wrong");
     });
   });
