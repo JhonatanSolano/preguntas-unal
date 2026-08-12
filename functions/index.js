@@ -1881,14 +1881,6 @@ exports.submitExamAttempt = onRequest({ region: "us-central1" }, async (req, res
   }
 
   const attemptBaseParts = [decoded.uid, classId, bank, level].map(safeDocPart);
-  const previousAttemptSnaps = await Promise.all([
-    db.collection("examAttempts").doc([...attemptBaseParts, "1"].join("__")).get(),
-    db.collection("examAttempts").doc([...attemptBaseParts, "2"].join("__")).get()
-  ]);
-  const previousAttemptsCount = previousAttemptSnaps.filter(snap => snap.exists).length;
-  if (previousAttemptsCount >= 2) {
-    return res.status(403).json({ error: "Ya usaste los 2 intentos permitidos para este examen." });
-  }
 
   const teacherSnap = await db.collection("teacherQuestions")
     .where("ownerUid", "==", classData.ownerUid || "")
@@ -1968,8 +1960,6 @@ exports.submitExamAttempt = onRequest({ region: "us-central1" }, async (req, res
   const porcentaje = total ? Math.round((correctas / total) * 100) : 0;
   const nota = calcNotaFromPercent(porcentaje);
   const tiempoTotalSegundos = Math.max(0, 15 * 60 - restante);
-  const attemptNumber = previousAttemptsCount + 1;
-  const attemptId = [...attemptBaseParts, String(attemptNumber)].join("__");
 
   const payload = {
     studentUid: decoded.uid,
@@ -1984,7 +1974,6 @@ exports.submitExamAttempt = onRequest({ region: "us-central1" }, async (req, res
     level,
     bank,
     examName: examLevelName(level),
-    attemptNumber,
     respuestas,
     gradedSnapshot,
     totalQuestions: total,
@@ -2003,12 +1992,39 @@ exports.submitExamAttempt = onRequest({ region: "us-central1" }, async (req, res
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
     updatedAt: admin.firestore.FieldValue.serverTimestamp()
   };
-  await db.collection("examAttempts").doc(attemptId).set(payload, { merge: false });
+
+  const attemptRefs = [1, 2].map(number =>
+    db.collection("examAttempts").doc([...attemptBaseParts, String(number)].join("__"))
+  );
+  let savedAttemptId = "";
+  let savedAttemptNumber = 0;
+  try {
+    await db.runTransaction(async transaction => {
+      const [attemptOneSnap, attemptTwoSnap] = await Promise.all(
+        attemptRefs.map(ref => transaction.get(ref))
+      );
+      if (attemptOneSnap.exists && attemptTwoSnap.exists) {
+        throw new Error("MAX_ATTEMPTS_REACHED");
+      }
+      savedAttemptNumber = attemptOneSnap.exists ? 2 : 1;
+      const attemptRef = attemptRefs[savedAttemptNumber - 1];
+      savedAttemptId = attemptRef.id;
+      transaction.set(attemptRef, {
+        ...payload,
+        attemptNumber: savedAttemptNumber
+      }, { merge: false });
+    });
+  } catch (error) {
+    if (error?.message === "MAX_ATTEMPTS_REACHED") {
+      return res.status(403).json({ error: "Ya usaste los 2 intentos permitidos para este examen." });
+    }
+    throw error;
+  }
 
   return res.status(200).json({
     ok: true,
-    attemptId,
-    attemptNumber,
+    attemptId: savedAttemptId,
+    attemptNumber: savedAttemptNumber,
     totalQuestions: total,
     correctas,
     incorrectas,
