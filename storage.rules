@@ -9,7 +9,14 @@ service firebase.storage {
     function hasActiveSubscription() {
       return signedIn() && (
         request.auth.token.email == "solanojhonatan2000@gmail.com" ||
-        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.subscriptionStatus == "active"
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.subscriptionStatus == "active" ||
+        (
+          firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.subscriptionInherited == true &&
+          firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.institutionSubscriptionStatus == "active" &&
+          firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.institutionAccessRevoked != true &&
+          firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.institutionMemberStatus != "removed" &&
+          firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.institutionMemberStatus != "blocked"
+        )
       );
     }
 

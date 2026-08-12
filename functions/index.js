@@ -16,6 +16,7 @@ const wompiEventsSecret = defineSecret("WOMPI_EVENTS_SECRET");
 
 const WOMPI_CHECKOUT_URL = "https://checkout.wompi.co/p/";
 const APP_URL = "https://matematicasentubolsillo.com/";
+const APP_ORIGIN = "https://matematicasentubolsillo.com";
 
 const BILLING_PLANS = {
   "student-monthly": {
@@ -93,9 +94,20 @@ Puedes resolver preguntas, crear ejercicios tipo examen, proponer práctica por 
 `;
 
 function setCors(res) {
-  res.set("Access-Control-Allow-Origin", "*");
+  res.set("Access-Control-Allow-Origin", APP_ORIGIN);
+  res.set("Vary", "Origin");
   res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
   res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+}
+
+function safeAppUrl(value, fallback = APP_URL) {
+  try {
+    const url = new URL(String(value || ""), APP_URL);
+    if (url.origin !== APP_ORIGIN) return fallback;
+    return url.toString();
+  } catch {
+    return fallback;
+  }
 }
 
 async function requireAuth(req) {
@@ -375,7 +387,7 @@ async function sendInviteEmail(invite) {
   const className = invite.className || "Aula";
   const teacherName = invite.teacherName || "Tu profesor";
   const teacherEmail = invite.teacherEmail || "";
-  const acceptUrl = invite.acceptUrl;
+  const acceptUrl = safeAppUrl(invite.acceptUrl);
   if (!studentEmail || !acceptUrl) return;
 
   const html = `

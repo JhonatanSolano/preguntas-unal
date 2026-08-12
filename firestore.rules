@@ -112,6 +112,13 @@ service cloud.firestore {
         ownsInstitution(get(/databases/$(database)/documents/classes/$(classId)).data.institutionDane);
     }
 
+    function profileInClass(classId) {
+      return signedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.classId == classId &&
+        hasClassAccess(classId);
+    }
+
     function ownsInstitution(institutionId) {
       return signedIn() &&
         institutionId is string &&
@@ -180,12 +187,19 @@ service cloud.firestore {
     }
 
     match /groupPermissions/{groupId} {
-      allow read: if signedIn();
+      allow read: if hasActiveSubscription() && (
+        isAdmin() ||
+        profileInClass(groupId)
+      );
       allow write: if hasActiveSubscription() && isAdmin();
     }
 
     match /classPermissions/{classId} {
-      allow read: if signedIn();
+      allow read: if hasActiveSubscription() && (
+        ownsClass(classId) ||
+        ownsInstitutionOfClass(classId) ||
+        profileInClass(classId)
+      );
       allow write: if hasActiveSubscription() && ownsClass(classId);
     }
 
@@ -286,7 +300,12 @@ service cloud.firestore {
     }
 
     match /classStudents/{studentId} {
-      allow read: if hasActiveSubscription();
+      allow read: if hasActiveSubscription() && (
+        isPlatformOwner() ||
+        resource.data.ownerUid == request.auth.uid ||
+        resource.data.email == request.auth.token.email ||
+        ownsInstitution(resource.data.institutionDane)
+      );
       allow create: if hasActiveSubscription() && (
         (isAdmin() && ownsClass(request.resource.data.classId)) ||
         ownsInstitutionOfClass(request.resource.data.classId) ||
