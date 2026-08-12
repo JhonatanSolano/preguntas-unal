@@ -223,12 +223,12 @@ const PLANES_COMERCIALES = {
     benefits: ["Acceso mensual individual", "Exámenes y estadísticas", "Mensajes y Asesor IA", "Sin institución asociada"]
   },
   institution: [
-    { id: "institution-0010", range: "1 a 10 estudiantes", label: "Institución inicial", priceCOP: 50000, includes: "1 usuario de institución, 2 profesores y 10 alumnos" },
-    { id: "institution-1125", range: "11 a 25 estudiantes", label: "Institución básica", priceCOP: 100000, includes: "1 usuario de institución, 2 profesores y 25 alumnos" },
-    { id: "institution-2660", range: "26 a 60 estudiantes", label: "Institución media", priceCOP: 150000, includes: "2 usuarios de institución, 2 profesores y 60 alumnos" },
-    { id: "institution-61100", range: "61 a 100 estudiantes", label: "Institución avanzada", priceCOP: 200000, includes: "2 usuarios de institución, 3 profesores y 100 alumnos" },
-    { id: "institution-101200", range: "101 a 200 estudiantes", label: "Institución amplia", priceCOP: 250000, includes: "3 usuarios de institución, 4 profesores y 200 alumnos" },
-    { id: "institution-200plus", range: "Más de 200 estudiantes", label: "Institución corporativa", priceCOP: 350000, includes: "4 usuarios de institución, 5 profesores y más de 200 alumnos" }
+    { id: "institution-0010", range: "1 a 10 estudiantes", label: "Institución inicial", priceCOP: 50000, maxInstitutionUsers: 1, maxTeachers: 1, maxStudents: 10, includes: "1 usuario de institución, 1 profesor y 10 alumnos" },
+    { id: "institution-1125", range: "11 a 25 estudiantes", label: "Institución básica", priceCOP: 100000, maxInstitutionUsers: 1, maxTeachers: 1, maxStudents: 25, includes: "1 usuario de institución, 1 profesor y 25 alumnos" },
+    { id: "institution-2660", range: "26 a 60 estudiantes", label: "Institución media", priceCOP: 150000, maxInstitutionUsers: 2, maxTeachers: 2, maxStudents: 60, includes: "2 usuarios de institución, 2 profesores y 60 alumnos" },
+    { id: "institution-61100", range: "61 a 100 estudiantes", label: "Institución avanzada", priceCOP: 200000, maxInstitutionUsers: 2, maxTeachers: 3, maxStudents: 100, includes: "2 usuarios de institución, 3 profesores y 100 alumnos" },
+    { id: "institution-101200", range: "101 a 200 estudiantes", label: "Institución amplia", priceCOP: 250000, maxInstitutionUsers: 3, maxTeachers: 4, maxStudents: 200, includes: "3 usuarios de institución, 4 profesores y 200 alumnos" },
+    { id: "institution-200plus", range: "Más de 200 estudiantes", label: "Institución corporativa", priceCOP: 350000, maxInstitutionUsers: 4, maxTeachers: 5, maxStudents: 999999, includes: "4 usuarios de institución, 5 profesores y más de 200 alumnos" }
   ]
 };
 
@@ -819,6 +819,36 @@ function planActualFacturacionId() {
     planName.includes(String(plan.name || "").toLowerCase()) ||
     planName.includes(String(plan.label || "").toLowerCase())
   )?.id || "";
+}
+
+function planInstitucionalActual(perfil = perfilActual) {
+  if (!perfil) return null;
+  const direct = perfil.subscriptionPlanId || perfil.planId || "";
+  if (direct) {
+    const byId = PLANES_COMERCIALES.institution.find(plan => plan.id === direct);
+    if (byId) return byId;
+  }
+  const amount = Number(perfil.subscriptionAmountCOP || 0);
+  if (amount) {
+    const byAmount = PLANES_COMERCIALES.institution.find(plan => Number(plan.priceCOP) === amount);
+    if (byAmount) return byAmount;
+  }
+  const planName = String(perfil.subscriptionPlan || "").toLowerCase();
+  return PLANES_COMERCIALES.institution.find(plan =>
+    planName.includes(String(plan.label || "").toLowerCase()) ||
+    planName.includes(String(plan.range || "").toLowerCase()) ||
+    planName.includes(String(plan.id || "").toLowerCase())
+  ) || null;
+}
+
+function limitesPlanInstitucional(perfil = perfilActual) {
+  const plan = planInstitucionalActual(perfil);
+  return {
+    plan,
+    maxInstitutionUsers: Number(plan?.maxInstitutionUsers || perfil?.maxInstitutionUsers || 0),
+    maxTeachers: Number(plan?.maxTeachers || perfil?.maxTeachers || 0),
+    maxStudents: Number(plan?.maxStudents || perfil?.maxStudents || 0)
+  };
 }
 
 function asegurarPlanPagoSeleccionado() {
@@ -3166,6 +3196,7 @@ async function renderInstitutionPanel() {
   const requests = await solicitudesInstitucionActual().catch(() => []);
   const students = members.filter(item => item.role === "student" && item.status !== "removed");
   const teachers = members.filter(item => item.role === "teacher" && item.status !== "removed");
+  const limits = limitesPlanInstitucional();
   const grades = gradosInstitucion();
   if (summary) {
     summary.innerHTML = [
@@ -3173,8 +3204,8 @@ async function renderInstitutionPanel() {
       ["Código DANE", perfilActual?.institutionDane || "Sin DANE"],
       ["Ubicación", [perfilActual?.institutionDepartmentName, perfilActual?.institutionMunicipalityName].filter(Boolean).join(" · ") || "Sin ubicación"],
       ["Aulas creadas", String(adminClases?.length || 0)],
-      ["Estudiantes", String(students.length)],
-      ["Profesores", String(teachers.length)]
+      ["Estudiantes", limits.maxStudents ? `${students.length} / ${limits.maxStudents}` : String(students.length)],
+      ["Profesores", limits.maxTeachers ? `${teachers.length} / ${limits.maxTeachers}` : String(teachers.length)]
     ].map(([label, value]) => `<article class="stat-card"><span>${label}</span><strong>${value}</strong></article>`).join("");
   }
   if (list) {
@@ -3213,6 +3244,25 @@ async function renderInstitutionPanel() {
       }).join("") || `<p class="mini-help">No hay integrantes activos.</p>`);
     }
   }
+}
+
+function validarCupoInstitucional(role, incomingMembers, currentMembers) {
+  const limits = limitesPlanInstitucional();
+  const max = role === "teacher" ? limits.maxTeachers : limits.maxStudents;
+  if (!max) return { ok: true };
+  const roleLabel = role === "teacher" ? "profesor" : "estudiante";
+  const activeEmails = new Set(currentMembers
+    .filter(item => item.role === role && item.status !== "removed")
+    .map(item => String(item.email || "").toLowerCase()));
+  const activeCount = activeEmails.size;
+  const newCount = incomingMembers
+    .filter(item => !activeEmails.has(String(item.email || "").toLowerCase()))
+    .length;
+  if (activeCount + newCount <= max) return { ok: true };
+  return {
+    ok: false,
+    message: `Tu plan actual permite máximo ${max} ${roleLabel}${max === 1 ? "" : "s"}. Ya tienes ${activeCount} registrado(s). Para agregar más, debes mejorar el plan.`
+  };
 }
 
 async function solicitudesInstitucionActual() {
@@ -3285,6 +3335,15 @@ async function agregarMiembrosInstitucion() {
   if (status) {
     status.textContent = "Guardando integrantes...";
     status.className = "bank-status";
+  }
+  const currentMembers = await miembrosInstitucionActual().catch(() => []);
+  const capacity = validarCupoInstitucional(role, members, currentMembers);
+  if (!capacity.ok) {
+    if (status) {
+      status.textContent = capacity.message;
+      status.className = "bank-status error";
+    }
+    return;
   }
   await Promise.all(members.map(member => setDoc(doc(db, "institutionMembers", memberDocId(dane, member.email)), {
     institutionDane: dane,

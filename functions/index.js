@@ -29,18 +29,18 @@ const BILLING_PLANS = {
     name: "Plan Institución 1 a 10 estudiantes",
     amountCOP: 50000,
     maxInstitutionUsers: 1,
-    maxTeachers: 2,
+    maxTeachers: 1,
     maxStudents: 10,
-    benefits: ["1 usuario de institución", "2 profesores", "10 estudiantes"]
+    benefits: ["1 usuario de institución", "1 profesor", "10 estudiantes"]
   },
   "institution-1125": {
     role: "institution",
     name: "Plan Institución 11 a 25 estudiantes",
     amountCOP: 100000,
     maxInstitutionUsers: 1,
-    maxTeachers: 2,
+    maxTeachers: 1,
     maxStudents: 25,
-    benefits: ["1 usuario de institución", "2 profesores", "25 estudiantes"]
+    benefits: ["1 usuario de institución", "1 profesor", "25 estudiantes"]
   },
   "institution-2660": {
     role: "institution",
@@ -832,6 +832,9 @@ exports.wompiWebhook = onRequest({
       subscriptionNextBillingAt: intent.savePaymentMethod === true ? admin.firestore.Timestamp.fromDate(expiresAt) : null,
       paymentProvider: "Wompi",
       lastPaymentId: String(transactionId || reference),
+      maxInstitutionUsers: intent.maxInstitutionUsers || null,
+      maxTeachers: intent.maxTeachers || null,
+      maxStudents: intent.maxStudents || null,
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     };
     const sourceId = transaction.payment_source_id || transaction.payment_source?.id;
