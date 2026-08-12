@@ -422,16 +422,56 @@ body {
   z-index: 240;
   display: grid;
   place-items: center;
-  align-content: center;
-  gap: .9rem;
   padding: 1rem;
-  background: rgba(245,248,251,.76);
-  backdrop-filter: blur(8px);
+  background:
+    radial-gradient(circle at 50% 18%, rgba(23, 183, 183, .14), transparent 30%),
+    linear-gradient(180deg, #ffffff 0%, #f4fbfc 100%);
 }
-.reload-splash p {
+.reload-card {
+  position: relative;
+  width: min(420px, calc(100vw - 2rem));
+  min-height: 260px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: .85rem;
+  text-align: center;
+  padding: 2rem 1.5rem;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, .9);
+  border: 1px solid rgba(170, 209, 219, .62);
+  box-shadow: 0 24px 80px rgba(6, 52, 95, .12);
+  overflow: hidden;
+}
+.reload-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 48%, rgba(19, 33, 60, .06), transparent 42%);
+  pointer-events: none;
+}
+.reload-card img {
+  position: absolute;
+  width: min(250px, 64vw);
+  opacity: .055;
+  filter: grayscale(1);
+  pointer-events: none;
+}
+.reload-card > *:not(img) {
+  position: relative;
+  z-index: 1;
+}
+.reload-card p {
   margin: 0;
   color: var(--c-navy);
   font-weight: 900;
+}
+.reload-card span {
+  max-width: 280px;
+  color: var(--c-muted);
+  font-size: .95rem;
+  font-weight: 700;
+  line-height: 1.45;
 }
 .reload-spinner {
   width: 58px;
