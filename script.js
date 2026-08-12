@@ -63,6 +63,7 @@ const APP_CONFIG = {
   passwordResetEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/sendPasswordResetEmailCustom",
   emailVerificationEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/sendEmailVerificationCustom",
   deepDeleteEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/deleteInstitutionDeep",
+  institutionMemberEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/manageInstitutionMembers",
   examAccessEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/getExamAccessState",
   examAccessUpdateEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/updateExamAccessConfig",
   academicReportEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/getAcademicReport",
@@ -3345,21 +3346,21 @@ async function agregarMiembrosInstitucion() {
     }
     return;
   }
-  await Promise.all(members.map(member => setDoc(doc(db, "institutionMembers", memberDocId(dane, member.email)), {
-    institutionDane: dane,
-    institutionName: perfilActual?.institutionName || "",
-    ownerUid: usuarioActual.uid,
-    ownerEmail: usuarioActual.email || "",
-    name: member.name || "",
-    email: member.email,
-    role,
-    grade,
-    status: "active",
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp()
-  }, { merge: true })));
+  const response = await authedFetch(APP_CONFIG.institutionMemberEndpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "add",
+      institutionDane: dane,
+      role,
+      grade,
+      members
+    })
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result.ok) throw new Error(result.error || "No fue posible guardar los integrantes.");
   document.getElementById("institutionBulkMembers").value = "";
-  if (status) status.textContent = `${members.length} integrante(s) agregado(s) a la institución.`;
+  if (status) status.textContent = result.message || `${members.length} integrante(s) agregado(s) a la institución.`;
   await renderInstitutionPanel();
 }
 
@@ -3369,17 +3370,17 @@ async function eliminarMiembroInstitucion(id) {
   if (!snap.exists()) return;
   const member = snap.data();
   if (!confirm(`Eliminar a ${member.name || member.email} de la institución.\n\nPerderá los beneficios institucionales y no podrá acceder como integrante de esta institución.`)) return;
-  await updateDoc(ref, { status: "removed", removedAt: serverTimestamp(), updatedAt: serverTimestamp() });
-  const users = await getDocs(query(collection(db, "users"), where("email", "==", member.email))).catch(() => null);
-  if (users) {
-    await Promise.all(users.docs.map(userDoc => updateDoc(userDoc.ref, {
-      institutionAccessRevoked: true,
-      institutionMemberStatus: "removed",
-      subscriptionInherited: false,
-      institutionSubscriptionStatus: "removed",
-      updatedAt: serverTimestamp()
-    }).catch(() => {})));
-  }
+  const response = await authedFetch(APP_CONFIG.institutionMemberEndpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "remove",
+      institutionDane: normalizarDane(member.institutionDane || perfilActual?.institutionDane),
+      memberId: id
+    })
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result.ok) throw new Error(result.error || "No fue posible eliminar el integrante.");
   await renderInstitutionPanel();
 }
 

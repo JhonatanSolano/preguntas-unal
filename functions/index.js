@@ -121,6 +121,34 @@ function priceToCents(amountCOP) {
   return Math.round(amount * 100);
 }
 
+function normalizeEmail(email) {
+  return String(email || "").trim().toLowerCase();
+}
+
+function normalizeDane(value) {
+  return String(value || "").replace(/\D/g, "");
+}
+
+function institutionMemberDocId(institutionDane, email) {
+  return `${normalizeDane(institutionDane)}_${normalizeEmail(email).replace(/[^\w.-]/g, "_")}`;
+}
+
+function planFromInstitutionData(data = {}) {
+  const planById = BILLING_PLANS[data.subscriptionPlanId] || BILLING_PLANS[data.planId];
+  if (planById) return planById;
+  const amount = Number(data.subscriptionAmountCOP || data.amountCOP || 0);
+  return Object.values(BILLING_PLANS).find(plan => plan.role === "institution" && Number(plan.amountCOP) === amount) || null;
+}
+
+function institutionPlanLimits(data = {}) {
+  const plan = planFromInstitutionData(data) || {};
+  return {
+    maxInstitutionUsers: Number(plan.maxInstitutionUsers || data.maxInstitutionUsers || 0),
+    maxTeachers: Number(plan.maxTeachers || data.maxTeachers || 0),
+    maxStudents: Number(plan.maxStudents || data.maxStudents || 0)
+  };
+}
+
 function getByPath(obj, path) {
   return String(path || "").split(".").reduce((acc, key) => acc?.[key], obj);
 }
@@ -1110,6 +1138,168 @@ exports.deleteInstitutionDeep = onRequest({ region: "us-central1" }, async (req,
   }).catch(() => {});
 
   return res.status(200).json({ ok: true, deleted, authUsersQueued: authUids.size });
+});
+
+exports.manageInstitutionMembers = onRequest({ region: "us-central1" }, async (req, res) => {
+  setCors(res);
+  if (req.method === "OPTIONS") return res.status(204).send("");
+  if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
+
+  let decoded;
+  try {
+    decoded = await requireAuth(req);
+  } catch {
+    return res.status(401).json({ error: "Debes iniciar sesión." });
+  }
+
+  const db = admin.firestore();
+  const action = String(req.body?.action || "").trim();
+  const institutionDane = normalizeDane(req.body?.institutionDane);
+  if (!institutionDane) return res.status(400).json({ error: "Falta el código DANE de la institución." });
+
+  try {
+    const institutionRef = db.collection("institutions").doc(institutionDane);
+    const institutionSnap = await institutionRef.get();
+    if (!institutionSnap.exists) return res.status(404).json({ error: "Institución no encontrada." });
+    const institution = institutionSnap.data() || {};
+    const callerEmail = normalizeEmail(decoded.email);
+    const isPlatformOwner = callerEmail === "solanojhonatan2000@gmail.com";
+    const ownsInstitution = institution.ownerUid === decoded.uid || normalizeEmail(institution.ownerEmail) === callerEmail;
+    if (!isPlatformOwner && !ownsInstitution) {
+      return res.status(403).json({ error: "No tienes permiso para administrar integrantes de esta institución." });
+    }
+
+    if (action === "add") {
+      const role = String(req.body?.role || "").trim();
+      const grade = String(req.body?.grade || "").trim();
+      const members = Array.isArray(req.body?.members) ? req.body.members : [];
+      if (!["student", "teacher"].includes(role)) return res.status(400).json({ error: "Tipo de integrante no válido." });
+      if (!members.length) return res.status(400).json({ error: "Agrega al menos un correo válido." });
+      if (institution.subscriptionStatus !== "active") {
+        return res.status(403).json({ error: "La institución necesita una suscripción activa para agregar integrantes." });
+      }
+
+      const cleanedMembers = [];
+      const seen = new Set();
+      members.forEach(member => {
+        const email = normalizeEmail(member?.email);
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || seen.has(email)) return;
+        seen.add(email);
+        cleanedMembers.push({
+          email,
+          name: String(member?.name || "").trim()
+        });
+      });
+      if (!cleanedMembers.length) return res.status(400).json({ error: "Agrega correos válidos." });
+
+      const limits = institutionPlanLimits(institution);
+      const max = role === "teacher" ? limits.maxTeachers : limits.maxStudents;
+      if (!max) return res.status(403).json({ error: "Tu plan actual no permite agregar este tipo de integrante." });
+
+      const result = await db.runTransaction(async transaction => {
+        const querySnap = await transaction.get(
+          db.collection("institutionMembers")
+            .where("institutionDane", "==", institutionDane)
+            .where("role", "==", role)
+        );
+        const activeEmails = new Set();
+        querySnap.docs.forEach(docSnap => {
+          const data = docSnap.data() || {};
+          if (data.status !== "removed") activeEmails.add(normalizeEmail(data.email));
+        });
+        const incomingNew = cleanedMembers.filter(member => !activeEmails.has(member.email));
+        if (activeEmails.size + incomingNew.length > max) {
+          const label = role === "teacher" ? "profesor" : "estudiante";
+          throw new Error(`Tu plan actual permite máximo ${max} ${label}${max === 1 ? "" : "es"}. Ya tienes ${activeEmails.size} registrado(s). Para agregar más, debes mejorar el plan.`);
+        }
+        cleanedMembers.forEach(member => {
+          const memberRef = db.collection("institutionMembers").doc(institutionMemberDocId(institutionDane, member.email));
+          const alreadyActive = activeEmails.has(member.email);
+          transaction.set(memberRef, {
+            institutionDane,
+            institutionName: institution.institutionName || "",
+            ownerUid: institution.ownerUid || "",
+            ownerEmail: institution.ownerEmail || "",
+            name: member.name,
+            email: member.email,
+            role,
+            grade,
+            status: "active",
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            ...(alreadyActive ? {} : { createdAt: admin.firestore.FieldValue.serverTimestamp() })
+          }, { merge: true });
+        });
+        return { added: cleanedMembers.length, newCount: incomingNew.length, max };
+      });
+
+      await db.collection("billingEvents").add({
+        type: "institution-member-add",
+        institutionDane,
+        role,
+        grade,
+        added: result.added,
+        newCount: result.newCount,
+        max: result.max,
+        requestedByUid: decoded.uid,
+        requestedByEmail: callerEmail,
+        createdAt: admin.firestore.FieldValue.serverTimestamp()
+      }).catch(() => {});
+
+      return res.status(200).json({
+        ok: true,
+        ...result,
+        message: `${result.added} integrante(s) agregado(s) a la institución.`
+      });
+    }
+
+    if (action === "remove") {
+      const memberId = String(req.body?.memberId || "").trim();
+      if (!memberId) return res.status(400).json({ error: "Falta el integrante a eliminar." });
+      const memberRef = db.collection("institutionMembers").doc(memberId);
+      const memberSnap = await memberRef.get();
+      if (!memberSnap.exists) return res.status(404).json({ error: "Integrante no encontrado." });
+      const member = memberSnap.data() || {};
+      if (normalizeDane(member.institutionDane) !== institutionDane) {
+        return res.status(403).json({ error: "El integrante no pertenece a esta institución." });
+      }
+
+      await memberRef.update({
+        status: "removed",
+        removedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+
+      const usersSnap = await db.collection("users").where("email", "==", normalizeEmail(member.email)).get();
+      const batch = db.batch();
+      usersSnap.docs.forEach(userDoc => {
+        batch.update(userDoc.ref, {
+          institutionAccessRevoked: true,
+          institutionMemberStatus: "removed",
+          subscriptionInherited: false,
+          institutionSubscriptionStatus: "removed",
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+      });
+      if (!usersSnap.empty) await batch.commit();
+
+      await db.collection("billingEvents").add({
+        type: "institution-member-remove",
+        institutionDane,
+        memberId,
+        memberEmail: normalizeEmail(member.email),
+        requestedByUid: decoded.uid,
+        requestedByEmail: callerEmail,
+        createdAt: admin.firestore.FieldValue.serverTimestamp()
+      }).catch(() => {});
+
+      return res.status(200).json({ ok: true, message: "Integrante eliminado de la institución." });
+    }
+
+    return res.status(400).json({ error: "Acción institucional no válida." });
+  } catch (err) {
+    console.error("manageInstitutionMembers error", err);
+    return res.status(400).json({ error: err?.message || "No fue posible administrar integrantes." });
+  }
 });
 
 const COUNTRY_TIMEZONES = {

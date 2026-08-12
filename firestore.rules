@@ -227,10 +227,15 @@ service cloud.firestore {
       allow read: if isPlatformOwner() ||
         (signedIn() && resource.data.email == request.auth.token.email) ||
         ownsInstitution(resource.data.institutionDane);
-      allow create: if isPlatformOwner() ||
-        ownsInstitution(request.resource.data.institutionDane);
-      allow update, delete: if isPlatformOwner() ||
-        ownsInstitution(resource.data.institutionDane) ||
+      allow create: if false;
+      allow update: if isPlatformOwner() ||
+        (
+          ownsInstitution(resource.data.institutionDane) &&
+          request.resource.data.email == resource.data.email &&
+          request.resource.data.institutionDane == resource.data.institutionDane &&
+          request.resource.data.role == resource.data.role &&
+          request.resource.data.status == "removed"
+        ) ||
         (
           signedIn() &&
           resource.data.email == request.auth.token.email &&
@@ -239,6 +244,7 @@ service cloud.firestore {
           request.resource.data.role == resource.data.role &&
           request.resource.data.status == "active"
         );
+      allow delete: if isPlatformOwner();
     }
 
     match /institutionRequests/{requestId} {
