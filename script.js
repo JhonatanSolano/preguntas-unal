@@ -6188,13 +6188,28 @@ async function cargarPermisosRemotos(aulas = []) {
   const examSettings = {};
   const ids = [...new Set((aulas.length ? aulas : [grupoActivo]).filter(id => id && id !== "admin"))];
   await Promise.all(ids.map(async grupo => {
-    const snap = await getDoc(refPermisosGrupo(grupo));
-    const data = snap.exists() ? snap.data() : {};
-    permisos[grupo] = { ...DEFAULT_HABILITADOS, ...(data.permisos || {}) };
-    bancos[grupo] = { ...DEFAULT_BANCOS, ...(data.bancos || {}) };
-    examSettings[grupo] = normalizarExamSettings(data.examSettings || {});
-    if (!snap.exists()) {
-      await setDoc(refPermisosGrupo(grupo), { permisos: permisos[grupo], bancos: bancos[grupo], examSettings: examSettings[grupo], updatedAt: serverTimestamp() }, { merge: true });
+    if (!modoAdmin) {
+      permisos[grupo] = { ...DEFAULT_HABILITADOS };
+      bancos[grupo] = { ...DEFAULT_BANCOS };
+      examSettings[grupo] = normalizarExamSettings();
+      await Promise.all(Object.keys(DEFAULT_EXAM_SETTINGS).map(async level => {
+        try {
+          const state = await consultarEstadoExamenServidor(grupo, level);
+          permisos[grupo][level] = !!state?.available || level === "diagnostico";
+          bancos[grupo][level] = state?.bank || DEFAULT_BANCOS[level] || "principal";
+        } catch (err) {
+          console.warn("No se pudo cargar estado seguro del examen.", level, err);
+        }
+      }));
+    } else {
+      const snap = await getDoc(refPermisosGrupo(grupo));
+      const data = snap.exists() ? snap.data() : {};
+      permisos[grupo] = { ...DEFAULT_HABILITADOS, ...(data.permisos || {}) };
+      bancos[grupo] = { ...DEFAULT_BANCOS, ...(data.bancos || {}) };
+      examSettings[grupo] = normalizarExamSettings(data.examSettings || {});
+      if (!snap.exists()) {
+        await setDoc(refPermisosGrupo(grupo), { permisos: permisos[grupo], bancos: bancos[grupo], examSettings: examSettings[grupo], updatedAt: serverTimestamp() }, { merge: true });
+      }
     }
   }));
   permisosGrupo = permisos;
@@ -6206,6 +6221,10 @@ async function cargarPermisosRemotos(aulas = []) {
 
 function escucharPermisosGrupo(grupo) {
   if (unsubscribePermisos) unsubscribePermisos();
+  if (!modoAdmin) {
+    unsubscribePermisos = null;
+    return;
+  }
   unsubscribePermisos = onSnapshot(refPermisosGrupo(grupo), snap => {
     const data = snap.exists() ? snap.data() : {};
     permisosGrupo[grupo] = { ...DEFAULT_HABILITADOS, ...(data.permisos || {}) };

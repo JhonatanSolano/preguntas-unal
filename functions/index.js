@@ -576,16 +576,36 @@ exports.sendInternalNotificationEmail = onDocumentWritten({
   const user = userSnap.exists ? userSnap.data() : null;
   if (normalizeEmail(user?.email) !== targetEmail) return;
   if (!user?.notificationsEnabled) return;
+  const notificationType = String(after.type || "");
+  const titleByType = {
+    "exam-finished": "Examen terminado",
+    "student-exam-finished": "Examen terminado por estudiante",
+    "institution-request": "Solicitud institucional",
+    "institution-request-status": "Estado de solicitud institucional",
+    "message-reply": "Nueva respuesta interna"
+  };
+  const safeTitle = titleByType[notificationType] || "Nueva notificación";
+  const safeBody = notificationType === "exam-finished"
+    ? "Terminaste un intento de examen. Revisa la app para ver los detalles disponibles."
+    : notificationType === "student-exam-finished"
+      ? "Un estudiante completó un intento de examen. Entra a la app para revisar el reporte."
+      : notificationType === "institution-request"
+        ? "Tienes una solicitud pendiente de revisión en la app."
+        : notificationType === "institution-request-status"
+          ? "El estado de tu solicitud institucional cambió. Revisa la app para ver el detalle."
+          : notificationType === "message-reply"
+            ? "Tienes una nueva respuesta interna. Entra a la app para leerla y responder."
+            : "Tienes una nueva notificación interna en Matemáticas En Tu Bolsillo.";
   const html = `
     <div style="font-family:Arial,sans-serif;line-height:1.6;color:#162838;max-width:640px;margin:auto;padding:24px">
-      <h1 style="color:#06345f">${escapeHtml(after.title || "Nueva notificación")}</h1>
-      <p>${escapeHtml(after.body || "Tienes una nueva notificación interna en Matemáticas En Tu Bolsillo.")}</p>
+      <h1 style="color:#06345f">${escapeHtml(safeTitle)}</h1>
+      <p>${escapeHtml(safeBody)}</p>
       <p>Este correo es solo informativo. Para revisar detalles o responder, entra a la app.</p>
       <p style="font-size:12px;color:#66788a">© Todos los derechos reservados. Matemáticas En Tu Bolsillo.</p>
     </div>`;
   await sendEmail({
     to: targetEmail,
-    subject: after.title || "Nueva notificación",
+    subject: safeTitle,
     html
   });
   await event.data.after.ref.set({
