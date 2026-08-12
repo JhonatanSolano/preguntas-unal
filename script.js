@@ -66,6 +66,8 @@ const APP_CONFIG = {
   institutionMemberEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/manageInstitutionMembers",
   examAccessEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/getExamAccessState",
   examAccessUpdateEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/updateExamAccessConfig",
+  teacherExamQuestionsEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/getTeacherExamQuestions",
+  examAttemptSubmitEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/submitExamAttempt",
   academicReportEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/getAcademicReport",
   payments: {
     provider: "Wompi",
@@ -491,7 +493,7 @@ function mostrarOverlayTiempoAgotado() {
 }
 
 /** Oculta el overlay y muestra los resultados con sin-responder = incorrectas */
-function procesarTiempoAgotado() {
+async function procesarTiempoAgotado() {
   document.getElementById("timeoutOverlay").classList.add("hidden");
 
   // Las preguntas sin responder se toman como -1 (ninguna opción → incorrecta)
@@ -500,7 +502,7 @@ function procesarTiempoAgotado() {
     return checked ? parseInt(checked.value, 10) : -1;
   });
 
-  evaluarYMostrar(respuestas);
+  await evaluarYMostrar(respuestas);
 }
 
 /* Botón del overlay */
@@ -1588,10 +1590,32 @@ function guardarResultadosSesion(syncRemoto = true) {
   if (syncRemoto) guardarEstadoRemoto();
 }
 
-function guardarResultadoSesion(clave, respuestas, restante) {
-  const key = claveResultado(clave);
+function tieneClavesRespuesta(preguntas = []) {
+  return preguntas.every(question =>
+    Number.isInteger(Number(question.correcta)) &&
+    Number(question.correcta) >= 0 &&
+    Number(question.correcta) <= 3
+  );
+}
+
+function aplicarMetricasServidorAIntento(intento, serverResult = null) {
+  if (!intento || !serverResult?.ok) return intento;
+  intento.serverGraded = true;
+  intento.serverAttemptId = serverResult.attemptId || "";
+  intento.serverMetrics = {
+    correctas: Number(serverResult.correctas || 0),
+    incorrectas: Number(serverResult.incorrectas || 0),
+    porcentaje: Number(serverResult.porcentaje || 0),
+    nota: Number(serverResult.nota || 0),
+    tiempoTotalSegundos: Number(serverResult.tiempoTotalSegundos || 0),
+    segundosPorPregunta: Number(serverResult.segundosPorPregunta || 0)
+  };
+  return intento;
+}
+
+function crearIntentoResultado(clave, respuestas, restante) {
   const preguntas = preguntasPorClave(clave).map(clonarPregunta);
-  const intento = {
+  return {
     respuestas,
     restante: Math.max(0, restante),
     guardado: Date.now(),
@@ -1599,10 +1623,67 @@ function guardarResultadoSesion(clave, respuestas, restante) {
     answerKey: preguntas.map(question => question.correcta),
     questionSnapshot: preguntas
   };
+}
+
+function guardarIntentoResultado(clave, intento, attemptNumber, registrarOficial = true) {
+  const key = claveResultado(clave);
   const previos = resultadosSesion[key]?.intentos || [];
   resultadosSesion[key] = { intentos: [...previos, intento].slice(0, 2) };
   guardarResultadosSesion();
-  notificarIntentoCompletado(clave, previos.length + 1);
+  if (registrarOficial) registrarIntentoOficial(clave, intento, attemptNumber).then(serverResult => {
+    if (!serverResult?.ok) return;
+    aplicarMetricasServidorAIntento(intento, serverResult);
+    resultadosSesion[key] = {
+      intentos: (resultadosSesion[key]?.intentos || []).map(item => item === intento ? intento : item)
+    };
+    guardarResultadosSesion(false);
+  }).catch(error => {
+    console.warn("No se pudo registrar el intento oficial en servidor.", error);
+  });
+  notificarIntentoCompletado(clave, attemptNumber);
+}
+
+function guardarResultadoSesion(clave, respuestas, restante) {
+  const key = claveResultado(clave);
+  const previos = resultadosSesion[key]?.intentos || [];
+  guardarIntentoResultado(clave, crearIntentoResultado(clave, respuestas, restante), previos.length + 1, true);
+}
+
+async function guardarResultadoSesionConServidor(clave, respuestas, restante) {
+  const key = claveResultado(clave);
+  const previos = resultadosSesion[key]?.intentos || [];
+  const intento = crearIntentoResultado(clave, respuestas, restante);
+  const attemptNumber = previos.length + 1;
+  try {
+    const serverResult = await registrarIntentoOficial(clave, intento, attemptNumber);
+    aplicarMetricasServidorAIntento(intento, serverResult);
+  } catch (error) {
+    console.warn("No se pudo registrar el intento oficial en servidor.", error);
+  }
+  guardarIntentoResultado(clave, intento, attemptNumber, false);
+  return intento.serverMetrics || null;
+}
+
+async function registrarIntentoOficial(clave, intento, attemptNumber = 1) {
+  if (!usuarioActual || modoAdmin) return null;
+  const classId = claseActiva || grupoActivo || perfilActual?.classId || perfilActual?.aulaId || "";
+  if (!classId || !APP_CONFIG.examAttemptSubmitEndpoint) return null;
+  const payload = {
+    classId,
+    level: claveBaseResultado(clave),
+    bank: bancoActivo || "principal",
+    respuestas: intento.respuestas || [],
+    restante: intento.restante || 0,
+    attemptNumber,
+    questionSnapshot: (intento.questionSnapshot || []).map(question => ({
+      id: question.id,
+      _questionId: question._questionId || "",
+      _questionSource: question._questionSource || "legacy",
+      opciones: question.opciones || []
+    })),
+    ...timezoneUsuarioPayload()
+  };
+  return postBackendAutenticado(APP_CONFIG.examAttemptSubmitEndpoint, payload);
 }
 
 function aplicarSnapshotIntento(clave, intento) {
@@ -1974,7 +2055,7 @@ function sincronizarCompletadosGuardados() {
 
 sincronizarCompletadosGuardados();
 
-form.addEventListener("submit", (e) => {
+form.addEventListener("submit", async (e) => {
   e.preventDefault();
 
   /* Validar que todas estén respondidas */
@@ -2000,7 +2081,7 @@ form.addEventListener("submit", (e) => {
     return parseInt(checked.value, 10);
   });
 
-  evaluarYMostrar(respuestas);
+  await evaluarYMostrar(respuestas);
   resultsSection.scrollIntoView({ behavior: "smooth" });
 });
 
@@ -2008,7 +2089,7 @@ form.addEventListener("submit", (e) => {
  * Función central compartida por envío manual y tiempo agotado.
  * Recibe array de respuestas (índice 0-3 o -1 = sin responder).
  */
-function evaluarYMostrar(respuestas, opciones = {}) {
+async function evaluarYMostrar(respuestas, opciones = {}) {
   if (!opciones.restaurando) limpiarIntentoActivo();
   /* Ocultar formulario de envío */
   document.getElementById("submitBtn").style.display = "none";
@@ -2023,7 +2104,23 @@ function evaluarYMostrar(respuestas, opciones = {}) {
   const nota        = calcNota(porcentaje);
   const badge       = calcBadge(porcentaje);
 
-  if (!opciones.restaurando) guardarResultadoSesion("diagnostico", respuestas, segundosRestantes);
+  const puedeMostrarClaves = tieneClavesRespuesta(PREGUNTAS);
+  if (!opciones.restaurando) {
+    const serverMetrics = puedeMostrarClaves
+      ? null
+      : await guardarResultadoSesionConServidor("diagnostico", respuestas, segundosRestantes);
+    if (serverMetrics) {
+      correctas = serverMetrics.correctas;
+      incorrectas = serverMetrics.incorrectas;
+      porcentaje = serverMetrics.porcentaje;
+      nota = serverMetrics.nota;
+      badge = calcBadge(porcentaje);
+    } else if (puedeMostrarClaves) {
+      guardarResultadoSesion("diagnostico", respuestas, segundosRestantes);
+    } else {
+      guardarResultadoSesion("diagnostico", respuestas, segundosRestantes);
+    }
+  }
   mostrarResultados(respuestas, correctas, incorrectas, porcentaje, nota, badge);
   mostrarProgreso(PREGUNTAS.length, PREGUNTAS.length);
   resetTimer();
@@ -2037,6 +2134,7 @@ function evaluarYMostrar(respuestas, opciones = {}) {
 function mostrarResultados(respuestas, correctas, incorrectas, pct, nota, badge) {
   resultsSection.hidden = false;
   const tiempoEmpleado = DURACION_SEG - segundosRestantes;
+  const puedeMostrarClaves = tieneClavesRespuesta(PREGUNTAS);
 
   /* ── Score ring ── */
   const circumference = 2 * Math.PI * 50;
@@ -2071,7 +2169,9 @@ function mostrarResultados(respuestas, correctas, incorrectas, pct, nota, badge)
   /* ── Tabla resumen (con LaTeX) ── */
   const tbody = document.getElementById("summaryBody");
   tbody.innerHTML = "";
-  PREGUNTAS.forEach((q, i) => {
+  if (!puedeMostrarClaves) {
+    tbody.innerHTML = `<tr><td colspan="4">Resultado guardado oficialmente. La retroalimentación se mostrará cuando el profesor la publique.</td></tr>`;
+  } else PREGUNTAS.forEach((q, i) => {
     const sinResp = respuestas[i] === -1;
     const ok = !sinResp && respuestas[i] === q.correcta;
     const tr = document.createElement("tr");
@@ -2087,7 +2187,9 @@ function mostrarResultados(respuestas, correctas, incorrectas, pct, nota, badge)
   /* ── Retroalimentación detallada ── */
   const feedbackEl = document.getElementById("feedbackItems");
   feedbackEl.innerHTML = "";
-  PREGUNTAS.forEach((q, i) => {
+  if (!puedeMostrarClaves) {
+    feedbackEl.innerHTML = `<div class="feedback-pending-card"><strong>Retroalimentación protegida</strong><p>Las respuestas correctas y explicaciones permanecen ocultas hasta que el profesor las publique.</p></div>`;
+  } else PREGUNTAS.forEach((q, i) => {
     const sinResp = respuestas[i] === -1;
     const ok = !sinResp && respuestas[i] === q.correcta;
     const item = document.createElement("div");
@@ -2123,9 +2225,10 @@ function mostrarResultados(respuestas, correctas, incorrectas, pct, nota, badge)
     if (!card) return;
     const sinResp = respuestas[i] === -1;
     const ok = !sinResp && respuestas[i] === q.correcta;
-    card.classList.add(ok ? "result-correct" : "result-wrong");
+    if (puedeMostrarClaves) card.classList.add(ok ? "result-correct" : "result-wrong");
     card.querySelectorAll("input[type='radio']").forEach(inp => { inp.disabled = true; });
     card.querySelectorAll(".option-label").forEach((lbl, idx) => {
+      if (!puedeMostrarClaves) return;
       if (idx === q.correcta) lbl.classList.add("opt-correct");
       if (!sinResp && !ok && idx === respuestas[i]) lbl.classList.add("opt-wrong");
     });
@@ -2669,6 +2772,8 @@ function textoSeguroConSaltos(value = "") {
 function convertirPreguntaDoc(data, fallbackId = 1) {
   const latex = String(data.questionLatex || "").trim();
   const explanationLatex = String(data.explanationLatex || "").trim();
+  const correctRaw = data.correctOption ?? data.correcta;
+  const correctValue = Number(correctRaw);
   return {
     id: fallbackId,
     pregunta: textoSeguroConSaltos(data.questionText || data.pregunta || ""),
@@ -2676,19 +2781,20 @@ function convertirPreguntaDoc(data, fallbackId = 1) {
     imageUrl: data.imageUrl || "",
     imageAlt: String(data.imageAlt || "Imagen de apoyo para la pregunta"),
     opciones: (data.options || data.opciones || []).map(option => textoSeguroConSaltos(option)),
-    correcta: Number(data.correctOption ?? data.correcta ?? 0),
+    correcta: Number.isInteger(correctValue) && correctValue >= 0 && correctValue <= 3 ? correctValue : -1,
     explicacion: [
       textoSeguroConSaltos(data.explanationText || data.explicacion || ""),
       explanationLatex ? `\\[${explanationLatex}\\]` : ""
     ].filter(Boolean).join("<br>"),
-    _questionSource: data._questionSource || "teacher"
+    _questionSource: data._questionSource || "teacher",
+    _questionId: data._questionId || data.id || ""
   };
 }
 
 function preguntasMaestrasPara(level, bank) {
   return PREGUNTAS_MAESTRAS_CODIGO
     .filter(question => question.level === level && (question.bank || "principal") === bank)
-    .map((question, index) => convertirPreguntaDoc({ ...question, _questionSource: "master" }, index + 1));
+    .map((question, index) => convertirPreguntaDoc({ ...question, _questionSource: "master", _questionId: question.id || "" }, index + 1));
 }
 
 function preguntasDocentePara(level, bank, classId = claseActiva || adminClaseActiva || "") {
@@ -2700,7 +2806,7 @@ function preguntasDocentePara(level, bank, classId = claseActiva || adminClaseAc
       (!question.classId || question.classId === classId)
     )
     .sort((a, b) => Number(a.createdAtMs || 0) - Number(b.createdAtMs || 0))
-    .map((question, index) => convertirPreguntaDoc({ ...question, _questionSource: "teacher" }, index + 1));
+    .map((question, index) => convertirPreguntaDoc({ ...question, _questionSource: "teacher", _questionId: question.id || "" }, index + 1));
 }
 
 function combinarPreguntasNivel(level, bank = bancoActivo, classId = claseActiva || adminClaseActiva || "") {
@@ -2730,6 +2836,20 @@ async function cargarPreguntasDocente(ownerUid = ownerUidPreguntasActual()) {
   if (!ownerUid || !usuarioActual) {
     teacherQuestions = [];
     return [];
+  }
+  if (!modoAdmin && claseActiva && APP_CONFIG.teacherExamQuestionsEndpoint) {
+    const levels = ["diagnostico", "nivel1", "examen"];
+    const batches = await Promise.all(levels.map(level =>
+      postBackendAutenticado(APP_CONFIG.teacherExamQuestionsEndpoint, {
+        ownerUid,
+        classId: claseActiva,
+        level,
+        bank: bancoActivo || "principal",
+        ...timezoneUsuarioPayload()
+      }).then(data => Array.isArray(data.questions) ? data.questions : [])
+    ));
+    teacherQuestions = batches.flat();
+    return teacherQuestions;
   }
   const snap = await getDocs(query(collection(db, "teacherQuestions"), where("ownerUid", "==", ownerUid)));
   teacherQuestions = snap.docs.map(questionDoc => ({ id: questionDoc.id, ...questionDoc.data() }));
@@ -5439,7 +5559,7 @@ function reiniciarEstadoNiveles() {
   reiniciarEstadoNivelVisual();
 }
 
-function evaluarYMostrarNivel(respuestas, opciones = {}) {
+async function evaluarYMostrarNivel(respuestas, opciones = {}) {
   if (!opciones.restaurando) limpiarIntentoActivo();
   nivelIniciado = false;
   nivelCompletadoVisible = true;
@@ -5448,13 +5568,29 @@ function evaluarYMostrarNivel(respuestas, opciones = {}) {
 
   const preguntas = PREGUNTAS_NIVELES[nivelActual];
   const tiempoEmpleado = DURACION_SEG - segsNivel;
-  if (!opciones.restaurando) guardarResultadoSesion(nivelActual, respuestas, segsNivel);
+  const puedeMostrarClaves = tieneClavesRespuesta(preguntas);
   let correctas = 0;
   preguntas.forEach((q, i) => { if (respuestas[i] === q.correcta) correctas++; });
-  const incorrectas = preguntas.length - correctas;
-  const pct = Math.round((correctas / preguntas.length) * 100);
-  const nota = calcNota(pct);
-  const badge = calcBadge(pct);
+  let incorrectas = preguntas.length - correctas;
+  let pct = Math.round((correctas / preguntas.length) * 100);
+  let nota = calcNota(pct);
+  let badge = calcBadge(pct);
+  if (!opciones.restaurando) {
+    const serverMetrics = puedeMostrarClaves
+      ? null
+      : await guardarResultadoSesionConServidor(nivelActual, respuestas, segsNivel);
+    if (serverMetrics) {
+      correctas = serverMetrics.correctas;
+      incorrectas = serverMetrics.incorrectas;
+      pct = serverMetrics.porcentaje;
+      nota = serverMetrics.nota;
+      badge = calcBadge(pct);
+    } else if (puedeMostrarClaves) {
+      guardarResultadoSesion(nivelActual, respuestas, segsNivel);
+    } else {
+      guardarResultadoSesion(nivelActual, respuestas, segsNivel);
+    }
+  }
   const sec = document.getElementById("resultsSectionNivel");
   sec.hidden = false;
 
@@ -5486,7 +5622,9 @@ function evaluarYMostrarNivel(respuestas, opciones = {}) {
 
   const tbody = document.getElementById("summaryBodyNivel");
   tbody.innerHTML = "";
-  preguntas.forEach((q, i) => {
+  if (!puedeMostrarClaves) {
+    tbody.innerHTML = `<tr><td colspan="4">Resultado guardado oficialmente. La retroalimentación se mostrará cuando el profesor la publique.</td></tr>`;
+  } else preguntas.forEach((q, i) => {
     const sinR = respuestas[i] === -1;
     const ok = !sinR && respuestas[i] === q.correcta;
     const tr = document.createElement("tr");
@@ -5501,7 +5639,9 @@ function evaluarYMostrarNivel(respuestas, opciones = {}) {
 
   const fbEl = document.getElementById("feedbackItemsNivel");
   fbEl.innerHTML = "";
-  preguntas.forEach((q, i) => {
+  if (!puedeMostrarClaves) {
+    fbEl.innerHTML = `<div class="feedback-pending-card"><strong>Retroalimentación protegida</strong><p>Las respuestas correctas y explicaciones permanecen ocultas hasta que el profesor las publique.</p></div>`;
+  } else preguntas.forEach((q, i) => {
     const sinR = respuestas[i] === -1;
     const ok = !sinR && respuestas[i] === q.correcta;
     const item = document.createElement("div");
@@ -5524,9 +5664,10 @@ function evaluarYMostrarNivel(respuestas, opciones = {}) {
     if (!card) return;
     const sinR = respuestas[i] === -1;
     const ok = !sinR && respuestas[i] === q.correcta;
-    card.classList.add(ok ? "result-correct" : "result-wrong");
+    if (puedeMostrarClaves) card.classList.add(ok ? "result-correct" : "result-wrong");
     card.querySelectorAll("input[type='radio']").forEach(inp => inp.disabled = true);
     card.querySelectorAll(".option-label").forEach((lbl, idx) => {
+      if (!puedeMostrarClaves) return;
       if (idx === q.correcta) lbl.classList.add("opt-correct");
       if (!sinR && !ok && idx === respuestas[i]) lbl.classList.add("opt-wrong");
     });
@@ -5561,16 +5702,16 @@ document.getElementById("btnIniciarNivel").addEventListener("click", async () =>
   document.getElementById("nivelFormWrap").scrollIntoView({ behavior: "smooth" });
 });
 
-document.getElementById("btnVerResultadoNivel").addEventListener("click", () => {
+document.getElementById("btnVerResultadoNivel").addEventListener("click", async () => {
   document.getElementById("timeoutOverlayNivel").classList.add("hidden");
   const respuestas = PREGUNTAS_NIVELES[nivelActual].map(q => {
     const ch = document.querySelector(`input[name="nivel-q${q.id}"]:checked`);
     return ch ? parseInt(ch.value, 10) : -1;
   });
-  evaluarYMostrarNivel(respuestas);
+  await evaluarYMostrarNivel(respuestas);
 });
 
-document.getElementById("nivelForm").addEventListener("submit", (e) => {
+document.getElementById("nivelForm").addEventListener("submit", async (e) => {
   e.preventDefault();
   const preguntas = PREGUNTAS_NIVELES[nivelActual];
   const sinResp = preguntas.some(q => !document.querySelector(`input[name="nivel-q${q.id}"]:checked`));
@@ -5590,7 +5731,7 @@ document.getElementById("nivelForm").addEventListener("submit", (e) => {
     const ch = document.querySelector(`input[name="nivel-q${q.id}"]:checked`);
     return parseInt(ch.value, 10);
   });
-  evaluarYMostrarNivel(respuestas);
+  await evaluarYMostrarNivel(respuestas);
 });
 
 document.getElementById("btnRestartNivel").addEventListener("click", () => {
@@ -10460,15 +10601,15 @@ document.getElementById("btnIniciarExamen").addEventListener("click", async () =
 });
 
 /** Tiempo agotado examen */
-document.getElementById("btnVerResultadoExamen").addEventListener("click", () => {
+document.getElementById("btnVerResultadoExamen").addEventListener("click", async () => {
   document.getElementById("timeoutOverlayExamen").classList.add("hidden");
   const resp = PREGUNTAS_EXAMEN.map(q => {
     const ch = document.querySelector(`input[name="examen-q${q.id}"]:checked`);
     return ch ? parseInt(ch.value, 10) : -1;
   });
-  evaluarYMostrarExamen(resp);
+  await evaluarYMostrarExamen(resp);
 });
-document.getElementById("examenForm").addEventListener("submit", (e) => {
+document.getElementById("examenForm").addEventListener("submit", async (e) => {
   e.preventDefault();
   const sinResp = PREGUNTAS_EXAMEN.some(q => !document.querySelector(`input[name="examen-q${q.id}"]:checked`));
   if (sinResp) {
@@ -10487,23 +10628,39 @@ document.getElementById("examenForm").addEventListener("submit", (e) => {
     const ch = document.querySelector(`input[name="examen-q${q.id}"]:checked`);
     return parseInt(ch.value, 10);
   });
-  evaluarYMostrarExamen(resp);
+  await evaluarYMostrarExamen(resp);
 });
 
 /** Submit manual examen */
-function evaluarYMostrarExamen(respuestas, opciones = {}) {
+async function evaluarYMostrarExamen(respuestas, opciones = {}) {
   if (!opciones.restaurando) limpiarIntentoActivo();
   examenIniciado = false;
   examenCompletado = true;
   document.getElementById("submitBtnExamen").style.display = "none";
   const tiempoEmpleado = (15 * 60) - segsExamen;
-  if (!opciones.restaurando) guardarResultadoSesion("examen", respuestas, segsExamen);
+  const puedeMostrarClaves = tieneClavesRespuesta(PREGUNTAS_EXAMEN);
   let correctas = 0;
   PREGUNTAS_EXAMEN.forEach((q, i) => { if (respuestas[i] === q.correcta) correctas++; });
-  const incorrectas = PREGUNTAS_EXAMEN.length - correctas;
-  const pct  = Math.round((correctas / PREGUNTAS_EXAMEN.length) * 100);
-  const nota = calcNota(pct);
-  const badge = calcBadge(pct);
+  let incorrectas = PREGUNTAS_EXAMEN.length - correctas;
+  let pct  = Math.round((correctas / PREGUNTAS_EXAMEN.length) * 100);
+  let nota = calcNota(pct);
+  let badge = calcBadge(pct);
+  if (!opciones.restaurando) {
+    const serverMetrics = puedeMostrarClaves
+      ? null
+      : await guardarResultadoSesionConServidor("examen", respuestas, segsExamen);
+    if (serverMetrics) {
+      correctas = serverMetrics.correctas;
+      incorrectas = serverMetrics.incorrectas;
+      pct = serverMetrics.porcentaje;
+      nota = serverMetrics.nota;
+      badge = calcBadge(pct);
+    } else if (puedeMostrarClaves) {
+      guardarResultadoSesion("examen", respuestas, segsExamen);
+    } else {
+      guardarResultadoSesion("examen", respuestas, segsExamen);
+    }
+  }
 
   const sec = document.getElementById("resultsSectionExamen");
   sec.hidden = false;
@@ -10540,7 +10697,9 @@ function evaluarYMostrarExamen(respuestas, opciones = {}) {
   // Tabla (con LaTeX completo)
   const tbody = document.getElementById("summaryBodyExamen");
   tbody.innerHTML = "";
-  PREGUNTAS_EXAMEN.forEach((q, i) => {
+  if (!puedeMostrarClaves) {
+    tbody.innerHTML = `<tr><td colspan="4">Resultado guardado oficialmente. La retroalimentación se mostrará cuando el profesor la publique.</td></tr>`;
+  } else PREGUNTAS_EXAMEN.forEach((q, i) => {
     const sinR = respuestas[i] === -1;
     const ok   = !sinR && respuestas[i] === q.correcta;
     const tr = document.createElement("tr");
@@ -10556,7 +10715,9 @@ function evaluarYMostrarExamen(respuestas, opciones = {}) {
   // Retroalimentación
   const fbEl = document.getElementById("feedbackItemsExamen");
   fbEl.innerHTML = "";
-  PREGUNTAS_EXAMEN.forEach((q, i) => {
+  if (!puedeMostrarClaves) {
+    fbEl.innerHTML = `<div class="feedback-pending-card"><strong>Retroalimentación protegida</strong><p>Las respuestas correctas y explicaciones permanecen ocultas hasta que el profesor las publique.</p></div>`;
+  } else PREGUNTAS_EXAMEN.forEach((q, i) => {
     const sinR = respuestas[i] === -1;
     const ok   = !sinR && respuestas[i] === q.correcta;
     const item = document.createElement("div");
@@ -10580,9 +10741,10 @@ function evaluarYMostrarExamen(respuestas, opciones = {}) {
     if (!card) return;
     const sinR = respuestas[i] === -1;
     const ok   = !sinR && respuestas[i] === q.correcta;
-    card.classList.add(ok ? "result-correct" : "result-wrong");
+    if (puedeMostrarClaves) card.classList.add(ok ? "result-correct" : "result-wrong");
     card.querySelectorAll("input[type='radio']").forEach(inp => inp.disabled = true);
     card.querySelectorAll(".option-label").forEach((lbl, idx) => {
+      if (!puedeMostrarClaves) return;
       if (idx === q.correcta) lbl.classList.add("opt-correct");
       if (!sinR && !ok && idx === respuestas[i]) lbl.classList.add("opt-wrong");
     });
@@ -10631,7 +10793,7 @@ async function restaurarIntentoActivo() {
     document.getElementById("diagFormWrap").hidden = false;
     actualizarProgreso();
     segundosRestantes = restante;
-    if (restante <= 0) evaluarYMostrar(respuestasDesdeIntento(PREGUNTAS, "diag"));
+    if (restante <= 0) await evaluarYMostrar(respuestasDesdeIntento(PREGUNTAS, "diag"));
     else iniciarTimer(true);
     return;
   }
@@ -10650,7 +10812,7 @@ async function restaurarIntentoActivo() {
     aplicarRespuestasGuardadas("nivel", nivelActual, PREGUNTAS_NIVELES[nivelActual]);
     actualizarProgresoNivel();
     segsNivel = restante;
-    if (restante <= 0) evaluarYMostrarNivel(respuestasDesdeIntento(PREGUNTAS_NIVELES[nivelActual], "nivel"));
+    if (restante <= 0) await evaluarYMostrarNivel(respuestasDesdeIntento(PREGUNTAS_NIVELES[nivelActual], "nivel"));
     else iniciarTimerNivel(true);
     return;
   }
@@ -10667,7 +10829,7 @@ async function restaurarIntentoActivo() {
     aplicarRespuestasGuardadas("examen", "examen", PREGUNTAS_EXAMEN);
     actualizarProgresoExamen();
     segsExamen = restante;
-    if (restante <= 0) evaluarYMostrarExamen(respuestasDesdeIntento(PREGUNTAS_EXAMEN, "examen"));
+    if (restante <= 0) await evaluarYMostrarExamen(respuestasDesdeIntento(PREGUNTAS_EXAMEN, "examen"));
     else iniciarTimerExamen(true);
   }
 }

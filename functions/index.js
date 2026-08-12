@@ -1480,6 +1480,92 @@ exports.getExamAccessState = onRequest({ region: "us-central1" }, async (req, re
   });
 });
 
+exports.getTeacherExamQuestions = onRequest({ region: "us-central1" }, async (req, res) => {
+  setCors(res);
+  if (req.method === "OPTIONS") return res.status(204).send("");
+  if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
+
+  let decoded;
+  try {
+    decoded = await requireAuth(req);
+  } catch {
+    return res.status(401).json({ error: "Debes iniciar sesión." });
+  }
+
+  const classId = String(req.body?.classId || "").trim();
+  const ownerUid = String(req.body?.ownerUid || "").trim();
+  const level = normalizeExamLevel(req.body?.level);
+  const bank = normalizeExamBank(req.body?.bank);
+  if (!classId || !ownerUid || !level) return res.status(400).json({ error: "Faltan aula, profesor o examen." });
+
+  const db = admin.firestore();
+  const [classSnap, userSnap, permissionSnap] = await Promise.all([
+    db.collection("classes").doc(classId).get(),
+    db.collection("users").doc(decoded.uid).get(),
+    db.collection("classPermissions").doc(classId).get()
+  ]);
+  if (!classSnap.exists) return res.status(404).json({ error: "Aula no encontrada." });
+  const classData = classSnap.data() || {};
+  const userData = userSnap.exists ? userSnap.data() : {};
+  const callerEmail = normalizeEmail(decoded.email);
+  const isPlatformOwner = callerEmail === "solanojhonatan2000@gmail.com";
+  const isTeacherOwner = classData.ownerUid === decoded.uid && ownerUid === decoded.uid;
+  const isStudentInClass =
+    userData.classId === classId ||
+    userData.claseId === classId ||
+    userData.aulaId === classId;
+  if (!isPlatformOwner && !isTeacherOwner && !isStudentInClass) {
+    return res.status(403).json({ error: "No tienes acceso a estas preguntas." });
+  }
+  if (classData.ownerUid !== ownerUid && !isPlatformOwner) {
+    return res.status(403).json({ error: "El profesor no corresponde a esta aula." });
+  }
+
+  const feedbackPublished = permissionSnap.exists &&
+    permissionSnap.data()?.examSettings?.[level]?.feedbackPublished === true;
+  const questionsSnap = await db.collection("teacherQuestions")
+    .where("ownerUid", "==", ownerUid)
+    .get();
+  const questions = questionsSnap.docs
+    .map(docSnap => ({ id: docSnap.id, ...docSnap.data() }))
+    .filter(question =>
+      question.active !== false &&
+      question.level === level &&
+      (question.bank || "principal") === bank &&
+      (!question.classId || question.classId === classId)
+    )
+    .sort((a, b) => Number(a.createdAtMs || 0) - Number(b.createdAtMs || 0))
+    .map(question => {
+      const base = {
+        id: question.id,
+        classId: question.classId || "",
+        className: question.className || "",
+        level: question.level || "",
+        bank: question.bank || "",
+        questionText: question.questionText || question.pregunta || "",
+        questionLatex: question.questionLatex || "",
+        imageUrl: question.imageUrl || "",
+        imageAlt: question.imageAlt || "Imagen de apoyo para la pregunta",
+        options: Array.isArray(question.options) ? question.options : (question.opciones || []),
+        active: question.active !== false,
+        createdAtMs: Number(question.createdAtMs || 0),
+        _questionSource: "teacher",
+        _questionId: question.id
+      };
+      if (isTeacherOwner || isPlatformOwner || feedbackPublished) {
+        return {
+          ...base,
+          correctOption: Number(question.correctOption ?? question.correcta ?? 0),
+          explanationText: question.explanationText || question.explicacion || "",
+          explanationLatex: question.explanationLatex || ""
+        };
+      }
+      return base;
+    });
+
+  return res.status(200).json({ ok: true, classId, ownerUid, level, bank, questions });
+});
+
 exports.updateExamAccessConfig = onRequest({ region: "us-central1" }, async (req, res) => {
   setCors(res);
   if (req.method === "OPTIONS") return res.status(204).send("");
@@ -1560,6 +1646,22 @@ function examLevelName(level = "") {
   return String(level || "Examen");
 }
 
+function normalizeExamBank(bank = "") {
+  return String(bank || "principal").trim() || "principal";
+}
+
+function safeDocPart(value = "") {
+  return String(value || "")
+    .trim()
+    .replace(/[^A-Za-z0-9_-]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 80) || "item";
+}
+
+function calcNotaFromPercent(pct = 0) {
+  return Math.round((Math.max(0, Math.min(100, Number(pct) || 0)) / 100 * 5) * 10) / 10;
+}
+
 function baseResultKey(key = "") {
   const value = String(key || "");
   return value.includes("::") ? value.split("::").pop() : value;
@@ -1602,6 +1704,23 @@ function attemptMetrics(level = "", attempt = {}) {
   };
 }
 
+function attemptMetricsFromOfficialAttempt(attempt = {}) {
+  const total = Number(attempt.totalQuestions || attempt.total || 0);
+  const correctas = Number(attempt.correctas || 0);
+  const incorrectas = Number(attempt.incorrectas || Math.max(0, total - correctas));
+  const tiempoTotalSegundos = Math.max(0, Number(attempt.tiempoTotalSegundos || 0));
+  const nota = Number(attempt.nota || 0);
+  return {
+    totalQuestions: total,
+    correctas,
+    incorrectas,
+    tiempoTotalSegundos,
+    tiempoTotalLabel: formatSeconds(tiempoTotalSegundos),
+    segundosPorPregunta: total ? tiempoTotalSegundos / total : 0,
+    nota
+  };
+}
+
 function attemptPresentedMillis(attempt = {}) {
   return toMillisDate(attempt.guardado) ||
     toMillisDate(attempt.presentedAt) ||
@@ -1628,6 +1747,160 @@ function formatReportDateParts(ms, timezoneConfig = COUNTRY_TIMEZONES.CO) {
     }).format(date)
   };
 }
+
+exports.submitExamAttempt = onRequest({ region: "us-central1" }, async (req, res) => {
+  setCors(res);
+  if (req.method === "OPTIONS") return res.status(204).send("");
+  if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
+
+  let decoded;
+  try {
+    decoded = await requireAuth(req);
+  } catch {
+    return res.status(401).json({ error: "Debes iniciar sesión." });
+  }
+
+  const classId = String(req.body?.classId || "").trim();
+  const level = normalizeExamLevel(req.body?.level);
+  const bank = normalizeExamBank(req.body?.bank);
+  const respuestas = Array.isArray(req.body?.respuestas) ? req.body.respuestas.map(value => Number(value)) : [];
+  const questionSnapshot = Array.isArray(req.body?.questionSnapshot) ? req.body.questionSnapshot : [];
+  const restante = Math.max(0, Number(req.body?.restante || 0));
+  if (!classId || !level) return res.status(400).json({ error: "Faltan aula o examen." });
+  if (!questionSnapshot.length || respuestas.length !== questionSnapshot.length) {
+    return res.status(400).json({ error: "El intento no contiene preguntas y respuestas válidas." });
+  }
+
+  const db = admin.firestore();
+  const [classSnap, userSnap, permissionSnap] = await Promise.all([
+    db.collection("classes").doc(classId).get(),
+    db.collection("users").doc(decoded.uid).get(),
+    db.collection("classPermissions").doc(classId).get()
+  ]);
+  if (!classSnap.exists) return res.status(404).json({ error: "Aula no encontrada." });
+  const classData = classSnap.data() || {};
+  const userData = userSnap.exists ? userSnap.data() : {};
+  const userEmail = normalizeEmail(decoded.email);
+  const isStudentInClass =
+    userData.classId === classId ||
+    userData.claseId === classId ||
+    userData.aulaId === classId;
+  const isPlatformOwner = userEmail === "solanojhonatan2000@gmail.com";
+  if (!isPlatformOwner && !isStudentInClass) {
+    return res.status(403).json({ error: "No tienes acceso a esta aula." });
+  }
+
+  const config = permissionSnap.exists ? (permissionSnap.data()?.examSettings?.[level] || {}) : {};
+  const nowMs = Date.now();
+  if (examAccessStatus(config, nowMs) !== "available") {
+    return res.status(403).json({ error: "El examen no está disponible en este momento." });
+  }
+
+  const attemptBaseParts = [decoded.uid, classId, bank, level].map(safeDocPart);
+  const previousAttemptSnaps = await Promise.all([
+    db.collection("examAttempts").doc([...attemptBaseParts, "1"].join("__")).get(),
+    db.collection("examAttempts").doc([...attemptBaseParts, "2"].join("__")).get()
+  ]);
+  const previousAttemptsCount = previousAttemptSnaps.filter(snap => snap.exists).length;
+  if (previousAttemptsCount >= 2) {
+    return res.status(403).json({ error: "Ya usaste los 2 intentos permitidos para este examen." });
+  }
+
+  const teacherSnap = await db.collection("teacherQuestions")
+    .where("ownerUid", "==", classData.ownerUid || "")
+    .get();
+  const teacherQuestionsById = new Map();
+  teacherSnap.docs.forEach(docSnap => {
+    const data = docSnap.data() || {};
+    if (data.active === false) return;
+    if (data.level !== level || (data.bank || "principal") !== bank) return;
+    if (data.classId && data.classId !== classId) return;
+    teacherQuestionsById.set(docSnap.id, { id: docSnap.id, ...data });
+  });
+
+  let correctas = 0;
+  let verifiedQuestions = 0;
+  const gradedSnapshot = questionSnapshot.map((question, index) => {
+    const source = String(question?._questionSource || question?.source || "legacy");
+    const questionId = String(question?._questionId || question?.questionId || question?.id || "");
+    const teacherQuestion = source === "teacher" ? teacherQuestionsById.get(questionId) : null;
+    const trustedCorrect = teacherQuestion
+      ? Number(teacherQuestion.correctOption)
+      : Number(question?.correcta ?? question?.correctOption);
+    const hasTrustedCorrect = Number.isInteger(trustedCorrect) && trustedCorrect >= 0 && trustedCorrect <= 3;
+    if (teacherQuestion) verifiedQuestions++;
+    const answer = Number(respuestas[index]);
+    const ok = hasTrustedCorrect && answer === trustedCorrect;
+    if (ok) correctas++;
+    return {
+      id: Number(question?.id || index + 1),
+      questionId,
+      source,
+      respuesta: Number.isInteger(answer) ? answer : -1,
+      correcta: hasTrustedCorrect ? trustedCorrect : -1,
+      verifiedByServer: Boolean(teacherQuestion),
+      ok
+    };
+  });
+
+  const total = gradedSnapshot.length;
+  const incorrectas = Math.max(0, total - correctas);
+  const porcentaje = total ? Math.round((correctas / total) * 100) : 0;
+  const nota = calcNotaFromPercent(porcentaje);
+  const tiempoTotalSegundos = Math.max(0, 15 * 60 - restante);
+  const attemptNumber = previousAttemptsCount + 1;
+  const attemptId = [...attemptBaseParts, String(attemptNumber)].join("__");
+
+  const payload = {
+    studentUid: decoded.uid,
+    studentEmail: userEmail,
+    studentName: userData.displayName || userData.name || decoded.name || userEmail,
+    classId,
+    className: classData.name || classData.className || "",
+    classCode: classData.code || "",
+    ownerUid: classData.ownerUid || "",
+    ownerEmail: normalizeEmail(classData.ownerEmail),
+    institutionDane: classData.institutionDane || userData.institutionDane || "",
+    level,
+    bank,
+    examName: examLevelName(level),
+    attemptNumber,
+    respuestas,
+    gradedSnapshot,
+    totalQuestions: total,
+    correctas,
+    incorrectas,
+    porcentaje,
+    nota,
+    restante,
+    tiempoTotalSegundos,
+    segundosPorPregunta: total ? tiempoTotalSegundos / total : 0,
+    serverGraded: true,
+    verifiedQuestions,
+    allQuestionsVerified: verifiedQuestions === total,
+    presentedAt: admin.firestore.FieldValue.serverTimestamp(),
+    presentedAtMs: nowMs,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+  };
+  await db.collection("examAttempts").doc(attemptId).set(payload, { merge: false });
+
+  return res.status(200).json({
+    ok: true,
+    attemptId,
+    attemptNumber,
+    totalQuestions: total,
+    correctas,
+    incorrectas,
+    porcentaje,
+    nota,
+    tiempoTotalSegundos,
+    segundosPorPregunta: payload.segundosPorPregunta,
+    serverGraded: true,
+    verifiedQuestions,
+    allQuestionsVerified: verifiedQuestions === total
+  });
+});
 
 exports.getAcademicReport = onRequest({ region: "us-central1" }, async (req, res) => {
   setCors(res);
@@ -1661,10 +1934,11 @@ exports.getAcademicReport = onRequest({ region: "us-central1" }, async (req, res
 
   const userData = userSnap.exists ? userSnap.data() : {};
   const timezoneConfig = timezoneConfigFromProfile(userData, req.body || {});
-  const [membersSnap, aulaStatesSnap, classStatesSnap] = await Promise.all([
+  const [membersSnap, aulaStatesSnap, classStatesSnap, officialAttemptsSnap] = await Promise.all([
     db.collection("classStudents").where("classId", "==", classId).get(),
     db.collection("studentState").where("aulaId", "==", classId).get(),
-    db.collection("studentState").where("claseId", "==", classId).get()
+    db.collection("studentState").where("claseId", "==", classId).get(),
+    db.collection("examAttempts").where("classId", "==", classId).get()
   ]);
 
   const states = new Map();
@@ -1691,8 +1965,41 @@ exports.getAcademicReport = onRequest({ region: "us-central1" }, async (req, res
   });
 
   const rows = [];
+  const officialStudentKeys = new Set();
+  officialAttemptsSnap.docs.forEach(docSnap => {
+    const attempt = docSnap.data() || {};
+    if (attempt.level !== level) return;
+    const studentUid = attempt.studentUid || "";
+    const studentEmail = attempt.studentEmail || "";
+    officialStudentKeys.add(studentUid || studentEmail);
+    const member = members.get(studentUid) ||
+      [...members.values()].find(item => item.email && studentEmail && normalizeEmail(item.email) === normalizeEmail(studentEmail)) ||
+      {};
+    const presentedAtMs = Number(attempt.presentedAtMs || attemptPresentedMillis(attempt) || 0);
+    const parts = formatReportDateParts(presentedAtMs, timezoneConfig);
+    rows.push({
+      studentUid,
+      studentName: member.name || attempt.studentName || "Sin nombre",
+      email: member.email || studentEmail,
+      classId,
+      className: classData.name || classData.className || attempt.className || "Aula",
+      classCode: classData.code || attempt.classCode || "",
+      examType: level,
+      examName: attempt.examName || examLevelName(level),
+      attemptNumber: Number(attempt.attemptNumber || 1),
+      presentedAt: presentedAtMs ? new Date(presentedAtMs).toISOString() : "",
+      presentedAtMs,
+      presentedDate: parts.date,
+      presentedTime: parts.time,
+      source: "server",
+      ...attemptMetricsFromOfficialAttempt(attempt)
+    });
+  });
+
   for (const member of members.values()) {
     const memberUid = member.userUid || member.uid || member.id;
+    const memberEmail = normalizeEmail(member.email);
+    if (officialStudentKeys.has(memberUid) || officialStudentKeys.has(memberEmail)) continue;
     const state = states.get(memberUid) ||
       [...states.values()].find(item => item.email && member.email && String(item.email).toLowerCase() === String(member.email).toLowerCase()) ||
       {};

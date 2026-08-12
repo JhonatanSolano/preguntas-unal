@@ -134,13 +134,6 @@ service cloud.firestore {
         request.resource.data.ownerUid == get(/databases/$(database)/documents/classes/$(classId)).data.ownerUid;
     }
 
-    function learnsFrom(ownerUid) {
-      return signedIn() &&
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.classOwnerUid == ownerUid &&
-        hasClassAccess(get(/databases/$(database)/documents/users/$(request.auth.uid)).data.classId);
-    }
-
     match /users/{uid} {
       allow read: if isPlatformOwner() ||
         (signedIn() && request.auth.uid == uid) ||
@@ -184,6 +177,16 @@ service cloud.firestore {
     match /studentState/{uid} {
       allow read, write: if hasActiveSubscription() &&
         (isAdmin() || (signedIn() && request.auth.uid == uid));
+    }
+
+    match /examAttempts/{attemptId} {
+      allow read: if hasActiveSubscription() && (
+        isPlatformOwner() ||
+        resource.data.studentUid == request.auth.uid ||
+        ownsClass(resource.data.classId) ||
+        ownsInstitutionOfClass(resource.data.classId)
+      );
+      allow create, update, delete: if false;
     }
 
     match /groupPermissions/{groupId} {
@@ -283,8 +286,7 @@ service cloud.firestore {
 
     match /teacherQuestions/{questionId} {
       allow read: if hasActiveSubscription() && (
-        resource.data.ownerUid == request.auth.uid ||
-        learnsFrom(resource.data.ownerUid)
+        resource.data.ownerUid == request.auth.uid
       );
       allow create: if hasActiveSubscription() && isAdmin() &&
         request.resource.data.ownerUid == request.auth.uid &&
