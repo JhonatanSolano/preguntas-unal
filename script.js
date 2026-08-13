@@ -135,6 +135,8 @@ let classMembershipValid = true;
 let registroEnCurso = false;
 let loginExpectedTypePending = "";
 let loginRejectMessagePending = "";
+let suppressAuthResetOnce = false;
+let googleAuthFlowInProgress = false;
 let phoneVerificationId = "";
 let phoneVerificationExpiresAt = 0;
 let recaptchaVerifier = null;
@@ -7026,6 +7028,10 @@ function setStatusTemporal(id, msg, tipo = "ok", ms = 5000) {
   }, ms);
 }
 
+function mostrarLoginErrorTemporal(id, msg, ms = 5000) {
+  setStatusTemporal(id, msg, "error", ms);
+}
+
 function mostrarReloadSesion() {
   document.getElementById("reloadSplash")?.classList.remove("hidden");
 }
@@ -8312,9 +8318,15 @@ async function registrarEmail() {
     registroEnCurso = false;
     volverSelectorAuth("login");
     mostrarWarn("Cuenta creada. Te enviamos un correo de verificación; abre el enlace y luego inicia sesión.");
-  } catch {
+  } catch (err) {
     registroEnCurso = false;
+    if (err?.code === "auth/email-already-in-use") {
+      mostrarWarn("Usuario ya registrado, por favor inicie sesión.");
+      document.getElementById("grupoWarn")?.classList.add("error");
+      return;
+    }
     mostrarWarn("No se pudo registrar ese correo.");
+    document.getElementById("grupoWarn")?.classList.add("error");
   }
 }
 
@@ -8342,6 +8354,7 @@ async function loginGoogle() {
     return;
   }
   try {
+    googleAuthFlowInProgress = true;
     if (authIntent === "login") setPendingLoginType(expectedType);
     const cred = await signInWithPopup(auth, new GoogleAuthProvider());
     const snap = await getDoc(doc(db, "users", cred.user.uid));
@@ -8365,7 +8378,9 @@ async function loginGoogle() {
     await prepararSesionAutenticada();
   } catch (err) {
     clearPendingLoginType();
-    mostrarWarn("No se pudo ingresar con Google.");
+    mostrarLoginErrorTemporal("loginStatus", "No se pudo ingresar con Google.");
+  } finally {
+    googleAuthFlowInProgress = false;
   }
 }
 
@@ -8378,6 +8393,7 @@ async function loginGoogleInstitucional() {
     return;
   }
   try {
+    googleAuthFlowInProgress = true;
     setPendingLoginType(expectedType);
     const cred = await signInWithPopup(auth, new GoogleAuthProvider());
     const email = (cred.user.email || "").toLowerCase();
@@ -8386,9 +8402,10 @@ async function loginGoogleInstitucional() {
     const expectedRole = expectedType === "teacher" ? "teacher" : "student";
     if (snap.exists()) {
       if (!loginCoincideConTipo(profile, expectedType, email) || normalizarDane(profile.institutionDane) !== dane) {
+        suppressAuthResetOnce = true;
         await signOut(auth);
         clearPendingLoginType();
-        setStatus("googleInstitutionStatus", "No tienes permisos de acceso por ninguna institución con ese correo y código DANE.", "error");
+        mostrarLoginErrorTemporal("googleInstitutionStatus", "No tienes permisos de acceso por ninguna institución con ese correo y código DANE.");
         return;
       }
       clearPendingLoginType();
@@ -8398,16 +8415,18 @@ async function loginGoogleInstitucional() {
     }
     const member = await buscarMiembroInstitucional(email, dane);
     if (!member || member.role !== expectedRole || member.status === "removed" || member.status === "blocked") {
+      suppressAuthResetOnce = true;
       await signOut(auth);
       clearPendingLoginType();
-      setStatus("googleInstitutionStatus", "No tienes permisos de acceso por ninguna institución con ese correo y código DANE.", "error");
+      mostrarLoginErrorTemporal("googleInstitutionStatus", "No tienes permisos de acceso por ninguna institución con ese correo y código DANE.");
       return;
     }
     const institutionState = await institucionTienePlanActivo(dane);
     if (!institutionState.active) {
+      suppressAuthResetOnce = true;
       await signOut(auth);
       clearPendingLoginType();
-      setStatus("googleInstitutionStatus", "La institución no tiene una suscripción activa.", "error");
+      mostrarLoginErrorTemporal("googleInstitutionStatus", "La institución no tiene una suscripción activa.");
       return;
     }
     await guardarPerfilUsuario({
@@ -8441,7 +8460,9 @@ async function loginGoogleInstitucional() {
   } catch (err) {
     clearPendingLoginType();
     console.error(err);
-    setStatus("googleInstitutionStatus", "No fue posible ingresar con Google. Revisa el código DANE o intenta de nuevo.", "error");
+    mostrarLoginErrorTemporal("googleInstitutionStatus", "No fue posible ingresar con Google. Revisa el código DANE o intenta de nuevo.");
+  } finally {
+    googleAuthFlowInProgress = false;
   }
 }
 
@@ -10661,8 +10682,16 @@ if (sessionStorage.getItem(STORAGE_RELOAD_SESION) === "1") {
 
 onAuthStateChanged(auth, async user => {
   usuarioActual = user;
+  if (user && googleAuthFlowInProgress) {
+    ocultarReloadSesion();
+    return;
+  }
   if (!user) {
     ocultarReloadSesion();
+    if (suppressAuthResetOnce) {
+      suppressAuthResetOnce = false;
+      return;
+    }
     historialSecciones = [];
     historialAdelante = [];
     seccionActual = "inicio";
