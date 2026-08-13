@@ -33,7 +33,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="style.css?v=20260812-02" />
+  <link rel="stylesheet" href="style.css?v=20260813-01" />
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -762,6 +762,7 @@
       <button class="drawer-close" id="btnDrawerClose" type="button" aria-label="Cerrar menú">×</button>
     </div>
     <button class="drawer-link" id="btnDrawerHome" type="button">Inicio</button>
+    <button class="drawer-link" data-section="aprendizaje" type="button">Aprendizaje</button>
     <button class="drawer-link" data-section="perfil" type="button">Perfil</button>
     <button class="drawer-link" data-section="examenes" type="button">Exámenes</button>
     <button class="drawer-link student-only" data-section="estadisticas" type="button">Estadísticas</button>
@@ -797,6 +798,41 @@
           <button class="btn btn-outline" id="btnBancoAnterior" type="button">← Ver banco anterior</button>
           <button class="btn btn-primary" id="btnBancoSiguiente" type="button">Pasar al siguiente banco</button>
         </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ══════════════════ APRENDIZAJE ══════════════════ -->
+  <main class="main-content hidden" id="sectionAprendizaje">
+    <section class="learning-shell">
+      <div class="learning-hero">
+        <span class="section-kicker">Ruta de aprendizaje</span>
+        <h2>Aprende, practica y mide tu progreso</h2>
+        <p>Elige una rama, estudia un tema por nivel y pasa al examen relacionado cuando te sientas listo.</p>
+        <div class="learning-progress-card">
+          <strong id="learningProgressPct">0%</strong>
+          <span id="learningProgressText">Comienza una unidad para construir tu avance.</span>
+          <div class="learning-progress-bar"><i id="learningProgressBar"></i></div>
+        </div>
+      </div>
+
+      <div class="learning-layout">
+        <aside class="learning-sidebar">
+          <h3>Ramas matemáticas</h3>
+          <div id="learningBranches" class="learning-branch-list"></div>
+        </aside>
+
+        <section class="learning-workspace">
+          <div class="learning-toolbar">
+            <div>
+              <span class="section-kicker">Temas</span>
+              <h3 id="learningBranchTitle">Selecciona una rama</h3>
+            </div>
+            <div class="learning-level-tabs" id="learningLevelTabs" aria-label="Nivel de estudio"></div>
+          </div>
+          <div id="learningTopics" class="learning-topic-grid"></div>
+          <article id="learningUnit" class="learning-unit"></article>
+        </section>
       </div>
     </section>
   </main>
@@ -2148,6 +2184,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260812-05"></script>
+  <script type="module" src="script.js?v=20260813-01"></script>
 </body>
 </html>

@@ -178,9 +178,9 @@ const attachmentPreviewUrls = new Map();
 const EMOJIS_MENSAJE = [
   ["😀", "feliz sonrisa alegre"], ["😃", "sonrisa feliz"], ["😄", "risa feliz"], ["😁", "sonrisa grande"], ["😆", "risa"], ["😅", "risa sudor"], ["😂", "llorando risa fuerte"], ["🤣", "carcajada llorando fuerte"], ["😭", "cara llorando fuerte"], ["😉", "guiño"], ["😘", "beso"], ["😗", "beso"], ["😙", "beso feliz"], ["😚", "beso tierno"], ["🥰", "amor cariño"], ["😍", "enamorado corazones"], ["🤩", "estrella emoción"], ["🥳", "celebración fiesta"], ["🤔", "pensando duda"], ["🙄", "ojos arriba"], ["🙂", "sonrisa suave"], ["🥲", "sonrisa lágrima"], ["🥺", "tierno triste"], ["😊", "feliz amable"], ["😌", "tranquilo"], ["😔", "triste"], ["😇", "ángel"], ["😈", "diablo"], ["⭐", "estrella"], ["👍", "bien pulgar"], ["❤️", "corazón amor"]
 ];
-const SECCIONES_ESTUDIANTE = new Set(["inicio", "perfil", "examenes", "diagnostico", "nivel1", "examen", "estadisticas", "mensajes", "asesorIA", "suscripcion", "configuracion", "facturacion", "soporte"]);
+const SECCIONES_ESTUDIANTE = new Set(["inicio", "aprendizaje", "perfil", "examenes", "diagnostico", "nivel1", "examen", "estadisticas", "mensajes", "asesorIA", "suscripcion", "configuracion", "facturacion", "soporte"]);
 const SECCIONES_PROFESOR = new Set(["admin", "perfil", "examenes", "adminMetricas", "reportes", "mensajes", "asesorIA", "suscripcion", "configuracion", "facturacion", "soporte"]);
-const SECCIONES_ESTUDIANTE_INSTITUCIONAL = new Set(["inicio", "perfil", "examenes", "diagnostico", "nivel1", "examen", "estadisticas", "mensajes", "asesorIA", "configuracion", "soporte"]);
+const SECCIONES_ESTUDIANTE_INSTITUCIONAL = new Set(["inicio", "aprendizaje", "perfil", "examenes", "diagnostico", "nivel1", "examen", "estadisticas", "mensajes", "asesorIA", "configuracion", "soporte"]);
 const SECCIONES_PROFESOR_INSTITUCIONAL = new Set(["admin", "perfil", "examenes", "adminMetricas", "reportes", "mensajes", "asesorIA", "configuracion", "soporte"]);
 const SECCIONES_INSTITUCION = new Set(["inicio", "perfil", "adminMetricas", "suscripcion", "facturacion", "configuracion", "soporte"]);
 const PHONE_CODE_DURATION_MS = 2 * 60 * 1000;
@@ -191,6 +191,178 @@ const PROFILE_PHOTO_QUALITY = 0.82;
 const PROFILE_PHOTO_FULL_MAX_SIDE = 1800;
 const PROFILE_PHOTO_FULL_QUALITY = 0.92;
 const REPORT_PAGE_SIZE = 10;
+const LEARNING_STORAGE_KEY = "matematicasBolsilloLearningProgress";
+const LEARNING_LAST_KEY = "matematicasBolsilloLearningLast";
+const EXAM_DURATIONS_BY_LEVEL = {
+  diagnostico: 15 * 60,
+  nivel1: 25 * 60,
+  examen: 35 * 60
+};
+const LEVEL_LABELS = {
+  facil: "Fácil",
+  medio: "Medio",
+  avanzado: "Avanzado"
+};
+const LEVEL_TO_EXAM = {
+  facil: "diagnostico",
+  medio: "nivel1",
+  avanzado: "examen"
+};
+const EXAM_TO_LEVEL = {
+  diagnostico: "facil",
+  nivel1: "medio",
+  examen: "avanzado"
+};
+
+const LEARNING_CATALOG = [
+  {
+    id: "algebra",
+    title: "Álgebra",
+    icon: "🧩",
+    description: "Expresiones, ecuaciones, factorización y patrones.",
+    topics: [
+      {
+        id: "ecuaciones",
+        title: "Ecuaciones y despejes",
+        summary: "Aprende a transformar una igualdad sin perder equivalencia.",
+        keyConcepts: ["Equilibrio de la igualdad", "Operaciones inversas", "Verificación de soluciones"],
+        levels: {
+          facil: {
+            theory: "Una ecuación es una igualdad con incógnitas. La idea central es hacer la misma operación en ambos lados hasta aislar la variable.",
+            example: ["Parte de \\(2x+3=11\\).", "Resta 3 a ambos lados: \\(2x=8\\).", "Divide entre 2: \\(x=4\\).", "Verifica: \\(2(4)+3=11\\)."],
+            practice: { question: "Resuelve \\(3x-6=9\\)", options: ["\\(x=3\\)", "\\(x=5\\)", "\\(x=9\\)"], answer: 1 }
+          },
+          medio: {
+            theory: "En ecuaciones con fracciones conviene eliminar denominadores usando el mínimo común múltiplo.",
+            example: ["Para \\(\\frac{x}{3}+2=5\\), resta 2.", "Queda \\(\\frac{x}{3}=3\\).", "Multiplica por 3: \\(x=9\\)."],
+            practice: { question: "Si \\(\\frac{x}{4}+1=6\\), entonces", options: ["\\(x=20\\)", "\\(x=24\\)", "\\(x=28\\)"], answer: 0 }
+          },
+          avanzado: {
+            theory: "Una ecuación cuadrática puede resolverse por factorización, completación de cuadrados o fórmula general.",
+            example: ["Para \\(x^2-5x+6=0\\), busca dos números que sumen 5 y multipliquen 6.", "Factoriza: \\((x-2)(x-3)=0\\).", "Soluciones: \\(x=2\\) o \\(x=3\\)."],
+            practice: { question: "Las raíces de \\(x^2-7x+10=0\\) son", options: ["\\(1,10\\)", "\\(2,5\\)", "\\(3,4\\)"], answer: 1 }
+          }
+        }
+      },
+      {
+        id: "factorizacion",
+        title: "Factorización",
+        summary: "Convierte expresiones en productos para simplificar y resolver.",
+        keyConcepts: ["Factor común", "Trinomios", "Diferencia de cuadrados"],
+        levels: {
+          facil: {
+            theory: "Factorizar es escribir una suma como producto. El primer paso suele ser buscar factor común.",
+            example: ["En \\(6x+9\\), el factor común es 3.", "Entonces \\(6x+9=3(2x+3)\\)."],
+            practice: { question: "Factoriza \\(4x+8\\)", options: ["\\(4(x+2)\\)", "\\(2(x+4)\\)", "\\(x(4+8)\\)"], answer: 0 }
+          },
+          medio: {
+            theory: "Los trinomios de la forma \\(x^2+bx+c\\) se factorizan buscando dos números que sumen \\(b\\) y multipliquen \\(c\\).",
+            example: ["\\(x^2+5x+6\\)", "2 y 3 suman 5 y multiplican 6.", "\\((x+2)(x+3)\\)."],
+            practice: { question: "\\(x^2+7x+12\\) es", options: ["\\((x+3)(x+4)\\)", "\\((x+2)(x+6)\\)", "\\((x+1)(x+12)\\)"], answer: 0 }
+          },
+          avanzado: {
+            theory: "En expresiones combinadas conviene agrupar términos antes de factorizar.",
+            example: ["\\(ax+ay+bx+by\\)", "Agrupa: \\(a(x+y)+b(x+y)\\)", "Factor común: \\((a+b)(x+y)\\)."],
+            practice: { question: "Factoriza \\(xy+2x+3y+6\\)", options: ["\\((x+3)(y+2)\\)", "\\((x+2)(y+3)\\)", "\\((x+y)(2+3)\\)"], answer: 0 }
+          }
+        }
+      }
+    ]
+  },
+  {
+    id: "funciones",
+    title: "Funciones",
+    icon: "📈",
+    description: "Relaciones, gráficas, dominio, rango y transformaciones.",
+    topics: [
+      {
+        id: "lineales",
+        title: "Funciones lineales",
+        summary: "Interpreta pendiente, interceptos y cambio constante.",
+        keyConcepts: ["Pendiente", "Intercepto", "Variación constante"],
+        levels: {
+          facil: {
+            theory: "Una función lineal tiene forma \\(f(x)=mx+b\\). La pendiente \\(m\\) indica cuánto cambia \\(y\\) por cada unidad de \\(x\\).",
+            example: ["En \\(f(x)=2x+1\\), la pendiente es 2.", "Si \\(x\\) aumenta 1, \\(f(x)\\) aumenta 2."],
+            practice: { question: "La pendiente de \\(y=3x-4\\) es", options: ["\\(-4\\)", "\\(3\\)", "\\(1\\)"], answer: 1 }
+          },
+          medio: {
+            theory: "Con dos puntos puedes hallar la pendiente usando \\(m=\\frac{y_2-y_1}{x_2-x_1}\\).",
+            example: ["Puntos \\((1,2)\\) y \\((3,6)\\).", "\\(m=\\frac{6-2}{3-1}=2\\)."],
+            practice: { question: "Pendiente entre \\((0,1)\\) y \\((2,5)\\)", options: ["\\(1\\)", "\\(2\\)", "\\(4\\)"], answer: 1 }
+          },
+          avanzado: {
+            theory: "Las transformaciones lineales permiten modelar cambios de escala y desplazamientos.",
+            example: ["Si \\(g(x)=f(x-2)+3\\), la gráfica se mueve 2 a la derecha y 3 hacia arriba."],
+            practice: { question: "\\(f(x)=x\\), entonces \\(f(x-4)+1\\) se desplaza", options: ["4 derecha y 1 arriba", "4 izquierda y 1 arriba", "4 derecha y 1 abajo"], answer: 0 }
+          }
+        }
+      }
+    ]
+  },
+  {
+    id: "geometria",
+    title: "Geometría",
+    icon: "📐",
+    description: "Figuras, ángulos, áreas, perímetros y visualización.",
+    topics: [
+      {
+        id: "triangulos",
+        title: "Triángulos",
+        summary: "Relaciona lados, ángulos, semejanza y teoremas clave.",
+        keyConcepts: ["Suma de ángulos", "Pitágoras", "Semejanza"],
+        levels: {
+          facil: {
+            theory: "La suma de los ángulos interiores de cualquier triángulo es \\(180^\\circ\\).",
+            example: ["Si dos ángulos son \\(60^\\circ\\) y \\(50^\\circ\\), el tercero es \\(70^\\circ\\)."],
+            practice: { question: "Si un triángulo tiene \\(40^\\circ\\) y \\(80^\\circ\\), falta", options: ["\\(40^\\circ\\)", "\\(60^\\circ\\)", "\\(80^\\circ\\)"], answer: 1 }
+          },
+          medio: {
+            theory: "En triángulos rectángulos, Pitágoras afirma \\(a^2+b^2=c^2\\).",
+            example: ["Catetos 3 y 4.", "\\(c^2=9+16=25\\).", "\\(c=5\\)."],
+            practice: { question: "Catetos 6 y 8, hipotenusa", options: ["\\(10\\)", "\\(12\\)", "\\(14\\)"], answer: 0 }
+          },
+          avanzado: {
+            theory: "La semejanza conserva ángulos y escala lados proporcionalmente.",
+            example: ["Si el factor de escala es 3, todos los lados se multiplican por 3 y el área por 9."],
+            practice: { question: "Si el lado se duplica, el área se multiplica por", options: ["2", "4", "8"], answer: 1 }
+          }
+        }
+      }
+    ]
+  },
+  {
+    id: "probabilidad",
+    title: "Probabilidad y datos",
+    icon: "🎲",
+    description: "Conteo, eventos, porcentajes, gráficas y decisiones.",
+    topics: [
+      {
+        id: "probabilidad-basica",
+        title: "Probabilidad básica",
+        summary: "Calcula posibilidades y compara eventos.",
+        keyConcepts: ["Espacio muestral", "Evento", "Razón favorable/total"],
+        levels: {
+          facil: {
+            theory: "La probabilidad clásica es \\(\\frac{casos\\ favorables}{casos\\ posibles}\\).",
+            example: ["En un dado, sacar 6 tiene probabilidad \\(\\frac16\\)."],
+            practice: { question: "Probabilidad de sacar par en un dado", options: ["\\(\\frac12\\)", "\\(\\frac13\\)", "\\(\\frac16\\)"], answer: 0 }
+          },
+          medio: {
+            theory: "En eventos compuestos debes cuidar si hay reemplazo o no.",
+            example: ["Dos monedas tienen 4 resultados posibles: CC, CS, SC, SS."],
+            practice: { question: "Dos monedas, probabilidad de dos caras", options: ["\\(\\frac14\\)", "\\(\\frac12\\)", "\\(\\frac34\\)"], answer: 0 }
+          },
+          avanzado: {
+            theory: "La probabilidad condicional actualiza el espacio muestral según información previa.",
+            example: ["Si ya sabes que un número de dado es par, el espacio es {2,4,6}."],
+            practice: { question: "Dado par, probabilidad de que sea 6", options: ["\\(\\frac16\\)", "\\(\\frac13\\)", "\\(\\frac12\\)"], answer: 1 }
+          }
+        }
+      }
+    ]
+  }
+];
 
 const PHONE_CODES = [
   { code: "+57", label: "Colombia (+57)", flag: "", country: "Colombia" },
@@ -501,11 +673,11 @@ const PREGUNTAS = [
 
 /* ────────────────────────────────────────────────────
    2. TEMPORIZADOR
-   - DURACION_SEG: duración total en segundos
+   - duración total según dificultad
    - timerInterval: referencia al setInterval activo
    - timerActivo: bandera para evitar doble inicio
 ──────────────────────────────────────────────────── */
-const DURACION_SEG = 15 * 60; // 15 minutos
+const DURACION_SEG = EXAM_DURATIONS_BY_LEVEL.diagnostico; // compatibilidad: diagnóstico/fácil
 let segundosRestantes = DURACION_SEG;
 let timerInterval     = null;
 let timerActivo       = false;
@@ -517,6 +689,22 @@ function formatTiempo(seg) {
   return `${m}:${s}`;
 }
 
+function duracionExamenSeg(clave = "diagnostico") {
+  const base = claveBaseResultado(clave);
+  return EXAM_DURATIONS_BY_LEVEL[base] || EXAM_DURATIONS_BY_LEVEL.diagnostico;
+}
+
+function duracionIntentoActivo(tipo = "diag", clave = "diagnostico") {
+  if (tipo === "nivel") return duracionExamenSeg("nivel1");
+  if (tipo === "examen") return duracionExamenSeg("examen");
+  return duracionExamenSeg(clave);
+}
+
+function etiquetaDuracionNivel(level = "facil") {
+  const clave = LEVEL_TO_EXAM[level] || "diagnostico";
+  return `${Math.round(duracionExamenSeg(clave) / 60)} minutos`;
+}
+
 function setExamHeaderActivo(activo) {
   document.body.classList.toggle("exam-active", activo);
 }
@@ -526,7 +714,7 @@ function iniciarTimer(continuar = false) {
   if (timerActivo) return;
   timerActivo = true;
   setExamHeaderActivo(true);
-  if (!continuar) segundosRestantes = DURACION_SEG;
+  if (!continuar) segundosRestantes = duracionExamenSeg("diagnostico");
 
   const displayEl = document.getElementById("timerDisplay");
   const timerBox  = document.getElementById("timerBox");
@@ -569,8 +757,8 @@ function detenerTimer() {
 /** Reinicia el timer visualmente para un nuevo intento */
 function resetTimer() {
   detenerTimer();
-  segundosRestantes = DURACION_SEG;
-  document.getElementById("timerDisplay").textContent = formatTiempo(DURACION_SEG);
+  segundosRestantes = duracionExamenSeg("diagnostico");
+  document.getElementById("timerDisplay").textContent = formatTiempo(segundosRestantes);
 }
 
 /** Muestra el overlay de tiempo agotado */
@@ -648,7 +836,7 @@ function metricasIntento(clave, intento) {
   const correctas = answerKey.reduce((acc, correcta, i) => acc + (intento.respuestas?.[i] === correcta ? 1 : 0), 0);
   const incorrectas = total - correctas;
   const tiempoRestante = Math.max(0, intento.restante || 0);
-  const tiempoEmpleado = DURACION_SEG - tiempoRestante;
+  const tiempoEmpleado = duracionExamenSeg(clave) - tiempoRestante;
   const pct = Math.round((correctas / total) * 100);
   const nota = calcNota(pct);
   return {
@@ -845,7 +1033,7 @@ function examenGratisIndependienteHabilitado(clave, bank = bancoActivo, perfil =
 }
 
 function seccionPermitidaPruebaGratis(section) {
-  return tienePruebaDiagnosticoGratis() && ["inicio", "perfil", "examenes", "diagnostico", "nivel1", "examen", "estadisticas", "suscripcion", "facturacion", "configuracion", "soporte"].includes(section);
+  return tienePruebaDiagnosticoGratis() && ["inicio", "aprendizaje", "perfil", "examenes", "diagnostico", "nivel1", "examen", "estadisticas", "suscripcion", "facturacion", "configuracion", "soporte"].includes(section);
 }
 
 function seccionRequiereSuscripcion(section) {
@@ -1957,6 +2145,7 @@ function aplicarVisibilidadResultadoIntento(clave, sectionId, retryButtonId) {
 
 function retroalimentacionPublicada(clave) {
   if (modoAdmin) return true;
+  if (esEstudianteIndependiente()) return intentosUsados(clave) >= 2;
   if (!grupoActivo) return false;
   const cached = examAccessStateCache[`${grupoActivo}::${clave}`];
   if (cached) return cached.feedbackPublished === true;
@@ -1978,11 +2167,26 @@ function renderAvisoRetroalimentacion(section, clave, publicada) {
   }
   aviso.innerHTML = `
     <strong>Retroalimentación pendiente de publicación</strong>
-    <p>Tu resultado general ya está guardado. Las respuestas correctas, explicaciones y soluciones aparecerán cuando el profesor publique la retroalimentación de ${escapeHtml(nombreExamen(clave))} para tu aula.</p>
+    <p>${esEstudianteIndependiente()
+      ? `Tu resultado general ya está guardado. Las respuestas correctas, explicaciones y soluciones aparecerán cuando termines tu segundo intento de ${escapeHtml(nombreExamen(clave))}.`
+      : `Tu resultado general ya está guardado. Las respuestas correctas, explicaciones y soluciones aparecerán cuando el profesor publique la retroalimentación de ${escapeHtml(nombreExamen(clave))} para tu aula.`
+    }</p>
   `;
 }
 
+function feedbackVideoHtml(question = {}) {
+  const url = question.videoUrl || question.solutionVideoUrl || question.videoExplicacionUrl || "";
+  if (!url) return "";
+  const safeUrl = escapeHtml(url);
+  const isEmbed = /youtube\.com\/embed\/|player\.vimeo\.com\/video\//i.test(url);
+  if (isEmbed) {
+    return `<div class="fb-video"><strong>Video explicativo:</strong><iframe src="${safeUrl}" title="Video explicativo de la pregunta" loading="lazy" allowfullscreen></iframe></div>`;
+  }
+  return `<div class="fb-video"><strong>Video explicativo:</strong><a href="${safeUrl}" target="_blank" rel="noopener">Abrir video de la solución</a></div>`;
+}
+
 function iniciarIntentoActivo(tipo, clave, total) {
+  const duracionSeg = duracionIntentoActivo(tipo, clave);
   intentoActivo = {
     tipo,
     clave,
@@ -1990,7 +2194,8 @@ function iniciarIntentoActivo(tipo, clave, total) {
     total,
     respuestas: {},
     inicio: Date.now(),
-    vence: Date.now() + DURACION_SEG * 1000,
+    vence: Date.now() + duracionSeg * 1000,
+    duracionSeg,
     ultimaActividad: Date.now()
   };
   guardarIntentoActivo();
@@ -2272,7 +2477,7 @@ async function evaluarYMostrar(respuestas, opciones = {}) {
 
 async function mostrarResultados(respuestas, correctas, incorrectas, pct, nota, badge) {
   resultsSection.hidden = false;
-  const tiempoEmpleado = DURACION_SEG - segundosRestantes;
+  const tiempoEmpleado = duracionExamenSeg("diagnostico") - segundosRestantes;
   const preguntasResultado = await cargarPreguntasRetroalimentacionOficial("diagnostico", PREGUNTAS);
   const puedeMostrarClaves = tieneClavesRespuesta(preguntasResultado);
 
@@ -2343,6 +2548,7 @@ async function mostrarResultados(respuestas, correctas, incorrectas, pct, nota, 
       <p class="fb-resp"><strong>Tu respuesta:</strong> ${sinResp ? "No respondida" : LETRAS[respuestas[i]] + ") " + q.opciones[respuestas[i]]}</p>
       ${!ok ? `<p class="fb-resp"><strong>Respuesta correcta:</strong> ${LETRAS[q.correcta]}) ${q.opciones[q.correcta]}</p>` : ""}
       <div class="fb-expl"><strong>Explicación:</strong><br>${q.explicacion}</div>
+      ${feedbackVideoHtml(q)}
     `;
     feedbackEl.appendChild(item);
   });
@@ -2528,6 +2734,7 @@ function mostrarSeccion(sec) {
   if (sec !== "examenes") limpiarBorradorPreguntaProfesor();
   if (sec !== "suscripcion") planChangeInProgress = false;
   document.getElementById("sectionInicio").classList.toggle("hidden", sec !== "inicio");
+  document.getElementById("sectionAprendizaje")?.classList.toggle("hidden", sec !== "aprendizaje");
   document.getElementById("sectionSuscripcion")?.classList.toggle("hidden", sec !== "suscripcion");
   document.getElementById("sectionFacturacion")?.classList.toggle("hidden", sec !== "facturacion");
   document.getElementById("sectionExamenes").classList.toggle("hidden", sec !== "examenes");
@@ -2548,6 +2755,7 @@ function mostrarSeccion(sec) {
   if (sec === "admin") renderAdminPanel();
   if (sec === "estadisticas") renderStudentStats();
   if (sec === "inicio") actualizarBienvenida();
+  if (sec === "aprendizaje") renderLearningPanel();
   if (sec === "perfil") renderProfile();
   if (sec === "configuracion") renderConfiguracion();
   if (sec === "mensajes") renderMessagesPanel();
@@ -2627,6 +2835,13 @@ function confirmarSalidaPreguntaProfesor(secDestino = "") {
 }
 
 function confirmarCambioSeccion(secDestino = "") {
+  if (intentoActivo && ["diagnostico", "nivel1", "examen"].includes(seccionActual) && secDestino !== seccionActual) {
+    const destinoIntento = intentoActivo.tipo === "diag" ? "diagnostico" : intentoActivo.tipo === "nivel" ? intentoActivo.clave : "examen";
+    if (secDestino !== destinoIntento) {
+      alert("Debes finalizar el examen actual antes de navegar a otra sección.");
+      return false;
+    }
+  }
   return confirmarSalidaMensajes(secDestino) && confirmarSalidaPreguntaProfesor(secDestino);
 }
 
@@ -3379,6 +3594,232 @@ function actualizarBancoEstudiante() {
   next.disabled = tienePlanGratisIndependiente() || !completado || idx === BANCOS_DISPONIBLES.length - 1;
   next.title = tienePlanGratisIndependiente() ? "Disponible con Plan Premium." : "";
 }
+
+function learningProgressAll() {
+  try {
+    return JSON.parse(localStorage.getItem(LEARNING_STORAGE_KEY) || "{}") || {};
+  } catch {
+    return {};
+  }
+}
+
+function saveLearningProgressAll(data) {
+  localStorage.setItem(LEARNING_STORAGE_KEY, JSON.stringify(data || {}));
+}
+
+function learningProgressId(branchId, topicId, level) {
+  return `${usuarioActual?.uid || "anon"}::${branchId}::${topicId}::${level}`;
+}
+
+function getLearningLast() {
+  try {
+    return JSON.parse(localStorage.getItem(LEARNING_LAST_KEY) || "null");
+  } catch {
+    return null;
+  }
+}
+
+function setLearningLast(selection) {
+  localStorage.setItem(LEARNING_LAST_KEY, JSON.stringify(selection));
+}
+
+function resolveLearningSelection(selection = getLearningLast()) {
+  const branch = LEARNING_CATALOG.find(item => item.id === selection?.branchId) || LEARNING_CATALOG[0];
+  const topic = branch.topics.find(item => item.id === selection?.topicId) || branch.topics[0];
+  const level = LEVEL_LABELS[selection?.level] ? selection.level : "facil";
+  return { branchId: branch.id, topicId: topic.id, level };
+}
+
+function learningProgressSummary() {
+  const progress = learningProgressAll();
+  const total = LEARNING_CATALOG.reduce((acc, branch) => acc + branch.topics.length * 3, 0);
+  const completed = Object.values(progress).filter(item => item?.completed).length;
+  return {
+    total,
+    completed,
+    pct: total ? Math.round((completed / total) * 100) : 0
+  };
+}
+
+function setLearningCompleted(selection) {
+  const progress = learningProgressAll();
+  const key = learningProgressId(selection.branchId, selection.topicId, selection.level);
+  progress[key] = {
+    completed: true,
+    completedAt: new Date().toISOString()
+  };
+  saveLearningProgressAll(progress);
+}
+
+function renderLearningPanel() {
+  const branchList = document.getElementById("learningBranches");
+  const topicsEl = document.getElementById("learningTopics");
+  const levelsEl = document.getElementById("learningLevelTabs");
+  if (!branchList || !topicsEl || !levelsEl) return;
+
+  const selection = resolveLearningSelection();
+  setLearningLast(selection);
+  const branch = LEARNING_CATALOG.find(item => item.id === selection.branchId) || LEARNING_CATALOG[0];
+  const topic = branch.topics.find(item => item.id === selection.topicId) || branch.topics[0];
+  const summary = learningProgressSummary();
+
+  document.getElementById("learningProgressPct").textContent = `${summary.pct}%`;
+  document.getElementById("learningProgressText").textContent = `${summary.completed} de ${summary.total} niveles completados.`;
+  document.getElementById("learningProgressBar").style.width = `${summary.pct}%`;
+  document.getElementById("learningBranchTitle").textContent = branch.title;
+
+  branchList.innerHTML = LEARNING_CATALOG.map(item => `
+    <button class="learning-branch ${item.id === branch.id ? "active" : ""}" type="button" data-learning-branch="${escapeHtml(item.id)}">
+      <span>${item.icon}</span>
+      <strong>${escapeHtml(item.title)}</strong>
+      <small>${escapeHtml(item.description)}</small>
+    </button>
+  `).join("");
+
+  levelsEl.innerHTML = Object.entries(LEVEL_LABELS).map(([level, label]) => `
+    <button class="${level === selection.level ? "active" : ""}" type="button" data-learning-level="${escapeHtml(level)}">
+      ${escapeHtml(label)}
+    </button>
+  `).join("");
+
+  const progress = learningProgressAll();
+  topicsEl.innerHTML = branch.topics.map(item => {
+    const completed = progress[learningProgressId(branch.id, item.id, selection.level)]?.completed;
+    return `
+      <button class="learning-topic ${item.id === topic.id ? "active" : ""}" type="button" data-learning-topic="${escapeHtml(item.id)}">
+        <span>${completed ? "✓" : "○"}</span>
+        <strong>${escapeHtml(item.title)}</strong>
+        <small>${escapeHtml(item.summary)}</small>
+      </button>
+    `;
+  }).join("");
+
+  renderLearningUnit(branch, topic, selection.level);
+}
+
+function renderLearningUnit(branch, topic, level) {
+  const unit = document.getElementById("learningUnit");
+  if (!unit) return;
+  const data = topic.levels[level] || topic.levels.facil;
+  const examKey = LEVEL_TO_EXAM[level] || "diagnostico";
+  const progress = learningProgressAll();
+  const completed = progress[learningProgressId(branch.id, topic.id, level)]?.completed;
+  unit.innerHTML = `
+    <header class="learning-unit-head">
+      <div>
+        <span class="section-kicker">${escapeHtml(branch.title)} · ${escapeHtml(LEVEL_LABELS[level])}</span>
+        <h3>${escapeHtml(topic.title)}</h3>
+        <p>${escapeHtml(topic.summary)}</p>
+      </div>
+      <span class="learning-master-badge ${completed ? "done" : ""}">${completed ? "Completado" : "En progreso"}</span>
+    </header>
+
+    <div class="learning-resource-grid">
+      <article>
+        <h4>Teoría interactiva</h4>
+        <p>${renderInlineMathText(data.theory)}</p>
+      </article>
+      <article>
+        <h4>Conceptos clave</h4>
+        <ul>${topic.keyConcepts.map(concept => `<li>${escapeHtml(concept)}</li>`).join("")}</ul>
+      </article>
+      <article class="learning-wide">
+        <h4>Ejemplo paso a paso</h4>
+        <ol>${data.example.map(step => `<li>${renderInlineMathText(step)}</li>`).join("")}</ol>
+      </article>
+      <article>
+        <h4>Material descargable</h4>
+        <p>PDF guía del tema preparado para agregarse desde el repositorio o Firebase Storage.</p>
+        <button class="btn btn-outline" type="button" disabled>PDF próximamente</button>
+      </article>
+      <article>
+        <h4>Video del profesor</h4>
+        <p>Espacio listo para insertar videos propios por tema y nivel.</p>
+        <button class="btn btn-outline" type="button" disabled>Video próximamente</button>
+      </article>
+    </div>
+
+    <div class="learning-practice" data-learning-practice>
+      <span class="section-kicker">Práctica rápida</span>
+      <h4>${renderInlineMathText(data.practice.question)}</h4>
+      <div class="learning-practice-options">
+        ${data.practice.options.map((option, idx) => `
+          <button type="button" data-learning-answer="${idx}">${renderInlineMathText(option)}</button>
+        `).join("")}
+      </div>
+      <p class="bank-status" data-learning-status></p>
+    </div>
+
+    <div class="learning-actions">
+      <button class="btn btn-outline" type="button" id="btnLearningComplete">${completed ? "Reforzar de nuevo" : "Marcar tema como estudiado"}</button>
+      <button class="btn btn-primary" type="button" id="btnLearningExam">
+        Ir al examen ${escapeHtml(LEVEL_LABELS[level])} · ${etiquetaDuracionNivel(level)}
+      </button>
+    </div>
+  `;
+  if (window.renderMathInElement) {
+    renderMathInElement(unit, { delimiters: KATEX_DELIMITERS, throwOnError: false });
+  }
+}
+
+function renderInlineMathText(value = "") {
+  return escapeHtml(value);
+}
+
+function handleLearningClick(event) {
+  const branchButton = event.target.closest("[data-learning-branch]");
+  const topicButton = event.target.closest("[data-learning-topic]");
+  const levelButton = event.target.closest("[data-learning-level]");
+  const answerButton = event.target.closest("[data-learning-answer]");
+  const selection = resolveLearningSelection();
+
+  if (branchButton) {
+    const branch = LEARNING_CATALOG.find(item => item.id === branchButton.dataset.learningBranch) || LEARNING_CATALOG[0];
+    setLearningLast({ branchId: branch.id, topicId: branch.topics[0].id, level: selection.level });
+    renderLearningPanel();
+    return;
+  }
+  if (topicButton) {
+    setLearningLast({ ...selection, topicId: topicButton.dataset.learningTopic });
+    renderLearningPanel();
+    return;
+  }
+  if (levelButton) {
+    setLearningLast({ ...selection, level: levelButton.dataset.learningLevel });
+    renderLearningPanel();
+    return;
+  }
+  if (answerButton) {
+    const current = resolveLearningSelection();
+    const branch = LEARNING_CATALOG.find(item => item.id === current.branchId);
+    const topic = branch?.topics.find(item => item.id === current.topicId);
+    const practice = topic?.levels[current.level]?.practice;
+    const selected = Number(answerButton.dataset.learningAnswer);
+    const status = document.querySelector("[data-learning-status]");
+    document.querySelectorAll("[data-learning-answer]").forEach(btn => btn.classList.remove("correct", "wrong"));
+    answerButton.classList.add(selected === practice?.answer ? "correct" : "wrong");
+    if (status) {
+      status.textContent = selected === practice?.answer
+        ? "Correcto. Ya puedes marcar el tema como estudiado."
+        : "Revisa el ejemplo paso a paso y vuelve a intentarlo.";
+      status.className = `bank-status ${selected === practice?.answer ? "ok" : "error"}`;
+    }
+  }
+}
+
+document.getElementById("sectionAprendizaje")?.addEventListener("click", event => {
+  handleLearningClick(event);
+  if (event.target.closest("#btnLearningComplete")) {
+    const selection = resolveLearningSelection();
+    setLearningCompleted(selection);
+    renderLearningPanel();
+  }
+  if (event.target.closest("#btnLearningExam")) {
+    const selection = resolveLearningSelection();
+    const examKey = LEVEL_TO_EXAM[selection.level] || "diagnostico";
+    activarNav(examKey);
+  }
+});
 
 function abrirDrawer() {
   document.getElementById("sideDrawer")?.classList.remove("hidden");
@@ -5975,7 +6416,7 @@ let nivelIniciado = false;
 let nivelCompletadoVisible = false;
 let timerNivelInterval = null;
 let timerNivelActivo = false;
-let segsNivel = DURACION_SEG;
+let segsNivel = duracionExamenSeg("nivel1");
 
 function cargarPermisosGrupo() {
   try {
@@ -6353,7 +6794,7 @@ function iniciarTimerNivel(continuar = false) {
   if (timerNivelActivo) return;
   timerNivelActivo = true;
   setExamHeaderActivo(true);
-  if (!continuar) segsNivel = DURACION_SEG;
+  if (!continuar) segsNivel = duracionExamenSeg("nivel1");
   const display = document.getElementById("timerDisplay");
   const timerBox = document.getElementById("timerBox");
   display.textContent = formatTiempo(segsNivel);
@@ -6387,8 +6828,8 @@ function detenerTimerNivel() {
 
 function resetTimerNivel() {
   detenerTimerNivel();
-  segsNivel = DURACION_SEG;
-  document.getElementById("timerDisplay").textContent = formatTiempo(DURACION_SEG);
+  segsNivel = duracionExamenSeg("nivel1");
+  document.getElementById("timerDisplay").textContent = formatTiempo(segsNivel);
 }
 
 function abrirNivel(clave) {
@@ -6491,7 +6932,7 @@ async function evaluarYMostrarNivel(respuestas, opciones = {}) {
   document.getElementById("submitBtnNivel").style.display = "none";
 
   const preguntas = PREGUNTAS_NIVELES[nivelActual];
-  const tiempoEmpleado = DURACION_SEG - segsNivel;
+  const tiempoEmpleado = duracionExamenSeg(clave) - segsNivel;
   const puedeMostrarClaves = tieneClavesRespuesta(preguntas);
   let correctas = 0;
   preguntas.forEach((q, i) => { if (respuestas[i] === q.correcta) correctas++; });
@@ -6577,6 +7018,8 @@ async function evaluarYMostrarNivel(respuestas, opciones = {}) {
       <p class="fb-resp"><strong>Tu respuesta:</strong> ${sinR ? "No respondida" : LETRAS[respuestas[i]] + ") " + q.opciones[respuestas[i]]}</p>
       ${!ok ? `<p class="fb-resp"><strong>Respuesta correcta:</strong> ${LETRAS[q.correcta]}) ${q.opciones[q.correcta]}</p>` : ""}
       <div class="fb-expl"><strong>Explicación:</strong><br>${q.explicacion}</div>
+      ${feedbackVideoHtml(q)}
+      ${feedbackVideoHtml(q)}
     `;
     fbEl.appendChild(item);
   });
@@ -9479,6 +9922,13 @@ async function verificarCodigoTelefono() {
     await cargarPerfilUsuario();
     renderProfile();
     setPhoneStatus("Teléfono verificado correctamente.", "ok");
+    setTimeout(() => {
+      const status = document.getElementById("phoneStatus");
+      if (status?.textContent === "Teléfono verificado correctamente.") {
+        status.textContent = "";
+        status.className = "bank-status";
+      }
+    }, 5000);
   } catch {
     setPhoneStatus("Código inválido o verificación no aceptada por Firebase.", "error");
   }
@@ -11491,13 +11941,13 @@ document.getElementById("btnGuardarBanco")?.addEventListener("click", async () =
 ──────────────────────────────────────────────────── */
 let timerExamenInterval = null;
 let timerExamenActivo   = false;
-let segsExamen          = 15 * 60;
+let segsExamen          = duracionExamenSeg("examen");
 
 function iniciarTimerExamen(continuar = false) {
   if (timerExamenActivo) return;
   timerExamenActivo = true;
   setExamHeaderActivo(true);
-  if (!continuar) segsExamen = 15 * 60;
+  if (!continuar) segsExamen = duracionExamenSeg("examen");
   const display  = document.getElementById("timerDisplay");
   const timerBox = document.getElementById("timerBox");
   display.textContent = formatTiempo(segsExamen);
@@ -11530,7 +11980,7 @@ function detenerTimerExamen() {
 
 function resetTimerExamen() {
   detenerTimerExamen();
-  segsExamen = 15 * 60;
+  segsExamen = duracionExamenSeg("examen");
   document.getElementById("timerDisplay").textContent = formatTiempo(segsExamen);
 }
 
@@ -11646,7 +12096,7 @@ async function evaluarYMostrarExamen(respuestas, opciones = {}) {
   examenIniciado = false;
   examenCompletado = true;
   document.getElementById("submitBtnExamen").style.display = "none";
-  const tiempoEmpleado = (15 * 60) - segsExamen;
+  const tiempoEmpleado = duracionExamenSeg("examen") - segsExamen;
   const puedeMostrarClaves = tieneClavesRespuesta(PREGUNTAS_EXAMEN);
   let correctas = 0;
   PREGUNTAS_EXAMEN.forEach((q, i) => { if (respuestas[i] === q.correcta) correctas++; });
