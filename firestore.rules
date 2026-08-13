@@ -127,6 +127,16 @@ service cloud.firestore {
         request.resource.data.ownerUid == get(/databases/$(database)/documents/classes/$(classId)).data.ownerUid;
     }
 
+    function joinsIndependentClass() {
+      return signedIn() &&
+        request.resource.data.userUid == request.auth.uid &&
+        request.resource.data.email == request.auth.token.email &&
+        request.resource.data.classCode == "J5AEDJ" &&
+        request.resource.data.status == "activo" &&
+        exists(/databases/$(database)/documents/classes/$(request.resource.data.classId)) &&
+        get(/databases/$(database)/documents/classes/$(request.resource.data.classId)).data.code == "J5AEDJ";
+    }
+
     match /users/{uid} {
       allow read: if isPlatformOwner() ||
         (signedIn() && request.auth.uid == uid) ||
@@ -309,6 +319,8 @@ service cloud.firestore {
           joinsExistingClass(request.resource.data.classId) &&
           request.resource.data.status == "activo"
         )
+      ) || (
+        joinsIndependentClass()
       );
       allow update: if hasActiveSubscription() && (
         (isAdmin() && ownsClass(request.resource.data.classId)) ||
@@ -318,6 +330,9 @@ service cloud.firestore {
           request.resource.data.status == resource.data.status &&
           joinsExistingClass(request.resource.data.classId)
         )
+      ) || (
+        resource.data.status != "bloqueado" &&
+        joinsIndependentClass()
       );
       allow delete: if hasActiveSubscription() && (
         (isAdmin() && ownsClass(resource.data.classId)) ||

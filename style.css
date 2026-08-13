@@ -10405,6 +10405,7 @@ body:not(.app-active) .public-footer .footer-faq-link {
 }
 
 #loginStatus.bank-status.error,
+#googleInstitutionStatus.bank-status.error,
 #forgotPasswordStatus.bank-status.error,
 #recoverStatus.bank-status.error,
 #loginTypeStatus.bank-status.error {

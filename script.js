@@ -7777,7 +7777,16 @@ async function prepararSesionAutenticada() {
   await cargarEstadoRemoto();
   await mostrarSplashBienvenida();
   if (esEstudianteIndependiente()) {
-    await asegurarAulaIndependienteAutomatica();
+    const aulaOk = await asegurarAulaIndependienteAutomatica().catch(err => {
+      console.warn("No se pudo asignar aula independiente automáticamente.", err);
+      return false;
+    });
+    if (!aulaOk) {
+      document.body.classList.remove("group-locked");
+      aplicarModoUsuario();
+      activarNav("inicio");
+      return;
+    }
   }
   if (!suscripcionActiva()) {
     document.body.classList.remove("group-locked");
@@ -8413,7 +8422,7 @@ async function loginGoogleInstitucional() {
   const dane = normalizarDane(document.getElementById("googleInstitutionDane")?.value || "");
   if (!["institutionalStudent", "teacher"].includes(expectedType)) return;
   if (!dane) {
-    setStatus("googleInstitutionStatus", "Escribe el código DANE de la institución.", "error");
+    mostrarLoginErrorTemporal("googleInstitutionStatus", "Escribe el código DANE de la institución.");
     return;
   }
   try {
