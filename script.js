@@ -990,6 +990,10 @@ function esProfesorInstitucional(perfil = perfilActual) {
   return rolUsuario(perfil) === "teacher" && cuentaInstitucional(perfil) && !esPropietarioPlataforma();
 }
 
+function puedeGestionarContenidoAprendizaje(perfil = perfilActual) {
+  return !!usuarioActual && (esPropietarioPlataforma() || rolUsuario(perfil) === "teacher");
+}
+
 function facturacionDisponible(perfil = perfilActual) {
   if (esPropietarioPlataforma()) return true;
   if (esInstitucion(perfil)) return true;
@@ -2875,6 +2879,7 @@ function actualizarBotonVolver() {
 
 function activarNav(sec, options = {}) {
   if (!confirmarCambioSeccion(sec)) return false;
+  if (sec === "aprendizaje") cerrarDrawer();
   const permitidasActuales = seccionesPermitidasActuales();
   if (!permitidasActuales.has(sec)) sec = seccionInicioActual();
   if (!suscripcionActiva() && seccionRequiereSuscripcion(sec)) {
@@ -3660,11 +3665,16 @@ async function guardarLearningProgressRemoto(key, selection, payload) {
 }
 
 function currentLearningResourceId(selection, ownerUid = usuarioActual?.uid || "anon") {
-  return `${ownerUid}__${selection.branchId}__${selection.topicId}__${selection.level}`.replace(/[^a-zA-Z0-9_-]/g, "_");
+  const scope = selection.scope || "global";
+  const target = scope === "class" ? selection.classId : scope === "grade" ? selection.grade : "all";
+  return `${ownerUid}__${scope}__${target}__${selection.branchId}__${selection.topicId}__${selection.level}`.replace(/[^a-zA-Z0-9_-]/g, "_");
 }
 
 function learningResourceCacheKey(selection) {
-  return `${selection.branchId}__${selection.topicId}__${selection.level}`;
+  const classId = selection.classId || claseActiva || perfilActual?.classId || "";
+  const grade = selection.grade || perfilActual?.grade || perfilActual?.group || "";
+  const scope = selection.scope || "";
+  return `${selection.branchId}__${selection.topicId}__${selection.level}__${scope}__${classId}__${grade}`;
 }
 
 async function cargarLearningResource(selection, force = false) {
@@ -3675,13 +3685,20 @@ async function cargarLearningResource(selection, force = false) {
     where("branchId", "==", selection.branchId),
     where("topicId", "==", selection.topicId),
     where("level", "==", selection.level),
-    limit(10)
+    limit(30)
   ));
   let selected = null;
+  const currentClassId = claseActiva || perfilActual?.classId || "";
+  const currentGrade = perfilActual?.grade || perfilActual?.group || "";
   snap.forEach(item => {
     const data = { id: item.id, ...item.data() };
+    const visibleGlobal = data.scope === "global" || !data.scope;
+    const visibleClass = data.scope === "class" && data.classId && data.classId === currentClassId;
+    const visibleGrade = data.scope === "grade" && data.grade && data.grade === currentGrade;
+    if (!visibleGlobal && !visibleClass && !visibleGrade && !puedeGestionarContenidoAprendizaje()) return;
     if (!selected) selected = data;
-    if (data.ownerUid === perfilActual?.classOwnerUid) selected = data;
+    if (visibleGlobal && esPropietarioPlataforma()) selected = data;
+    if ((visibleClass || visibleGrade) && data.ownerUid === perfilActual?.classOwnerUid) selected = data;
     if (data.ownerUid === usuarioActual?.uid) selected = data;
   });
   learningResourcesCache.set(cacheKey, selected);
@@ -3694,7 +3711,7 @@ function renderLearningResourceSlots(resource) {
   if (pdfSlot) {
     pdfSlot.innerHTML = resource?.pdfUrl
       ? `<p>${escapeHtml(resource.title || "Guía descargable")}</p><a class="btn btn-outline" href="${escapeHtml(resource.pdfUrl)}" target="_blank" rel="noopener">Abrir PDF</a>`
-      : `<p>PDF guía del tema preparado para agregarse desde Firebase Storage.</p><button class="btn btn-outline" type="button" disabled>PDF próximamente</button>`;
+      : `<p>Guía descargable del tema. El profesor podrá agregarla cuando esté disponible.</p><button class="btn btn-outline" type="button" disabled>PDF próximamente</button>`;
   }
   if (videoSlot) {
     const url = resource?.videoUrl || resource?.externalVideoUrl || "";
@@ -3849,7 +3866,7 @@ function renderLearningUnit(branch, topic, level) {
       <article>
         <h4>Material descargable</h4>
         <div id="learningPdfSlot">
-          <p>PDF guía del tema preparado para agregarse desde Firebase Storage.</p>
+          <p>Guía descargable del tema. El profesor podrá agregarla cuando esté disponible.</p>
           <button class="btn btn-outline" type="button" disabled>PDF próximamente</button>
         </div>
       </article>
@@ -3886,20 +3903,48 @@ function renderLearningUnit(branch, topic, level) {
   renderLearningResourceForSelection({ branchId: branch.id, topicId: topic.id, level });
 }
 
-function puedeGestionarLearningResources() {
-  return !!usuarioActual && (modoAdmin || esProfesorInstitucional());
-}
-
 function renderLearningManager(selection = resolveLearningSelection()) {
   const manager = document.getElementById("learningTeacherManager");
   if (!manager) return;
-  manager.classList.toggle("hidden", !puedeGestionarLearningResources());
-  if (!puedeGestionarLearningResources()) return;
+  manager.classList.toggle("hidden", !puedeGestionarContenidoAprendizaje());
+  if (!puedeGestionarContenidoAprendizaje()) return;
 
+  const scopeSel = document.getElementById("learningManagerScope");
+  const classSel = document.getElementById("learningManagerClass");
+  const gradeSel = document.getElementById("learningManagerGrade");
   const branchSel = document.getElementById("learningManagerBranch");
   const topicSel = document.getElementById("learningManagerTopic");
   const levelSel = document.getElementById("learningManagerLevel");
   if (!branchSel || !topicSel || !levelSel) return;
+  const owner = esPropietarioPlataforma();
+  const selectedScope = selection.scope || scopeSel?.value || (owner ? "global" : "class");
+  const scopeHelp = document.getElementById("learningManagerScopeHelp");
+  if (scopeHelp) {
+    scopeHelp.textContent = owner
+      ? "Como dueño puedes publicar contenido interno para toda la plataforma. También puedes crear materiales por aula si lo necesitas."
+      : "Como profesor, el contenido que agregues debe aplicarse a un aula o grado específico y solo lo verán esos estudiantes.";
+  }
+  if (scopeSel) {
+    scopeSel.innerHTML = owner
+      ? `<option value="global">Toda la plataforma</option><option value="class">Aula específica</option><option value="grade">Grado/curso</option>`
+      : `<option value="class">Aula específica</option><option value="grade">Grado/curso</option>`;
+    scopeSel.value = (!owner && selectedScope === "global") ? "class" : selectedScope;
+  }
+  if (classSel) {
+    classSel.innerHTML = adminClases.length
+      ? adminClases.map(classroom => `<option value="${escapeHtml(classroom.id)}">${escapeHtml(classroom.name)} (${escapeHtml(classroom.code || "")})</option>`).join("")
+      : `<option value="">Sin aulas creadas</option>`;
+    classSel.value = selection.classId || adminClaseActiva || adminClases[0]?.id || "";
+    classSel.disabled = scopeSel?.value === "global";
+  }
+  if (gradeSel) {
+    const grades = gradosInstitucion();
+    gradeSel.innerHTML = grades.length
+      ? grades.map(grade => `<option value="${escapeHtml(grade)}">${escapeHtml(grade)}</option>`).join("")
+      : `<option value="">Escribe el grado en el título si no está configurado</option>`;
+    if (selection.grade && grades.includes(selection.grade)) gradeSel.value = selection.grade;
+    gradeSel.disabled = scopeSel?.value !== "grade";
+  }
   branchSel.innerHTML = LEARNING_CATALOG.map(branch =>
     `<option value="${escapeHtml(branch.id)}">${escapeHtml(branch.title)}</option>`
   ).join("");
@@ -3919,7 +3964,13 @@ function getLearningManagerSelection() {
   const branchId = document.getElementById("learningManagerBranch")?.value || resolveLearningSelection().branchId;
   const topicId = document.getElementById("learningManagerTopic")?.value || resolveLearningSelection().topicId;
   const level = document.getElementById("learningManagerLevel")?.value || resolveLearningSelection().level;
-  return resolveLearningSelection({ branchId, topicId, level });
+  const base = resolveLearningSelection({ branchId, topicId, level });
+  return {
+    ...base,
+    scope: document.getElementById("learningManagerScope")?.value || (esPropietarioPlataforma() ? "global" : "class"),
+    classId: document.getElementById("learningManagerClass")?.value || "",
+    grade: document.getElementById("learningManagerGrade")?.value || ""
+  };
 }
 
 function resetLearningManagerFiles() {
@@ -3945,7 +3996,7 @@ async function subirLearningFile(file, selection, kind, resourceId) {
 }
 
 async function guardarLearningResource() {
-  if (!puedeGestionarLearningResources()) return;
+  if (!puedeGestionarContenidoAprendizaje()) return;
   const status = document.getElementById("learningManagerStatus");
   const title = document.getElementById("learningManagerTitle")?.value.trim() || "";
   const externalVideoUrl = document.getElementById("learningManagerVideoUrl")?.value.trim() || "";
@@ -3953,6 +4004,20 @@ async function guardarLearningResource() {
   const video = document.getElementById("learningManagerVideo")?.files?.[0] || null;
   const selection = getLearningManagerSelection();
   const resourceId = currentLearningResourceId(selection);
+  if (selection.scope === "class" && !selection.classId) {
+    if (status) {
+      status.textContent = "Selecciona el aula donde se verá este contenido.";
+      status.className = "bank-status error";
+    }
+    return;
+  }
+  if (selection.scope === "grade" && !selection.grade) {
+    if (status) {
+      status.textContent = "Selecciona el grado o curso donde se verá este contenido.";
+      status.className = "bank-status error";
+    }
+    return;
+  }
   if (status) {
     status.textContent = "Guardando recurso...";
     status.className = "bank-status";
@@ -3968,6 +4033,10 @@ async function guardarLearningResource() {
       branchId: selection.branchId,
       topicId: selection.topicId,
       level: selection.level,
+      scope: esPropietarioPlataforma() ? selection.scope : (selection.scope === "grade" ? "grade" : "class"),
+      classId: selection.scope === "class" ? selection.classId : "",
+      className: selection.scope === "class" ? nombreAulaPorId(selection.classId) : "",
+      grade: selection.scope === "grade" ? selection.grade : "",
       title,
       externalVideoUrl,
       ...uploads,
@@ -4067,10 +4136,16 @@ document.getElementById("sectionAprendizaje")?.addEventListener("change", event 
   if (event.target.matches("#learningManagerBranch")) {
     const selection = getLearningManagerSelection();
     const branch = LEARNING_CATALOG.find(item => item.id === selection.branchId) || LEARNING_CATALOG[0];
-    renderLearningManager({ branchId: branch.id, topicId: branch.topics[0].id, level: selection.level });
+    renderLearningManager({ ...selection, branchId: branch.id, topicId: branch.topics[0].id, level: selection.level });
+    renderLearningResourceForSelection(getLearningManagerSelection());
     return;
   }
-  if (event.target.matches("#learningManagerTopic, #learningManagerLevel")) {
+  if (event.target.matches("#learningManagerScope")) {
+    renderLearningManager(getLearningManagerSelection());
+    renderLearningResourceForSelection(getLearningManagerSelection());
+    return;
+  }
+  if (event.target.matches("#learningManagerTopic, #learningManagerLevel, #learningManagerClass, #learningManagerGrade")) {
     renderLearningResourceForSelection(getLearningManagerSelection());
   }
 });

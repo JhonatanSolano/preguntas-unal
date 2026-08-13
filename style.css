@@ -2926,6 +2926,8 @@ button.message-avatar {
 .learning-shell {
   display: grid;
   gap: 1rem;
+  max-width: 1180px;
+  margin-inline: auto;
 }
 .learning-hero {
   position: relative;
@@ -2933,15 +2935,14 @@ button.message-avatar {
   border: 1px solid rgba(24, 151, 147, .24);
   border-radius: 24px;
   padding: 1.4rem;
-  background:
-    radial-gradient(circle at 85% 10%, rgba(255, 209, 102, .24), transparent 28%),
-    linear-gradient(135deg, #ffffff 0%, #edf9f8 100%);
+  background: linear-gradient(135deg, #ffffff 0%, #f3fbfb 100%);
   box-shadow: 0 18px 45px rgba(7, 51, 70, .08);
 }
 .learning-hero h2 {
   margin: .25rem 0 .45rem;
   color: var(--c-navy);
-  font-size: clamp(1.7rem, 4vw, 2.6rem);
+  font-size: clamp(1.7rem, 4vw, 2.85rem);
+  line-height: 1.04;
 }
 .learning-hero p {
   color: var(--c-muted);
@@ -2989,8 +2990,9 @@ button.message-avatar {
 .learning-unit {
   border: 1px solid rgba(0, 62, 101, .14);
   border-radius: 20px;
-  background: rgba(255,255,255,.92);
+  background: rgba(255,255,255,.96);
   box-shadow: 0 12px 34px rgba(7, 51, 70, .06);
+  overflow: hidden;
 }
 .learning-sidebar {
   padding: 1rem;
@@ -3114,11 +3116,28 @@ button.message-avatar {
   border-radius: 16px;
   padding: .95rem;
   background: #fbfefd;
+  min-width: 0;
 }
 .learning-resource-grid h4,
 .learning-practice h4 {
   color: var(--c-navy);
   margin-top: 0;
+}
+
+.learning-resource-grid p,
+.learning-resource-grid li,
+.learning-practice h4,
+.learning-unit p,
+.learning-unit li {
+  overflow-wrap: anywhere;
+}
+
+.learning-resource-grid .katex,
+.learning-practice .katex,
+.learning-unit .katex {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 .learning-wide {
   grid-column: 1 / -1;
@@ -3152,8 +3171,19 @@ button.message-avatar {
   padding: 24px;
   border: 1px solid rgba(19, 103, 123, 0.18);
   border-radius: 18px;
-  background: linear-gradient(135deg, rgba(255,255,255,0.96), rgba(235,250,250,0.9));
+  background: linear-gradient(135deg, #ffffff, #eefafa);
   box-shadow: 0 18px 40px rgba(4, 38, 61, 0.08);
+}
+
+.learning-manager-note {
+  margin-top: 12px;
+  padding: 14px 16px;
+  border-left: 4px solid #0a8f8f;
+  border-radius: 14px;
+  background: #effafa;
+  color: #17394f;
+  font-weight: 700;
+  line-height: 1.45;
 }
 
 .learning-manager h3 {
@@ -3193,6 +3223,36 @@ button.message-avatar {
   grid-column: span 3;
 }
 
+
+.learning-resource-grid img,
+.learning-unit img,
+.learning-manager img,
+.learning-resource-grid iframe,
+.learning-unit iframe,
+.learning-resource-grid video,
+.learning-unit video {
+  max-width: 100%;
+  height: auto;
+  border-radius: 14px;
+  object-fit: contain;
+}
+
+.learning-manager-grid input[type="file"] {
+  min-height: auto;
+  padding: .82rem;
+  background: linear-gradient(180deg, #ffffff, #f7fcfc);
+}
+
+.learning-manager-grid select:disabled,
+.learning-manager-grid input:disabled {
+  opacity: .72;
+  background: #eef4f5;
+  cursor: not-allowed;
+}
+
+.learning-manager .bank-status {
+  margin-top: .75rem;
+}
 body.exam-active #btnDrawerToggle,
 body.exam-active #btnSectionBack,
 body.exam-active #btnSectionForward,
