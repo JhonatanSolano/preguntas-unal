@@ -10413,6 +10413,15 @@ body:not(.app-active) .public-footer .footer-faq-link {
   font-weight: 900 !important;
 }
 
+.auth-gate #googleInstitutionStatus,
+.auth-gate #googleInstitutionStatus.bank-status,
+.auth-gate #googleInstitutionStatus.bank-status.error,
+p#googleInstitutionStatus.bank-status.error {
+  color: #c62839 !important;
+  font-weight: 900 !important;
+  text-shadow: none !important;
+}
+
 @media (max-width: 760px) {
   .billing-tabs {
     display: grid !important;

@@ -830,8 +830,22 @@ function tienePruebaDiagnosticoGratis(perfil = perfilActual) {
   return esEstudianteIndependiente(perfil) && !suscripcionActiva(perfil);
 }
 
+function tienePlanGratisIndependiente(perfil = perfilActual) {
+  return esEstudianteIndependiente(perfil) && !suscripcionActiva(perfil);
+}
+
+function bancoGratisIndependienteHabilitado(bank = bancoActivo, perfil = perfilActual) {
+  if (!tienePlanGratisIndependiente(perfil)) return true;
+  return (bank || "principal") === "principal";
+}
+
+function examenGratisIndependienteHabilitado(clave, bank = bancoActivo, perfil = perfilActual) {
+  if (!tienePlanGratisIndependiente(perfil)) return true;
+  return bancoGratisIndependienteHabilitado(bank, perfil) && ["diagnostico", "nivel1", "examen"].includes(clave);
+}
+
 function seccionPermitidaPruebaGratis(section) {
-  return tienePruebaDiagnosticoGratis() && ["inicio", "perfil", "examenes", "diagnostico", "estadisticas", "suscripcion", "facturacion", "configuracion", "soporte"].includes(section);
+  return tienePruebaDiagnosticoGratis() && ["inicio", "perfil", "examenes", "diagnostico", "nivel1", "examen", "estadisticas", "suscripcion", "facturacion", "configuracion", "soporte"].includes(section);
 }
 
 function seccionRequiereSuscripcion(section) {
@@ -1893,6 +1907,11 @@ function cambiarBanco(delta) {
   const idx = indiceBancoActivo();
   const nuevoIdx = idx + delta;
   if (nuevoIdx < 0 || nuevoIdx >= BANCOS_DISPONIBLES.length) return;
+  if (tienePlanGratisIndependiente() && BANCOS_DISPONIBLES[nuevoIdx] !== "principal") {
+    alert("El plan gratis solo habilita el Banco principal. Activa Premium para acceder a los bancos de reserva.");
+    activarNav("suscripcion");
+    return;
+  }
   if (delta > 0 && !bancoCompletado()) {
     alert("Para pasar al siguiente banco debes completar diagnóstico, nivel medio y examen final.");
     return;
@@ -2761,16 +2780,16 @@ function actualizarBienvenida() {
   }
   if (texto) {
     texto.textContent = tienePruebaDiagnosticoGratis()
-      ? "Tienes activa la prueba gratuita: puedes presentar el diagnóstico, usar sus dos intentos y revisar métricas y retroalimentación de ese examen. Para nivel medio, examen final, mensajes, Asesor IA y demás beneficios debes activar Premium."
+      ? "Tienes activa la versión gratuita: perteneces automáticamente al aula Matemáticas En Tu Bolsillo y puedes completar el Banco principal con diagnóstico, nivel medio y examen final, cada uno con sus dos intentos, métricas y retroalimentación. Para bancos de reserva, mensajes, Asesor IA y demás beneficios debes activar Premium."
       : !suscripcionActiva()
       ? "Tu cuenta está activa, pero las herramientas académicas están limitadas hasta que actives una suscripción o ingreses mediante una institución con plan vigente. Puedes completar tu perfil, revisar Suscripción y Facturación, y contactar soporte si necesitas ayuda."
       : aulaActualValida()
       ? "Desde aquí puedes presentar los exámenes habilitados por tu profesor, revisar tu avance, recibir mensajes del aula, consultar estadísticas y apoyarte en el Asesor IA para estudiar mejor."
       : "Completa tu perfil y entra a un aula con el código de tu profesor para desbloquear exámenes, mensajes, estadísticas y herramientas de estudio.";
   }
-  panel.querySelector(".bank-progress-panel")?.classList.toggle("hidden", esInstitucion() || !suscripcionActiva());
+  panel.querySelector(".bank-progress-panel")?.classList.toggle("hidden", esInstitucion());
   panel.hidden = false;
-  if (!esInstitucion() && suscripcionActiva()) actualizarBancoEstudiante();
+  if (!esInstitucion()) actualizarBancoEstudiante();
 }
 
 function renderExamenesHub() {
@@ -2801,12 +2820,12 @@ function renderExamenesHub() {
     intro.textContent = sinAula
       ? "Cuando ingreses el código de aula, podrás presentar los exámenes habilitados por tu profesor."
       : tienePruebaDiagnosticoGratis()
-      ? "Tu prueba gratuita incluye el diagnóstico, sus dos intentos, métricas y retroalimentación. Para nivel medio, examen final, mensajes y Asesor IA debes activar Premium."
+      ? "Tu versión gratuita incluye el Banco principal completo: diagnóstico, nivel medio y examen final, con dos intentos, métricas y retroalimentación. Para bancos de reserva, mensajes y Asesor IA debes activar Premium."
       : "Elige el examen que vas a presentar o revisar.";
   }
   document.querySelectorAll("[data-go-exam]").forEach(btn => {
     const clave = btn.dataset.goExam;
-    const bloqueadoGratis = tienePruebaDiagnosticoGratis() && clave !== "diagnostico";
+    const bloqueadoGratis = !examenGratisIndependienteHabilitado(clave);
     const config = normalizarExamSettings(examSettingsGrupo[grupoActivo] || {})[clave] || {};
     const estado = estadoExamenDesdeConfig(config);
     const noDisponible = !bloqueadoGratis && !sinAula && estado !== "available";
@@ -3335,10 +3354,16 @@ function actualizarBancoEstudiante() {
   const prev = document.getElementById("btnBancoAnterior");
   const next = document.getElementById("btnBancoSiguiente");
   if (!title || !text || !progress || !prev || !next) return;
+  if (tienePlanGratisIndependiente() && bancoActivo !== "principal") {
+    bancoActivo = "principal";
+    localStorage.setItem(STORAGE_BANCO_ACTIVO, bancoActivo);
+  }
   const idx = indiceBancoActivo();
   const completado = bancoCompletado();
   title.textContent = `${NOMBRES_BANCOS[bancoActivo]} (${idx + 1} de ${BANCOS_DISPONIBLES.length})`;
-  text.textContent = completado
+  text.textContent = tienePlanGratisIndependiente()
+    ? "Plan gratis: completa diagnóstico, nivel medio y examen final del Banco principal. Activa Premium para desbloquear todos los bancos de reserva."
+    : completado
     ? "Este banco ya está completo. Puedes revisar sus resultados o avanzar al siguiente banco."
     : "Completa diagnóstico, nivel medio y examen final para avanzar al siguiente banco.";
   const items = [
@@ -3351,7 +3376,8 @@ function actualizarBancoEstudiante() {
     return `<div class="bank-progress-item ${hecho ? "done" : ""}">${hecho ? "✓" : "○"} ${nombre}</div>`;
   }).join("");
   prev.disabled = idx === 0;
-  next.disabled = !completado || idx === BANCOS_DISPONIBLES.length - 1;
+  next.disabled = tienePlanGratisIndependiente() || !completado || idx === BANCOS_DISPONIBLES.length - 1;
+  next.title = tienePlanGratisIndependiente() ? "Disponible con Plan Premium." : "";
 }
 
 function abrirDrawer() {
@@ -6294,7 +6320,12 @@ function requisitoCumplido(clave) {
 function examenHabilitado(clave) {
   if (modoAdmin) return true;
   if (!aulaActualValida()) return false;
-  if (tienePruebaDiagnosticoGratis() && clave === "diagnostico") return true;
+  if (!examenGratisIndependienteHabilitado(clave)) return false;
+  if (tienePlanGratisIndependiente()) {
+    if (clave === "diagnostico") return true;
+    if (clave === "examen") return nivelesCompletados.nivel1;
+    return requisitoCumplido(clave);
+  }
   if (clave === "diagnostico") return permisoDirecto("diagnostico");
   if (clave === "examen") return permisoDirecto("examen") || nivelesCompletados.nivel1;
   return permisoDirecto(clave) || requisitoCumplido(clave);
@@ -6847,6 +6878,7 @@ function mostrarRegisterCard() {
 
 function mostrarInstitutionInfo() {
   cerrarLandingMenu();
+  limpiarCamposPublicos("institutionInfoCard");
   document.getElementById("loginCard")?.classList.add("hidden");
   document.getElementById("faqCard")?.classList.add("hidden");
   document.getElementById("tabLogin")?.classList.remove("active");
@@ -6855,6 +6887,7 @@ function mostrarInstitutionInfo() {
   document.getElementById("institutionInfoCard")?.classList.remove("hidden");
   inicializarFormularioInstitucional();
   actualizarBloqueoScrollPublico();
+  enfocarModalPublico("institutionInfoCard");
 }
 
 function cerrarInstitutionInfo() {
