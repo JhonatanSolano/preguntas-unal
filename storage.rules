@@ -63,6 +63,24 @@ service firebase.storage {
         ];
     }
 
+    function validLearningResource() {
+      return request.resource == null ||
+        (
+          (
+            request.resource.contentType == "application/pdf" &&
+            request.resource.size < 25 * 1024 * 1024
+          ) ||
+          (
+            request.resource.contentType in [
+              "video/mp4",
+              "video/webm",
+              "video/quicktime"
+            ] &&
+            request.resource.size < 180 * 1024 * 1024
+          )
+        );
+    }
+
     function teacherQuestion(questionId) {
       return firestore.get(/databases/(default)/documents/teacherQuestions/$(questionId)).data;
     }
@@ -124,6 +142,15 @@ service firebase.storage {
         request.auth.uid == ownerUid &&
         teacherQuestion(questionId).ownerUid == request.auth.uid &&
         validQuestionImage();
+    }
+
+    match /learningResources/{ownerUid}/{resourceId}/{fileName} {
+      allow read: if signedIn();
+      allow create, update: if hasActiveSubscription() &&
+        request.auth.uid == ownerUid &&
+        validLearningResource();
+      allow delete: if hasActiveSubscription() &&
+        request.auth.uid == ownerUid;
     }
 
     match /profilePhotos/{uid}/{fileName} {

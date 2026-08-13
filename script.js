@@ -179,9 +179,9 @@ const EMOJIS_MENSAJE = [
   ["😀", "feliz sonrisa alegre"], ["😃", "sonrisa feliz"], ["😄", "risa feliz"], ["😁", "sonrisa grande"], ["😆", "risa"], ["😅", "risa sudor"], ["😂", "llorando risa fuerte"], ["🤣", "carcajada llorando fuerte"], ["😭", "cara llorando fuerte"], ["😉", "guiño"], ["😘", "beso"], ["😗", "beso"], ["😙", "beso feliz"], ["😚", "beso tierno"], ["🥰", "amor cariño"], ["😍", "enamorado corazones"], ["🤩", "estrella emoción"], ["🥳", "celebración fiesta"], ["🤔", "pensando duda"], ["🙄", "ojos arriba"], ["🙂", "sonrisa suave"], ["🥲", "sonrisa lágrima"], ["🥺", "tierno triste"], ["😊", "feliz amable"], ["😌", "tranquilo"], ["😔", "triste"], ["😇", "ángel"], ["😈", "diablo"], ["⭐", "estrella"], ["👍", "bien pulgar"], ["❤️", "corazón amor"]
 ];
 const SECCIONES_ESTUDIANTE = new Set(["inicio", "aprendizaje", "perfil", "examenes", "diagnostico", "nivel1", "examen", "estadisticas", "mensajes", "asesorIA", "suscripcion", "configuracion", "facturacion", "soporte"]);
-const SECCIONES_PROFESOR = new Set(["admin", "perfil", "examenes", "adminMetricas", "reportes", "mensajes", "asesorIA", "suscripcion", "configuracion", "facturacion", "soporte"]);
+const SECCIONES_PROFESOR = new Set(["admin", "aprendizaje", "perfil", "examenes", "adminMetricas", "reportes", "mensajes", "asesorIA", "suscripcion", "configuracion", "facturacion", "soporte"]);
 const SECCIONES_ESTUDIANTE_INSTITUCIONAL = new Set(["inicio", "aprendizaje", "perfil", "examenes", "diagnostico", "nivel1", "examen", "estadisticas", "mensajes", "asesorIA", "configuracion", "soporte"]);
-const SECCIONES_PROFESOR_INSTITUCIONAL = new Set(["admin", "perfil", "examenes", "adminMetricas", "reportes", "mensajes", "asesorIA", "configuracion", "soporte"]);
+const SECCIONES_PROFESOR_INSTITUCIONAL = new Set(["admin", "aprendizaje", "perfil", "examenes", "adminMetricas", "reportes", "mensajes", "asesorIA", "configuracion", "soporte"]);
 const SECCIONES_INSTITUCION = new Set(["inicio", "perfil", "adminMetricas", "suscripcion", "facturacion", "configuracion", "soporte"]);
 const PHONE_CODE_DURATION_MS = 2 * 60 * 1000;
 const MAX_PROFILE_PHOTO_INPUT_MB = 12;
@@ -193,6 +193,12 @@ const PROFILE_PHOTO_FULL_QUALITY = 0.92;
 const REPORT_PAGE_SIZE = 10;
 const LEARNING_STORAGE_KEY = "matematicasBolsilloLearningProgress";
 const LEARNING_LAST_KEY = "matematicasBolsilloLearningLast";
+const LEARNING_RESOURCE_COLLECTION = "learningResources";
+const LEARNING_RESOURCE_MAX_PDF_MB = 25;
+const LEARNING_RESOURCE_MAX_VIDEO_MB = 180;
+let learningProgressRemote = {};
+let learningProgressRemoteLoadedFor = "";
+let learningResourcesCache = new Map();
 const EXAM_DURATIONS_BY_LEVEL = {
   diagnostico: 15 * 60,
   nivel1: 25 * 60,
@@ -709,6 +715,14 @@ function setExamHeaderActivo(activo) {
   document.body.classList.toggle("exam-active", activo);
 }
 
+function seccionDeIntentoActivo() {
+  if (!intentoActivo) return "";
+  if (intentoActivo.tipo === "diag") return "diagnostico";
+  if (intentoActivo.tipo === "nivel") return intentoActivo.clave || "nivel1";
+  if (intentoActivo.tipo === "examen") return "examen";
+  return "";
+}
+
 /** Inicia el countdown */
 function iniciarTimer(continuar = false) {
   if (timerActivo) return;
@@ -936,6 +950,7 @@ const ASESOR_TEACHER_INITIAL_MESSAGE = {
   text: "Hola, profe. Soy tu Asesor IA. Puedo ayudarte a planear clases, crear exámenes, diseñar actividades, redactar correos para estudiantes y preparar retroalimentaciones."
 };
 let intentoActivo = cargarIntentoActivo();
+setExamHeaderActivo(!!intentoActivo);
 let resultadosSesion = cargarResultadosSesion();
 let bancoActivo = localStorage.getItem(STORAGE_BANCO_ACTIVO) || "principal";
 let claseActiva = localStorage.getItem(STORAGE_CLASE_ACTIVA) || "";
@@ -2835,8 +2850,8 @@ function confirmarSalidaPreguntaProfesor(secDestino = "") {
 }
 
 function confirmarCambioSeccion(secDestino = "") {
-  if (intentoActivo && ["diagnostico", "nivel1", "examen"].includes(seccionActual) && secDestino !== seccionActual) {
-    const destinoIntento = intentoActivo.tipo === "diag" ? "diagnostico" : intentoActivo.tipo === "nivel" ? intentoActivo.clave : "examen";
+  if (intentoActivo) {
+    const destinoIntento = seccionDeIntentoActivo();
     if (secDestino !== destinoIntento) {
       alert("Debes finalizar el examen actual antes de navegar a otra sección.");
       return false;
@@ -3597,18 +3612,104 @@ function actualizarBancoEstudiante() {
 
 function learningProgressAll() {
   try {
-    return JSON.parse(localStorage.getItem(LEARNING_STORAGE_KEY) || "{}") || {};
+    return {
+      ...(JSON.parse(localStorage.getItem(learningLocalStorageKey()) || "{}") || {}),
+      ...(learningProgressRemote || {})
+    };
   } catch {
-    return {};
+    return { ...(learningProgressRemote || {}) };
   }
 }
 
 function saveLearningProgressAll(data) {
-  localStorage.setItem(LEARNING_STORAGE_KEY, JSON.stringify(data || {}));
+  localStorage.setItem(learningLocalStorageKey(), JSON.stringify(data || {}));
+}
+
+function learningLocalStorageKey() {
+  return `${LEARNING_STORAGE_KEY}:${usuarioActual?.uid || "anon"}`;
 }
 
 function learningProgressId(branchId, topicId, level) {
-  return `${usuarioActual?.uid || "anon"}::${branchId}::${topicId}::${level}`;
+  return `${branchId}__${topicId}__${level}`;
+}
+
+async function cargarLearningProgressRemoto(force = false) {
+  if (!usuarioActual?.uid) return;
+  if (!force && learningProgressRemoteLoadedFor === usuarioActual.uid) return;
+  const snap = await getDocs(collection(db, "users", usuarioActual.uid, "learningProgress"));
+  const data = {};
+  snap.forEach(item => {
+    data[item.id] = item.data();
+  });
+  learningProgressRemote = data;
+  learningProgressRemoteLoadedFor = usuarioActual.uid;
+  const merged = learningProgressAll();
+  saveLearningProgressAll(merged);
+}
+
+async function guardarLearningProgressRemoto(key, selection, payload) {
+  if (!usuarioActual?.uid) return;
+  await setDoc(doc(db, "users", usuarioActual.uid, "learningProgress", key), {
+    branchId: selection.branchId,
+    topicId: selection.topicId,
+    level: selection.level,
+    completed: true,
+    completedAt: payload.completedAt,
+    updatedAt: serverTimestamp()
+  }, { merge: true });
+}
+
+function currentLearningResourceId(selection, ownerUid = usuarioActual?.uid || "anon") {
+  return `${ownerUid}__${selection.branchId}__${selection.topicId}__${selection.level}`.replace(/[^a-zA-Z0-9_-]/g, "_");
+}
+
+function learningResourceCacheKey(selection) {
+  return `${selection.branchId}__${selection.topicId}__${selection.level}`;
+}
+
+async function cargarLearningResource(selection, force = false) {
+  const cacheKey = learningResourceCacheKey(selection);
+  if (!force && learningResourcesCache.has(cacheKey)) return learningResourcesCache.get(cacheKey);
+  const snap = await getDocs(query(
+    collection(db, LEARNING_RESOURCE_COLLECTION),
+    where("branchId", "==", selection.branchId),
+    where("topicId", "==", selection.topicId),
+    where("level", "==", selection.level),
+    limit(10)
+  ));
+  let selected = null;
+  snap.forEach(item => {
+    const data = { id: item.id, ...item.data() };
+    if (!selected) selected = data;
+    if (data.ownerUid === perfilActual?.classOwnerUid) selected = data;
+    if (data.ownerUid === usuarioActual?.uid) selected = data;
+  });
+  learningResourcesCache.set(cacheKey, selected);
+  return selected;
+}
+
+function renderLearningResourceSlots(resource) {
+  const pdfSlot = document.getElementById("learningPdfSlot");
+  const videoSlot = document.getElementById("learningVideoSlot");
+  if (pdfSlot) {
+    pdfSlot.innerHTML = resource?.pdfUrl
+      ? `<p>${escapeHtml(resource.title || "Guía descargable")}</p><a class="btn btn-outline" href="${escapeHtml(resource.pdfUrl)}" target="_blank" rel="noopener">Abrir PDF</a>`
+      : `<p>PDF guía del tema preparado para agregarse desde Firebase Storage.</p><button class="btn btn-outline" type="button" disabled>PDF próximamente</button>`;
+  }
+  if (videoSlot) {
+    const url = resource?.videoUrl || resource?.externalVideoUrl || "";
+    videoSlot.innerHTML = url
+      ? `<p>${escapeHtml(resource.title || "Video del profesor")}</p><a class="btn btn-outline" href="${escapeHtml(url)}" target="_blank" rel="noopener">Abrir video</a>`
+      : `<p>Espacio listo para insertar videos propios por tema y nivel.</p><button class="btn btn-outline" type="button" disabled>Video próximamente</button>`;
+  }
+}
+
+async function renderLearningResourceForSelection(selection) {
+  try {
+    renderLearningResourceSlots(await cargarLearningResource(selection));
+  } catch (error) {
+    console.warn("No fue posible cargar recursos de aprendizaje", error);
+  }
 }
 
 function getLearningLast() {
@@ -3633,7 +3734,15 @@ function resolveLearningSelection(selection = getLearningLast()) {
 function learningProgressSummary() {
   const progress = learningProgressAll();
   const total = LEARNING_CATALOG.reduce((acc, branch) => acc + branch.topics.length * 3, 0);
-  const completed = Object.values(progress).filter(item => item?.completed).length;
+  const validKeys = new Set();
+  LEARNING_CATALOG.forEach(branch => {
+    branch.topics.forEach(topic => {
+      Object.keys(LEVEL_LABELS).forEach(level => {
+        validKeys.add(learningProgressId(branch.id, topic.id, level));
+      });
+    });
+  });
+  const completed = Object.entries(progress).filter(([key, item]) => validKeys.has(key) && item?.completed).length;
   return {
     total,
     completed,
@@ -3641,14 +3750,20 @@ function learningProgressSummary() {
   };
 }
 
-function setLearningCompleted(selection) {
+async function setLearningCompleted(selection) {
   const progress = learningProgressAll();
   const key = learningProgressId(selection.branchId, selection.topicId, selection.level);
   progress[key] = {
     completed: true,
     completedAt: new Date().toISOString()
   };
+  learningProgressRemote[key] = progress[key];
   saveLearningProgressAll(progress);
+  try {
+    await guardarLearningProgressRemoto(key, selection, progress[key]);
+  } catch (error) {
+    console.warn("No fue posible guardar el progreso de aprendizaje en Firebase", error);
+  }
 }
 
 function renderLearningPanel() {
@@ -3659,6 +3774,9 @@ function renderLearningPanel() {
 
   const selection = resolveLearningSelection();
   setLearningLast(selection);
+  if (usuarioActual?.uid && learningProgressRemoteLoadedFor !== usuarioActual.uid) {
+    cargarLearningProgressRemoto().then(() => renderLearningPanel()).catch(console.warn);
+  }
   const branch = LEARNING_CATALOG.find(item => item.id === selection.branchId) || LEARNING_CATALOG[0];
   const topic = branch.topics.find(item => item.id === selection.topicId) || branch.topics[0];
   const summary = learningProgressSummary();
@@ -3695,6 +3813,7 @@ function renderLearningPanel() {
   }).join("");
 
   renderLearningUnit(branch, topic, selection.level);
+  renderLearningManager(selection);
 }
 
 function renderLearningUnit(branch, topic, level) {
@@ -3729,13 +3848,17 @@ function renderLearningUnit(branch, topic, level) {
       </article>
       <article>
         <h4>Material descargable</h4>
-        <p>PDF guía del tema preparado para agregarse desde el repositorio o Firebase Storage.</p>
-        <button class="btn btn-outline" type="button" disabled>PDF próximamente</button>
+        <div id="learningPdfSlot">
+          <p>PDF guía del tema preparado para agregarse desde Firebase Storage.</p>
+          <button class="btn btn-outline" type="button" disabled>PDF próximamente</button>
+        </div>
       </article>
       <article>
         <h4>Video del profesor</h4>
-        <p>Espacio listo para insertar videos propios por tema y nivel.</p>
-        <button class="btn btn-outline" type="button" disabled>Video próximamente</button>
+        <div id="learningVideoSlot">
+          <p>Espacio listo para insertar videos propios por tema y nivel.</p>
+          <button class="btn btn-outline" type="button" disabled>Video próximamente</button>
+        </div>
       </article>
     </div>
 
@@ -3759,6 +3882,109 @@ function renderLearningUnit(branch, topic, level) {
   `;
   if (window.renderMathInElement) {
     renderMathInElement(unit, { delimiters: KATEX_DELIMITERS, throwOnError: false });
+  }
+  renderLearningResourceForSelection({ branchId: branch.id, topicId: topic.id, level });
+}
+
+function puedeGestionarLearningResources() {
+  return !!usuarioActual && (modoAdmin || esProfesorInstitucional());
+}
+
+function renderLearningManager(selection = resolveLearningSelection()) {
+  const manager = document.getElementById("learningTeacherManager");
+  if (!manager) return;
+  manager.classList.toggle("hidden", !puedeGestionarLearningResources());
+  if (!puedeGestionarLearningResources()) return;
+
+  const branchSel = document.getElementById("learningManagerBranch");
+  const topicSel = document.getElementById("learningManagerTopic");
+  const levelSel = document.getElementById("learningManagerLevel");
+  if (!branchSel || !topicSel || !levelSel) return;
+  branchSel.innerHTML = LEARNING_CATALOG.map(branch =>
+    `<option value="${escapeHtml(branch.id)}">${escapeHtml(branch.title)}</option>`
+  ).join("");
+  branchSel.value = selection.branchId;
+  const branch = LEARNING_CATALOG.find(item => item.id === branchSel.value) || LEARNING_CATALOG[0];
+  topicSel.innerHTML = branch.topics.map(topic =>
+    `<option value="${escapeHtml(topic.id)}">${escapeHtml(topic.title)}</option>`
+  ).join("");
+  topicSel.value = branch.topics.some(topic => topic.id === selection.topicId) ? selection.topicId : branch.topics[0].id;
+  levelSel.innerHTML = Object.entries(LEVEL_LABELS).map(([level, label]) =>
+    `<option value="${escapeHtml(level)}">${escapeHtml(label)}</option>`
+  ).join("");
+  levelSel.value = selection.level;
+}
+
+function getLearningManagerSelection() {
+  const branchId = document.getElementById("learningManagerBranch")?.value || resolveLearningSelection().branchId;
+  const topicId = document.getElementById("learningManagerTopic")?.value || resolveLearningSelection().topicId;
+  const level = document.getElementById("learningManagerLevel")?.value || resolveLearningSelection().level;
+  return resolveLearningSelection({ branchId, topicId, level });
+}
+
+function resetLearningManagerFiles() {
+  const pdf = document.getElementById("learningManagerPdf");
+  const video = document.getElementById("learningManagerVideo");
+  if (pdf) pdf.value = "";
+  if (video) video.value = "";
+}
+
+async function subirLearningFile(file, selection, kind, resourceId) {
+  if (!file) return {};
+  const maxMb = kind === "pdf" ? LEARNING_RESOURCE_MAX_PDF_MB : LEARNING_RESOURCE_MAX_VIDEO_MB;
+  if (file.size > maxMb * 1024 * 1024) {
+    throw new Error(`El ${kind === "pdf" ? "PDF" : "video"} supera ${maxMb} MB.`);
+  }
+  const path = `learningResources/${usuarioActual.uid}/${resourceId}/${kind}-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+  const ref = storageRef(storage, path);
+  await uploadBytes(ref, file);
+  const url = await getDownloadURL(ref);
+  return kind === "pdf"
+    ? { pdfUrl: url, pdfPath: path }
+    : { videoUrl: url, videoPath: path };
+}
+
+async function guardarLearningResource() {
+  if (!puedeGestionarLearningResources()) return;
+  const status = document.getElementById("learningManagerStatus");
+  const title = document.getElementById("learningManagerTitle")?.value.trim() || "";
+  const externalVideoUrl = document.getElementById("learningManagerVideoUrl")?.value.trim() || "";
+  const pdf = document.getElementById("learningManagerPdf")?.files?.[0] || null;
+  const video = document.getElementById("learningManagerVideo")?.files?.[0] || null;
+  const selection = getLearningManagerSelection();
+  const resourceId = currentLearningResourceId(selection);
+  if (status) {
+    status.textContent = "Guardando recurso...";
+    status.className = "bank-status";
+  }
+  try {
+    const uploads = {
+      ...(await subirLearningFile(pdf, selection, "pdf", resourceId)),
+      ...(await subirLearningFile(video, selection, "video", resourceId))
+    };
+    await setDoc(doc(db, LEARNING_RESOURCE_COLLECTION, resourceId), {
+      ownerUid: usuarioActual.uid,
+      ownerEmail: usuarioActual.email || "",
+      branchId: selection.branchId,
+      topicId: selection.topicId,
+      level: selection.level,
+      title,
+      externalVideoUrl,
+      ...uploads,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+    learningResourcesCache.delete(learningResourceCacheKey(selection));
+    resetLearningManagerFiles();
+    if (status) {
+      status.textContent = "Recurso guardado. Los estudiantes lo verán en esta unidad.";
+      status.className = "bank-status ok";
+    }
+    renderLearningResourceForSelection(selection);
+  } catch (error) {
+    if (status) {
+      status.textContent = error.message || "No fue posible guardar el recurso.";
+      status.className = "bank-status error";
+    }
   }
 }
 
@@ -3807,17 +4033,45 @@ function handleLearningClick(event) {
   }
 }
 
-document.getElementById("sectionAprendizaje")?.addEventListener("click", event => {
+document.getElementById("sectionAprendizaje")?.addEventListener("click", async event => {
   handleLearningClick(event);
   if (event.target.closest("#btnLearningComplete")) {
     const selection = resolveLearningSelection();
-    setLearningCompleted(selection);
+    await setLearningCompleted(selection);
     renderLearningPanel();
   }
   if (event.target.closest("#btnLearningExam")) {
     const selection = resolveLearningSelection();
     const examKey = LEVEL_TO_EXAM[selection.level] || "diagnostico";
     activarNav(examKey);
+  }
+  if (event.target.closest("#btnLearningResourceSave")) {
+    await guardarLearningResource();
+  }
+  if (event.target.closest("#btnLearningResourceClear")) {
+    ["learningManagerTitle", "learningManagerVideoUrl"].forEach(id => {
+      const input = document.getElementById(id);
+      if (input) input.value = "";
+    });
+    resetLearningManagerFiles();
+    const status = document.getElementById("learningManagerStatus");
+    if (status) {
+      status.textContent = "";
+      status.className = "bank-status";
+    }
+  }
+});
+
+document.getElementById("sectionAprendizaje")?.addEventListener("change", event => {
+  if (!event.target.closest("#learningTeacherManager")) return;
+  if (event.target.matches("#learningManagerBranch")) {
+    const selection = getLearningManagerSelection();
+    const branch = LEARNING_CATALOG.find(item => item.id === selection.branchId) || LEARNING_CATALOG[0];
+    renderLearningManager({ branchId: branch.id, topicId: branch.topics[0].id, level: selection.level });
+    return;
+  }
+  if (event.target.matches("#learningManagerTopic, #learningManagerLevel")) {
+    renderLearningResourceForSelection(getLearningManagerSelection());
   }
 });
 

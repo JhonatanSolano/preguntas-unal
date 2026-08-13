@@ -175,6 +175,11 @@ service cloud.firestore {
         (signedIn() && request.auth.uid == uid) ||
         ownsInstitution(resource.data.institutionDane) ||
         (isAdmin() && resource.data.classOwnerUid == request.auth.uid);
+
+      match /learningProgress/{progressId} {
+        allow read, write: if signedIn() &&
+          (request.auth.uid == uid || isPlatformOwner());
+      }
     }
 
     match /studentState/{uid} {
@@ -303,6 +308,23 @@ service cloud.firestore {
 
     match /baseQuestionSets/{setId} {
       allow read, write: if isPlatformOwner();
+    }
+
+    match /learningResources/{resourceId} {
+      allow read: if signedIn();
+      allow create: if hasActiveSubscription() && isAdmin() &&
+        request.resource.data.ownerUid == request.auth.uid &&
+        request.resource.data.branchId is string &&
+        request.resource.data.topicId is string &&
+        request.resource.data.level in ["facil", "medio", "avanzado"];
+      allow update: if hasActiveSubscription() && isAdmin() &&
+        resource.data.ownerUid == request.auth.uid &&
+        request.resource.data.ownerUid == resource.data.ownerUid &&
+        request.resource.data.branchId is string &&
+        request.resource.data.topicId is string &&
+        request.resource.data.level in ["facil", "medio", "avanzado"];
+      allow delete: if hasActiveSubscription() && isAdmin() &&
+        resource.data.ownerUid == request.auth.uid;
     }
 
     match /classStudents/{studentId} {

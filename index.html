@@ -33,7 +33,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="style.css?v=20260813-01" />
+  <link rel="stylesheet" href="style.css?v=20260813-02" />
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -834,6 +834,42 @@
           <article id="learningUnit" class="learning-unit"></article>
         </section>
       </div>
+
+      <section class="learning-manager hidden" id="learningTeacherManager">
+        <div>
+          <span class="section-kicker">Contenido docente</span>
+          <h3>Materiales reales por tema</h3>
+          <p>Sube PDF, video o enlace para que tus estudiantes encuentren recursos dentro de la ruta de aprendizaje.</p>
+        </div>
+        <div class="learning-manager-grid">
+          <label>Rama
+            <select id="learningManagerBranch"></select>
+          </label>
+          <label>Tema
+            <select id="learningManagerTopic"></select>
+          </label>
+          <label>Nivel
+            <select id="learningManagerLevel"></select>
+          </label>
+          <label>Título del recurso
+            <input id="learningManagerTitle" type="text" placeholder="Ej. Guía de ecuaciones cuadráticas" />
+          </label>
+          <label>PDF
+            <input id="learningManagerPdf" type="file" accept="application/pdf" />
+          </label>
+          <label>Video
+            <input id="learningManagerVideo" type="file" accept="video/mp4,video/webm,video/quicktime" />
+          </label>
+          <label class="learning-manager-wide">Enlace de video
+            <input id="learningManagerVideoUrl" type="url" placeholder="https://..." />
+          </label>
+        </div>
+        <div class="learning-actions">
+          <button class="btn btn-primary" type="button" id="btnLearningResourceSave">Guardar recurso</button>
+          <button class="btn btn-outline" type="button" id="btnLearningResourceClear">Limpiar</button>
+        </div>
+        <p class="bank-status" id="learningManagerStatus"></p>
+      </section>
     </section>
   </main>
 
@@ -2184,6 +2220,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260813-01"></script>
+  <script type="module" src="script.js?v=20260813-02"></script>
 </body>
 </html>
