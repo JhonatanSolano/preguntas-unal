@@ -219,6 +219,12 @@ const EXAM_TO_LEVEL = {
   nivel1: "medio",
   examen: "avanzado"
 };
+const MATH_DELIMITERS = [
+  { left: "$$", right: "$$", display: true },
+  { left: "$", right: "$", display: false },
+  { left: "\\[", right: "\\]", display: true },
+  { left: "\\(", right: "\\)", display: false }
+];
 
 const LEARNING_CATALOG = [
   {
@@ -3898,7 +3904,7 @@ function renderLearningUnit(branch, topic, level) {
     </div>
   `;
   if (window.renderMathInElement) {
-    renderMathInElement(unit, { delimiters: KATEX_DELIMITERS, throwOnError: false });
+    renderMathInElement(unit, { delimiters: MATH_DELIMITERS, throwOnError: false });
   }
   renderLearningResourceForSelection({ branchId: branch.id, topicId: topic.id, level });
 }
@@ -4057,8 +4063,18 @@ async function guardarLearningResource() {
   }
 }
 
+function normalizeLatexText(value = "") {
+  return String(value)
+    .replace(/\\\\\(/g, "\\(")
+    .replace(/\\\\\)/g, "\\)")
+    .replace(/\\\\\[/g, "\\[")
+    .replace(/\\\\\]/g, "\\]")
+    .replace(/\\\\frac/g, "\\frac")
+    .replace(/\\frac(\d+)(\d+)/g, "\\frac{$1}{$2}");
+}
+
 function renderInlineMathText(value = "") {
-  return escapeHtml(value);
+  return escapeHtml(normalizeLatexText(value));
 }
 
 function handleLearningClick(event) {

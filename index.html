@@ -33,7 +33,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="style.css?v=20260813-02" />
+  <link rel="stylesheet" href="style.css?v=20260813-03" />
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -816,30 +816,12 @@
         </div>
       </div>
 
-      <div class="learning-layout">
-        <aside class="learning-sidebar">
-          <h3>Ramas matemáticas</h3>
-          <div id="learningBranches" class="learning-branch-list"></div>
-        </aside>
-
-        <section class="learning-workspace">
-          <div class="learning-toolbar">
-            <div>
-              <span class="section-kicker">Temas</span>
-              <h3 id="learningBranchTitle">Selecciona una rama</h3>
-            </div>
-            <div class="learning-level-tabs" id="learningLevelTabs" aria-label="Nivel de estudio"></div>
-          </div>
-          <div id="learningTopics" class="learning-topic-grid"></div>
-          <article id="learningUnit" class="learning-unit"></article>
-        </section>
-      </div>
 
       <section class="learning-manager hidden" id="learningTeacherManager">
         <div>
           <span class="section-kicker">Contenido docente</span>
-          <h3>Materiales reales por tema</h3>
-          <p>Sube PDF, video o enlace para que tus estudiantes encuentren recursos dentro de la ruta de aprendizaje.</p>
+          <h3>Editor de contenido de aprendizaje</h3>
+          <p>Selecciona rama, tema, nivel y alcance. Luego sube una guía, un video o pega un enlace para publicar el material correspondiente.</p>
         </div>
         <div class="learning-manager-note" id="learningManagerScopeHelp"></div>
         <div class="learning-manager-grid">
@@ -880,6 +862,25 @@
         </div>
         <p class="bank-status" id="learningManagerStatus"></p>
       </section>
+
+      <div class="learning-layout">
+        <aside class="learning-sidebar">
+          <h3>Ramas matemáticas</h3>
+          <div id="learningBranches" class="learning-branch-list"></div>
+        </aside>
+
+        <section class="learning-workspace">
+          <div class="learning-toolbar">
+            <div>
+              <span class="section-kicker">Temas</span>
+              <h3 id="learningBranchTitle">Selecciona una rama</h3>
+            </div>
+            <div class="learning-level-tabs" id="learningLevelTabs" aria-label="Nivel de estudio"></div>
+          </div>
+          <div id="learningTopics" class="learning-topic-grid"></div>
+          <article id="learningUnit" class="learning-unit"></article>
+        </section>
+      </div>
     </section>
   </main>
 
@@ -2230,6 +2231,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260813-02"></script>
+  <script type="module" src="script.js?v=20260813-03"></script>
 </body>
 </html>
