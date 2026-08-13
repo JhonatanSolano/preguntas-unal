@@ -4601,6 +4601,12 @@ body.public-modal-open {
 .warn-msg {
   color: var(--c-red);
 }
+
+#grupoWarn.warn-msg.error,
+#grupoWarn.error {
+  color: #c62839 !important;
+  font-weight: 900 !important;
+}
 .admin-metrics-toggle {
   margin-top: .5rem;
 }

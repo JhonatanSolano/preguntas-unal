@@ -137,6 +137,7 @@ let loginExpectedTypePending = "";
 let loginRejectMessagePending = "";
 let suppressAuthResetOnce = false;
 let googleAuthFlowInProgress = false;
+let autoClassEnrollmentInProgress = false;
 let phoneVerificationId = "";
 let phoneVerificationExpiresAt = 0;
 let recaptchaVerifier = null;
@@ -6997,10 +6998,23 @@ function mostrarSplashBienvenida() {
   });
 }
 
-function mostrarWarn(msg) {
+function mostrarWarn(msg, tipo = "") {
   const warn = document.getElementById("grupoWarn");
   warn.textContent = msg;
   warn.hidden = false;
+  warn.classList.toggle("error", tipo === "error");
+}
+
+function mostrarErrorAuth(msg, ms = 5000) {
+  mostrarWarn(msg, "error");
+  clearTimeout(statusTimers.grupoWarn);
+  statusTimers.grupoWarn = setTimeout(() => {
+    const warn = document.getElementById("grupoWarn");
+    if (!warn) return;
+    warn.textContent = "";
+    warn.hidden = true;
+    warn.classList.remove("error");
+  }, ms);
 }
 
 function limpiarWarn() {
@@ -7958,19 +7972,24 @@ async function asegurarAulaIndependienteAutomatica() {
   classMembershipValid = true;
   localStorage.setItem(STORAGE_GRUPO, grupoActivo);
   localStorage.setItem(STORAGE_CLASE_ACTIVA, claseActiva);
-  await guardarPerfilUsuario({
-    grupo: clase.id,
-    classId: clase.id,
-    className: clase.name || INDEPENDENT_CLASS_NAME,
-    classCode: clase.code || INDEPENDENT_CLASS_CODE,
-    classOwnerUid: clase.ownerUid || "",
-    classOwnerEmail: clase.ownerEmail || ""
-  });
-  await sincronizarRegistroEstudianteClase(clase.id, clase.id, {
-    ownerUid: clase.ownerUid || "",
-    ownerEmail: clase.ownerEmail || "",
-    name: perfilActual?.displayName || usuarioActual.displayName || ""
-  });
+  autoClassEnrollmentInProgress = true;
+  try {
+    await guardarPerfilUsuario({
+      grupo: clase.id,
+      classId: clase.id,
+      className: clase.name || INDEPENDENT_CLASS_NAME,
+      classCode: clase.code || INDEPENDENT_CLASS_CODE,
+      classOwnerUid: clase.ownerUid || "",
+      classOwnerEmail: clase.ownerEmail || ""
+    });
+    await sincronizarRegistroEstudianteClase(clase.id, clase.id, {
+      ownerUid: clase.ownerUid || "",
+      ownerEmail: clase.ownerEmail || "",
+      name: perfilActual?.displayName || usuarioActual.displayName || ""
+    });
+  } finally {
+    autoClassEnrollmentInProgress = false;
+  }
   await guardarEstadoRemoto();
   await cargarPermisosRemotos([grupoActivo]);
   aplicarBancoNivelMedio();
@@ -8120,7 +8139,7 @@ function escucharMembresiaClase(classId) {
       }
       return;
     }
-    if (grupoActivo === classId) {
+    if (grupoActivo === classId && !autoClassEnrollmentInProgress) {
       limpiarAulaLocalYRemota();
     }
   }, err => console.warn("No se pudo escuchar la matrícula del aula.", err));
@@ -8321,27 +8340,25 @@ async function registrarEmail() {
   } catch (err) {
     registroEnCurso = false;
     if (err?.code === "auth/email-already-in-use") {
-      mostrarWarn("Usuario ya registrado, por favor inicie sesión.");
-      document.getElementById("grupoWarn")?.classList.add("error");
+      mostrarErrorAuth("Usuario ya registrado, por favor inicie sesión.");
       return;
     }
-    mostrarWarn("No se pudo registrar ese correo.");
-    document.getElementById("grupoWarn")?.classList.add("error");
+    mostrarErrorAuth("No se pudo registrar ese correo.");
   }
 }
 
 async function loginGoogle() {
   const expectedType = document.getElementById("loginAccountType")?.value || "";
   if (!expectedType) {
-    mostrarWarn("Selecciona primero el tipo de cuenta.");
+    mostrarErrorAuth("Selecciona primero el tipo de cuenta.");
     return;
   }
   if (expectedType === "institution") {
-    mostrarWarn("Las instituciones educativas deben ingresar únicamente con correo y contraseña.");
+    mostrarErrorAuth("Las instituciones educativas deben ingresar únicamente con correo y contraseña.");
     return;
   }
   if (authIntent === "register" && expectedType !== "independentStudent") {
-    mostrarWarn("Este tipo de cuenta debe registrarse manualmente con el código DANE institucional.");
+    mostrarErrorAuth("Este tipo de cuenta debe registrarse manualmente con el código DANE institucional.");
     return;
   }
   if (authIntent === "login" && ["institutionalStudent", "teacher"].includes(expectedType)) {
@@ -8363,6 +8380,13 @@ async function loginGoogle() {
       clearPendingLoginType();
       await registrarIndependienteGoogle(cred.user);
       await prepararSesionAutenticada();
+      return;
+    }
+    if (authIntent === "register" && expectedType === "independentStudent" && snap.exists()) {
+      suppressAuthResetOnce = true;
+      await signOut(auth);
+      clearPendingLoginType();
+      mostrarErrorAuth("Usuario ya registrado, por favor inicie sesión.");
       return;
     }
     if (!snap.exists() || !loginCoincideConTipo(profile, expectedType, cred.user.email)) {
@@ -8470,20 +8494,20 @@ async function registrarIndependienteGoogle(user) {
   const email = (user.email || "").toLowerCase();
   if (email === ADMIN_EMAIL) {
     await signOut(auth);
-    mostrarWarn("Este correo pertenece al dueño de la app. Debe ingresar como profesor.");
+    mostrarErrorAuth("Este correo pertenece al dueño de la app. Debe ingresar como profesor.");
     return;
   }
   if (!email.endsWith("@gmail.com")) {
     await signOut(auth);
-    mostrarWarn("Para estudiante independiente con Google debes usar un correo @gmail.com.");
+    mostrarErrorAuth("Para estudiante independiente con Google debes usar un correo @gmail.com.");
     return;
   }
-  const miembroExistente = await buscarMiembroPorEmail(email);
+  const miembroExistente = await buscarMiembroInstitucionalPorEmail(email);
   if (miembroExistente) {
     const institutionState = await institucionTienePlanActivo(miembroExistente.institutionDane);
     if (institutionState.active) {
       await signOut(auth);
-      mostrarWarn(`Este correo está registrado por medio de la institución ${miembroExistente.institutionName || institutionState.data?.institutionName || "asociada"}. Debes registrarte como estudiante por institución.`);
+      mostrarErrorAuth(`Este correo está registrado por medio de la institución ${miembroExistente.institutionName || institutionState.data?.institutionName || "asociada"}. Debes registrarte como estudiante por institución.`);
       return;
     }
   }
