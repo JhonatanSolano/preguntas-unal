@@ -33,7 +33,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="style.css?v=20260813-06" />
+  <link rel="stylesheet" href="style.css?v=20260813-07" />
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -764,6 +764,7 @@
     <button class="drawer-link" id="btnDrawerHome" type="button">Inicio</button>
     <button class="drawer-link" data-section="perfil" type="button">Perfil</button>
     <button class="drawer-link" data-section="aprendizaje" type="button">Aprendizaje</button>
+        <button class="drawer-link student-only" data-section="insignias" type="button">Insignias</button>
     <button class="drawer-link" data-section="examenes" type="button">Exámenes</button>
     <button class="drawer-link student-only" data-section="estadisticas" type="button">Estadísticas</button>
     <button class="drawer-link admin-only" data-section="adminMetricas" type="button">Métricas y estadísticas</button>
@@ -822,7 +823,7 @@
           <div>
             <span class="section-kicker">Estudio docente</span>
             <h3>Crear y editar contenido de aprendizaje</h3>
-            <p>Selecciona el aula, la rama, el tema y el nivel. Luego escribe la teoría, agrega ejemplos, ecuaciones, imagen, guía, video y una práctica rápida.</p>
+            <p>Selecciona el aula, la rama, el tema, el subtema y el nivel. Luego escribe la teoría, agrega ejemplos, ecuaciones, imagen, guía, video y una práctica rápida.</p>
           </div>
           <span class="learning-manager-pill">Editor</span>
         </div>
@@ -839,6 +840,9 @@
           </label>
           <label>Tema
             <select id="learningManagerTopic"></select>
+          </label>
+                    <label>Subtema
+            <select id="learningManagerSubtopic"></select>
           </label>
           <label>Nivel
             <select id="learningManagerLevel"></select>
@@ -908,12 +912,27 @@
             <div class="learning-level-tabs" id="learningLevelTabs" aria-label="Nivel de estudio"></div>
           </div>
           <div id="learningTopics" class="learning-topic-grid"></div>
+                    <div id="learningSubtopics" class="learning-subtopic-grid"></div>
           <article id="learningUnit" class="learning-unit"></article>
         </section>
       </div>
     </section>
   </main>
 
+
+  <!-- ══════════════════ INSIGNIAS ══════════════════ -->
+  <main class="main-content hidden" id="sectionInsignias">
+    <section class="badges-shell">
+      <div class="badges-hero">
+        <span class="section-kicker">Constancia matemática</span>
+        <h2>Insignias y metas de estudio</h2>
+        <p>Construye una rutina semanal, mantén tu racha y desbloquea insignias mientras avanzas por ramas, temas y subtemas.</p>
+      </div>
+      <div class="badges-summary-grid" id="badgesSummaryGrid"></div>
+      <section class="badges-next-card" id="badgesNextCard"></section>
+      <section class="badges-grid" id="badgesGrid"></section>
+    </section>
+  </main>
   <!-- ══════════════════ SUSCRIPCIÓN ══════════════════ -->
   <main class="main-content hidden" id="sectionSuscripcion">
     <section class="subscription-shell">
@@ -2261,6 +2280,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260813-05"></script>
+  <script type="module" src="script.js?v=20260813-06"></script>
 </body>
 </html>

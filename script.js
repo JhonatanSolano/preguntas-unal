@@ -178,10 +178,10 @@ const attachmentPreviewUrls = new Map();
 const EMOJIS_MENSAJE = [
   ["😀", "feliz sonrisa alegre"], ["😃", "sonrisa feliz"], ["😄", "risa feliz"], ["😁", "sonrisa grande"], ["😆", "risa"], ["😅", "risa sudor"], ["😂", "llorando risa fuerte"], ["🤣", "carcajada llorando fuerte"], ["😭", "cara llorando fuerte"], ["😉", "guiño"], ["😘", "beso"], ["😗", "beso"], ["😙", "beso feliz"], ["😚", "beso tierno"], ["🥰", "amor cariño"], ["😍", "enamorado corazones"], ["🤩", "estrella emoción"], ["🥳", "celebración fiesta"], ["🤔", "pensando duda"], ["🙄", "ojos arriba"], ["🙂", "sonrisa suave"], ["🥲", "sonrisa lágrima"], ["🥺", "tierno triste"], ["😊", "feliz amable"], ["😌", "tranquilo"], ["😔", "triste"], ["😇", "ángel"], ["😈", "diablo"], ["⭐", "estrella"], ["👍", "bien pulgar"], ["❤️", "corazón amor"]
 ];
-const SECCIONES_ESTUDIANTE = new Set(["inicio", "aprendizaje", "perfil", "examenes", "diagnostico", "nivel1", "examen", "estadisticas", "mensajes", "asesorIA", "suscripcion", "configuracion", "facturacion", "soporte"]);
-const SECCIONES_PROFESOR = new Set(["admin", "aprendizaje", "perfil", "examenes", "adminMetricas", "reportes", "mensajes", "asesorIA", "suscripcion", "configuracion", "facturacion", "soporte"]);
-const SECCIONES_ESTUDIANTE_INSTITUCIONAL = new Set(["inicio", "aprendizaje", "perfil", "examenes", "diagnostico", "nivel1", "examen", "estadisticas", "mensajes", "asesorIA", "configuracion", "soporte"]);
-const SECCIONES_PROFESOR_INSTITUCIONAL = new Set(["admin", "aprendizaje", "perfil", "examenes", "adminMetricas", "reportes", "mensajes", "asesorIA", "configuracion", "soporte"]);
+const SECCIONES_ESTUDIANTE = new Set(["inicio", "perfil", "aprendizaje", "insignias", "examenes", "diagnostico", "nivel1", "examen", "estadisticas", "mensajes", "asesorIA", "suscripcion", "configuracion", "facturacion", "soporte"]);
+const SECCIONES_PROFESOR = new Set(["admin", "perfil", "aprendizaje", "examenes", "adminMetricas", "reportes", "mensajes", "asesorIA", "suscripcion", "configuracion", "facturacion", "soporte"]);
+const SECCIONES_ESTUDIANTE_INSTITUCIONAL = new Set(["inicio", "perfil", "aprendizaje", "insignias", "examenes", "diagnostico", "nivel1", "examen", "estadisticas", "mensajes", "asesorIA", "configuracion", "soporte"]);
+const SECCIONES_PROFESOR_INSTITUCIONAL = new Set(["admin", "perfil", "aprendizaje", "examenes", "adminMetricas", "reportes", "mensajes", "asesorIA", "configuracion", "soporte"]);
 const SECCIONES_INSTITUCION = new Set(["inicio", "perfil", "adminMetricas", "suscripcion", "facturacion", "configuracion", "soporte"]);
 const PHONE_CODE_DURATION_MS = 2 * 60 * 1000;
 const MAX_PROFILE_PHOTO_INPUT_MB = 12;
@@ -227,156 +227,232 @@ const MATH_DELIMITERS = [
   { left: "\\(", right: "\\)", display: false }
 ];
 
+function slugifyLearningId(value = "") {
+  return String(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "tema";
+}
+
+function makeLearningLevels(branchTitle, topicTitle, subtopicTitle) {
+  const clean = subtopicTitle || topicTitle;
+  return {
+    facil: {
+      theory: `En este nivel reconoces la idea central de ${clean}. La meta es identificar sus elementos, leer ejemplos simples y conectar el concepto con problemas cotidianos.`,
+      example: [`Observa el concepto de ${clean}.`, `Identifica los datos principales.`, `Relaciona la pregunta con una operación o representación básica.`],
+      practice: { question: `¿Cuál es el primer paso para estudiar ${clean}?`, options: ["Identificar datos y objetivo", "Memorizar sin comprender", "Saltar directo al resultado"], answer: 0 }
+    },
+    medio: {
+      theory: `En este nivel aplicas ${clean} en ejercicios con varios pasos. La atención está en justificar el procedimiento y elegir una estrategia adecuada.`,
+      example: [`Lee el enunciado y separa la información relevante.`, `Selecciona una representación: tabla, gráfica, ecuación o diagrama.`, `Resuelve paso a paso y verifica la coherencia del resultado.`],
+      practice: { question: `Para resolver un ejercicio medio de ${clean}, conviene`, options: ["Organizar datos antes de operar", "Responder por intuición", "Ignorar las unidades"], answer: 0 }
+    },
+    avanzado: {
+      theory: `En este nivel conectas ${clean} con otras ramas de matemáticas. Se trabajan argumentos, modelación y problemas tipo examen con mayor carga conceptual.`,
+      example: [`Modela la situación usando herramientas de ${topicTitle}.`, `Compara métodos y escoge el más eficiente.`, `Interpreta el resultado dentro del contexto del problema.`],
+      practice: { question: `Un buen cierre avanzado en ${clean} debe incluir`, options: ["Resultado, interpretación y verificación", "Solo la respuesta final", "Un procedimiento incompleto"], answer: 0 }
+    }
+  };
+}
+
+function makeLearningSubtopic(branchTitle, topicTitle, title, summary = "") {
+  return {
+    id: slugifyLearningId(title),
+    title,
+    summary: summary || `Estudia ${title} con teoría, ejemplos, recursos y práctica por niveles.`,
+    keyConcepts: ["Definición", "Representación", "Aplicación", "Verificación"],
+    levels: makeLearningLevels(branchTitle, topicTitle, title)
+  };
+}
+
+function makeLearningTopic(branchTitle, id, title, summary, subtopics, keyConcepts = []) {
+  return {
+    id,
+    title,
+    summary,
+    keyConcepts: keyConcepts.length ? keyConcepts : ["Conceptos base", "Procedimientos", "Aplicaciones"],
+    subtopics: subtopics.map(item => Array.isArray(item)
+      ? makeLearningSubtopic(branchTitle, title, item[0], item[1])
+      : makeLearningSubtopic(branchTitle, title, item)
+    )
+  };
+}
+
 const LEARNING_CATALOG = [
+  {
+    id: "aritmetica",
+    title: "Aritmética",
+    icon: "🔢",
+    description: "Números, operaciones, razones y proporcionalidad.",
+    topics: [
+      makeLearningTopic("Aritmética", "numeros-operaciones", "Números y operaciones", "Construye sentido numérico y fluidez operativa.", ["Números naturales", "Números enteros", "Números racionales", "Fracciones", "Decimales", "Potencias", "Raíces", "Notación científica"]),
+      makeLearningTopic("Aritmética", "proporcionalidad", "Proporcionalidad", "Relaciona cantidades y compara magnitudes.", ["Razones", "Proporciones", "Regla de tres", "Porcentajes", "Escalas", "Variación directa", "Variación inversa"])
+    ]
+  },
   {
     id: "algebra",
     title: "Álgebra",
     icon: "🧩",
     description: "Expresiones, ecuaciones, factorización y patrones.",
     topics: [
-      {
-        id: "ecuaciones",
-        title: "Ecuaciones y despejes",
-        summary: "Aprende a transformar una igualdad sin perder equivalencia.",
-        keyConcepts: ["Equilibrio de la igualdad", "Operaciones inversas", "Verificación de soluciones"],
-        levels: {
-          facil: {
-            theory: "Una ecuación es una igualdad con incógnitas. La idea central es hacer la misma operación en ambos lados hasta aislar la variable.",
-            example: ["Parte de \\(2x+3=11\\).", "Resta 3 a ambos lados: \\(2x=8\\).", "Divide entre 2: \\(x=4\\).", "Verifica: \\(2(4)+3=11\\)."],
-            practice: { question: "Resuelve \\(3x-6=9\\)", options: ["\\(x=3\\)", "\\(x=5\\)", "\\(x=9\\)"], answer: 1 }
-          },
-          medio: {
-            theory: "En ecuaciones con fracciones conviene eliminar denominadores usando el mínimo común múltiplo.",
-            example: ["Para \\(\\frac{x}{3}+2=5\\), resta 2.", "Queda \\(\\frac{x}{3}=3\\).", "Multiplica por 3: \\(x=9\\)."],
-            practice: { question: "Si \\(\\frac{x}{4}+1=6\\), entonces", options: ["\\(x=20\\)", "\\(x=24\\)", "\\(x=28\\)"], answer: 0 }
-          },
-          avanzado: {
-            theory: "Una ecuación cuadrática puede resolverse por factorización, completación de cuadrados o fórmula general.",
-            example: ["Para \\(x^2-5x+6=0\\), busca dos números que sumen 5 y multipliquen 6.", "Factoriza: \\((x-2)(x-3)=0\\).", "Soluciones: \\(x=2\\) o \\(x=3\\)."],
-            practice: { question: "Las raíces de \\(x^2-7x+10=0\\) son", options: ["\\(1,10\\)", "\\(2,5\\)", "\\(3,4\\)"], answer: 1 }
-          }
-        }
-      },
-      {
-        id: "factorizacion",
-        title: "Factorización",
-        summary: "Convierte expresiones en productos para simplificar y resolver.",
-        keyConcepts: ["Factor común", "Trinomios", "Diferencia de cuadrados"],
-        levels: {
-          facil: {
-            theory: "Factorizar es escribir una suma como producto. El primer paso suele ser buscar factor común.",
-            example: ["En \\(6x+9\\), el factor común es 3.", "Entonces \\(6x+9=3(2x+3)\\)."],
-            practice: { question: "Factoriza \\(4x+8\\)", options: ["\\(4(x+2)\\)", "\\(2(x+4)\\)", "\\(x(4+8)\\)"], answer: 0 }
-          },
-          medio: {
-            theory: "Los trinomios de la forma \\(x^2+bx+c\\) se factorizan buscando dos números que sumen \\(b\\) y multipliquen \\(c\\).",
-            example: ["\\(x^2+5x+6\\)", "2 y 3 suman 5 y multiplican 6.", "\\((x+2)(x+3)\\)."],
-            practice: { question: "\\(x^2+7x+12\\) es", options: ["\\((x+3)(x+4)\\)", "\\((x+2)(x+6)\\)", "\\((x+1)(x+12)\\)"], answer: 0 }
-          },
-          avanzado: {
-            theory: "En expresiones combinadas conviene agrupar términos antes de factorizar.",
-            example: ["\\(ax+ay+bx+by\\)", "Agrupa: \\(a(x+y)+b(x+y)\\)", "Factor común: \\((a+b)(x+y)\\)."],
-            practice: { question: "Factoriza \\(xy+2x+3y+6\\)", options: ["\\((x+3)(y+2)\\)", "\\((x+2)(y+3)\\)", "\\((x+y)(2+3)\\)"], answer: 0 }
-          }
-        }
-      }
+      makeLearningTopic("Álgebra", "expresiones", "Expresiones algebraicas", "Manipula símbolos para representar relaciones.", ["Variables", "Términos semejantes", "Productos notables", "Simplificación", "Valor numérico"]),
+      makeLearningTopic("Álgebra", "ecuaciones", "Ecuaciones y despejes", "Transforma igualdades sin perder equivalencia.", ["Ecuaciones lineales", "Ecuaciones con fracciones", "Ecuaciones cuadráticas", "Despeje de fórmulas", "Inecuaciones"]),
+      makeLearningTopic("Álgebra", "factorizacion", "Factorización", "Convierte expresiones en productos útiles.", ["Factor común", "Trinomios", "Diferencia de cuadrados", "Agrupación", "Suma y diferencia de cubos"]),
+      makeLearningTopic("Álgebra", "sistemas", "Sistemas de ecuaciones", "Resuelve relaciones simultáneas.", ["Método gráfico", "Sustitución", "Eliminación", "Sistemas 2x2", "Aplicaciones"])
     ]
   },
   {
     id: "funciones",
     title: "Funciones",
     icon: "📈",
-    description: "Relaciones, gráficas, dominio, rango y transformaciones.",
+    description: "Dominio, rango, gráficas, modelos y transformaciones.",
     topics: [
-      {
-        id: "lineales",
-        title: "Funciones lineales",
-        summary: "Interpreta pendiente, interceptos y cambio constante.",
-        keyConcepts: ["Pendiente", "Intercepto", "Variación constante"],
-        levels: {
-          facil: {
-            theory: "Una función lineal tiene forma \\(f(x)=mx+b\\). La pendiente \\(m\\) indica cuánto cambia \\(y\\) por cada unidad de \\(x\\).",
-            example: ["En \\(f(x)=2x+1\\), la pendiente es 2.", "Si \\(x\\) aumenta 1, \\(f(x)\\) aumenta 2."],
-            practice: { question: "La pendiente de \\(y=3x-4\\) es", options: ["\\(-4\\)", "\\(3\\)", "\\(1\\)"], answer: 1 }
-          },
-          medio: {
-            theory: "Con dos puntos puedes hallar la pendiente usando \\(m=\\frac{y_2-y_1}{x_2-x_1}\\).",
-            example: ["Puntos \\((1,2)\\) y \\((3,6)\\).", "\\(m=\\frac{6-2}{3-1}=2\\)."],
-            practice: { question: "Pendiente entre \\((0,1)\\) y \\((2,5)\\)", options: ["\\(1\\)", "\\(2\\)", "\\(4\\)"], answer: 1 }
-          },
-          avanzado: {
-            theory: "Las transformaciones lineales permiten modelar cambios de escala y desplazamientos.",
-            example: ["Si \\(g(x)=f(x-2)+3\\), la gráfica se mueve 2 a la derecha y 3 hacia arriba."],
-            practice: { question: "\\(f(x)=x\\), entonces \\(f(x-4)+1\\) se desplaza", options: ["4 derecha y 1 arriba", "4 izquierda y 1 arriba", "4 derecha y 1 abajo"], answer: 0 }
-          }
-        }
-      }
+      makeLearningTopic("Funciones", "fundamentos", "Fundamentos de funciones", "Comprende qué hace que una relación sea función.", ["Concepto de función", "Partes de una función", "Dominio", "Rango", "Puntos de corte", "Evaluación de funciones"]),
+      makeLearningTopic("Funciones", "graficas-transformaciones", "Gráficas y transformaciones", "Lee y transforma gráficas con sentido visual.", ["Gráfica", "Traslaciones", "Reflexiones", "Estiramientos", "Compresiones", "Función inversa"]),
+      makeLearningTopic("Funciones", "tipos-funciones", "Tipos de funciones", "Reconoce familias y modelos frecuentes.", ["Funciones lineales", "Funciones cuadráticas", "Funciones polinómicas", "Funciones racionales", "Funciones exponenciales", "Funciones logarítmicas", "Funciones trigonométricas", "Funciones por partes"])
     ]
   },
   {
     id: "geometria",
     title: "Geometría",
     icon: "📐",
-    description: "Figuras, ángulos, áreas, perímetros y visualización.",
+    description: "Figuras, medidas, semejanza, áreas y volumen.",
     topics: [
-      {
-        id: "triangulos",
-        title: "Triángulos",
-        summary: "Relaciona lados, ángulos, semejanza y teoremas clave.",
-        keyConcepts: ["Suma de ángulos", "Pitágoras", "Semejanza"],
-        levels: {
-          facil: {
-            theory: "La suma de los ángulos interiores de cualquier triángulo es \\(180^\\circ\\).",
-            example: ["Si dos ángulos son \\(60^\\circ\\) y \\(50^\\circ\\), el tercero es \\(70^\\circ\\)."],
-            practice: { question: "Si un triángulo tiene \\(40^\\circ\\) y \\(80^\\circ\\), falta", options: ["\\(40^\\circ\\)", "\\(60^\\circ\\)", "\\(80^\\circ\\)"], answer: 1 }
-          },
-          medio: {
-            theory: "En triángulos rectángulos, Pitágoras afirma \\(a^2+b^2=c^2\\).",
-            example: ["Catetos 3 y 4.", "\\(c^2=9+16=25\\).", "\\(c=5\\)."],
-            practice: { question: "Catetos 6 y 8, hipotenusa", options: ["\\(10\\)", "\\(12\\)", "\\(14\\)"], answer: 0 }
-          },
-          avanzado: {
-            theory: "La semejanza conserva ángulos y escala lados proporcionalmente.",
-            example: ["Si el factor de escala es 3, todos los lados se multiplican por 3 y el área por 9."],
-            practice: { question: "Si el lado se duplica, el área se multiplica por", options: ["2", "4", "8"], answer: 1 }
-          }
-        }
-      }
+      makeLearningTopic("Geometría", "figuras-planas", "Figuras planas", "Analiza formas y medidas en el plano.", ["Ángulos", "Triángulos", "Cuadriláteros", "Polígonos", "Circunferencia", "Área y perímetro"]),
+      makeLearningTopic("Geometría", "geometria-espacial", "Geometría espacial", "Comprende cuerpos, superficies y volumen.", ["Prismas", "Pirámides", "Cilindros", "Conos", "Esferas", "Volumen", "Área superficial"]),
+      makeLearningTopic("Geometría", "semejanza-congruencia", "Semejanza y congruencia", "Compara figuras con argumentos geométricos.", ["Criterios de congruencia", "Criterios de semejanza", "Teorema de Tales", "Escalas", "Pitágoras"])
+    ]
+  },
+  {
+    id: "trigonometria",
+    title: "Trigonometría",
+    icon: "📏",
+    description: "Razones trigonométricas, identidades y aplicaciones.",
+    topics: [
+      makeLearningTopic("Trigonometría", "razones", "Razones trigonométricas", "Relaciona ángulos y lados.", ["Seno", "Coseno", "Tangente", "Triángulos rectángulos", "Ángulos especiales"]),
+      makeLearningTopic("Trigonometría", "identidades", "Identidades trigonométricas", "Simplifica y demuestra relaciones.", ["Identidad pitagórica", "Ángulo doble", "Suma y diferencia", "Ecuaciones trigonométricas"]),
+      makeLearningTopic("Trigonometría", "leyes", "Leyes y aplicaciones", "Resuelve triángulos no rectángulos.", ["Ley de senos", "Ley de cosenos", "Rumbos", "Alturas", "Modelación periódica"])
+    ]
+  },
+  {
+    id: "geometria-analitica",
+    title: "Geometría analítica",
+    icon: "🧭",
+    description: "Rectas, cónicas y distancia en el plano.",
+    topics: [
+      makeLearningTopic("Geometría analítica", "plano-cartesiano", "Plano cartesiano", "Ubica y mide relaciones entre puntos.", ["Coordenadas", "Distancia", "Punto medio", "Pendiente", "Ecuación de la recta"]),
+      makeLearningTopic("Geometría analítica", "conicas", "Cónicas", "Estudia curvas algebraicas fundamentales.", ["Circunferencia", "Parábola", "Elipse", "Hipérbola", "Forma general"])
+    ]
+  },
+  {
+    id: "precalculo",
+    title: "Precálculo",
+    icon: "🧠",
+    description: "Puente entre álgebra, funciones y cálculo.",
+    topics: [
+      makeLearningTopic("Precálculo", "modelos", "Modelos y análisis", "Prepara herramientas para límites y cálculo.", ["Composición de funciones", "Función inversa", "Crecimiento", "Continuidad intuitiva", "Tasas de cambio"]),
+      makeLearningTopic("Precálculo", "sucesiones", "Sucesiones y series", "Reconoce patrones numéricos avanzados.", ["Sucesiones aritméticas", "Sucesiones geométricas", "Series", "Sumatorias", "Inducción básica"])
+    ]
+  },
+  {
+    id: "calculo-diferencial",
+    title: "Cálculo diferencial",
+    icon: "∂",
+    description: "Límites, continuidad y derivadas.",
+    topics: [
+      makeLearningTopic("Cálculo diferencial", "limites", "Límites y continuidad", "Analiza comportamiento cercano.", ["Idea de límite", "Límites laterales", "Indeterminaciones", "Continuidad", "Asíntotas"]),
+      makeLearningTopic("Cálculo diferencial", "derivadas", "Derivadas", "Mide cambios instantáneos.", ["Definición de derivada", "Reglas de derivación", "Regla de la cadena", "Derivadas implícitas", "Optimización", "Aplicaciones"])
+    ]
+  },
+  {
+    id: "calculo-integral",
+    title: "Cálculo integral",
+    icon: "∫",
+    description: "Antiderivadas, áreas y acumulación.",
+    topics: [
+      makeLearningTopic("Cálculo integral", "integrales", "Integrales", "Comprende acumulación y área bajo la curva.", ["Antiderivadas", "Integral definida", "Teorema fundamental", "Sustitución", "Integración por partes", "Áreas"])
+    ]
+  },
+  {
+    id: "calculo-vectorial",
+    title: "Cálculo multivariable y vectorial",
+    icon: "🧮",
+    description: "Funciones de varias variables, campos y vectores.",
+    topics: [
+      makeLearningTopic("Cálculo multivariable y vectorial", "varias-variables", "Funciones de varias variables", "Extiende el cálculo al espacio.", ["Vectores", "Derivadas parciales", "Gradiente", "Integrales dobles", "Integrales triples", "Campos vectoriales"])
+    ]
+  },
+  {
+    id: "ecuaciones-diferenciales",
+    title: "Ecuaciones diferenciales",
+    icon: "🌀",
+    description: "Modelos de cambio y soluciones dinámicas.",
+    topics: [
+      makeLearningTopic("Ecuaciones diferenciales", "primer-orden", "Ecuaciones de primer orden", "Modela fenómenos con tasas de cambio.", ["Variables separables", "Ecuaciones lineales", "Crecimiento y decaimiento", "Campos de pendientes", "Modelación"]),
+      makeLearningTopic("Ecuaciones diferenciales", "segundo-orden", "Ecuaciones de segundo orden", "Analiza sistemas físicos y oscilaciones.", ["Homogéneas", "Coeficientes constantes", "Movimiento armónico", "Condiciones iniciales"])
+    ]
+  },
+  {
+    id: "algebra-lineal",
+    title: "Álgebra lineal",
+    icon: "🔷",
+    description: "Matrices, vectores, espacios y transformaciones.",
+    topics: [
+      makeLearningTopic("Álgebra lineal", "matrices", "Matrices y sistemas", "Organiza información y resuelve sistemas.", ["Operaciones con matrices", "Determinantes", "Inversa", "Sistemas lineales", "Eliminación gaussiana"]),
+      makeLearningTopic("Álgebra lineal", "espacios", "Vectores y espacios", "Comprende dimensión y transformaciones.", ["Vectores", "Combinación lineal", "Base", "Dimensión", "Transformaciones lineales", "Valores propios"])
     ]
   },
   {
     id: "probabilidad",
-    title: "Probabilidad y datos",
+    title: "Probabilidad",
     icon: "🎲",
-    description: "Conteo, eventos, porcentajes, gráficas y decisiones.",
+    description: "Azar, conteo, eventos y toma de decisiones.",
     topics: [
-      {
-        id: "probabilidad-basica",
-        title: "Probabilidad básica",
-        summary: "Calcula posibilidades y compara eventos.",
-        keyConcepts: ["Espacio muestral", "Evento", "Razón favorable/total"],
-        levels: {
-          facil: {
-            theory: "La probabilidad clásica es \\(\\frac{casos\\ favorables}{casos\\ posibles}\\).",
-            example: ["En un dado, sacar 6 tiene probabilidad \\(\\frac16\\)."],
-            practice: { question: "Probabilidad de sacar par en un dado", options: ["\\(\\frac12\\)", "\\(\\frac13\\)", "\\(\\frac16\\)"], answer: 0 }
-          },
-          medio: {
-            theory: "En eventos compuestos debes cuidar si hay reemplazo o no.",
-            example: ["Dos monedas tienen 4 resultados posibles: CC, CS, SC, SS."],
-            practice: { question: "Dos monedas, probabilidad de dos caras", options: ["\\(\\frac14\\)", "\\(\\frac12\\)", "\\(\\frac34\\)"], answer: 0 }
-          },
-          avanzado: {
-            theory: "La probabilidad condicional actualiza el espacio muestral según información previa.",
-            example: ["Si ya sabes que un número de dado es par, el espacio es {2,4,6}."],
-            practice: { question: "Dado par, probabilidad de que sea 6", options: ["\\(\\frac16\\)", "\\(\\frac13\\)", "\\(\\frac12\\)"], answer: 1 }
-          }
-        }
-      }
+      makeLearningTopic("Probabilidad", "probabilidad-basica", "Probabilidad básica", "Calcula posibilidades y compara eventos.", ["Espacio muestral", "Eventos", "Regla de Laplace", "Complemento", "Eventos independientes"]),
+      makeLearningTopic("Probabilidad", "conteo", "Conteo y combinatoria", "Cuenta sin listar todos los casos.", ["Principio multiplicativo", "Permutaciones", "Combinaciones", "Diagramas de árbol", "Probabilidad condicional"])
+    ]
+  },
+  {
+    id: "estadistica",
+    title: "Estadística",
+    icon: "📊",
+    description: "Datos, gráficos, medidas, inferencia y decisiones.",
+    topics: [
+      makeLearningTopic("Estadística", "descriptiva", "Estadística descriptiva", "Resume información con números y gráficos.", ["Tablas de frecuencia", "Media", "Mediana", "Moda", "Rango", "Desviación estándar", "Gráficos"]),
+      makeLearningTopic("Estadística", "inferencia", "Inferencia estadística", "Toma decisiones con muestras.", ["Muestreo", "Distribuciones", "Intervalos de confianza", "Pruebas de hipótesis", "Correlación"])
+    ]
+  },
+  {
+    id: "logica-discreta",
+    title: "Lógica y matemática discreta",
+    icon: "⚙️",
+    description: "Argumentos, conjuntos, conteo, grafos y estructuras discretas.",
+    topics: [
+      makeLearningTopic("Lógica y matemática discreta", "logica", "Lógica matemática", "Construye argumentos válidos.", ["Proposiciones", "Conectores", "Tablas de verdad", "Implicación", "Cuantificadores", "Demostraciones"]),
+      makeLearningTopic("Lógica y matemática discreta", "discreta", "Matemática discreta", "Estudia estructuras finitas.", ["Conjuntos", "Relaciones", "Funciones discretas", "Grafos", "Recurrencias", "Aritmética modular"])
+    ]
+  },
+  {
+    id: "complejos",
+    title: "Números complejos",
+    icon: "ℂ",
+    description: "Plano complejo, forma polar y operaciones.",
+    topics: [
+      makeLearningTopic("Números complejos", "fundamentos-complejos", "Fundamentos complejos", "Amplía los números reales al plano.", ["Unidad imaginaria", "Forma binómica", "Plano complejo", "Módulo", "Argumento", "Forma polar", "Fórmula de Euler"])
     ]
   }
 ];
 
+const BADGE_CATALOG = [
+  { id: "primer-paso", icon: "🌱", title: "Primer paso", description: "Completa tu primer subtema en cualquier nivel.", target: 1, type: "completed" },
+  { id: "rutina-semanal", icon: "📅", title: "Rutina semanal", description: "Cumple tu meta semanal de 3 sesiones de estudio.", target: 3, type: "weekly" },
+  { id: "racha-3", icon: "🔥", title: "Racha de 3 días", description: "Estudia durante 3 días consecutivos.", target: 3, type: "streak" },
+  { id: "explorador", icon: "🧭", title: "Explorador de temas", description: "Completa 5 subtemas distintos.", target: 5, type: "completed" },
+  { id: "dominio", icon: "🏅", title: "Dominio inicial", description: "Completa 12 niveles de aprendizaje.", target: 12, type: "completed" },
+  { id: "constancia", icon: "💎", title: "Constancia matemática", description: "Alcanza una racha de 7 días de estudio.", target: 7, type: "streak" }
+];
 const PHONE_CODES = [
   { code: "+57", label: "Colombia (+57)", flag: "", country: "Colombia" },
   { code: "+58", label: "Venezuela (+58)", flag: "", country: "Venezuela" }
@@ -1059,7 +1135,7 @@ function examenGratisIndependienteHabilitado(clave, bank = bancoActivo, perfil =
 }
 
 function seccionPermitidaPruebaGratis(section) {
-  return tienePruebaDiagnosticoGratis() && ["inicio", "aprendizaje", "perfil", "examenes", "diagnostico", "nivel1", "examen", "estadisticas", "suscripcion", "facturacion", "configuracion", "soporte"].includes(section);
+  return tienePruebaDiagnosticoGratis() && ["inicio", "perfil", "aprendizaje", "insignias", "examenes", "diagnostico", "nivel1", "examen", "estadisticas", "suscripcion", "facturacion", "configuracion", "soporte"].includes(section);
 }
 
 function seccionRequiereSuscripcion(section) {
@@ -2761,6 +2837,7 @@ function mostrarSeccion(sec) {
   if (sec !== "suscripcion") planChangeInProgress = false;
   document.getElementById("sectionInicio").classList.toggle("hidden", sec !== "inicio");
   document.getElementById("sectionAprendizaje")?.classList.toggle("hidden", sec !== "aprendizaje");
+  document.getElementById("sectionInsignias")?.classList.toggle("hidden", sec !== "insignias");
   document.getElementById("sectionSuscripcion")?.classList.toggle("hidden", sec !== "suscripcion");
   document.getElementById("sectionFacturacion")?.classList.toggle("hidden", sec !== "facturacion");
   document.getElementById("sectionExamenes").classList.toggle("hidden", sec !== "examenes");
@@ -2782,6 +2859,7 @@ function mostrarSeccion(sec) {
   if (sec === "estadisticas") renderStudentStats();
   if (sec === "inicio") actualizarBienvenida();
   if (sec === "aprendizaje") renderLearningPanel();
+  if (sec === "insignias") renderBadgesPanel();
   if (sec === "perfil") renderProfile();
   if (sec === "configuracion") renderConfiguracion();
   if (sec === "mensajes") renderMessagesPanel();
@@ -3641,8 +3719,8 @@ function learningLocalStorageKey() {
   return `${LEARNING_STORAGE_KEY}:${usuarioActual?.uid || "anon"}`;
 }
 
-function learningProgressId(branchId, topicId, level) {
-  return `${branchId}__${topicId}__${level}`;
+function learningProgressId(branchId, topicId, subtopicId, level) {
+  return `${branchId}__${topicId}__${subtopicId || topicId}__${level}`;
 }
 
 async function cargarLearningProgressRemoto(force = false) {
@@ -3664,6 +3742,7 @@ async function guardarLearningProgressRemoto(key, selection, payload) {
   await setDoc(doc(db, "users", usuarioActual.uid, "learningProgress", key), {
     branchId: selection.branchId,
     topicId: selection.topicId,
+    subtopicId: selection.subtopicId || selection.topicId,
     level: selection.level,
     completed: true,
     completedAt: payload.completedAt,
@@ -3674,13 +3753,13 @@ async function guardarLearningProgressRemoto(key, selection, payload) {
 function currentLearningResourceId(selection, ownerUid = usuarioActual?.uid || "anon") {
   const scope = selection.scope === "class" ? "class" : "global";
   const target = scope === "class" ? (selection.classId || "sin-aula") : "all";
-  return `${ownerUid}__${scope}__${target}__${selection.branchId}__${selection.topicId}__${selection.level}`.replace(/[^a-zA-Z0-9_-]/g, "_");
+  return `${ownerUid}__${scope}__${target}__${selection.branchId}__${selection.topicId}__${selection.subtopicId || selection.topicId}__${selection.level}`.replace(/[^a-zA-Z0-9_-]/g, "_");
 }
 
 function learningResourceCacheKey(selection) {
   const classId = selection.classId || claseActiva || perfilActual?.classId || "";
   const scope = selection.scope || "";
-  return `${selection.branchId}__${selection.topicId}__${selection.level}__${scope}__${classId}`;
+  return `${selection.branchId}__${selection.topicId}__${selection.subtopicId || selection.topicId}__${selection.level}__${scope}__${classId}`;
 }
 
 async function cargarLearningResource(selection, force = false) {
@@ -3697,6 +3776,8 @@ async function cargarLearningResource(selection, force = false) {
   const currentClassId = selection.classId || claseActiva || perfilActual?.classId || "";
   snap.forEach(item => {
     const data = { id: item.id, ...item.data() };
+    const resourceSubtopic = data.subtopicId || data.topicId;
+    if (resourceSubtopic !== (selection.subtopicId || selection.topicId)) return;
     const visibleGlobal = data.scope === "global" || !data.scope;
     const visibleClass = data.scope === "class" && data.classId && data.classId === currentClassId;
     const ownResource = puedeGestionarContenidoAprendizaje() && data.ownerUid === usuarioActual?.uid;
@@ -3710,19 +3791,23 @@ async function cargarLearningResource(selection, force = false) {
   return selected;
 }
 
+function canEditLearningResource(resource) {
+  return !!resource && puedeGestionarContenidoAprendizaje() && resource.ownerUid === usuarioActual?.uid;
+}
+
 function renderLearningResourceSlots(resource) {
   const pdfSlot = document.getElementById("learningPdfSlot");
   const videoSlot = document.getElementById("learningVideoSlot");
   const teacherSlot = document.getElementById("learningTeacherContentSlot");
   if (pdfSlot) {
     pdfSlot.innerHTML = resource?.pdfUrl
-      ? `<p>${escapeHtml(resource.title || "Guía descargable")}</p><a class="btn btn-outline" href="${escapeHtml(resource.pdfUrl)}" target="_blank" rel="noopener">Abrir PDF</a>`
+      ? `<p>${escapeHtml(resource.title || "Guía descargable")}</p><div class="learning-file-actions"><a class="btn btn-outline" href="${escapeHtml(resource.pdfUrl)}" target="_blank" rel="noopener">Abrir PDF</a>${canEditLearningResource(resource) ? `<button class="btn btn-outline" type="button" data-learning-remove-file="pdf">Quitar PDF</button>` : ""}</div>`
       : `<p>Guía descargable del tema. El profesor podrá agregarla cuando esté disponible.</p><button class="btn btn-outline" type="button" disabled>PDF próximamente</button>`;
   }
   if (videoSlot) {
     const url = resource?.videoUrl || resource?.externalVideoUrl || "";
     videoSlot.innerHTML = url
-      ? `<p>${escapeHtml(resource.title || "Video del profesor")}</p><a class="btn btn-outline" href="${escapeHtml(url)}" target="_blank" rel="noopener">Abrir video</a>`
+      ? `<p>${escapeHtml(resource.title || "Video del profesor")}</p><div class="learning-file-actions"><a class="btn btn-outline" href="${escapeHtml(url)}" target="_blank" rel="noopener">Abrir video</a>${canEditLearningResource(resource) ? `<button class="btn btn-outline" type="button" data-learning-remove-file="video">Quitar video</button>` : ""}</div>`
       : `<p>Espacio listo para insertar videos propios por tema y nivel.</p><button class="btn btn-outline" type="button" disabled>Video próximamente</button>`;
   }
   if (teacherSlot) {
@@ -3730,7 +3815,7 @@ function renderLearningResourceSlots(resource) {
     const hasContent = resource?.theoryText || resource?.stepsText || resource?.imageUrl || resource?.practiceQuestion;
     teacherSlot.innerHTML = hasContent ? `
       <article class="learning-teacher-content learning-wide">
-        <span class="section-kicker">Contenido agregado por el docente</span>
+        <div class="learning-content-top"><span class="section-kicker">Contenido agregado por el docente</span>${canEditLearningResource(resource) ? `<button class="btn btn-outline" type="button" data-learning-edit-resource>Editar</button>` : ""}</div>
         ${resource?.title ? `<h4>${escapeHtml(resource.title)}</h4>` : ""}
         ${resource?.imageUrl ? `<img class="learning-content-image" src="${escapeHtml(resource.imageUrl)}" alt="Imagen del tema" loading="lazy" />` : ""}
         ${resource?.theoryText ? `<div class="learning-content-block"><h5>Explicación</h5><p>${renderInlineMathText(resource.theoryText)}</p></div>` : ""}
@@ -3786,28 +3871,32 @@ function setLearningLast(selection) {
 function resolveLearningSelection(selection = getLearningLast()) {
   const branch = LEARNING_CATALOG.find(item => item.id === selection?.branchId) || LEARNING_CATALOG[0];
   const topic = branch.topics.find(item => item.id === selection?.topicId) || branch.topics[0];
+  const subtopics = topic.subtopics?.length ? topic.subtopics : [makeLearningSubtopic(branch.title, topic.title, topic.title, topic.summary)];
+  const subtopic = subtopics.find(item => item.id === selection?.subtopicId) || subtopics[0];
   const level = LEVEL_LABELS[selection?.level] ? selection.level : "facil";
-  return { branchId: branch.id, topicId: topic.id, level };
+  return { branchId: branch.id, topicId: topic.id, subtopicId: subtopic.id, level };
 }
 
 function learningProgressSummary() {
   const progress = learningProgressAll();
-  const total = LEARNING_CATALOG.reduce((acc, branch) => acc + branch.topics.length * 3, 0);
   const validKeys = new Set();
   LEARNING_CATALOG.forEach(branch => {
     branch.topics.forEach(topic => {
-      Object.keys(LEVEL_LABELS).forEach(level => {
-        validKeys.add(learningProgressId(branch.id, topic.id, level));
+      (topic.subtopics || []).forEach(subtopic => {
+        Object.keys(LEVEL_LABELS).forEach(level => {
+          validKeys.add(learningProgressId(branch.id, topic.id, subtopic.id, level));
+        });
       });
     });
   });
+  const total = validKeys.size;
   const completed = Object.entries(progress).filter(([key, item]) => validKeys.has(key) && item?.completed).length;
   return { total, completed, pct: total ? Math.round((completed / total) * 100) : 0 };
 }
 
 async function setLearningCompleted(selection) {
   const progress = learningProgressAll();
-  const key = learningProgressId(selection.branchId, selection.topicId, selection.level);
+  const key = learningProgressId(selection.branchId, selection.topicId, selection.subtopicId, selection.level);
   progress[key] = { completed: true, completedAt: new Date().toISOString() };
   learningProgressRemote[key] = progress[key];
   saveLearningProgressAll(progress);
@@ -3821,6 +3910,7 @@ async function setLearningCompleted(selection) {
 function renderLearningPanel() {
   const branchList = document.getElementById("learningBranches");
   const topicsEl = document.getElementById("learningTopics");
+  const subtopicsEl = document.getElementById("learningSubtopics");
   const levelsEl = document.getElementById("learningLevelTabs");
   if (!branchList || !topicsEl || !levelsEl) return;
 
@@ -3831,6 +3921,7 @@ function renderLearningPanel() {
   }
   const branch = LEARNING_CATALOG.find(item => item.id === selection.branchId) || LEARNING_CATALOG[0];
   const topic = branch.topics.find(item => item.id === selection.topicId) || branch.topics[0];
+  const subtopic = (topic.subtopics || []).find(item => item.id === selection.subtopicId) || topic.subtopics?.[0] || makeLearningSubtopic(branch.title, topic.title, topic.title, topic.summary);
   const summary = learningProgressSummary();
 
   document.getElementById("learningProgressPct").textContent = `${summary.pct}%`;
@@ -3852,32 +3943,47 @@ function renderLearningPanel() {
 
   const progress = learningProgressAll();
   topicsEl.innerHTML = branch.topics.map(item => {
-    const completed = progress[learningProgressId(branch.id, item.id, selection.level)]?.completed;
+    const subtopicCount = item.subtopics?.length || 0;
+    const completedCount = (item.subtopics || []).filter(st => progress[learningProgressId(branch.id, item.id, st.id, selection.level)]?.completed).length;
     return `
       <button class="learning-topic ${item.id === topic.id ? "active" : ""}" type="button" data-learning-topic="${escapeHtml(item.id)}">
-        <span>${completed ? "✓" : "○"}</span>
+        <span>${completedCount ? "✓" : "○"}</span>
         <strong>${escapeHtml(item.title)}</strong>
         <small>${escapeHtml(item.summary)}</small>
+        <em>${completedCount}/${subtopicCount} subtemas en ${escapeHtml(LEVEL_LABELS[selection.level])}</em>
       </button>
     `;
   }).join("");
 
-  renderLearningUnit(branch, topic, selection.level);
+  if (subtopicsEl) {
+    subtopicsEl.innerHTML = (topic.subtopics || []).map(item => {
+      const completed = progress[learningProgressId(branch.id, topic.id, item.id, selection.level)]?.completed;
+      return `
+        <button class="learning-subtopic ${item.id === subtopic.id ? "active" : ""}" type="button" data-learning-subtopic="${escapeHtml(item.id)}">
+          <span>${completed ? "✓" : "○"}</span>
+          <strong>${escapeHtml(item.title)}</strong>
+          <small>${escapeHtml(item.summary)}</small>
+        </button>
+      `;
+    }).join("");
+  }
+
+  renderLearningUnit(branch, topic, subtopic, selection.level);
   renderLearningManager(selection);
 }
 
-function renderLearningUnit(branch, topic, level) {
+function renderLearningUnit(branch, topic, subtopic, level) {
   const unit = document.getElementById("learningUnit");
   if (!unit) return;
-  const data = topic.levels[level] || topic.levels.facil;
+  const data = subtopic.levels?.[level] || subtopic.levels?.facil || makeLearningLevels(branch.title, topic.title, subtopic.title)[level];
   const progress = learningProgressAll();
-  const completed = progress[learningProgressId(branch.id, topic.id, level)]?.completed;
+  const completed = progress[learningProgressId(branch.id, topic.id, subtopic.id, level)]?.completed;
   unit.innerHTML = `
     <header class="learning-unit-head">
       <div>
-        <span class="section-kicker">${escapeHtml(branch.title)} · ${escapeHtml(LEVEL_LABELS[level])}</span>
-        <h3>${escapeHtml(topic.title)}</h3>
-        <p>${escapeHtml(topic.summary)}</p>
+        <span class="section-kicker">${escapeHtml(branch.title)} · ${escapeHtml(topic.title)} · ${escapeHtml(LEVEL_LABELS[level])}</span>
+        <h3>${escapeHtml(subtopic.title)}</h3>
+        <p>${escapeHtml(subtopic.summary || topic.summary)}</p>
       </div>
       <span class="learning-master-badge ${completed ? "done" : ""}">${completed ? "Completado" : "En progreso"}</span>
     </header>
@@ -3889,7 +3995,7 @@ function renderLearningUnit(branch, topic, level) {
       </article>
       <article>
         <h4>Conceptos clave</h4>
-        <ul>${topic.keyConcepts.map(concept => `<li>${escapeHtml(concept)}</li>`).join("")}</ul>
+        <ul>${(subtopic.keyConcepts || topic.keyConcepts || []).map(concept => `<li>${escapeHtml(concept)}</li>`).join("")}</ul>
       </article>
       <article class="learning-wide learning-step-card">
         <h4>Ejemplo paso a paso</h4>
@@ -3913,23 +4019,20 @@ function renderLearningUnit(branch, topic, level) {
     </div>
 
     <div class="learning-practice" data-learning-practice>
-      <span class="section-kicker">Práctica rápida</span>
-      <h4>${renderInlineMathText(data.practice.question)}</h4>
-      <div class="learning-practice-options">
-        ${data.practice.options.map((option, idx) => `<button type="button" data-learning-answer="${idx}">${renderInlineMathText(option)}</button>`).join("")}
-      </div>
+      <span class="section-kicker">Práctica</span>
+      <h4>Cuando termines este subtema, continúa con el examen ${escapeHtml(LEVEL_LABELS[level])}.</h4>
+      <p>La práctica evaluable usa el flujo oficial de exámenes, intentos, tiempos, disponibilidad y retroalimentación que ya tiene tu aula.</p>
       <p class="bank-status" data-learning-status></p>
     </div>
 
     <div class="learning-actions">
-      <button class="btn btn-outline" type="button" id="btnLearningComplete">${completed ? "Reforzar de nuevo" : "Marcar tema como estudiado"}</button>
+      <button class="btn btn-outline" type="button" id="btnLearningComplete">${completed ? "Repasar este subtema" : "Marcar subtema como estudiado"}</button>
       <button class="btn btn-primary" type="button" id="btnLearningExam">Ir al examen ${escapeHtml(LEVEL_LABELS[level])} · ${etiquetaDuracionNivel(level)}</button>
     </div>
   `;
   if (window.renderMathInElement) renderMathInElement(unit, { delimiters: MATH_DELIMITERS, throwOnError: false });
-  renderLearningResourceForSelection({ branchId: branch.id, topicId: topic.id, level });
+  renderLearningResourceForSelection({ branchId: branch.id, topicId: topic.id, subtopicId: subtopic.id, level });
 }
-
 function renderLearningManager(selection = resolveLearningSelection()) {
   const manager = document.getElementById("learningTeacherManager");
   if (!manager) return;
@@ -3941,15 +4044,16 @@ function renderLearningManager(selection = resolveLearningSelection()) {
   const classSel = document.getElementById("learningManagerClass");
   const branchSel = document.getElementById("learningManagerBranch");
   const topicSel = document.getElementById("learningManagerTopic");
+  const subtopicSel = document.getElementById("learningManagerSubtopic");
   const levelSel = document.getElementById("learningManagerLevel");
-  if (!branchSel || !topicSel || !levelSel) return;
+  if (!branchSel || !topicSel || !subtopicSel || !levelSel) return;
   const owner = esPropietarioPlataforma();
   const selectedScope = owner ? (selection.scope || scopeSel?.value || "global") : "class";
   const scopeHelp = document.getElementById("learningManagerScopeHelp");
   if (scopeHelp) {
     scopeHelp.textContent = owner
-      ? "Como dueño puedes publicar contenido para toda la plataforma o preparar materiales para un aula específica."
-      : "Como profesor, selecciona el aula donde se verá este contenido. Los estudiantes de esa aula lo verán en la unidad correspondiente.";
+      ? "Como dueño puedes editar contenido estructural de toda la plataforma o preparar recursos para un aula específica."
+      : "Como profesor, selecciona el aula donde se verá este contenido. Solo puedes editar o reemplazar recursos creados por ti.";
   }
   if (scopeLabel) scopeLabel.classList.toggle("hidden", !owner);
   if (scopeSel) {
@@ -3970,20 +4074,24 @@ function renderLearningManager(selection = resolveLearningSelection()) {
   const branch = LEARNING_CATALOG.find(item => item.id === branchSel.value) || LEARNING_CATALOG[0];
   topicSel.innerHTML = branch.topics.map(topic => `<option value="${escapeHtml(topic.id)}">${escapeHtml(topic.title)}</option>`).join("");
   topicSel.value = branch.topics.some(topic => topic.id === selection.topicId) ? selection.topicId : branch.topics[0].id;
+  const topic = branch.topics.find(item => item.id === topicSel.value) || branch.topics[0];
+  subtopicSel.innerHTML = (topic.subtopics || []).map(subtopic => `<option value="${escapeHtml(subtopic.id)}">${escapeHtml(subtopic.title)}</option>`).join("");
+  subtopicSel.value = (topic.subtopics || []).some(subtopic => subtopic.id === selection.subtopicId) ? selection.subtopicId : topic.subtopics?.[0]?.id || topic.id;
   levelSel.innerHTML = Object.entries(LEVEL_LABELS).map(([level, label]) => `<option value="${escapeHtml(level)}">${escapeHtml(label)}</option>`).join("");
   levelSel.value = selection.level;
 }
 
 function getLearningManagerSelection() {
-  const branchId = document.getElementById("learningManagerBranch")?.value || resolveLearningSelection().branchId;
-  const topicId = document.getElementById("learningManagerTopic")?.value || resolveLearningSelection().topicId;
-  const level = document.getElementById("learningManagerLevel")?.value || resolveLearningSelection().level;
-  const base = resolveLearningSelection({ branchId, topicId, level });
+  const current = resolveLearningSelection();
+  const branchId = document.getElementById("learningManagerBranch")?.value || current.branchId;
+  const topicId = document.getElementById("learningManagerTopic")?.value || current.topicId;
+  const subtopicId = document.getElementById("learningManagerSubtopic")?.value || current.subtopicId;
+  const level = document.getElementById("learningManagerLevel")?.value || current.level;
+  const base = resolveLearningSelection({ branchId, topicId, subtopicId, level });
   const owner = esPropietarioPlataforma();
   const scope = owner ? (document.getElementById("learningManagerScope")?.value || "global") : "class";
   return { ...base, scope, classId: document.getElementById("learningManagerClass")?.value || "" };
 }
-
 function resetLearningManagerFiles() {
   ["learningManagerImage", "learningManagerPdf", "learningManagerVideo"].forEach(id => {
     const input = document.getElementById(id);
@@ -4050,7 +4158,8 @@ async function guardarLearningResource() {
       ownerEmail: usuarioActual.email || "",
       branchId: selection.branchId,
       topicId: selection.topicId,
-      level: selection.level,
+      subtopicId: selection.subtopicId || selection.topicId,
+    level: selection.level,
       scope,
       classId: scope === "class" ? selection.classId : "",
       className: scope === "class" ? nombreAulaPorId(selection.classId) : "",
@@ -4078,6 +4187,24 @@ async function guardarLearningResource() {
     }
   }
 }
+async function quitarLearningResourceFile(kind) {
+  if (!puedeGestionarContenidoAprendizaje()) return;
+  const selection = getLearningManagerSelection();
+  const resource = await cargarLearningResource(selection, true);
+  if (!canEditLearningResource(resource)) {
+    alert("Solo puedes editar recursos creados por ti.");
+    return;
+  }
+  const isPdf = kind === "pdf";
+  const path = isPdf ? resource.pdfPath : resource.videoPath;
+  if (!confirm(`¿Deseas quitar este ${isPdf ? "PDF" : "video"} del contenido?`)) return;
+  if (path) await deleteObject(storageRef(storage, path)).catch(() => {});
+  await updateDoc(doc(db, LEARNING_RESOURCE_COLLECTION, resource.id), isPdf
+    ? { pdfUrl: "", pdfPath: "", updatedAt: serverTimestamp() }
+    : { videoUrl: "", videoPath: "", updatedAt: serverTimestamp() });
+  learningResourcesCache.delete(learningResourceCacheKey(selection));
+  await renderLearningResourceForSelection(selection);
+}
 function normalizeLatexText(value = "") {
   return String(value)
     .replace(/\\\\\(/g, "\\(")
@@ -4095,44 +4222,36 @@ function renderInlineMathText(value = "") {
 function handleLearningClick(event) {
   const branchButton = event.target.closest("[data-learning-branch]");
   const topicButton = event.target.closest("[data-learning-topic]");
+  const subtopicButton = event.target.closest("[data-learning-subtopic]");
   const levelButton = event.target.closest("[data-learning-level]");
-  const answerButton = event.target.closest("[data-learning-answer]");
   const selection = resolveLearningSelection();
 
   if (branchButton) {
     const branch = LEARNING_CATALOG.find(item => item.id === branchButton.dataset.learningBranch) || LEARNING_CATALOG[0];
-    setLearningLast({ branchId: branch.id, topicId: branch.topics[0].id, level: selection.level });
+    const topic = branch.topics[0];
+    const subtopic = topic.subtopics?.[0];
+    setLearningLast({ branchId: branch.id, topicId: topic.id, subtopicId: subtopic?.id || topic.id, level: selection.level });
     renderLearningPanel();
     return;
   }
   if (topicButton) {
-    setLearningLast({ ...selection, topicId: topicButton.dataset.learningTopic });
+    const branch = LEARNING_CATALOG.find(item => item.id === selection.branchId) || LEARNING_CATALOG[0];
+    const topic = branch.topics.find(item => item.id === topicButton.dataset.learningTopic) || branch.topics[0];
+    const subtopic = topic.subtopics?.[0];
+    setLearningLast({ ...selection, topicId: topic.id, subtopicId: subtopic?.id || topic.id });
+    renderLearningPanel();
+    return;
+  }
+  if (subtopicButton) {
+    setLearningLast({ ...selection, subtopicId: subtopicButton.dataset.learningSubtopic });
     renderLearningPanel();
     return;
   }
   if (levelButton) {
     setLearningLast({ ...selection, level: levelButton.dataset.learningLevel });
     renderLearningPanel();
-    return;
-  }
-  if (answerButton) {
-    const current = resolveLearningSelection();
-    const branch = LEARNING_CATALOG.find(item => item.id === current.branchId);
-    const topic = branch?.topics.find(item => item.id === current.topicId);
-    const practice = topic?.levels[current.level]?.practice;
-    const selected = Number(answerButton.dataset.learningAnswer);
-    const status = document.querySelector("[data-learning-status]");
-    document.querySelectorAll("[data-learning-answer]").forEach(btn => btn.classList.remove("correct", "wrong"));
-    answerButton.classList.add(selected === practice?.answer ? "correct" : "wrong");
-    if (status) {
-      status.textContent = selected === practice?.answer
-        ? "Correcto. Ya puedes marcar el tema como estudiado."
-        : "Revisa el ejemplo paso a paso y vuelve a intentarlo.";
-      status.className = `bank-status ${selected === practice?.answer ? "ok" : "error"}`;
-    }
   }
 }
-
 document.getElementById("sectionAprendizaje")?.addEventListener("click", async event => {
   handleLearningClick(event);
   if (event.target.closest("#btnLearningComplete")) {
@@ -4144,6 +4263,13 @@ document.getElementById("sectionAprendizaje")?.addEventListener("click", async e
     const selection = resolveLearningSelection();
     const examKey = LEVEL_TO_EXAM[selection.level] || "diagnostico";
     activarNav(examKey);
+  }
+  if (event.target.closest("[data-learning-edit-resource]")) {
+    document.getElementById("learningTeacherManager")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  const removeFileButton = event.target.closest("[data-learning-remove-file]");
+  if (removeFileButton) {
+    await quitarLearningResourceFile(removeFileButton.dataset.learningRemoveFile);
   }
   if (event.target.closest("#btnLearningResourceSave")) {
     await guardarLearningResource();
@@ -4167,7 +4293,16 @@ document.getElementById("sectionAprendizaje")?.addEventListener("change", event 
   if (event.target.matches("#learningManagerBranch")) {
     const selection = getLearningManagerSelection();
     const branch = LEARNING_CATALOG.find(item => item.id === selection.branchId) || LEARNING_CATALOG[0];
-    renderLearningManager({ ...selection, branchId: branch.id, topicId: branch.topics[0].id, level: selection.level });
+    const topic = branch.topics[0];
+    renderLearningManager({ ...selection, branchId: branch.id, topicId: topic.id, subtopicId: topic.subtopics?.[0]?.id || topic.id, level: selection.level });
+    renderLearningResourceForSelection(getLearningManagerSelection());
+    return;
+  }
+  if (event.target.matches("#learningManagerTopic")) {
+    const selection = getLearningManagerSelection();
+    const branch = LEARNING_CATALOG.find(item => item.id === selection.branchId) || LEARNING_CATALOG[0];
+    const topic = branch.topics.find(item => item.id === selection.topicId) || branch.topics[0];
+    renderLearningManager({ ...selection, topicId: topic.id, subtopicId: topic.subtopics?.[0]?.id || topic.id });
     renderLearningResourceForSelection(getLearningManagerSelection());
     return;
   }
@@ -4176,11 +4311,115 @@ document.getElementById("sectionAprendizaje")?.addEventListener("change", event 
     renderLearningResourceForSelection(getLearningManagerSelection());
     return;
   }
-  if (event.target.matches("#learningManagerTopic, #learningManagerLevel, #learningManagerClass")) {
+  if (event.target.matches("#learningManagerSubtopic, #learningManagerLevel, #learningManagerClass")) {
     renderLearningResourceForSelection(getLearningManagerSelection());
   }
 });
 
+
+function learningCompletedEntries() {
+  return Object.values(learningProgressAll()).filter(item => item?.completed && item?.completedAt);
+}
+
+function dateKeyBogota(date) {
+  try {
+    return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota", year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
+  } catch {
+    return date.toISOString().slice(0, 10);
+  }
+}
+
+function learningActivityDays() {
+  return [...new Set(learningCompletedEntries().map(item => dateKeyBogota(new Date(item.completedAt))))].sort();
+}
+
+function learningCurrentStreak() {
+  const days = new Set(learningActivityDays());
+  let cursor = new Date();
+  let streak = 0;
+  for (let i = 0; i < 180; i += 1) {
+    const key = dateKeyBogota(cursor);
+    if (!days.has(key)) {
+      if (i === 0) {
+        cursor.setDate(cursor.getDate() - 1);
+        continue;
+      }
+      break;
+    }
+    streak += 1;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return streak;
+}
+
+function learningWeekStart(date = new Date()) {
+  const copy = new Date(date);
+  const day = copy.getDay() || 7;
+  copy.setDate(copy.getDate() - day + 1);
+  copy.setHours(0, 0, 0, 0);
+  return copy;
+}
+
+function learningWeeklyProgress() {
+  const start = learningWeekStart();
+  const end = new Date(start);
+  end.setDate(end.getDate() + 7);
+  const sessions = learningCompletedEntries().filter(item => {
+    const when = new Date(item.completedAt);
+    return when >= start && when < end;
+  }).length;
+  const target = 3;
+  return { sessions, target, pct: Math.min(100, Math.round((sessions / target) * 100)) };
+}
+
+function learningBadgeProgress(badge) {
+  const completed = learningCompletedEntries().length;
+  const weekly = learningWeeklyProgress().sessions;
+  const streak = learningCurrentStreak();
+  const value = badge.type === "streak" ? streak : badge.type === "weekly" ? weekly : completed;
+  return { value, pct: Math.min(100, Math.round((value / badge.target) * 100)), unlocked: value >= badge.target };
+}
+
+function renderBadgesPanel() {
+  if (modoAdmin || esInstitucion()) return;
+  const summaryEl = document.getElementById("badgesSummaryGrid");
+  const nextEl = document.getElementById("badgesNextCard");
+  const gridEl = document.getElementById("badgesGrid");
+  if (!summaryEl || !nextEl || !gridEl) return;
+  if (usuarioActual?.uid && learningProgressRemoteLoadedFor !== usuarioActual.uid) {
+    cargarLearningProgressRemoto().then(() => renderBadgesPanel()).catch(console.warn);
+  }
+  const completed = learningCompletedEntries().length;
+  const streak = learningCurrentStreak();
+  const weekly = learningWeeklyProgress();
+  const badgeStates = BADGE_CATALOG.map(badge => ({ ...badge, ...learningBadgeProgress(badge) }));
+  const next = badgeStates.find(badge => !badge.unlocked) || badgeStates[badgeStates.length - 1];
+  summaryEl.innerHTML = `
+    <article><span>🔥</span><strong>${streak} día(s)</strong><small>Racha actual</small></article>
+    <article><span>🎯</span><strong>${weekly.sessions}/${weekly.target}</strong><small>Meta semanal</small></article>
+    <article><span>📚</span><strong>${completed}</strong><small>Niveles completados</small></article>
+    <article><span>🏅</span><strong>${badgeStates.filter(item => item.unlocked).length}/${badgeStates.length}</strong><small>Insignias obtenidas</small></article>
+  `;
+  nextEl.innerHTML = `
+    <div>
+      <span class="section-kicker">Próxima insignia</span>
+      <h3>${escapeHtml(next.icon)} ${escapeHtml(next.title)}</h3>
+      <p>${escapeHtml(next.description)}</p>
+    </div>
+    <div class="badge-progress-ring" style="--badge-progress:${next.pct}%"><strong>${next.pct}%</strong><span>${next.value}/${next.target}</span></div>
+  `;
+  gridEl.innerHTML = badgeStates.map(badge => `
+    <article class="badge-card ${badge.unlocked ? "unlocked" : "locked"}">
+      <span class="badge-icon">${escapeHtml(badge.icon)}</span>
+      <div>
+        <strong>${escapeHtml(badge.title)}</strong>
+        <p>${escapeHtml(badge.description)}</p>
+        <div class="badge-mini-bar"><i style="width:${badge.pct}%"></i></div>
+        <small>${badge.unlocked ? "Desbloqueada" : `Pendiente: ${badge.value}/${badge.target}`}</small>
+      </div>
+    </article>
+  `).join("");
+}
 function abrirDrawer() {
   document.getElementById("sideDrawer")?.classList.remove("hidden");
   document.getElementById("drawerBackdrop")?.classList.remove("hidden");

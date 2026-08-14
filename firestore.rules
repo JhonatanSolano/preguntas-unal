@@ -316,6 +316,7 @@ service cloud.firestore {
         request.resource.data.ownerUid == request.auth.uid &&
         request.resource.data.branchId is string &&
         request.resource.data.topicId is string &&
+        request.resource.data.subtopicId is string &&
         request.resource.data.level in ["facil", "medio", "avanzado"] &&
         request.resource.data.scope in ["global", "class"] &&
         (
@@ -327,6 +328,7 @@ service cloud.firestore {
         request.resource.data.ownerUid == resource.data.ownerUid &&
         request.resource.data.branchId is string &&
         request.resource.data.topicId is string &&
+        request.resource.data.subtopicId is string &&
         request.resource.data.level in ["facil", "medio", "avanzado"] &&
         request.resource.data.scope in ["global", "class"] &&
         (
