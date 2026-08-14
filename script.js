@@ -7785,8 +7785,7 @@ async function evaluarYMostrarNivel(respuestas, opciones = {}) {
 
   preguntas.forEach((q, i) => {
     const qResultado = preguntasResultado[i] || q;
-    const card = document.getElementById(
-ivel-card-${q.id}`);
+    const card = document.getElementById(`nivel-card-${q.id}`);
     if (!card) return;
     const sinR = respuestas[i] === -1;
     const ok = !sinR && respuestas[i] === qResultado.correcta;
@@ -7845,8 +7844,7 @@ document.getElementById("nivelForm").addEventListener("submit", async (e) => {
     document.getElementById("warnMsgNivel").hidden = false;
     for (const q of preguntas) {
       if (!document.querySelector(`input[name="nivel-q${q.id}"]:checked`)) {
-        document.getElementById(
-ivel-card-${q.id}`).scrollIntoView({ behavior: "smooth", block: "center" });
+        document.getElementById(`nivel-card-${q.id}`).scrollIntoView({ behavior: "smooth", block: "center" });
         break;
       }
     }
