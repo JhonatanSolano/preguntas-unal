@@ -2829,6 +2829,37 @@ function actualizarEstadoDiagnostico() {
   actualizarProgreso();
 }
 
+function asegurarEnlaceReporteExamen(sec) {
+  const sectionByKey = {
+    diagnostico: "sectionDiagnostico",
+    nivel1: "sectionNivel",
+    examen: "sectionExamen"
+  };
+  const titleByKey = {
+    diagnostico: "Diagnóstico",
+    nivel1: "Nivel Medio",
+    examen: "Examen Final"
+  };
+  const section = document.getElementById(sectionByKey[sec]);
+  if (!section || section.querySelector(".exam-report-link")) return;
+  const subject = `Reporte de problema en ${titleByKey[sec]} - Matemáticas En Tu Bolsillo`;
+  const body = [
+    "Hola, soporte.",
+    "",
+    "Quiero reportar un problema durante un examen.",
+    "",
+    `Examen: ${titleByKey[sec]}`,
+    `Usuario: ${usuarioActual?.email || "Sin correo activo"}`,
+    "",
+    "Descripción del problema:"
+  ].join("\n");
+  const link = document.createElement("a");
+  link.className = "exam-report-link";
+  link.href = `mailto:${APP_CONFIG.support.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  link.textContent = "Reportar un problema";
+  section.prepend(link);
+}
+
 function mostrarSeccion(sec) {
   cerrarAccordions();
   if (sec !== "perfil") limpiarVerificacionTelefonoTemporal();
@@ -2854,6 +2885,7 @@ function mostrarSeccion(sec) {
   document.getElementById("sectionMensajes")?.classList.toggle("hidden", sec !== "mensajes");
   document.getElementById("sectionAsesorIA")?.classList.toggle("hidden", sec !== "asesorIA");
   if (sec === "diagnostico") actualizarEstadoDiagnostico();
+  if (["diagnostico", "nivel1", "examen"].includes(sec)) asegurarEnlaceReporteExamen(sec);
   if (sec === "examenes") renderExamenesHub();
   if (sec === "admin") renderAdminPanel();
   if (sec === "estadisticas") renderStudentStats();
@@ -3923,6 +3955,7 @@ function renderLearningPanel() {
   const topic = branch.topics.find(item => item.id === selection.topicId) || branch.topics[0];
   const subtopic = (topic.subtopics || []).find(item => item.id === selection.subtopicId) || topic.subtopics?.[0] || makeLearningSubtopic(branch.title, topic.title, topic.title, topic.summary);
   const summary = learningProgressSummary();
+  renderLearningMobilePicker(branch, topic, subtopic, selection.level);
 
   document.getElementById("learningProgressPct").textContent = `${summary.pct}%`;
   document.getElementById("learningProgressText").textContent = `${summary.completed} de ${summary.total} niveles completados.`;
@@ -3970,6 +4003,45 @@ function renderLearningPanel() {
 
   renderLearningUnit(branch, topic, subtopic, selection.level);
   renderLearningManager(selection);
+}
+
+function renderLearningMobilePicker(branch, topic, subtopic, level) {
+  const branchSelect = document.getElementById("learningBranchSelect");
+  const topicSelect = document.getElementById("learningTopicSelect");
+  const subtopicSelect = document.getElementById("learningSubtopicSelect");
+  const levelSelect = document.getElementById("learningLevelSelect");
+  if (!branchSelect || !topicSelect || !subtopicSelect || !levelSelect) return;
+  branchSelect.innerHTML = LEARNING_CATALOG.map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.title)}</option>`).join("");
+  branchSelect.value = branch.id;
+  topicSelect.innerHTML = branch.topics.map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.title)}</option>`).join("");
+  topicSelect.value = topic.id;
+  subtopicSelect.innerHTML = (topic.subtopics || []).map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.title)}</option>`).join("");
+  subtopicSelect.value = subtopic.id;
+  levelSelect.innerHTML = Object.entries(LEVEL_LABELS).map(([key, label]) => `<option value="${escapeHtml(key)}">${escapeHtml(label)}</option>`).join("");
+  levelSelect.value = level;
+}
+
+function learningReportMailto(context = "contenido de aprendizaje") {
+  const selection = resolveLearningSelection();
+  const branch = LEARNING_CATALOG.find(item => item.id === selection.branchId) || LEARNING_CATALOG[0];
+  const topic = branch.topics.find(item => item.id === selection.topicId) || branch.topics[0];
+  const subtopic = (topic.subtopics || []).find(item => item.id === selection.subtopicId) || topic.subtopics?.[0];
+  const subject = `Reporte de problema en ${context} - Matemáticas En Tu Bolsillo`;
+  const body = [
+    "Hola, soporte.",
+    "",
+    "Quiero reportar un problema en la plataforma.",
+    "",
+    `Sección: ${context}`,
+    `Rama: ${branch.title}`,
+    `Tema: ${topic.title}`,
+    `Subtema: ${subtopic?.title || "No seleccionado"}`,
+    `Nivel: ${LEVEL_LABELS[selection.level] || selection.level}`,
+    `Usuario: ${usuarioActual?.email || "Sin correo activo"}`,
+    "",
+    "Descripción del problema:"
+  ].join("\n");
+  return `mailto:${APP_CONFIG.support.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
 function renderLearningUnit(branch, topic, subtopic, level) {
@@ -4028,6 +4100,8 @@ function renderLearningUnit(branch, topic, subtopic, level) {
     <div class="learning-actions">
       <button class="btn btn-outline" type="button" id="btnLearningComplete">${completed ? "Repasar este subtema" : "Marcar subtema como estudiado"}</button>
       <button class="btn btn-primary" type="button" id="btnLearningExam">Ir al examen ${escapeHtml(LEVEL_LABELS[level])} · ${etiquetaDuracionNivel(level)}</button>
+      ${esPropietarioPlataforma() ? `<button class="btn btn-outline" type="button" id="btnLearningEditBase">Editar contenido base</button>` : ""}
+      <a class="learning-report-link" href="${learningReportMailto("contenido de aprendizaje")}">Reportar un problema</a>
     </div>
   `;
   if (window.renderMathInElement) renderMathInElement(unit, { delimiters: MATH_DELIMITERS, throwOnError: false });
@@ -4092,6 +4166,34 @@ function getLearningManagerSelection() {
   const scope = owner ? (document.getElementById("learningManagerScope")?.value || "global") : "class";
   return { ...base, scope, classId: document.getElementById("learningManagerClass")?.value || "" };
 }
+
+function cargarContenidoBaseEnEditor() {
+  if (!esPropietarioPlataforma()) return;
+  const selection = resolveLearningSelection();
+  const branch = LEARNING_CATALOG.find(item => item.id === selection.branchId) || LEARNING_CATALOG[0];
+  const topic = branch.topics.find(item => item.id === selection.topicId) || branch.topics[0];
+  const subtopic = (topic.subtopics || []).find(item => item.id === selection.subtopicId) || topic.subtopics?.[0];
+  const data = subtopic?.levels?.[selection.level] || subtopic?.levels?.facil || {};
+  const scope = document.getElementById("learningManagerScope");
+  if (scope) scope.value = "global";
+  renderLearningManager({ ...selection, scope: "global" });
+  const title = document.getElementById("learningManagerTitle");
+  const theory = document.getElementById("learningManagerTheory");
+  const steps = document.getElementById("learningManagerSteps");
+  const question = document.getElementById("learningManagerPracticeQuestion");
+  const option0 = document.getElementById("learningManagerOption0");
+  const option1 = document.getElementById("learningManagerOption1");
+  const option2 = document.getElementById("learningManagerOption2");
+  if (title) title.value = `${subtopic?.title || topic.title} · ${LEVEL_LABELS[selection.level]}`;
+  if (theory) theory.value = normalizeLatexText(data.theory || "");
+  if (steps) steps.value = (data.example || []).map(normalizeLatexText).join("\n");
+  if (question) question.value = normalizeLatexText(data.practice?.question || "");
+  if (option0) option0.value = normalizeLatexText(data.practice?.options?.[0] || "");
+  if (option1) option1.value = normalizeLatexText(data.practice?.options?.[1] || "");
+  if (option2) option2.value = normalizeLatexText(data.practice?.options?.[2] || "");
+  document.getElementById("learningTeacherManager")?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 function resetLearningManagerFiles() {
   ["learningManagerImage", "learningManagerPdf", "learningManagerVideo"].forEach(id => {
     const input = document.getElementById(id);
@@ -4264,6 +4366,10 @@ document.getElementById("sectionAprendizaje")?.addEventListener("click", async e
     const examKey = LEVEL_TO_EXAM[selection.level] || "diagnostico";
     activarNav(examKey);
   }
+  if (event.target.closest("#btnLearningEditBase")) {
+    cargarContenidoBaseEnEditor();
+    return;
+  }
   if (event.target.closest("[data-learning-edit-resource]")) {
     document.getElementById("learningTeacherManager")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
@@ -4289,6 +4395,33 @@ document.getElementById("sectionAprendizaje")?.addEventListener("click", async e
 });
 
 document.getElementById("sectionAprendizaje")?.addEventListener("change", event => {
+  if (event.target.matches("#learningBranchSelect")) {
+    const branch = LEARNING_CATALOG.find(item => item.id === event.target.value) || LEARNING_CATALOG[0];
+    const topic = branch.topics[0];
+    const subtopic = topic.subtopics?.[0];
+    setLearningLast({ branchId: branch.id, topicId: topic.id, subtopicId: subtopic?.id || topic.id, level: resolveLearningSelection().level });
+    renderLearningPanel();
+    return;
+  }
+  if (event.target.matches("#learningTopicSelect")) {
+    const selection = resolveLearningSelection();
+    const branch = LEARNING_CATALOG.find(item => item.id === selection.branchId) || LEARNING_CATALOG[0];
+    const topic = branch.topics.find(item => item.id === event.target.value) || branch.topics[0];
+    const subtopic = topic.subtopics?.[0];
+    setLearningLast({ ...selection, topicId: topic.id, subtopicId: subtopic?.id || topic.id });
+    renderLearningPanel();
+    return;
+  }
+  if (event.target.matches("#learningSubtopicSelect")) {
+    setLearningLast({ ...resolveLearningSelection(), subtopicId: event.target.value });
+    renderLearningPanel();
+    return;
+  }
+  if (event.target.matches("#learningLevelSelect")) {
+    setLearningLast({ ...resolveLearningSelection(), level: event.target.value });
+    renderLearningPanel();
+    return;
+  }
   if (!event.target.closest("#learningTeacherManager")) return;
   if (event.target.matches("#learningManagerBranch")) {
     const selection = getLearningManagerSelection();
@@ -8130,6 +8263,23 @@ function ocultarReloadSesion() {
   sessionStorage.removeItem(STORAGE_RELOAD_SESION);
 }
 
+function setButtonLoading(button, loading, text = "Cargando...") {
+  if (!button) return;
+  if (loading) {
+    if (!button.dataset.originalText) button.dataset.originalText = button.textContent || "";
+    button.textContent = text;
+    button.disabled = true;
+    button.classList.add("is-loading");
+    return;
+  }
+  button.disabled = false;
+  button.classList.remove("is-loading");
+  if (button.dataset.originalText) {
+    button.textContent = button.dataset.originalText;
+    delete button.dataset.originalText;
+  }
+}
+
 function poblarPhoneCodes(selectId, value = "+57") {
   const select = document.getElementById(selectId);
   if (!select) return;
@@ -9433,6 +9583,7 @@ async function registrarEmail() {
 
 async function loginGoogle() {
   const expectedType = document.getElementById("loginAccountType")?.value || "";
+  const googleButton = document.getElementById("btnGoogleLogin");
   if (!expectedType) {
     mostrarErrorAuth("Selecciona primero el tipo de cuenta.");
     return;
@@ -9456,6 +9607,8 @@ async function loginGoogle() {
   }
   try {
     googleAuthFlowInProgress = true;
+    mostrarReloadSesion();
+    setButtonLoading(googleButton, true, "Ingresando...");
     if (authIntent === "login") setPendingLoginType(expectedType);
     const cred = await signInWithPopup(auth, new GoogleAuthProvider());
     const snap = await getDoc(doc(db, "users", cred.user.uid));
@@ -9464,18 +9617,21 @@ async function loginGoogle() {
       clearPendingLoginType();
       await registrarIndependienteGoogle(cred.user);
       await prepararSesionAutenticada();
+      ocultarReloadSesion();
       return;
     }
     if (authIntent === "register" && expectedType === "independentStudent" && snap.exists()) {
       suppressAuthResetOnce = true;
       await signOut(auth);
       clearPendingLoginType();
+      ocultarReloadSesion();
       mostrarErrorAuth("Usuario ya registrado, por favor inicie sesión.");
       return;
     }
     if (!snap.exists() || !loginCoincideConTipo(profile, expectedType, cred.user.email)) {
       await signOut(auth);
       clearPendingLoginType();
+      ocultarReloadSesion();
       mostrarLoginConError(expectedType === "independentStudent"
         ? "Google solo puede usarse con un correo ya registrado como estudiante independiente."
         : mensajeTipoCuentaNoAutorizado(expectedType));
@@ -9484,17 +9640,21 @@ async function loginGoogle() {
     clearPendingLoginType();
     await guardarDatosGoogleIniciales(cred.user);
     await prepararSesionAutenticada();
+    ocultarReloadSesion();
   } catch (err) {
+    ocultarReloadSesion();
     clearPendingLoginType();
     mostrarLoginErrorTemporal("loginStatus", "No se pudo ingresar con Google.");
   } finally {
     googleAuthFlowInProgress = false;
+    setButtonLoading(googleButton, false);
   }
 }
 
 async function loginGoogleInstitucional() {
   const expectedType = document.getElementById("loginAccountType")?.value || "";
   const dane = normalizarDane(document.getElementById("googleInstitutionDane")?.value || "");
+  const googleButton = document.getElementById("btnContinueGoogleInstitution");
   if (!["institutionalStudent", "teacher"].includes(expectedType)) return;
   if (!dane) {
     mostrarLoginErrorTemporal("googleInstitutionStatus", "Escribe el código DANE de la institución.");
@@ -9502,6 +9662,8 @@ async function loginGoogleInstitucional() {
   }
   try {
     googleAuthFlowInProgress = true;
+    mostrarReloadSesion();
+    setButtonLoading(googleButton, true, "Ingresando...");
     setPendingLoginType(expectedType);
     const cred = await signInWithPopup(auth, new GoogleAuthProvider());
     const email = (cred.user.email || "").toLowerCase();
@@ -9513,12 +9675,14 @@ async function loginGoogleInstitucional() {
         suppressAuthResetOnce = true;
         await signOut(auth);
         clearPendingLoginType();
+        ocultarReloadSesion();
         mostrarLoginErrorTemporal("googleInstitutionStatus", "No tienes permisos de acceso por ninguna institución con ese correo y código DANE.");
         return;
       }
       clearPendingLoginType();
       await guardarDatosGoogleIniciales(cred.user);
       await prepararSesionAutenticada();
+      ocultarReloadSesion();
       return;
     }
     const member = await buscarMiembroInstitucional(email, dane);
@@ -9526,6 +9690,7 @@ async function loginGoogleInstitucional() {
       suppressAuthResetOnce = true;
       await signOut(auth);
       clearPendingLoginType();
+      ocultarReloadSesion();
       mostrarLoginErrorTemporal("googleInstitutionStatus", "No tienes permisos de acceso por ninguna institución con ese correo y código DANE.");
       return;
     }
@@ -9534,6 +9699,7 @@ async function loginGoogleInstitucional() {
       suppressAuthResetOnce = true;
       await signOut(auth);
       clearPendingLoginType();
+      ocultarReloadSesion();
       mostrarLoginErrorTemporal("googleInstitutionStatus", "La institución no tiene una suscripción activa.");
       return;
     }
@@ -9565,12 +9731,15 @@ async function loginGoogleInstitucional() {
     });
     clearPendingLoginType();
     await prepararSesionAutenticada();
+    ocultarReloadSesion();
   } catch (err) {
+    ocultarReloadSesion();
     clearPendingLoginType();
     console.error(err);
     mostrarLoginErrorTemporal("googleInstitutionStatus", "No fue posible ingresar con Google. Revisa el código DANE o intenta de nuevo.");
   } finally {
     googleAuthFlowInProgress = false;
+    setButtonLoading(googleButton, false);
   }
 }
 
@@ -11798,7 +11967,7 @@ if (sessionStorage.getItem(STORAGE_RELOAD_SESION) === "1") {
 onAuthStateChanged(auth, async user => {
   usuarioActual = user;
   if (user && googleAuthFlowInProgress) {
-    ocultarReloadSesion();
+    mostrarReloadSesion();
     return;
   }
   if (!user) {

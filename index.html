@@ -33,7 +33,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="style.css?v=20260813-07" />
+  <link rel="stylesheet" href="style.css?v=20260814-01" />
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -764,7 +764,7 @@
     <button class="drawer-link" id="btnDrawerHome" type="button">Inicio</button>
     <button class="drawer-link" data-section="perfil" type="button">Perfil</button>
     <button class="drawer-link" data-section="aprendizaje" type="button">Aprendizaje</button>
-        <button class="drawer-link student-only" data-section="insignias" type="button">Insignias</button>
+    <button class="drawer-link student-only" data-section="insignias" type="button">Insignias</button>
     <button class="drawer-link" data-section="examenes" type="button">Exámenes</button>
     <button class="drawer-link student-only" data-section="estadisticas" type="button">Estadísticas</button>
     <button class="drawer-link admin-only" data-section="adminMetricas" type="button">Métricas y estadísticas</button>
@@ -904,6 +904,20 @@
         </aside>
 
         <section class="learning-workspace">
+          <div class="learning-mobile-picker" aria-label="Seleccionar ruta de aprendizaje">
+            <label>Rama
+              <select id="learningBranchSelect"></select>
+            </label>
+            <label>Tema
+              <select id="learningTopicSelect"></select>
+            </label>
+            <label>Subtema
+              <select id="learningSubtopicSelect"></select>
+            </label>
+            <label>Nivel
+              <select id="learningLevelSelect"></select>
+            </label>
+          </div>
           <div class="learning-toolbar">
             <div>
               <span class="section-kicker">Temas</span>
@@ -912,7 +926,7 @@
             <div class="learning-level-tabs" id="learningLevelTabs" aria-label="Nivel de estudio"></div>
           </div>
           <div id="learningTopics" class="learning-topic-grid"></div>
-                    <div id="learningSubtopics" class="learning-subtopic-grid"></div>
+          <div id="learningSubtopics" class="learning-subtopic-grid"></div>
           <article id="learningUnit" class="learning-unit"></article>
         </section>
       </div>
@@ -2280,6 +2294,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260813-06"></script>
+  <script type="module" src="script.js?v=20260814-01"></script>
 </body>
 </html>

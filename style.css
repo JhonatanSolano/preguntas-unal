@@ -3144,6 +3144,38 @@ button.message-avatar {
   line-height: 1.55;
 }
 
+.learning-mobile-picker {
+  display: none;
+}
+
+.learning-report-link,
+.exam-report-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  min-height: 36px;
+  padding: .5rem .85rem;
+  border: 1px solid rgba(0, 97, 120, .2);
+  border-radius: 999px;
+  color: var(--c-teal-700);
+  font-weight: 900;
+  font-size: .88rem;
+  text-decoration: none;
+  background: rgba(255, 255, 255, .82);
+  box-shadow: 0 10px 22px rgba(4, 48, 70, .08);
+}
+
+.exam-report-link {
+  margin: 0 0 .8rem auto;
+}
+
+.btn.is-loading {
+  opacity: .78;
+  pointer-events: none;
+  cursor: progress;
+}
+
 .learning-wide ol,
 .learning-wide ul {
   max-width: 100%;
@@ -11434,5 +11466,171 @@ p#googleInstitutionStatus.bank-status.error {
     width: 96px;
     justify-self: center;
     align-self: center;
+  }
+}
+
+/* Aprendizaje móvil · navegación tipo app sin cortar contenido */
+@media (max-width: 720px) {
+  #sectionAprendizaje.main-content {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: .55rem .35rem 5.75rem !important;
+  }
+
+  .learning-shell {
+    width: 100%;
+    max-width: none;
+    gap: .85rem;
+  }
+
+  .learning-hero {
+    padding: 1rem !important;
+    border-radius: 22px !important;
+  }
+
+  .learning-hero h2 {
+    max-width: calc(100vw - 3rem);
+    font-size: clamp(1.7rem, 8vw, 2.35rem) !important;
+    line-height: 1.05 !important;
+    overflow-wrap: anywhere;
+  }
+
+  .learning-hero p {
+    max-width: calc(100vw - 3rem);
+    font-size: clamp(1rem, 4.4vw, 1.15rem);
+  }
+
+  .learning-layout {
+    display: grid;
+    grid-template-columns: 1fr !important;
+    gap: .85rem;
+  }
+
+  .learning-mobile-picker {
+    display: grid;
+    gap: .65rem;
+    padding: .85rem;
+    margin-bottom: .8rem;
+    border: 1px solid rgba(0, 151, 156, .22);
+    border-radius: 18px;
+    background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(239, 252, 250, .92));
+    box-shadow: 0 16px 34px rgba(7, 57, 74, .08);
+  }
+
+  .learning-mobile-picker label {
+    display: grid;
+    gap: .35rem;
+    color: var(--c-navy);
+    font-weight: 900;
+    font-size: .9rem;
+  }
+
+  .learning-mobile-picker select {
+    width: 100%;
+    min-height: 46px;
+    border: 1px solid rgba(0, 97, 120, .22);
+    border-radius: 14px;
+    padding: 0 .8rem;
+    background: #fff;
+    color: var(--c-navy);
+    font-weight: 800;
+    box-shadow: 0 8px 18px rgba(7, 57, 74, .06);
+  }
+
+  .learning-toolbar {
+    display: none !important;
+  }
+
+  .learning-sidebar,
+  .learning-workspace,
+  .learning-unit,
+  .learning-manager {
+    width: 100%;
+    min-width: 0;
+    padding: .85rem !important;
+    border-radius: 20px !important;
+  }
+
+  .learning-branch-list,
+  .learning-topic-grid,
+  .learning-subtopic-grid {
+    display: flex !important;
+    gap: .75rem;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding: .15rem .05rem .55rem;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .learning-branch,
+  .learning-topic,
+  .learning-subtopic {
+    flex: 0 0 min(84vw, 330px);
+    min-width: min(84vw, 330px);
+    scroll-snap-align: start;
+  }
+
+  .learning-topic-grid,
+  .learning-subtopic-grid {
+    grid-template-columns: none !important;
+  }
+
+  .learning-unit-head {
+    grid-template-columns: 1fr !important;
+    gap: .75rem;
+  }
+
+  .learning-resource-grid,
+  .learning-practice-options,
+  .learning-actions,
+  .learning-manager-grid,
+  .learning-manager-grid-top {
+    grid-template-columns: 1fr !important;
+  }
+
+  .learning-resource-grid article,
+  .learning-practice,
+  .learning-teacher-slot,
+  .learning-editor-field {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .learning-resource-grid ol,
+  .learning-resource-grid ul {
+    padding-left: 1.15rem;
+  }
+
+  .learning-resource-grid li {
+    padding-left: .2rem;
+    overflow-wrap: anywhere;
+  }
+
+  .learning-resource-grid .katex,
+  .learning-unit .katex,
+  .learning-practice .katex {
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .learning-actions {
+    gap: .65rem;
+  }
+
+  .learning-actions .btn,
+  .learning-report-link {
+    width: 100%;
+  }
+
+  .learning-report-link,
+  .exam-report-link {
+    min-height: 42px;
+    font-size: .92rem;
+  }
+
+  .exam-report-link {
+    margin: 0 0 .75rem 0;
   }
 }
