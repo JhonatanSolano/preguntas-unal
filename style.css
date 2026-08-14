@@ -11729,3 +11729,57 @@ p#googleInstitutionStatus.bank-status.error {
     transform: none;
   }
 }
+
+/* Landing public controls hardening: WhatsApp + subir arriba siempre flotantes fuera de sesión */
+body:not(.app-active) #whatsappWidget.whatsapp-widget {
+  position: fixed !important;
+  right: max(1rem, env(safe-area-inset-right)) !important;
+  bottom: max(1rem, env(safe-area-inset-bottom)) !important;
+  left: auto !important;
+  top: auto !important;
+  z-index: 220 !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  width: 58px !important;
+  height: 58px !important;
+}
+
+body:not(.app-active) #btnBackToTop.back-to-top {
+  position: fixed !important;
+  left: max(1rem, env(safe-area-inset-left)) !important;
+  bottom: calc(max(1rem, env(safe-area-inset-bottom)) + 4.9rem) !important;
+  right: auto !important;
+  top: auto !important;
+  z-index: 219 !important;
+  display: inline-grid !important;
+}
+
+body:not(.app-active) #btnBackToTop.back-to-top.visible {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  transform: translateY(0) scale(1) !important;
+}
+
+body:not(.app-active) #btnBackToTop.back-to-top:not(.visible) {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+body.app-active #whatsappWidget.whatsapp-widget,
+body.app-active #btnBackToTop.back-to-top {
+  display: none !important;
+}
+
+@media (max-width: 720px) {
+  body:not(.app-active) #whatsappWidget.whatsapp-widget {
+    right: max(.95rem, env(safe-area-inset-right)) !important;
+    bottom: max(.95rem, env(safe-area-inset-bottom)) !important;
+  }
+  body:not(.app-active) #btnBackToTop.back-to-top {
+    left: max(.95rem, env(safe-area-inset-left)) !important;
+    bottom: calc(max(.95rem, env(safe-area-inset-bottom)) + 4.85rem) !important;
+  }
+}

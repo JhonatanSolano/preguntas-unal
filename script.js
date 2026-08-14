@@ -11287,6 +11287,53 @@ actualizarBotonSubirLanding();
 btnBackToTop?.addEventListener("click", () => {
   window.scrollTo({ top: 0, behavior: "smooth" });
 });
+function manejarClickPublicoDelegado(event) {
+  const target = event.target.closest("button, a");
+  if (!target) return;
+  const id = target.id;
+  const publicActions = new Map([
+    ["btnShowLogin", mostrarLoginCard],
+    ["btnShowLoginNav", mostrarLoginCard],
+    ["btnShowLoginMenu", mostrarLoginCard],
+    ["btnShowLoginBottom", mostrarLoginCard],
+    ["btnShowRegister", mostrarRegisterCard],
+    ["btnShowRegisterTop", mostrarRegisterCard],
+    ["btnShowRegisterNav", mostrarRegisterCard],
+    ["btnShowRegisterBottom", mostrarRegisterCard],
+    ["btnStudentPlanLanding", mostrarRegisterCard],
+    ["btnInstitutionInfoHero", mostrarInstitutionInfo],
+    ["btnInstitutionPlanLanding", mostrarInstitutionInfo],
+    ["btnOpenFaqMenu", mostrarFaqCard],
+    ["btnOpenFaqBottom", mostrarFaqCard],
+    ["btnOpenFaqFooter", mostrarFaqCard]
+  ]);
+  if (publicActions.has(id)) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (id.endsWith("Menu")) cerrarLandingMenu();
+    publicActions.get(id)();
+    return;
+  }
+  if (id === "btnLandingMenu") {
+    event.preventDefault();
+    event.stopPropagation();
+    toggleLandingMenu();
+    return;
+  }
+  if (id === "btnLandingMenuClose" || id === "landingMenuBackdrop") {
+    event.preventDefault();
+    event.stopPropagation();
+    cerrarLandingMenu();
+    return;
+  }
+  if (id === "btnBackToTop") {
+    event.preventDefault();
+    event.stopPropagation();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+}
+
+document.addEventListener("click", manejarClickPublicoDelegado, true);
 document.getElementById("btnWhatsappClose")?.addEventListener("click", cerrarWhatsappWidget);
 prepararWhatsappFlotante();
 document.addEventListener("pointerdown", event => {
