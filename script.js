@@ -1069,6 +1069,10 @@ function esEstudianteInstitucional(perfil = perfilActual) {
   return rolUsuario(perfil) === "student" && cuentaInstitucional(perfil);
 }
 
+function esEstudianteCuenta(perfil = perfilActual) {
+  return rolUsuario(perfil) === "student" && !esInstitucion(perfil);
+}
+
 function esProfesorInstitucional(perfil = perfilActual) {
   return rolUsuario(perfil) === "teacher" && cuentaInstitucional(perfil) && !esPropietarioPlataforma();
 }
@@ -3844,13 +3848,19 @@ function renderLearningResourceSlots(resource) {
   }
   if (teacherSlot) {
     const practiceOptions = Array.isArray(resource?.practiceOptions) ? resource.practiceOptions.filter(Boolean) : [];
-    const hasContent = resource?.theoryText || resource?.stepsText || resource?.imageUrl || resource?.practiceQuestion;
+    const keyConcepts = Array.isArray(resource?.keyConcepts) ? resource.keyConcepts.filter(Boolean) : [];
+    const conceptList = document.getElementById("learningConceptList");
+    if (conceptList && keyConcepts.length) {
+      conceptList.innerHTML = keyConcepts.map(concept => `<li>${escapeHtml(concept)}</li>`).join("");
+    }
+    const hasContent = resource?.theoryText || resource?.stepsText || resource?.imageUrl || resource?.practiceQuestion || keyConcepts.length;
     teacherSlot.innerHTML = hasContent ? `
       <article class="learning-teacher-content learning-wide">
         <div class="learning-content-top"><span class="section-kicker">Contenido agregado por el docente</span>${canEditLearningResource(resource) ? `<button class="btn btn-outline" type="button" data-learning-edit-resource>Editar</button>` : ""}</div>
         ${resource?.title ? `<h4>${escapeHtml(resource.title)}</h4>` : ""}
         ${resource?.imageUrl ? `<img class="learning-content-image" src="${escapeHtml(resource.imageUrl)}" alt="Imagen del tema" loading="lazy" />` : ""}
         ${resource?.theoryText ? `<div class="learning-content-block"><h5>Explicación</h5><p>${renderInlineMathText(resource.theoryText)}</p></div>` : ""}
+        ${keyConcepts.length ? `<div class="learning-content-block"><h5>Conceptos clave</h5><ul>${keyConcepts.map(concept => `<li>${escapeHtml(concept)}</li>`).join("")}</ul></div>` : ""}
         ${resource?.stepsText ? `<div class="learning-content-block"><h5>Pasos guiados</h5><ol>${resource.stepsText.split(/\r?\n/).filter(Boolean).map(step => `<li>${renderInlineMathText(step)}</li>`).join("")}</ol></div>` : ""}
         ${resource?.practiceQuestion ? `<div class="learning-content-block"><h5>Práctica del profesor</h5><p>${renderInlineMathText(resource.practiceQuestion)}</p>${practiceOptions.length ? `<div class="learning-teacher-options">${practiceOptions.map((option, idx) => `<span class="${Number(resource.practiceAnswer) === idx ? "correct" : ""}">${String.fromCharCode(65 + idx)}. ${renderInlineMathText(option)}</span>`).join("")}</div>` : ""}</div>` : ""}
       </article>
@@ -3868,6 +3878,7 @@ function populateLearningManagerResource(resource) {
   setValue("learningManagerTitle", resource?.title || "");
   setValue("learningManagerVideoUrl", resource?.externalVideoUrl || "");
   setValue("learningManagerTheory", resource?.theoryText || "");
+  setValue("learningManagerConcepts", Array.isArray(resource?.keyConcepts) ? resource.keyConcepts.join("\n") : "");
   setValue("learningManagerSteps", resource?.stepsText || "");
   setValue("learningManagerPracticeQuestion", resource?.practiceQuestion || "");
   const options = Array.isArray(resource?.practiceOptions) ? resource.practiceOptions : [];
@@ -3954,12 +3965,17 @@ function renderLearningPanel() {
   const branch = LEARNING_CATALOG.find(item => item.id === selection.branchId) || LEARNING_CATALOG[0];
   const topic = branch.topics.find(item => item.id === selection.topicId) || branch.topics[0];
   const subtopic = (topic.subtopics || []).find(item => item.id === selection.subtopicId) || topic.subtopics?.[0] || makeLearningSubtopic(branch.title, topic.title, topic.title, topic.summary);
+  const canTrackLearning = esEstudianteCuenta();
   const summary = learningProgressSummary();
   renderLearningMobilePicker(branch, topic, subtopic, selection.level);
+  document.getElementById("learningProgressCard")?.classList.toggle("hidden", !canTrackLearning);
 
-  document.getElementById("learningProgressPct").textContent = `${summary.pct}%`;
-  document.getElementById("learningProgressText").textContent = `${summary.completed} de ${summary.total} niveles completados.`;
-  document.getElementById("learningProgressBar").style.width = `${summary.pct}%`;
+  const progressPctEl = document.getElementById("learningProgressPct");
+  const progressTextEl = document.getElementById("learningProgressText");
+  const progressBarEl = document.getElementById("learningProgressBar");
+  if (progressPctEl) progressPctEl.textContent = `${summary.pct}%`;
+  if (progressTextEl) progressTextEl.textContent = `${summary.completed} de ${summary.total} niveles completados.`;
+  if (progressBarEl) progressBarEl.style.width = `${summary.pct}%`;
   document.getElementById("learningBranchTitle").textContent = branch.title;
 
   branchList.innerHTML = LEARNING_CATALOG.map(item => `
@@ -3974,16 +3990,16 @@ function renderLearningPanel() {
     <button class="${level === selection.level ? "active" : ""}" type="button" data-learning-level="${escapeHtml(level)}">${escapeHtml(label)}</button>
   `).join("");
 
-  const progress = learningProgressAll();
+  const progress = canTrackLearning ? learningProgressAll() : {};
   topicsEl.innerHTML = branch.topics.map(item => {
     const subtopicCount = item.subtopics?.length || 0;
-    const completedCount = (item.subtopics || []).filter(st => progress[learningProgressId(branch.id, item.id, st.id, selection.level)]?.completed).length;
+    const completedCount = canTrackLearning ? (item.subtopics || []).filter(st => progress[learningProgressId(branch.id, item.id, st.id, selection.level)]?.completed).length : 0;
     return `
       <button class="learning-topic ${item.id === topic.id ? "active" : ""}" type="button" data-learning-topic="${escapeHtml(item.id)}">
-        <span>${completedCount ? "✓" : "○"}</span>
+        <span>${canTrackLearning && completedCount ? "✓" : "○"}</span>
         <strong>${escapeHtml(item.title)}</strong>
         <small>${escapeHtml(item.summary)}</small>
-        <em>${completedCount}/${subtopicCount} subtemas en ${escapeHtml(LEVEL_LABELS[selection.level])}</em>
+        <em>${canTrackLearning ? `${completedCount}/${subtopicCount} subtemas en ${escapeHtml(LEVEL_LABELS[selection.level])}` : `${subtopicCount} subtemas disponibles`}</em>
       </button>
     `;
   }).join("");
@@ -3993,7 +4009,7 @@ function renderLearningPanel() {
       const completed = progress[learningProgressId(branch.id, topic.id, item.id, selection.level)]?.completed;
       return `
         <button class="learning-subtopic ${item.id === subtopic.id ? "active" : ""}" type="button" data-learning-subtopic="${escapeHtml(item.id)}">
-          <span>${completed ? "✓" : "○"}</span>
+          <span>${canTrackLearning && completed ? "✓" : "○"}</span>
           <strong>${escapeHtml(item.title)}</strong>
           <small>${escapeHtml(item.summary)}</small>
         </button>
@@ -4048,8 +4064,9 @@ function renderLearningUnit(branch, topic, subtopic, level) {
   const unit = document.getElementById("learningUnit");
   if (!unit) return;
   const data = subtopic.levels?.[level] || subtopic.levels?.facil || makeLearningLevels(branch.title, topic.title, subtopic.title)[level];
-  const progress = learningProgressAll();
-  const completed = progress[learningProgressId(branch.id, topic.id, subtopic.id, level)]?.completed;
+  const canTrackLearning = esEstudianteCuenta();
+  const progress = canTrackLearning ? learningProgressAll() : {};
+  const completed = canTrackLearning && progress[learningProgressId(branch.id, topic.id, subtopic.id, level)]?.completed;
   unit.innerHTML = `
     <header class="learning-unit-head">
       <div>
@@ -4057,7 +4074,7 @@ function renderLearningUnit(branch, topic, subtopic, level) {
         <h3>${escapeHtml(subtopic.title)}</h3>
         <p>${escapeHtml(subtopic.summary || topic.summary)}</p>
       </div>
-      <span class="learning-master-badge ${completed ? "done" : ""}">${completed ? "Completado" : "En progreso"}</span>
+      <span class="learning-master-badge ${completed ? "done" : ""}">${canTrackLearning ? (completed ? "Completado" : "En progreso") : "Contenido"}</span>
     </header>
 
     <div class="learning-resource-grid">
@@ -4067,7 +4084,7 @@ function renderLearningUnit(branch, topic, subtopic, level) {
       </article>
       <article>
         <h4>Conceptos clave</h4>
-        <ul>${(subtopic.keyConcepts || topic.keyConcepts || []).map(concept => `<li>${escapeHtml(concept)}</li>`).join("")}</ul>
+        <ul id="learningConceptList">${(subtopic.keyConcepts || topic.keyConcepts || []).map(concept => `<li>${escapeHtml(concept)}</li>`).join("")}</ul>
       </article>
       <article class="learning-wide learning-step-card">
         <h4>Ejemplo paso a paso</h4>
@@ -4098,7 +4115,7 @@ function renderLearningUnit(branch, topic, subtopic, level) {
     </div>
 
     <div class="learning-actions">
-      <button class="btn btn-outline" type="button" id="btnLearningComplete">${completed ? "Repasar este subtema" : "Marcar subtema como estudiado"}</button>
+      ${canTrackLearning ? `<button class="btn btn-outline ${completed ? "learning-complete-done" : ""}" type="button" id="btnLearningComplete" ${completed ? "disabled" : ""}>${completed ? "Completado" : "Marcar como estudiado"}</button>` : ""}
       <button class="btn btn-primary" type="button" id="btnLearningExam">Ir al examen ${escapeHtml(LEVEL_LABELS[level])} · ${etiquetaDuracionNivel(level)}</button>
       ${esPropietarioPlataforma() ? `<button class="btn btn-outline" type="button" id="btnLearningEditBase">Editar contenido base</button>` : ""}
       <a class="learning-report-link" href="${learningReportMailto("contenido de aprendizaje")}">Reportar un problema</a>
@@ -4179,6 +4196,7 @@ function cargarContenidoBaseEnEditor() {
   renderLearningManager({ ...selection, scope: "global" });
   const title = document.getElementById("learningManagerTitle");
   const theory = document.getElementById("learningManagerTheory");
+  const concepts = document.getElementById("learningManagerConcepts");
   const steps = document.getElementById("learningManagerSteps");
   const question = document.getElementById("learningManagerPracticeQuestion");
   const option0 = document.getElementById("learningManagerOption0");
@@ -4186,6 +4204,7 @@ function cargarContenidoBaseEnEditor() {
   const option2 = document.getElementById("learningManagerOption2");
   if (title) title.value = `${subtopic?.title || topic.title} · ${LEVEL_LABELS[selection.level]}`;
   if (theory) theory.value = normalizeLatexText(data.theory || "");
+  if (concepts) concepts.value = (subtopic?.keyConcepts || topic.keyConcepts || []).join("\n");
   if (steps) steps.value = (data.example || []).map(normalizeLatexText).join("\n");
   if (question) question.value = normalizeLatexText(data.practice?.question || "");
   if (option0) option0.value = normalizeLatexText(data.practice?.options?.[0] || "");
@@ -4222,6 +4241,7 @@ async function guardarLearningResource() {
   const externalVideoUrl = document.getElementById("learningManagerVideoUrl")?.value.trim() || "";
   const theoryText = document.getElementById("learningManagerTheory")?.value.trim() || "";
   const stepsText = document.getElementById("learningManagerSteps")?.value.trim() || "";
+  const keyConcepts = (document.getElementById("learningManagerConcepts")?.value || "").split(/\r?\n/).map(item => item.trim()).filter(Boolean);
   const practiceQuestion = document.getElementById("learningManagerPracticeQuestion")?.value.trim() || "";
   const practiceOptions = [0, 1, 2].map(idx => document.getElementById(`learningManagerOption${idx}`)?.value.trim() || "");
   const practiceAnswer = Number(document.getElementById("learningManagerPracticeAnswer")?.value || 0);
@@ -4237,7 +4257,7 @@ async function guardarLearningResource() {
     }
     return;
   }
-  if (!title && !theoryText && !stepsText && !practiceQuestion && !image && !pdf && !video && !externalVideoUrl) {
+  if (!title && !theoryText && !stepsText && !keyConcepts.length && !practiceQuestion && !image && !pdf && !video && !externalVideoUrl) {
     if (status) {
       status.textContent = "Agrega al menos un título, explicación, archivo, video o práctica.";
       status.className = "bank-status error";
@@ -4268,6 +4288,7 @@ async function guardarLearningResource() {
       title,
       externalVideoUrl,
       theoryText,
+      keyConcepts,
       stepsText,
       practiceQuestion,
       practiceOptions,
@@ -4356,7 +4377,9 @@ function handleLearningClick(event) {
 }
 document.getElementById("sectionAprendizaje")?.addEventListener("click", async event => {
   handleLearningClick(event);
-  if (event.target.closest("#btnLearningComplete")) {
+  const completeBtn = event.target.closest("#btnLearningComplete");
+  if (completeBtn) {
+    if (!esEstudianteCuenta() || completeBtn.disabled) return;
     const selection = resolveLearningSelection();
     await setLearningCompleted(selection);
     renderLearningPanel();
@@ -4381,7 +4404,7 @@ document.getElementById("sectionAprendizaje")?.addEventListener("click", async e
     await guardarLearningResource();
   }
   if (event.target.closest("#btnLearningResourceClear")) {
-    ["learningManagerTitle", "learningManagerVideoUrl", "learningManagerTheory", "learningManagerSteps", "learningManagerPracticeQuestion", "learningManagerOption0", "learningManagerOption1", "learningManagerOption2"].forEach(id => {
+    ["learningManagerTitle", "learningManagerVideoUrl", "learningManagerTheory", "learningManagerConcepts", "learningManagerSteps", "learningManagerPracticeQuestion", "learningManagerOption0", "learningManagerOption1", "learningManagerOption2"].forEach(id => {
       const input = document.getElementById(id);
       if (input) input.value = "";
     });
@@ -4514,7 +4537,7 @@ function learningBadgeProgress(badge) {
 }
 
 function renderBadgesPanel() {
-  if (modoAdmin || esInstitucion()) return;
+  if (!esEstudianteCuenta()) return;
   const summaryEl = document.getElementById("badgesSummaryGrid");
   const nextEl = document.getElementById("badgesNextCard");
   const gridEl = document.getElementById("badgesGrid");
@@ -4569,7 +4592,7 @@ function actualizarDrawer() {
   const institucion = esInstitucion();
   const permitidas = seccionesPermitidasActuales();
   document.querySelectorAll(".admin-only").forEach(el => el.classList.toggle("hidden", !(modoAdmin || institucion)));
-  document.querySelectorAll(".student-only").forEach(el => el.classList.toggle("hidden", modoAdmin || institucion));
+  document.querySelectorAll(".student-only").forEach(el => el.classList.toggle("hidden", !esEstudianteCuenta()));
   document.querySelectorAll(".drawer-link[data-section]").forEach(el => {
     const section = el.dataset.section;
     el.classList.toggle("hidden", !permitidas.has(section));
@@ -7762,7 +7785,8 @@ async function evaluarYMostrarNivel(respuestas, opciones = {}) {
 
   preguntas.forEach((q, i) => {
     const qResultado = preguntasResultado[i] || q;
-    const card = document.getElementById(`nivel-card-${q.id}`);
+    const card = document.getElementById(
+ivel-card-${q.id}`);
     if (!card) return;
     const sinR = respuestas[i] === -1;
     const ok = !sinR && respuestas[i] === qResultado.correcta;
@@ -7821,7 +7845,8 @@ document.getElementById("nivelForm").addEventListener("submit", async (e) => {
     document.getElementById("warnMsgNivel").hidden = false;
     for (const q of preguntas) {
       if (!document.querySelector(`input[name="nivel-q${q.id}"]:checked`)) {
-        document.getElementById(`nivel-card-${q.id}`).scrollIntoView({ behavior: "smooth", block: "center" });
+        document.getElementById(
+ivel-card-${q.id}`).scrollIntoView({ behavior: "smooth", block: "center" });
         break;
       }
     }

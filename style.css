@@ -11634,3 +11634,98 @@ p#googleInstitutionStatus.bank-status.error {
     margin: 0 0 .75rem 0;
   }
 }
+
+/* Aprendizaje: pulido de estados y navegación horizontal */
+.learning-progress-card.hidden {
+  display: none !important;
+}
+
+.learning-complete-done,
+.learning-actions .btn.learning-complete-done:disabled {
+  color: #0f766e;
+  border-color: rgba(20, 184, 166, .34);
+  background: linear-gradient(180deg, #effefb, #ffffff);
+  box-shadow: none;
+  cursor: default;
+  opacity: 1;
+}
+
+.learning-complete-done::before {
+  content: "✓";
+  display: inline-grid;
+  place-items: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  margin-right: .45rem;
+  border-radius: 999px;
+  color: #ffffff;
+  background: #0f9488;
+  font-size: .85rem;
+  font-weight: 900;
+}
+
+.learning-branch-list,
+.learning-topic-grid,
+.learning-subtopic-grid,
+.learning-level-tabs {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(10, 92, 104, .38) transparent;
+  scroll-padding-inline: .5rem;
+}
+
+.learning-branch-list::-webkit-scrollbar,
+.learning-topic-grid::-webkit-scrollbar,
+.learning-subtopic-grid::-webkit-scrollbar,
+.learning-level-tabs::-webkit-scrollbar {
+  height: 8px;
+}
+
+.learning-branch-list::-webkit-scrollbar-thumb,
+.learning-topic-grid::-webkit-scrollbar-thumb,
+.learning-subtopic-grid::-webkit-scrollbar-thumb,
+.learning-level-tabs::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(10, 92, 104, .34);
+}
+
+.learning-branch,
+.learning-topic,
+.learning-subtopic {
+  transition: border-color .18s ease, background .18s ease, transform .18s ease, box-shadow .18s ease;
+}
+
+.learning-branch:hover,
+.learning-topic:hover,
+.learning-subtopic:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 30px rgba(9, 55, 72, .08);
+}
+
+.learning-editor-field textarea#learningManagerConcepts {
+  min-height: 118px;
+  resize: vertical;
+}
+
+.learning-content-block ul,
+#learningConceptList {
+  margin: .45rem 0 0;
+  padding-left: 1.25rem;
+}
+
+.learning-content-block li,
+#learningConceptList li {
+  margin: .22rem 0;
+  line-height: 1.45;
+}
+
+@media (max-width: 720px) {
+  .learning-actions .btn.learning-complete-done:disabled {
+    justify-content: center;
+  }
+
+  .learning-branch:hover,
+  .learning-topic:hover,
+  .learning-subtopic:hover {
+    transform: none;
+  }
+}
