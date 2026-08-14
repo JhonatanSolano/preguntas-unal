@@ -317,7 +317,7 @@ service cloud.firestore {
         request.resource.data.branchId is string &&
         request.resource.data.topicId is string &&
         request.resource.data.level in ["facil", "medio", "avanzado"] &&
-        request.resource.data.scope in ["global", "class", "grade"] &&
+        request.resource.data.scope in ["global", "class"] &&
         (
           request.resource.data.scope != "global" ||
           request.auth.token.email == "solanojhonatan2000@gmail.com"
@@ -328,7 +328,7 @@ service cloud.firestore {
         request.resource.data.branchId is string &&
         request.resource.data.topicId is string &&
         request.resource.data.level in ["facil", "medio", "avanzado"] &&
-        request.resource.data.scope in ["global", "class", "grade"] &&
+        request.resource.data.scope in ["global", "class"] &&
         (
           request.resource.data.scope != "global" ||
           request.auth.token.email == "solanojhonatan2000@gmail.com"

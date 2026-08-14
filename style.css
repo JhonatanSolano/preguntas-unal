@@ -10917,3 +10917,252 @@ p#googleInstitutionStatus.bank-status.error {
     border-radius: 18px;
   }
 }
+
+/* Aprendizaje: experiencia amplia tipo plataforma educativa */
+#sectionAprendizaje.main-content {
+  width: min(1480px, calc(100vw - 2rem));
+  max-width: none;
+}
+
+#sectionAprendizaje .section-card {
+  padding: clamp(1rem, 2.2vw, 2rem);
+}
+
+.learning-layout {
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  align-items: start;
+}
+
+.learning-workspace,
+.learning-unit,
+.learning-sidebar,
+.learning-manager {
+  min-width: 0;
+}
+
+.learning-resource-grid article,
+.learning-practice,
+.learning-teacher-content,
+.learning-editor-field {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.learning-step-card ol,
+.learning-step-card ul,
+.learning-teacher-content ol,
+.learning-teacher-content ul {
+  padding-left: 1.15rem;
+  margin-left: 0;
+  overflow-wrap: anywhere;
+}
+
+.learning-step-card li,
+.learning-teacher-content li {
+  padding-left: .2rem;
+  line-height: 1.65;
+}
+
+.learning-manager-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.learning-manager-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: .45rem .8rem;
+  background: #12334a;
+  color: #fff;
+  font-weight: 900;
+  font-size: .82rem;
+  white-space: nowrap;
+}
+
+.learning-manager-grid-top {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.learning-manager-grid-top label:last-child {
+  grid-column: span 2;
+}
+
+.learning-editor-board {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid rgba(19, 103, 123, .14);
+  border-radius: 18px;
+  background: rgba(255,255,255,.72);
+}
+
+.learning-editor-field {
+  display: grid;
+  gap: 8px;
+  color: var(--primary);
+  font-weight: 900;
+}
+
+.learning-editor-wide {
+  grid-column: 1 / -1;
+}
+
+.learning-editor-field input,
+.learning-editor-field textarea,
+.learning-editor-field select {
+  width: 100%;
+  border: 1px solid rgba(19, 103, 123, .2);
+  border-radius: 14px;
+  background: #fff;
+  color: var(--ink);
+  padding: 12px 14px;
+  font: inherit;
+  line-height: 1.5;
+}
+
+.learning-editor-field textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+.learning-manager-actions {
+  grid-template-columns: minmax(180px, 260px) minmax(160px, 220px);
+  justify-content: start;
+}
+
+.learning-teacher-content {
+  display: grid;
+  gap: .9rem;
+  background: linear-gradient(180deg, #fbfffd, #f2fbfb) !important;
+}
+
+.learning-content-image {
+  width: min(100%, 820px);
+  max-height: 360px;
+  object-fit: contain;
+  justify-self: center;
+  background: #f7fbfb;
+  border: 1px solid rgba(0,62,101,.1);
+}
+
+.learning-content-block {
+  display: grid;
+  gap: .35rem;
+}
+
+.learning-content-block h5 {
+  margin: 0;
+  color: var(--c-teal-deep);
+  font-size: .95rem;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+}
+
+.learning-teacher-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .65rem;
+  margin-top: .7rem;
+}
+
+.learning-teacher-options span {
+  display: block;
+  border: 1px solid rgba(0,62,101,.14);
+  border-radius: 14px;
+  background: #fff;
+  padding: .75rem;
+  overflow-wrap: anywhere;
+}
+
+.learning-teacher-options span.correct {
+  border-color: #1b9a77;
+  background: #e8faf2;
+  color: #075f55;
+  font-weight: 900;
+}
+
+@media (max-width: 720px) {
+  #sectionAprendizaje.main-content {
+    width: 100%;
+    padding-inline: .45rem;
+    margin-inline: 0;
+  }
+
+  #sectionAprendizaje .section-card {
+    padding: .8rem;
+    border-radius: 18px;
+  }
+
+  .learning-layout {
+    display: block;
+  }
+
+  .learning-sidebar {
+    position: static;
+    margin-bottom: .85rem;
+  }
+
+  .learning-branch-list,
+  .learning-topic-grid,
+  .learning-level-tabs {
+    display: flex;
+    overflow-x: auto;
+    gap: .75rem;
+    padding-bottom: .35rem;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .learning-branch,
+  .learning-topic,
+  .learning-level-tabs button {
+    min-width: min(78vw, 280px);
+    scroll-snap-align: start;
+  }
+
+  .learning-level-tabs button {
+    min-width: 120px;
+  }
+
+  .learning-toolbar,
+  .learning-unit-head,
+  .learning-manager-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .learning-resource-grid,
+  .learning-practice-options,
+  .learning-actions,
+  .learning-manager-grid,
+  .learning-manager-grid-top,
+  .learning-editor-board,
+  .learning-manager-actions,
+  .learning-teacher-options {
+    grid-template-columns: 1fr;
+  }
+
+  .learning-manager-grid-top label:last-child,
+  .learning-editor-wide,
+  .learning-manager-wide {
+    grid-column: auto;
+  }
+
+  .learning-manager {
+    padding: .95rem;
+  }
+
+  .learning-editor-board {
+    padding: .9rem;
+  }
+
+  .learning-content-image {
+    max-height: 260px;
+  }
+}

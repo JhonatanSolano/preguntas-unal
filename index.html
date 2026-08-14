@@ -33,7 +33,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="style.css?v=20260813-04" />
+  <link rel="stylesheet" href="style.css?v=20260813-06" />
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -818,21 +818,21 @@
 
 
       <section class="learning-manager hidden" id="learningTeacherManager">
-        <div>
-          <span class="section-kicker">Contenido docente</span>
-          <h3>Editor de contenido de aprendizaje</h3>
-          <p>Selecciona rama, tema, nivel y alcance. Luego sube una guía, un video o pega un enlace para publicar el material correspondiente.</p>
+        <div class="learning-manager-head">
+          <div>
+            <span class="section-kicker">Estudio docente</span>
+            <h3>Crear y editar contenido de aprendizaje</h3>
+            <p>Selecciona el aula, la rama, el tema y el nivel. Luego escribe la teoría, agrega ejemplos, ecuaciones, imagen, guía, video y una práctica rápida.</p>
+          </div>
+          <span class="learning-manager-pill">Editor</span>
         </div>
         <div class="learning-manager-note" id="learningManagerScopeHelp"></div>
-        <div class="learning-manager-grid">
-          <label>Alcance
+        <div class="learning-manager-grid learning-manager-grid-top">
+          <label id="learningManagerScopeLabel">Alcance
             <select id="learningManagerScope"></select>
           </label>
           <label>Aula
             <select id="learningManagerClass"></select>
-          </label>
-          <label>Grado
-            <select id="learningManagerGrade"></select>
           </label>
           <label>Rama
             <select id="learningManagerBranch"></select>
@@ -844,21 +844,51 @@
             <select id="learningManagerLevel"></select>
           </label>
           <label>Título del recurso
-            <input id="learningManagerTitle" type="text" placeholder="Ej. Guía de ecuaciones cuadráticas" />
-          </label>
-          <label>PDF
-            <input id="learningManagerPdf" type="file" accept="application/pdf" />
-          </label>
-          <label>Video
-            <input id="learningManagerVideo" type="file" accept="video/mp4,video/webm,video/quicktime" />
-          </label>
-          <label class="learning-manager-wide">Enlace de video
-            <input id="learningManagerVideoUrl" type="url" placeholder="https://..." />
+            <input id="learningManagerTitle" type="text" placeholder="Ej. Multiplicación de monomios por polinomios" />
           </label>
         </div>
-        <div class="learning-actions">
-          <button class="btn btn-primary" type="button" id="btnLearningResourceSave">Guardar recurso</button>
-          <button class="btn btn-outline" type="button" id="btnLearningResourceClear">Limpiar</button>
+        <div class="learning-editor-board">
+          <label class="learning-editor-field learning-editor-wide">Teoría y explicación
+            <textarea id="learningManagerTheory" rows="6" placeholder="Escribe la explicación. Puedes usar ecuaciones como \(ax+b=0\)."></textarea>
+          </label>
+          <label class="learning-editor-field learning-editor-wide">Ejemplo paso a paso
+            <textarea id="learningManagerSteps" rows="5" placeholder="Escribe un paso por línea. Ejemplo:&#10;Identifica el factor común.&#10;Distribuye el monomio.&#10;Simplifica términos semejantes."></textarea>
+          </label>
+          <label class="learning-editor-field">Imagen del tema
+            <input id="learningManagerImage" type="file" accept="image/jpeg,image/png,image/webp,image/gif" />
+          </label>
+          <label class="learning-editor-field">PDF o guía
+            <input id="learningManagerPdf" type="file" accept="application/pdf" />
+          </label>
+          <label class="learning-editor-field">Video
+            <input id="learningManagerVideo" type="file" accept="video/mp4,video/webm,video/quicktime" />
+          </label>
+          <label class="learning-editor-field learning-editor-wide">Enlace de video
+            <input id="learningManagerVideoUrl" type="url" placeholder="https://..." />
+          </label>
+          <label class="learning-editor-field learning-editor-wide">Pregunta de práctica
+            <input id="learningManagerPracticeQuestion" type="text" placeholder="Ej. Calcula \(3x(2x+5)\)" />
+          </label>
+          <label class="learning-editor-field">Opción A
+            <input id="learningManagerOption0" type="text" placeholder="\(6x^2+15x\)" />
+          </label>
+          <label class="learning-editor-field">Opción B
+            <input id="learningManagerOption1" type="text" placeholder="\(5x^2+15\)" />
+          </label>
+          <label class="learning-editor-field">Opción C
+            <input id="learningManagerOption2" type="text" placeholder="\(6x+15\)" />
+          </label>
+          <label class="learning-editor-field">Respuesta correcta
+            <select id="learningManagerPracticeAnswer">
+              <option value="0">Opción A</option>
+              <option value="1">Opción B</option>
+              <option value="2">Opción C</option>
+            </select>
+          </label>
+        </div>
+        <div class="learning-actions learning-manager-actions">
+          <button class="btn btn-primary" type="button" id="btnLearningResourceSave">Guardar contenido</button>
+          <button class="btn btn-outline" type="button" id="btnLearningResourceClear">Limpiar editor</button>
         </div>
         <p class="bank-status" id="learningManagerStatus"></p>
       </section>
@@ -2231,6 +2261,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260813-03"></script>
+  <script type="module" src="script.js?v=20260813-05"></script>
 </body>
 </html>

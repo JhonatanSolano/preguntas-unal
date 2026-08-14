@@ -196,6 +196,7 @@ const LEARNING_LAST_KEY = "matematicasBolsilloLearningLast";
 const LEARNING_RESOURCE_COLLECTION = "learningResources";
 const LEARNING_RESOURCE_MAX_PDF_MB = 25;
 const LEARNING_RESOURCE_MAX_VIDEO_MB = 180;
+const LEARNING_RESOURCE_MAX_IMAGE_MB = 8;
 let learningProgressRemote = {};
 let learningProgressRemoteLoadedFor = "";
 let learningResourcesCache = new Map();
@@ -3671,16 +3672,15 @@ async function guardarLearningProgressRemoto(key, selection, payload) {
 }
 
 function currentLearningResourceId(selection, ownerUid = usuarioActual?.uid || "anon") {
-  const scope = selection.scope || "global";
-  const target = scope === "class" ? selection.classId : scope === "grade" ? selection.grade : "all";
+  const scope = selection.scope === "class" ? "class" : "global";
+  const target = scope === "class" ? (selection.classId || "sin-aula") : "all";
   return `${ownerUid}__${scope}__${target}__${selection.branchId}__${selection.topicId}__${selection.level}`.replace(/[^a-zA-Z0-9_-]/g, "_");
 }
 
 function learningResourceCacheKey(selection) {
   const classId = selection.classId || claseActiva || perfilActual?.classId || "";
-  const grade = selection.grade || perfilActual?.grade || perfilActual?.group || "";
   const scope = selection.scope || "";
-  return `${selection.branchId}__${selection.topicId}__${selection.level}__${scope}__${classId}__${grade}`;
+  return `${selection.branchId}__${selection.topicId}__${selection.level}__${scope}__${classId}`;
 }
 
 async function cargarLearningResource(selection, force = false) {
@@ -3694,18 +3694,17 @@ async function cargarLearningResource(selection, force = false) {
     limit(30)
   ));
   let selected = null;
-  const currentClassId = claseActiva || perfilActual?.classId || "";
-  const currentGrade = perfilActual?.grade || perfilActual?.group || "";
+  const currentClassId = selection.classId || claseActiva || perfilActual?.classId || "";
   snap.forEach(item => {
     const data = { id: item.id, ...item.data() };
     const visibleGlobal = data.scope === "global" || !data.scope;
     const visibleClass = data.scope === "class" && data.classId && data.classId === currentClassId;
-    const visibleGrade = data.scope === "grade" && data.grade && data.grade === currentGrade;
-    if (!visibleGlobal && !visibleClass && !visibleGrade && !puedeGestionarContenidoAprendizaje()) return;
+    const ownResource = puedeGestionarContenidoAprendizaje() && data.ownerUid === usuarioActual?.uid;
+    if (!visibleGlobal && !visibleClass && !ownResource) return;
     if (!selected) selected = data;
-    if (visibleGlobal && esPropietarioPlataforma()) selected = data;
-    if ((visibleClass || visibleGrade) && data.ownerUid === perfilActual?.classOwnerUid) selected = data;
-    if (data.ownerUid === usuarioActual?.uid) selected = data;
+    if (visibleGlobal && !selected?.classId) selected = data;
+    if (visibleClass) selected = data;
+    if (ownResource && (selection.scope !== "global" || data.scope === "global")) selected = data;
   });
   learningResourcesCache.set(cacheKey, selected);
   return selected;
@@ -3714,6 +3713,7 @@ async function cargarLearningResource(selection, force = false) {
 function renderLearningResourceSlots(resource) {
   const pdfSlot = document.getElementById("learningPdfSlot");
   const videoSlot = document.getElementById("learningVideoSlot");
+  const teacherSlot = document.getElementById("learningTeacherContentSlot");
   if (pdfSlot) {
     pdfSlot.innerHTML = resource?.pdfUrl
       ? `<p>${escapeHtml(resource.title || "Guía descargable")}</p><a class="btn btn-outline" href="${escapeHtml(resource.pdfUrl)}" target="_blank" rel="noopener">Abrir PDF</a>`
@@ -3725,11 +3725,47 @@ function renderLearningResourceSlots(resource) {
       ? `<p>${escapeHtml(resource.title || "Video del profesor")}</p><a class="btn btn-outline" href="${escapeHtml(url)}" target="_blank" rel="noopener">Abrir video</a>`
       : `<p>Espacio listo para insertar videos propios por tema y nivel.</p><button class="btn btn-outline" type="button" disabled>Video próximamente</button>`;
   }
+  if (teacherSlot) {
+    const practiceOptions = Array.isArray(resource?.practiceOptions) ? resource.practiceOptions.filter(Boolean) : [];
+    const hasContent = resource?.theoryText || resource?.stepsText || resource?.imageUrl || resource?.practiceQuestion;
+    teacherSlot.innerHTML = hasContent ? `
+      <article class="learning-teacher-content learning-wide">
+        <span class="section-kicker">Contenido agregado por el docente</span>
+        ${resource?.title ? `<h4>${escapeHtml(resource.title)}</h4>` : ""}
+        ${resource?.imageUrl ? `<img class="learning-content-image" src="${escapeHtml(resource.imageUrl)}" alt="Imagen del tema" loading="lazy" />` : ""}
+        ${resource?.theoryText ? `<div class="learning-content-block"><h5>Explicación</h5><p>${renderInlineMathText(resource.theoryText)}</p></div>` : ""}
+        ${resource?.stepsText ? `<div class="learning-content-block"><h5>Pasos guiados</h5><ol>${resource.stepsText.split(/\r?\n/).filter(Boolean).map(step => `<li>${renderInlineMathText(step)}</li>`).join("")}</ol></div>` : ""}
+        ${resource?.practiceQuestion ? `<div class="learning-content-block"><h5>Práctica del profesor</h5><p>${renderInlineMathText(resource.practiceQuestion)}</p>${practiceOptions.length ? `<div class="learning-teacher-options">${practiceOptions.map((option, idx) => `<span class="${Number(resource.practiceAnswer) === idx ? "correct" : ""}">${String.fromCharCode(65 + idx)}. ${renderInlineMathText(option)}</span>`).join("")}</div>` : ""}</div>` : ""}
+      </article>
+    ` : "";
+    if (window.renderMathInElement) renderMathInElement(teacherSlot, { delimiters: MATH_DELIMITERS, throwOnError: false });
+  }
+}
+
+function populateLearningManagerResource(resource) {
+  if (!puedeGestionarContenidoAprendizaje()) return;
+  const setValue = (id, value = "") => {
+    const input = document.getElementById(id);
+    if (input) input.value = value || "";
+  };
+  setValue("learningManagerTitle", resource?.title || "");
+  setValue("learningManagerVideoUrl", resource?.externalVideoUrl || "");
+  setValue("learningManagerTheory", resource?.theoryText || "");
+  setValue("learningManagerSteps", resource?.stepsText || "");
+  setValue("learningManagerPracticeQuestion", resource?.practiceQuestion || "");
+  const options = Array.isArray(resource?.practiceOptions) ? resource.practiceOptions : [];
+  setValue("learningManagerOption0", options[0] || "");
+  setValue("learningManagerOption1", options[1] || "");
+  setValue("learningManagerOption2", options[2] || "");
+  const answer = document.getElementById("learningManagerPracticeAnswer");
+  if (answer) answer.value = Number.isFinite(Number(resource?.practiceAnswer)) ? String(resource.practiceAnswer) : "0";
 }
 
 async function renderLearningResourceForSelection(selection) {
   try {
-    renderLearningResourceSlots(await cargarLearningResource(selection));
+    const resource = await cargarLearningResource(selection);
+    renderLearningResourceSlots(resource);
+    populateLearningManagerResource(resource);
   } catch (error) {
     console.warn("No fue posible cargar recursos de aprendizaje", error);
   }
@@ -3766,26 +3802,19 @@ function learningProgressSummary() {
     });
   });
   const completed = Object.entries(progress).filter(([key, item]) => validKeys.has(key) && item?.completed).length;
-  return {
-    total,
-    completed,
-    pct: total ? Math.round((completed / total) * 100) : 0
-  };
+  return { total, completed, pct: total ? Math.round((completed / total) * 100) : 0 };
 }
 
 async function setLearningCompleted(selection) {
   const progress = learningProgressAll();
   const key = learningProgressId(selection.branchId, selection.topicId, selection.level);
-  progress[key] = {
-    completed: true,
-    completedAt: new Date().toISOString()
-  };
+  progress[key] = { completed: true, completedAt: new Date().toISOString() };
   learningProgressRemote[key] = progress[key];
   saveLearningProgressAll(progress);
   try {
     await guardarLearningProgressRemoto(key, selection, progress[key]);
   } catch (error) {
-    console.warn("No fue posible guardar el progreso de aprendizaje en Firebase", error);
+    console.warn("No fue posible guardar el progreso de aprendizaje", error);
   }
 }
 
@@ -3818,9 +3847,7 @@ function renderLearningPanel() {
   `).join("");
 
   levelsEl.innerHTML = Object.entries(LEVEL_LABELS).map(([level, label]) => `
-    <button class="${level === selection.level ? "active" : ""}" type="button" data-learning-level="${escapeHtml(level)}">
-      ${escapeHtml(label)}
-    </button>
+    <button class="${level === selection.level ? "active" : ""}" type="button" data-learning-level="${escapeHtml(level)}">${escapeHtml(label)}</button>
   `).join("");
 
   const progress = learningProgressAll();
@@ -3843,7 +3870,6 @@ function renderLearningUnit(branch, topic, level) {
   const unit = document.getElementById("learningUnit");
   if (!unit) return;
   const data = topic.levels[level] || topic.levels.facil;
-  const examKey = LEVEL_TO_EXAM[level] || "diagnostico";
   const progress = learningProgressAll();
   const completed = progress[learningProgressId(branch.id, topic.id, level)]?.completed;
   unit.innerHTML = `
@@ -3865,10 +3891,11 @@ function renderLearningUnit(branch, topic, level) {
         <h4>Conceptos clave</h4>
         <ul>${topic.keyConcepts.map(concept => `<li>${escapeHtml(concept)}</li>`).join("")}</ul>
       </article>
-      <article class="learning-wide">
+      <article class="learning-wide learning-step-card">
         <h4>Ejemplo paso a paso</h4>
         <ol>${data.example.map(step => `<li>${renderInlineMathText(step)}</li>`).join("")}</ol>
       </article>
+      <div id="learningTeacherContentSlot" class="learning-teacher-slot learning-wide"></div>
       <article>
         <h4>Material descargable</h4>
         <div id="learningPdfSlot">
@@ -3889,23 +3916,17 @@ function renderLearningUnit(branch, topic, level) {
       <span class="section-kicker">Práctica rápida</span>
       <h4>${renderInlineMathText(data.practice.question)}</h4>
       <div class="learning-practice-options">
-        ${data.practice.options.map((option, idx) => `
-          <button type="button" data-learning-answer="${idx}">${renderInlineMathText(option)}</button>
-        `).join("")}
+        ${data.practice.options.map((option, idx) => `<button type="button" data-learning-answer="${idx}">${renderInlineMathText(option)}</button>`).join("")}
       </div>
       <p class="bank-status" data-learning-status></p>
     </div>
 
     <div class="learning-actions">
       <button class="btn btn-outline" type="button" id="btnLearningComplete">${completed ? "Reforzar de nuevo" : "Marcar tema como estudiado"}</button>
-      <button class="btn btn-primary" type="button" id="btnLearningExam">
-        Ir al examen ${escapeHtml(LEVEL_LABELS[level])} · ${etiquetaDuracionNivel(level)}
-      </button>
+      <button class="btn btn-primary" type="button" id="btnLearningExam">Ir al examen ${escapeHtml(LEVEL_LABELS[level])} · ${etiquetaDuracionNivel(level)}</button>
     </div>
   `;
-  if (window.renderMathInElement) {
-    renderMathInElement(unit, { delimiters: MATH_DELIMITERS, throwOnError: false });
-  }
+  if (window.renderMathInElement) renderMathInElement(unit, { delimiters: MATH_DELIMITERS, throwOnError: false });
   renderLearningResourceForSelection({ branchId: branch.id, topicId: topic.id, level });
 }
 
@@ -3916,53 +3937,40 @@ function renderLearningManager(selection = resolveLearningSelection()) {
   if (!puedeGestionarContenidoAprendizaje()) return;
 
   const scopeSel = document.getElementById("learningManagerScope");
+  const scopeLabel = document.getElementById("learningManagerScopeLabel");
   const classSel = document.getElementById("learningManagerClass");
-  const gradeSel = document.getElementById("learningManagerGrade");
   const branchSel = document.getElementById("learningManagerBranch");
   const topicSel = document.getElementById("learningManagerTopic");
   const levelSel = document.getElementById("learningManagerLevel");
   if (!branchSel || !topicSel || !levelSel) return;
   const owner = esPropietarioPlataforma();
-  const selectedScope = selection.scope || scopeSel?.value || (owner ? "global" : "class");
+  const selectedScope = owner ? (selection.scope || scopeSel?.value || "global") : "class";
   const scopeHelp = document.getElementById("learningManagerScopeHelp");
   if (scopeHelp) {
     scopeHelp.textContent = owner
-      ? "Como dueño puedes publicar contenido interno para toda la plataforma. También puedes crear materiales por aula si lo necesitas."
-      : "Como profesor, el contenido que agregues debe aplicarse a un aula o grado específico y solo lo verán esos estudiantes.";
+      ? "Como dueño puedes publicar contenido para toda la plataforma o preparar materiales para un aula específica."
+      : "Como profesor, selecciona el aula donde se verá este contenido. Los estudiantes de esa aula lo verán en la unidad correspondiente.";
   }
+  if (scopeLabel) scopeLabel.classList.toggle("hidden", !owner);
   if (scopeSel) {
     scopeSel.innerHTML = owner
-      ? `<option value="global">Toda la plataforma</option><option value="class">Aula específica</option><option value="grade">Grado/curso</option>`
-      : `<option value="class">Aula específica</option><option value="grade">Grado/curso</option>`;
-    scopeSel.value = (!owner && selectedScope === "global") ? "class" : selectedScope;
+      ? `<option value="global">Toda la plataforma</option><option value="class">Aula específica</option>`
+      : `<option value="class">Aula específica</option>`;
+    scopeSel.value = owner ? (selectedScope === "class" ? "class" : "global") : "class";
   }
   if (classSel) {
     classSel.innerHTML = adminClases.length
       ? adminClases.map(classroom => `<option value="${escapeHtml(classroom.id)}">${escapeHtml(classroom.name)} (${escapeHtml(classroom.code || "")})</option>`).join("")
       : `<option value="">Sin aulas creadas</option>`;
     classSel.value = selection.classId || adminClaseActiva || adminClases[0]?.id || "";
-    classSel.disabled = scopeSel?.value === "global";
+    classSel.disabled = owner && scopeSel?.value === "global";
   }
-  if (gradeSel) {
-    const grades = gradosInstitucion();
-    gradeSel.innerHTML = grades.length
-      ? grades.map(grade => `<option value="${escapeHtml(grade)}">${escapeHtml(grade)}</option>`).join("")
-      : `<option value="">Escribe el grado en el título si no está configurado</option>`;
-    if (selection.grade && grades.includes(selection.grade)) gradeSel.value = selection.grade;
-    gradeSel.disabled = scopeSel?.value !== "grade";
-  }
-  branchSel.innerHTML = LEARNING_CATALOG.map(branch =>
-    `<option value="${escapeHtml(branch.id)}">${escapeHtml(branch.title)}</option>`
-  ).join("");
+  branchSel.innerHTML = LEARNING_CATALOG.map(branch => `<option value="${escapeHtml(branch.id)}">${escapeHtml(branch.title)}</option>`).join("");
   branchSel.value = selection.branchId;
   const branch = LEARNING_CATALOG.find(item => item.id === branchSel.value) || LEARNING_CATALOG[0];
-  topicSel.innerHTML = branch.topics.map(topic =>
-    `<option value="${escapeHtml(topic.id)}">${escapeHtml(topic.title)}</option>`
-  ).join("");
+  topicSel.innerHTML = branch.topics.map(topic => `<option value="${escapeHtml(topic.id)}">${escapeHtml(topic.title)}</option>`).join("");
   topicSel.value = branch.topics.some(topic => topic.id === selection.topicId) ? selection.topicId : branch.topics[0].id;
-  levelSel.innerHTML = Object.entries(LEVEL_LABELS).map(([level, label]) =>
-    `<option value="${escapeHtml(level)}">${escapeHtml(label)}</option>`
-  ).join("");
+  levelSel.innerHTML = Object.entries(LEVEL_LABELS).map(([level, label]) => `<option value="${escapeHtml(level)}">${escapeHtml(label)}</option>`).join("");
   levelSel.value = selection.level;
 }
 
@@ -3971,34 +3979,30 @@ function getLearningManagerSelection() {
   const topicId = document.getElementById("learningManagerTopic")?.value || resolveLearningSelection().topicId;
   const level = document.getElementById("learningManagerLevel")?.value || resolveLearningSelection().level;
   const base = resolveLearningSelection({ branchId, topicId, level });
-  return {
-    ...base,
-    scope: document.getElementById("learningManagerScope")?.value || (esPropietarioPlataforma() ? "global" : "class"),
-    classId: document.getElementById("learningManagerClass")?.value || "",
-    grade: document.getElementById("learningManagerGrade")?.value || ""
-  };
+  const owner = esPropietarioPlataforma();
+  const scope = owner ? (document.getElementById("learningManagerScope")?.value || "global") : "class";
+  return { ...base, scope, classId: document.getElementById("learningManagerClass")?.value || "" };
 }
 
 function resetLearningManagerFiles() {
-  const pdf = document.getElementById("learningManagerPdf");
-  const video = document.getElementById("learningManagerVideo");
-  if (pdf) pdf.value = "";
-  if (video) video.value = "";
+  ["learningManagerImage", "learningManagerPdf", "learningManagerVideo"].forEach(id => {
+    const input = document.getElementById(id);
+    if (input) input.value = "";
+  });
 }
 
 async function subirLearningFile(file, selection, kind, resourceId) {
   if (!file) return {};
-  const maxMb = kind === "pdf" ? LEARNING_RESOURCE_MAX_PDF_MB : LEARNING_RESOURCE_MAX_VIDEO_MB;
-  if (file.size > maxMb * 1024 * 1024) {
-    throw new Error(`El ${kind === "pdf" ? "PDF" : "video"} supera ${maxMb} MB.`);
-  }
+  const maxMb = kind === "pdf" ? LEARNING_RESOURCE_MAX_PDF_MB : kind === "image" ? LEARNING_RESOURCE_MAX_IMAGE_MB : LEARNING_RESOURCE_MAX_VIDEO_MB;
+  if (file.size > maxMb * 1024 * 1024) throw new Error(`El archivo supera ${maxMb} MB.`);
+  if (kind === "image" && !file.type.startsWith("image/")) throw new Error("La imagen debe ser JPG, PNG, WEBP o GIF.");
   const path = `learningResources/${usuarioActual.uid}/${resourceId}/${kind}-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
   const ref = storageRef(storage, path);
   await uploadBytes(ref, file);
   const url = await getDownloadURL(ref);
-  return kind === "pdf"
-    ? { pdfUrl: url, pdfPath: path }
-    : { videoUrl: url, videoPath: path };
+  if (kind === "pdf") return { pdfUrl: url, pdfPath: path };
+  if (kind === "image") return { imageUrl: url, imagePath: path };
+  return { videoUrl: url, videoPath: path };
 }
 
 async function guardarLearningResource() {
@@ -4006,6 +4010,12 @@ async function guardarLearningResource() {
   const status = document.getElementById("learningManagerStatus");
   const title = document.getElementById("learningManagerTitle")?.value.trim() || "";
   const externalVideoUrl = document.getElementById("learningManagerVideoUrl")?.value.trim() || "";
+  const theoryText = document.getElementById("learningManagerTheory")?.value.trim() || "";
+  const stepsText = document.getElementById("learningManagerSteps")?.value.trim() || "";
+  const practiceQuestion = document.getElementById("learningManagerPracticeQuestion")?.value.trim() || "";
+  const practiceOptions = [0, 1, 2].map(idx => document.getElementById(`learningManagerOption${idx}`)?.value.trim() || "");
+  const practiceAnswer = Number(document.getElementById("learningManagerPracticeAnswer")?.value || 0);
+  const image = document.getElementById("learningManagerImage")?.files?.[0] || null;
   const pdf = document.getElementById("learningManagerPdf")?.files?.[0] || null;
   const video = document.getElementById("learningManagerVideo")?.files?.[0] || null;
   const selection = getLearningManagerSelection();
@@ -4017,52 +4027,57 @@ async function guardarLearningResource() {
     }
     return;
   }
-  if (selection.scope === "grade" && !selection.grade) {
+  if (!title && !theoryText && !stepsText && !practiceQuestion && !image && !pdf && !video && !externalVideoUrl) {
     if (status) {
-      status.textContent = "Selecciona el grado o curso donde se verá este contenido.";
+      status.textContent = "Agrega al menos un título, explicación, archivo, video o práctica.";
       status.className = "bank-status error";
     }
     return;
   }
   if (status) {
-    status.textContent = "Guardando recurso...";
+    status.textContent = "Guardando contenido...";
     status.className = "bank-status";
   }
   try {
     const uploads = {
+      ...(await subirLearningFile(image, selection, "image", resourceId)),
       ...(await subirLearningFile(pdf, selection, "pdf", resourceId)),
       ...(await subirLearningFile(video, selection, "video", resourceId))
     };
+    const scope = esPropietarioPlataforma() ? selection.scope : "class";
     await setDoc(doc(db, LEARNING_RESOURCE_COLLECTION, resourceId), {
       ownerUid: usuarioActual.uid,
       ownerEmail: usuarioActual.email || "",
       branchId: selection.branchId,
       topicId: selection.topicId,
       level: selection.level,
-      scope: esPropietarioPlataforma() ? selection.scope : (selection.scope === "grade" ? "grade" : "class"),
-      classId: selection.scope === "class" ? selection.classId : "",
-      className: selection.scope === "class" ? nombreAulaPorId(selection.classId) : "",
-      grade: selection.scope === "grade" ? selection.grade : "",
+      scope,
+      classId: scope === "class" ? selection.classId : "",
+      className: scope === "class" ? nombreAulaPorId(selection.classId) : "",
       title,
       externalVideoUrl,
+      theoryText,
+      stepsText,
+      practiceQuestion,
+      practiceOptions,
+      practiceAnswer: Number.isFinite(practiceAnswer) ? practiceAnswer : 0,
       ...uploads,
       updatedAt: serverTimestamp()
     }, { merge: true });
     learningResourcesCache.delete(learningResourceCacheKey(selection));
     resetLearningManagerFiles();
     if (status) {
-      status.textContent = "Recurso guardado. Los estudiantes lo verán en esta unidad.";
+      status.textContent = "Contenido guardado. Los estudiantes lo verán en esta unidad.";
       status.className = "bank-status ok";
     }
     renderLearningResourceForSelection(selection);
   } catch (error) {
     if (status) {
-      status.textContent = error.message || "No fue posible guardar el recurso.";
+      status.textContent = error.message || "No fue posible guardar el contenido.";
       status.className = "bank-status error";
     }
   }
 }
-
 function normalizeLatexText(value = "") {
   return String(value)
     .replace(/\\\\\(/g, "\\(")
@@ -4134,7 +4149,7 @@ document.getElementById("sectionAprendizaje")?.addEventListener("click", async e
     await guardarLearningResource();
   }
   if (event.target.closest("#btnLearningResourceClear")) {
-    ["learningManagerTitle", "learningManagerVideoUrl"].forEach(id => {
+    ["learningManagerTitle", "learningManagerVideoUrl", "learningManagerTheory", "learningManagerSteps", "learningManagerPracticeQuestion", "learningManagerOption0", "learningManagerOption1", "learningManagerOption2"].forEach(id => {
       const input = document.getElementById(id);
       if (input) input.value = "";
     });
@@ -4161,7 +4176,7 @@ document.getElementById("sectionAprendizaje")?.addEventListener("change", event 
     renderLearningResourceForSelection(getLearningManagerSelection());
     return;
   }
-  if (event.target.matches("#learningManagerTopic, #learningManagerLevel, #learningManagerClass, #learningManagerGrade")) {
+  if (event.target.matches("#learningManagerTopic, #learningManagerLevel, #learningManagerClass")) {
     renderLearningResourceForSelection(getLearningManagerSelection());
   }
 });
