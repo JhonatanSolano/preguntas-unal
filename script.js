@@ -11278,7 +11278,7 @@ const btnBackToTop = document.getElementById("btnBackToTop");
 prepararBotonSubirFlotante();
 
 function landingPublicaActiva() {
-  return document.body.classList.contains("group-locked") && !usuarioActual;
+  return document.body.classList.contains("group-locked") && !usuarioActual && !modalPublicoAbierto();
 }
 
 function sincronizarControlesLanding() {
@@ -11302,6 +11302,10 @@ function actualizarBotonSubirLanding() {
   if (visible) evitarSolapamientoWhatsapp();
 }
 window.addEventListener("scroll", sincronizarControlesLanding, { passive: true });
+window.addEventListener("resize", () => {
+  if (landingPublicaActiva()) ajustarWhatsappAlBorde();
+  sincronizarControlesLanding();
+}, { passive: true });
 sincronizarControlesLanding();
 btnBackToTop?.addEventListener("click", () => {
   window.scrollTo({ top: 0, behavior: "smooth" });

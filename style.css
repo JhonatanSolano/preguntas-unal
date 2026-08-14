@@ -11871,3 +11871,34 @@ body:not(.group-locked) #btnBackToTop.back-to-top {
     font-size: .92rem;
   }
 }
+/* WhatsApp landing · arrastrable y no intrusivo */
+body.public-modal-open #whatsappWidget.whatsapp-widget,
+body.public-modal-open #btnBackToTop.back-to-top {
+  display: none !important;
+}
+
+#whatsappWidget.whatsapp-widget.landing-only-visible {
+  touch-action: none;
+  user-select: none;
+}
+
+#whatsappWidget.whatsapp-widget.open .whatsapp-card {
+  visibility: visible;
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+}
+
+#whatsappWidget.whatsapp-widget .whatsapp-card {
+  visibility: hidden;
+}
+
+#whatsappWidget.whatsapp-widget.open.dragging .whatsapp-card,
+#whatsappWidget.whatsapp-widget.dragging .whatsapp-card {
+  visibility: hidden;
+}
+
+@media (max-width: 720px) {
+  #whatsappWidget.whatsapp-widget.open .whatsapp-card {
+    width: min(300px, calc(100vw - 5.5rem));
+  }
+}
