@@ -3102,6 +3102,7 @@ function aplicarModoUsuario() {
   actualizarBienvenida();
   actualizarDrawer();
   aplicarEstadoSuscripcion();
+  sincronizarControlesLanding();
 }
 
 function actualizarGrupoActualPanel() {
@@ -11275,13 +11276,33 @@ document.querySelectorAll(".footer-social a").forEach(link => {
 });
 const btnBackToTop = document.getElementById("btnBackToTop");
 prepararBotonSubirFlotante();
+
+function landingPublicaActiva() {
+  return document.body.classList.contains("group-locked") && !usuarioActual;
+}
+
+function sincronizarControlesLanding() {
+  const enLanding = landingPublicaActiva();
+  const whatsapp = document.getElementById("whatsappWidget");
+  const topButton = document.getElementById("btnBackToTop");
+  whatsapp?.classList.toggle("landing-only-visible", enLanding);
+  topButton?.classList.toggle("landing-only-visible", enLanding);
+  if (!enLanding) {
+    cerrarWhatsappWidget();
+    topButton?.classList.remove("visible");
+    return;
+  }
+  actualizarBotonSubirLanding();
+}
+
 function actualizarBotonSubirLanding() {
-  const visible = window.scrollY > Math.min(180, window.innerHeight * .22);
-  btnBackToTop?.classList.toggle("visible", visible);
+  const topButton = document.getElementById("btnBackToTop");
+  const visible = landingPublicaActiva() && window.scrollY > Math.min(180, window.innerHeight * .22);
+  topButton?.classList.toggle("visible", visible);
   if (visible) evitarSolapamientoWhatsapp();
 }
-window.addEventListener("scroll", actualizarBotonSubirLanding, { passive: true });
-actualizarBotonSubirLanding();
+window.addEventListener("scroll", sincronizarControlesLanding, { passive: true });
+sincronizarControlesLanding();
 btnBackToTop?.addEventListener("click", () => {
   window.scrollTo({ top: 0, behavior: "smooth" });
 });

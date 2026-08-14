@@ -11783,3 +11783,91 @@ body.app-active #btnBackToTop.back-to-top {
     bottom: calc(max(.95rem, env(safe-area-inset-bottom)) + 4.85rem) !important;
   }
 }
+
+/* Landing-only floating controls guard */
+#whatsappWidget.whatsapp-widget:not(.landing-only-visible),
+#btnBackToTop.back-to-top:not(.landing-only-visible) {
+  display: none !important;
+}
+
+body.group-locked #whatsappWidget.whatsapp-widget.landing-only-visible {
+  display: block !important;
+}
+
+body.group-locked #btnBackToTop.back-to-top.landing-only-visible {
+  display: grid !important;
+}
+
+body:not(.group-locked) #whatsappWidget.whatsapp-widget,
+body:not(.group-locked) #btnBackToTop.back-to-top {
+  display: none !important;
+}
+/* Aprendizaje · selector ordenado de ruta */
+.learning-workspace .learning-mobile-picker {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: .8rem;
+  align-items: end;
+  margin: .85rem 0 1.1rem;
+  padding: 1rem;
+  border: 1px solid rgba(0, 97, 120, .18);
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(255,255,255,.96), rgba(235, 250, 250, .9));
+  box-shadow: 0 16px 38px rgba(4, 48, 70, .08);
+}
+
+.learning-workspace .learning-mobile-picker label {
+  display: grid;
+  gap: .38rem;
+  min-width: 0;
+  color: var(--c-teal-700);
+  font-size: .78rem;
+  font-weight: 900;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.learning-workspace .learning-mobile-picker select {
+  width: 100%;
+  min-height: 46px;
+  border-radius: 14px;
+  border: 1px solid rgba(0, 97, 120, .22);
+  background-color: #fff;
+  color: var(--c-ink);
+  font-size: .96rem;
+  font-weight: 800;
+  padding: .65rem .8rem;
+  box-shadow: 0 8px 18px rgba(4, 48, 70, .06);
+}
+
+.learning-workspace .learning-topic-grid,
+.learning-workspace .learning-subtopic-grid {
+  display: none !important;
+}
+
+.learning-workspace .learning-toolbar {
+  margin-bottom: .4rem;
+}
+
+.learning-workspace .learning-level-tabs {
+  display: none !important;
+}
+
+@media (max-width: 900px) {
+  .learning-workspace .learning-mobile-picker {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .learning-workspace .learning-mobile-picker {
+    grid-template-columns: 1fr;
+    padding: .85rem;
+    border-radius: 16px;
+  }
+
+  .learning-workspace .learning-mobile-picker select {
+    min-height: 44px;
+    font-size: .92rem;
+  }
+}
