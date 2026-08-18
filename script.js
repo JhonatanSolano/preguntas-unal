@@ -9944,10 +9944,13 @@ function mostrarSoporteRecuperacion(mostrar = true) {
 function toggleWhatsappWidget() {
   const widget = document.getElementById("whatsappWidget");
   const btn = document.getElementById("btnWhatsappInfo");
+  if (!widget || !landingPublicaActiva()) return;
+  ajustarWhatsappAlBorde();
   ajustarLadoWhatsapp();
-  const abierto = !widget?.classList.contains("open");
-  widget?.classList.toggle("open", abierto);
+  const abierto = !widget.classList.contains("open");
+  widget.classList.toggle("open", abierto);
   btn?.setAttribute("aria-expanded", String(abierto));
+  if (abierto) asegurarTarjetaWhatsappVisible();
 }
 
 function cerrarWhatsappWidget() {
@@ -9963,14 +9966,47 @@ function ajustarLadoWhatsapp() {
   widget.classList.toggle("side-right", rect.left < window.innerWidth / 2);
 }
 
+function fijarWhatsappFlotante(widget, left, top) {
+  if (!widget) return;
+  widget.style.setProperty("--whatsapp-left", `${Math.round(left)}px`);
+  widget.style.setProperty("--whatsapp-top", `${Math.round(top)}px`);
+  widget.style.setProperty("--whatsapp-right", "auto");
+  widget.style.setProperty("--whatsapp-bottom", "auto");
+  widget.style.left = `${Math.round(left)}px`;
+  widget.style.top = `${Math.round(top)}px`;
+  widget.style.right = "auto";
+  widget.style.bottom = "auto";
+}
+
+function asegurarTarjetaWhatsappVisible() {
+  const widget = document.getElementById("whatsappWidget");
+  if (!widget?.classList.contains("open")) return;
+  requestAnimationFrame(() => {
+    const card = document.getElementById("whatsappCard");
+    if (!card) return;
+    const widgetRect = widget.getBoundingClientRect();
+    const cardRect = card.getBoundingClientRect();
+    const margen = 12;
+    let nextTop = widgetRect.top;
+    if (cardRect.top < margen) nextTop += margen - cardRect.top;
+    if (cardRect.bottom > window.innerHeight - margen) nextTop -= cardRect.bottom - (window.innerHeight - margen);
+    const maxTop = Math.max(margen, window.innerHeight - widgetRect.height - margen);
+    nextTop = Math.min(Math.max(nextTop, margen), maxTop);
+    if (Math.abs(nextTop - widgetRect.top) > 1) fijarWhatsappFlotante(widget, widgetRect.left, nextTop);
+    ajustarLadoWhatsapp();
+  });
+}
+
 function prepararWhatsappFlotante() {
   const widget = document.getElementById("whatsappWidget");
   if (!widget) return;
   if (widget.parentElement !== document.body) document.body.appendChild(widget);
   widget.style.position = "fixed";
-  if (!widget.style.left && !widget.style.top) {
-    widget.style.right = "";
-    widget.style.bottom = "";
+  if (!widget.style.getPropertyValue("--whatsapp-right")) {
+    widget.style.setProperty("--whatsapp-right", "max(1rem, env(safe-area-inset-right))");
+    widget.style.setProperty("--whatsapp-bottom", "max(1rem, env(safe-area-inset-bottom))");
+    widget.style.setProperty("--whatsapp-left", "auto");
+    widget.style.setProperty("--whatsapp-top", "auto");
   }
   ajustarLadoWhatsapp();
 }
@@ -9985,14 +10021,15 @@ function ajustarWhatsappAlBorde() {
   const widget = document.getElementById("whatsappWidget");
   if (!widget) return;
   const rect = widget.getBoundingClientRect();
-  const margen = 10;
+  const margen = 12;
   const x = rect.left + rect.width / 2 < window.innerWidth / 2
     ? margen
     : window.innerWidth - rect.width - margen;
-  widget.style.left = `${Math.max(margen, x)}px`;
-  widget.style.right = "auto";
+  const y = Math.min(Math.max(rect.top, margen), Math.max(margen, window.innerHeight - rect.height - margen));
+  fijarWhatsappFlotante(widget, Math.max(margen, x), y);
   evitarSolapamientoWhatsapp();
   ajustarLadoWhatsapp();
+  asegurarTarjetaWhatsappVisible();
 }
 
 function evitarSolapamientoWhatsapp() {
@@ -10031,14 +10068,14 @@ function activarArrastreWhatsapp() {
     const margen = 10;
     const maxX = window.innerWidth - rect.width - margen;
     const maxY = window.innerHeight - rect.height - margen;
-    widget.style.left = `${Math.min(Math.max(clientX - offsetX, margen), Math.max(margen, maxX))}px`;
-    widget.style.top = `${Math.min(Math.max(clientY - offsetY, margen), Math.max(margen, maxY))}px`;
-    widget.style.right = "auto";
-    widget.style.bottom = "auto";
+    const nextLeft = Math.min(Math.max(clientX - offsetX, margen), Math.max(margen, maxX));
+    const nextTop = Math.min(Math.max(clientY - offsetY, margen), Math.max(margen, maxY));
+    fijarWhatsappFlotante(widget, nextLeft, nextTop);
     ajustarLadoWhatsapp();
   };
 
   btn.addEventListener("pointerdown", e => {
+    if (!landingPublicaActiva()) return;
     arrastrando = true;
     movido = false;
     const rect = widget.getBoundingClientRect();
@@ -10047,6 +10084,7 @@ function activarArrastreWhatsapp() {
     offsetX = e.clientX - rect.left;
     offsetY = e.clientY - rect.top;
     btn.setPointerCapture?.(e.pointerId);
+    e.preventDefault();
   });
   btn.addEventListener("pointermove", e => {
     if (!arrastrando) return;
@@ -10056,15 +10094,19 @@ function activarArrastreWhatsapp() {
     widget.classList.remove("open");
     btn.setAttribute("aria-expanded", "false");
     ubicar(e.clientX, e.clientY);
+    e.preventDefault();
   });
-  btn.addEventListener("pointerup", e => {
+  const terminarArrastre = e => {
     if (!arrastrando) return;
     arrastrando = false;
     widget.classList.remove("dragging");
     btn.releasePointerCapture?.(e.pointerId);
     if (movido) ajustarWhatsappAlBorde();
     if (!movido) toggleWhatsappWidget();
-  });
+  };
+  btn.addEventListener("pointerup", terminarArrastre);
+  btn.addEventListener("pointercancel", terminarArrastre);
+  btn.addEventListener("lostpointercapture", terminarArrastre);
 }
 
 function normalizarTextoAsesor(input = "") {
@@ -11289,9 +11331,11 @@ function sincronizarControlesLanding() {
   topButton?.classList.toggle("landing-only-visible", enLanding);
   if (!enLanding) {
     cerrarWhatsappWidget();
+    whatsapp?.classList.remove("dragging");
     topButton?.classList.remove("visible");
     return;
   }
+  prepararWhatsappFlotante();
   actualizarBotonSubirLanding();
 }
 

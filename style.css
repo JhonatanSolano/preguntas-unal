@@ -11902,3 +11902,243 @@ body.public-modal-open #btnBackToTop.back-to-top {
     width: min(300px, calc(100vw - 5.5rem));
   }
 }
+/* Landing WhatsApp · posicion real controlada por arrastre */
+body.group-locked:not(.public-modal-open) #whatsappWidget.whatsapp-widget.landing-only-visible {
+  position: fixed !important;
+  left: var(--whatsapp-left, auto) !important;
+  top: var(--whatsapp-top, auto) !important;
+  right: var(--whatsapp-right, max(1rem, env(safe-area-inset-right))) !important;
+  bottom: var(--whatsapp-bottom, max(1rem, env(safe-area-inset-bottom))) !important;
+  z-index: 220 !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  width: 58px !important;
+  height: 58px !important;
+  touch-action: none !important;
+  user-select: none !important;
+}
+
+body.group-locked.public-modal-open #whatsappWidget.whatsapp-widget,
+body.group-locked.public-modal-open #btnBackToTop.back-to-top,
+body:not(.group-locked) #whatsappWidget.whatsapp-widget,
+body:not(.group-locked) #btnBackToTop.back-to-top {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+#whatsappWidget.whatsapp-widget.open .whatsapp-card {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
+}
+
+#whatsappWidget.whatsapp-widget.dragging .whatsapp-card {
+  display: none !important;
+}
+
+/* Aprendizaje · ruta compacta y jerarquia limpia */
+.learning-layout {
+  grid-template-columns: minmax(170px, 220px) minmax(0, 1fr);
+}
+
+.learning-workspace .learning-mobile-picker {
+  position: sticky;
+  top: .25rem;
+  z-index: 3;
+}
+
+.learning-workspace .learning-mobile-picker select:focus-visible {
+  outline: 3px solid rgba(20, 184, 166, .26);
+  outline-offset: 2px;
+}
+
+.learning-workspace .learning-topic-grid,
+.learning-workspace .learning-subtopic-grid,
+.learning-workspace .learning-level-tabs {
+  display: none !important;
+}
+
+.learning-actions #btnLearningComplete:disabled {
+  pointer-events: none;
+}
+
+@media (max-width: 760px) {
+  .learning-layout {
+    display: block;
+  }
+
+  .learning-sidebar {
+    position: static;
+    margin-bottom: .9rem;
+  }
+
+  .learning-branch-list {
+    display: flex;
+    overflow-x: auto;
+    padding-bottom: .45rem;
+    scroll-snap-type: x mandatory;
+  }
+
+  .learning-branch {
+    flex: 0 0 min(78vw, 260px);
+    scroll-snap-align: start;
+  }
+
+  .learning-unit-head,
+  .learning-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Corrección final: controles flotantes solo en landing y WhatsApp arrastrable */
+body.group-locked:not(.public-modal-open) #whatsappWidget.whatsapp-widget.landing-only-visible {
+  position: fixed !important;
+  left: var(--whatsapp-left, auto) !important;
+  top: var(--whatsapp-top, auto) !important;
+  right: var(--whatsapp-right, max(1rem, env(safe-area-inset-right))) !important;
+  bottom: var(--whatsapp-bottom, max(1rem, env(safe-area-inset-bottom))) !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  z-index: 220 !important;
+  width: 58px !important;
+  height: 58px !important;
+  touch-action: none !important;
+}
+
+body.group-locked:not(.public-modal-open) #btnBackToTop.back-to-top.landing-only-visible {
+  position: fixed !important;
+  left: max(1rem, env(safe-area-inset-left)) !important;
+  bottom: calc(max(1rem, env(safe-area-inset-bottom)) + 5rem) !important;
+  display: grid !important;
+  z-index: 219 !important;
+}
+
+body.group-locked:not(.public-modal-open) #btnBackToTop.back-to-top.landing-only-visible:not(.visible) {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+body.group-locked:not(.public-modal-open) #btnBackToTop.back-to-top.landing-only-visible.visible {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  transform: translateY(0) scale(1) !important;
+}
+
+body:not(.group-locked) #whatsappWidget.whatsapp-widget,
+body:not(.group-locked) #btnBackToTop.back-to-top,
+body.group-locked.public-modal-open #whatsappWidget.whatsapp-widget,
+body.group-locked.public-modal-open #btnBackToTop.back-to-top,
+#whatsappWidget.whatsapp-widget:not(.landing-only-visible),
+#btnBackToTop.back-to-top:not(.landing-only-visible) {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+#whatsappWidget.whatsapp-widget.open .whatsapp-card {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  max-height: calc(100dvh - 24px);
+  max-width: min(340px, calc(100vw - 82px));
+  overflow: auto;
+}
+
+#whatsappWidget.whatsapp-widget.dragging .whatsapp-card {
+  display: none !important;
+}
+
+/* Aprendizaje compacto: la ruta se escoge arriba y las tarjetas no duplican la navegación */
+.learning-workspace .learning-mobile-picker {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: .8rem;
+}
+
+.learning-workspace .learning-topic-grid,
+.learning-workspace .learning-subtopic-grid,
+.learning-workspace .learning-level-tabs {
+  display: none !important;
+}
+
+.learning-branch-list {
+  gap: .75rem;
+}
+
+.learning-branch {
+  min-height: 92px;
+}
+
+.learning-branch small,
+.learning-mobile-picker select {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.learning-actions #btnLearningComplete.learning-complete-done:disabled {
+  color: #0f766e;
+  background: #e7f8f5;
+  border-color: #99d8cf;
+  box-shadow: none;
+  cursor: default;
+}
+
+@media (max-width: 900px) {
+  .learning-workspace .learning-mobile-picker {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  body.group-locked:not(.public-modal-open) #whatsappWidget.whatsapp-widget.landing-only-visible {
+    width: 56px !important;
+    height: 56px !important;
+  }
+
+  .learning-layout {
+    display: block;
+  }
+
+  .learning-sidebar {
+    position: static;
+    margin-bottom: .9rem;
+  }
+
+  .learning-branch-list {
+    display: flex;
+    overflow-x: auto;
+    padding: .1rem .1rem .6rem;
+    scroll-snap-type: x mandatory;
+  }
+
+  .learning-branch {
+    flex: 0 0 min(78vw, 280px);
+    scroll-snap-align: start;
+  }
+
+  .learning-workspace .learning-mobile-picker {
+    position: static;
+    grid-template-columns: 1fr;
+    padding: .9rem;
+    margin-top: .5rem;
+  }
+
+  .learning-workspace .learning-mobile-picker label {
+    font-size: .74rem;
+  }
+
+  .learning-actions {
+    grid-template-columns: 1fr !important;
+  }
+}
