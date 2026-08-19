@@ -1382,7 +1382,7 @@ function aplicarEstadoSuscripcion() {
     button.classList.toggle("subscription-disabled", locked);
     button.setAttribute("aria-disabled", String(locked));
   });
-  document.getElementById("advisorWidget")?.classList.toggle("hidden", !usuarioActual || !active);
+  document.getElementById("advisorWidget")?.classList.toggle("hidden", !usuarioActual || !active || esInstitucion());
   if (!active) {
     detenerListenersComunicacion();
     internalMessages = [];
@@ -2910,6 +2910,15 @@ function mostrarSeccion(sec) {
   if (sec === "adminMetricas") {
     document.getElementById("adminMetricsPanel").hidden = false;
     renderAdminStats();
+  }
+  if (sec === "aprendizaje") {
+    const grupoPanel = document.getElementById("grupoActualPanel");
+    if (grupoPanel) {
+      grupoPanel.hidden = true;
+      grupoPanel.textContent = "";
+    }
+  } else {
+    actualizarGrupoActualPanel();
   }
   seccionActual = sec;
   if (usuarioActual) {
