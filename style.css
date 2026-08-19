@@ -1880,6 +1880,11 @@ body.admin-mode #sectionExamenes .exams-hub {
   color: var(--c-muted);
   font-size: .82rem;
 }
+.advisor-status.is-thinking {
+  color: #0b8f78;
+  font-weight: 800;
+  letter-spacing: .01em;
+}
 .admin-settings .accordion-card,
 .admin-settings .accordion-card > :not(summary),
 .admin-settings textarea.admin-input,

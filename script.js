@@ -3117,14 +3117,8 @@ function aplicarModoUsuario() {
 function actualizarGrupoActualPanel() {
   const panel = document.getElementById("grupoActualPanel");
   if (!panel) return;
-  if (modoAdmin || esInstitucion() || !aulaActualValida()) {
-    panel.hidden = true;
-    panel.textContent = "";
-    return;
-  }
-  panel.hidden = false;
-  const claseTxt = claseActualInfo?.name || perfilActual?.className || nombreAulaPorId();
-  panel.textContent = `${claseTxt} · ${NOMBRES_BANCOS[bancoActivo]}`;
+  panel.hidden = true;
+  panel.textContent = "";
 }
 
 function actualizarBienvenida() {
@@ -10179,7 +10173,13 @@ function escapeHtml(text = "") {
 }
 
 function renderMarkdownBasico(text = "") {
-  const html = escapeHtml(text)
+  const normalized = normalizeLatexText(text)
+    .replace(/\\([0-9]+)\s*por\\text\{([^}]+)\}\^2/gi, "$1 por $2^2")
+    .replace(/\\([0-9]+)\s*por/gi, "$1 por")
+    .replace(/\byelmaterial\b/gi, "y el material")
+    .replace(/\byla\b/gi, "y la")
+    .replace(/\byel\b/gi, "y el");
+  const html = escapeHtml(normalized)
     .replace(/^### (.*)$/gm, "<span class=\"msg-title\">$1</span>")
     .replace(/\[small\]([\s\S]*?)\[\/small\]/g, "<span class=\"msg-small\">$1</span>")
     .replace(/\[large\]([\s\S]*?)\[\/large\]/g, "<span class=\"msg-large\">$1</span>")
@@ -10248,7 +10248,10 @@ async function enviarMensajeAsesor(text) {
 
   advisorLoading = true;
   const status = document.getElementById("advisorStatus");
-  if (status) status.textContent = "El Asesor IA está pensando...";
+  if (status) {
+    status.textContent = "El Asesor IA está pensando...";
+    status.classList.add("is-thinking");
+  }
   try {
     const history = advisorMessages
       .filter(msg => msg.sender === "bot" || msg.sender === "user")
@@ -10274,7 +10277,10 @@ async function enviarMensajeAsesor(text) {
     });
   } finally {
     advisorLoading = false;
-    if (status) status.textContent = "";
+    if (status) {
+      status.textContent = "";
+      status.classList.remove("is-thinking");
+    }
     renderAsesorMessages();
   }
 }
