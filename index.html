@@ -33,7 +33,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="style.css?v=20260820-01" />
+  <link rel="stylesheet" href="style.css?v=20260820-02" />
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -825,7 +825,10 @@
             <h3>Crear y editar contenido de aprendizaje</h3>
             <p>Selecciona el aula, la rama, el tema, el subtema y el nivel. Luego escribe la teoría, agrega ejemplos, ecuaciones, imagen, guía, video y una práctica rápida.</p>
           </div>
-          <span class="learning-manager-pill">Editor</span>
+          <div class="learning-manager-head-actions">
+            <span class="learning-manager-pill">Editor</span>
+            <button class="auth-close learning-manager-close" id="btnCloseLearningEditor" type="button" aria-label="Cerrar editor de contenido">×</button>
+          </div>
         </div>
         <div class="learning-manager-note" id="learningManagerScopeHelp"></div>
         <div class="learning-manager-grid learning-manager-grid-top">
@@ -2298,6 +2301,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260820-03"></script>
+  <script type="module" src="script.js?v=20260820-04"></script>
 </body>
 </html>

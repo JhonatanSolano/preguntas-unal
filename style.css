@@ -10923,6 +10923,11 @@ p#googleInstitutionStatus.bank-status.error {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+
+  .learning-manager-head-actions {
+    align-self: flex-end;
+    margin-left: 0;
+  }
   .learning-toolbar,
   .learning-unit-head {
     flex-direction: column;
@@ -11007,6 +11012,22 @@ p#googleInstitutionStatus.bank-status.error {
   gap: 1rem;
 }
 
+
+.learning-manager-head-actions {
+  display: flex;
+  align-items: center;
+  gap: .7rem;
+  margin-left: auto;
+}
+
+.learning-manager-close {
+  position: static;
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  font-size: 1.5rem;
+  line-height: 1;
+}
 .learning-manager-pill {
   display: inline-flex;
   align-items: center;
@@ -11176,6 +11197,11 @@ p#googleInstitutionStatus.bank-status.error {
     min-width: 120px;
   }
 
+
+  .learning-manager-head-actions {
+    align-self: flex-end;
+    margin-left: 0;
+  }
   .learning-toolbar,
   .learning-unit-head,
   .learning-manager-head {

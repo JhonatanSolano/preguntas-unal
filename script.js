@@ -200,6 +200,7 @@ const LEARNING_RESOURCE_MAX_IMAGE_MB = 8;
 let learningProgressRemote = {};
 let learningProgressRemoteLoadedFor = "";
 let learningResourcesCache = new Map();
+let learningManagerSavedSnapshot = "";
 const EXAM_DURATIONS_BY_LEVEL = {
   diagnostico: 15 * 60,
   nivel1: 25 * 60,
@@ -2871,7 +2872,7 @@ function mostrarSeccion(sec) {
   if (sec !== "mensajes") limpiarBorradorMensajeProfesor();
   if (sec !== "examenes") limpiarBorradorPreguntaProfesor();
   if (sec !== "suscripcion") planChangeInProgress = false;
-  if (sec !== "aprendizaje") resetLearningManagerEditor();
+  if (sec !== "aprendizaje") cerrarLearningManagerEditor({ force: true });
   document.getElementById("sectionInicio").classList.toggle("hidden", sec !== "inicio");
   document.getElementById("sectionAprendizaje")?.classList.toggle("hidden", sec !== "aprendizaje");
   document.getElementById("sectionInsignias")?.classList.toggle("hidden", sec !== "insignias");
@@ -3926,6 +3927,7 @@ function populateLearningManagerResource(resource) {
   setValue("learningManagerOption2", options[2] || "");
   const answer = document.getElementById("learningManagerPracticeAnswer");
   if (answer) answer.value = Number.isFinite(Number(resource?.practiceAnswer)) ? String(resource.practiceAnswer) : "0";
+  learningManagerSavedSnapshot = snapshotLearningManagerEditor();
 }
 
 async function renderLearningResourceForSelection(selection) {
@@ -4167,8 +4169,10 @@ function renderLearningUnit(branch, topic, subtopic, level) {
 function renderLearningManager(selection = resolveLearningSelection()) {
   const manager = document.getElementById("learningTeacherManager");
   if (!manager) return;
-  manager.classList.toggle("hidden", !puedeGestionarContenidoAprendizaje());
-  if (!puedeGestionarContenidoAprendizaje()) return;
+  if (!puedeGestionarContenidoAprendizaje()) {
+    manager.classList.add("hidden");
+    return;
+  }
 
   const scopeSel = document.getElementById("learningManagerScope");
   const scopeLabel = document.getElementById("learningManagerScopeLabel");
@@ -4250,9 +4254,40 @@ function cargarContenidoBaseEnEditor() {
   if (option0) option0.value = normalizeLatexText(data.practice?.options?.[0] || "");
   if (option1) option1.value = normalizeLatexText(data.practice?.options?.[1] || "");
   if (option2) option2.value = normalizeLatexText(data.practice?.options?.[2] || "");
+  learningManagerSavedSnapshot = snapshotLearningManagerEditor();
   document.getElementById("learningTeacherManager")?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
+function snapshotLearningManagerEditor() {
+  const valueIds = ["learningManagerTitle", "learningManagerVideoUrl", "learningManagerTheory", "learningManagerConcepts", "learningManagerSteps", "learningManagerPracticeQuestion", "learningManagerOption0", "learningManagerOption1", "learningManagerOption2", "learningManagerPracticeAnswer"];
+  return JSON.stringify(valueIds.map(id => document.getElementById(id)?.value || ""));
+}
+function learningManagerTieneCambiosSinGuardar() {
+  if (!puedeGestionarContenidoAprendizaje()) return false;
+  const hasFiles = ["learningManagerImage", "learningManagerPdf", "learningManagerVideo"].some(id => (document.getElementById(id)?.files?.length || 0) > 0);
+  return hasFiles || snapshotLearningManagerEditor() !== learningManagerSavedSnapshot;
+}
+
+function mostrarLearningManagerEditor() {
+  if (!puedeGestionarContenidoAprendizaje()) return;
+  const manager = document.getElementById("learningTeacherManager");
+  if (!manager) return;
+  manager.classList.remove("hidden");
+  manager.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function cerrarLearningManagerEditor(options = {}) {
+  const manager = document.getElementById("learningTeacherManager");
+  if (!manager) return true;
+  const force = !!options.force;
+  if (!force && !manager.classList.contains("hidden") && learningManagerTieneCambiosSinGuardar()) {
+    const ok = confirm("Tienes contenido o archivos cargados sin guardar. Si sales ahora se limpiará el editor y perderás esos cambios. ¿Deseas salir sin guardar?");
+    if (!ok) return false;
+  }
+  resetLearningManagerEditor();
+  manager.classList.add("hidden");
+  return true;
+}
 function resetLearningManagerEditor() {
   if (!puedeGestionarContenidoAprendizaje()) return;
   ["learningManagerTitle", "learningManagerVideoUrl", "learningManagerTheory", "learningManagerConcepts", "learningManagerSteps", "learningManagerPracticeQuestion", "learningManagerOption0", "learningManagerOption1", "learningManagerOption2"].forEach(id => {
@@ -4262,6 +4297,7 @@ function resetLearningManagerEditor() {
   const answer = document.getElementById("learningManagerPracticeAnswer");
   if (answer) answer.value = "0";
   resetLearningManagerFiles();
+  learningManagerSavedSnapshot = snapshotLearningManagerEditor();
   const status = document.getElementById("learningManagerStatus");
   if (status) {
     status.textContent = "";
@@ -4355,6 +4391,7 @@ async function guardarLearningResource() {
     }, { merge: true });
     learningResourcesCache.delete(learningResourceCacheKey(selection));
     resetLearningManagerFiles();
+    learningManagerSavedSnapshot = snapshotLearningManagerEditor();
     if (status) setStatusTemporal("learningManagerStatus", "Contenido guardado. Los estudiantes lo verán en esta unidad.", "ok");
     renderLearningResourceForSelection(selection);
   } catch (error) {
@@ -4457,12 +4494,13 @@ document.getElementById("sectionAprendizaje")?.addEventListener("click", async e
     const resource = await cargarLearningResource(selection, true);
     if (resource && canEditLearningResource(resource)) {
       populateLearningManagerResource(resource);
-      document.getElementById("learningTeacherManager")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      mostrarLearningManagerEditor();
     } else if (esPropietarioPlataforma()) {
       cargarContenidoBaseEnEditor();
+      mostrarLearningManagerEditor();
     } else {
       resetLearningManagerEditor();
-      document.getElementById("learningTeacherManager")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      mostrarLearningManagerEditor();
     }
   }
   const removeFileButton = event.target.closest("[data-learning-remove-file]");
@@ -4474,6 +4512,9 @@ document.getElementById("sectionAprendizaje")?.addEventListener("click", async e
   }
   if (event.target.closest("#btnLearningResourceClear")) {
     resetLearningManagerEditor();
+  }
+  if (event.target.closest("#btnCloseLearningEditor")) {
+    cerrarLearningManagerEditor();
   }
 });
 
