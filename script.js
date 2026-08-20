@@ -1665,6 +1665,7 @@ function abrirSelectorCambioPlan() {
 }
 
 function renderBillingPanel() {
+  if (usuarioActual && !unsubscribeBillingHistory) escucharHistorialFacturacion();
   const active = suscripcionActiva();
   const plan = perfilActual?.subscriptionPlan || (active ? `Plan ${esProfesor() ? "Profesor" : "Estudiante"}` : "Sin suscripción activa");
   const amount = formatoPrecioCOP(perfilActual?.subscriptionAmountCOP || precioSuscripcion());
@@ -3841,13 +3842,14 @@ function renderLearningResourceSlots(resource) {
   const teacherSlot = document.getElementById("learningTeacherContentSlot");
   if (pdfSlot) {
     pdfSlot.innerHTML = resource?.pdfUrl
-      ? `<p>${escapeHtml(resource.title || "Guía descargable")}</p><div class="learning-file-actions"><a class="btn btn-outline" href="${escapeHtml(resource.pdfUrl)}" target="_blank" rel="noopener">Abrir PDF</a>${canEditLearningResource(resource) ? `<button class="btn btn-outline" type="button" data-learning-remove-file="pdf">Quitar PDF</button>` : ""}</div>`
+      ? `<p>${escapeHtml(resource.title || "Guía descargable")}</p><div class="learning-pdf-viewer"><iframe src="${escapeHtml(resource.pdfUrl)}#toolbar=0" title="PDF del tema" loading="lazy"></iframe></div><div class="learning-file-actions"><a class="btn btn-outline" href="${escapeHtml(resource.pdfUrl)}" target="_blank" rel="noopener">Ver en ventana</a><a class="btn btn-outline" href="${escapeHtml(resource.pdfUrl)}" download>Descargar PDF</a>${canEditLearningResource(resource) ? `<button class="btn btn-outline" type="button" data-learning-remove-file="pdf">Quitar PDF</button>` : ""}</div>`
       : `<p>Guía descargable del tema. El profesor podrá agregarla cuando esté disponible.</p><button class="btn btn-outline" type="button" disabled>PDF próximamente</button>`;
   }
   if (videoSlot) {
     const url = resource?.videoUrl || resource?.externalVideoUrl || "";
+    const isUploadedVideo = !!resource?.videoUrl;
     videoSlot.innerHTML = url
-      ? `<p>${escapeHtml(resource.title || "Video del profesor")}</p><div class="learning-file-actions"><a class="btn btn-outline" href="${escapeHtml(url)}" target="_blank" rel="noopener">Abrir video</a>${canEditLearningResource(resource) ? `<button class="btn btn-outline" type="button" data-learning-remove-file="video">Quitar video</button>` : ""}</div>`
+      ? `<p>${escapeHtml(resource.title || "Video del profesor")}</p>${isUploadedVideo ? `<video class="learning-video-player" src="${escapeHtml(url)}" controls controlsList="nodownload noplaybackrate" playsinline preload="metadata"></video>` : `<div class="learning-video-embed"><iframe src="${escapeHtml(videoEmbedUrl(url))}" title="Video del tema" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>`}<div class="learning-file-actions">${canEditLearningResource(resource) ? `<button class="btn btn-outline" type="button" data-learning-remove-file="video">Quitar video</button>` : ""}</div>`
       : `<p>Espacio listo para insertar videos propios por tema y nivel.</p><button class="btn btn-outline" type="button" disabled>Video próximamente</button>`;
   }
   if (teacherSlot) {
@@ -4229,9 +4231,11 @@ async function subirLearningFile(file, selection, kind, resourceId) {
   const maxMb = kind === "pdf" ? LEARNING_RESOURCE_MAX_PDF_MB : kind === "image" ? LEARNING_RESOURCE_MAX_IMAGE_MB : LEARNING_RESOURCE_MAX_VIDEO_MB;
   if (file.size > maxMb * 1024 * 1024) throw new Error(`El archivo supera ${maxMb} MB.`);
   if (kind === "image" && !file.type.startsWith("image/")) throw new Error("La imagen debe ser JPG, PNG, WEBP o GIF.");
+  if (kind === "pdf" && file.type !== "application/pdf") throw new Error("El material descargable debe ser un archivo PDF.");
+  if (kind === "video" && !["video/mp4", "video/webm", "video/quicktime"].includes(file.type)) throw new Error("El video debe estar en formato MP4, WebM o MOV.");
   const path = `learningResources/${usuarioActual.uid}/${resourceId}/${kind}-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
   const ref = storageRef(storage, path);
-  await uploadBytes(ref, file);
+  await uploadBytes(ref, file, { contentType: file.type || "application/octet-stream" });
   const url = await getDownloadURL(ref);
   if (kind === "pdf") return { pdfUrl: url, pdfPath: path };
   if (kind === "image") return { imageUrl: url, imagePath: path };
@@ -10514,11 +10518,8 @@ function inicializarRegistroPerfil() {
 
 async function guardarPerfilDesdeFormulario() {
   if (!usuarioActual) return;
-  const nombre = document.getElementById("profileName").value.trim();
-  if (nombre.length < 3) {
-    document.getElementById("profileStatus").textContent = "El nombre debe tener mínimo 3 caracteres.";
-    return;
-  }
+  const status = document.getElementById("profileStatus");
+  const nombre = document.getElementById("profileName")?.value.trim() || "";
   const datos = {
     ...perfilBasicoDesdeFormulario("profile"),
     displayName: nombre
@@ -10527,13 +10528,26 @@ async function guardarPerfilDesdeFormulario() {
     delete datos.birthDate;
     delete datos.gender;
   }
+  const requiredFields = esInstitucion()
+    ? ["displayName", "country", "region", "city"]
+    : ["displayName", "birthDate", "gender", "country", "region", "city"];
+  const missingRequired = requiredFields.some(key => !String(datos[key] || "").trim());
+  if (nombre.length < 3 || missingRequired) {
+    if (status) {
+      status.textContent = "Completa todos los campos obligatorios del perfil.";
+      status.className = "bank-status error";
+    }
+    return;
+  }
   await updateProfile(usuarioActual, { displayName: nombre });
   await guardarPerfilUsuario(datos);
   renderProfile();
   actualizarBienvenida();
-  document.getElementById("profileStatus").textContent = "Perfil actualizado.";
+  if (status) {
+    status.textContent = "Perfil actualizado.";
+    status.className = "bank-status ok";
+  }
 }
-
 function setPhoneStatus(message, type = "") {
   const status = document.getElementById("phoneStatus");
   if (!status) return;
