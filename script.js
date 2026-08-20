@@ -1078,7 +1078,7 @@ function esProfesorInstitucional(perfil = perfilActual) {
 }
 
 function puedeGestionarContenidoAprendizaje(perfil = perfilActual) {
-  return !!usuarioActual && (esPropietarioPlataforma() || rolUsuario(perfil) === "teacher");
+  return !!usuarioActual && rolUsuario(perfil) === "teacher";
 }
 
 function facturacionDisponible(perfil = perfilActual) {
@@ -3842,18 +3842,12 @@ function renderLearningResourceSlots(resource) {
   const pdfSlot = document.getElementById("learningPdfSlot");
   const videoSlot = document.getElementById("learningVideoSlot");
   const imageSlot = document.getElementById("learningContentImageSlot");
-  const editSlot = document.getElementById("learningEditResourceSlot");
   const theoryText = document.getElementById("learningTheoryText");
   const conceptList = document.getElementById("learningConceptList");
   const stepList = document.getElementById("learningStepList");
   const practiceSlot = document.getElementById("learningPracticeTeacherSlot");
   const canEdit = canEditLearningResource(resource);
 
-  if (editSlot) {
-    editSlot.innerHTML = canEdit
-      ? `<button class="btn btn-outline" type="button" data-learning-edit-resource>Editar contenido</button>`
-      : "";
-  }
   if (imageSlot) {
     imageSlot.innerHTML = resource?.imageUrl
       ? `<figure class="learning-content-figure"><img class="learning-content-image" src="${escapeHtml(resource.imageUrl)}" alt="Imagen del tema" loading="lazy" />${canEdit ? `<figcaption><button class="btn btn-outline" type="button" data-learning-remove-file="image">Quitar imagen</button></figcaption>` : ""}</figure>`
@@ -4143,8 +4137,7 @@ function renderLearningUnit(branch, topic, subtopic, level) {
     <div class="learning-actions">
       ${canTrackLearning ? `<button class="btn btn-outline ${completed ? "learning-complete-done" : ""}" type="button" id="btnLearningComplete" ${completed ? "disabled" : ""}>${completed ? "Completado" : "Marcar como estudiado"}</button>` : ""}
       <button class="btn btn-primary" type="button" id="btnLearningExam">Ir al examen ${escapeHtml(LEVEL_LABELS[level])} · ${etiquetaDuracionNivel(level)}</button>
-      <span id="learningEditResourceSlot"></span>
-      ${esPropietarioPlataforma() ? `<button class="btn btn-outline" type="button" id="btnLearningEditBase">Editar contenido base</button>` : ""}
+      ${puedeGestionarContenidoAprendizaje() ? `<button class="btn btn-outline" type="button" data-learning-edit-resource>Editar contenido</button>` : ""}
       <a class="learning-report-link" href="${learningReportMailto("contenido de aprendizaje")}">Reportar un problema</a>
     </div>
   `;
@@ -4434,15 +4427,18 @@ document.getElementById("sectionAprendizaje")?.addEventListener("click", async e
     const examKey = LEVEL_TO_EXAM[selection.level] || "diagnostico";
     activarNav(examKey);
   }
-  if (event.target.closest("#btnLearningEditBase")) {
-    cargarContenidoBaseEnEditor();
-    return;
-  }
   if (event.target.closest("[data-learning-edit-resource]")) {
     const selection = getLearningManagerSelection();
     const resource = await cargarLearningResource(selection, true);
-    populateLearningManagerResource(resource);
-    document.getElementById("learningTeacherManager")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (resource && canEditLearningResource(resource)) {
+      populateLearningManagerResource(resource);
+      document.getElementById("learningTeacherManager")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else if (esPropietarioPlataforma()) {
+      cargarContenidoBaseEnEditor();
+    } else {
+      resetLearningManagerEditor();
+      document.getElementById("learningTeacherManager")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   }
   const removeFileButton = event.target.closest("[data-learning-remove-file]");
   if (removeFileButton) {
