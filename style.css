@@ -12800,3 +12800,334 @@ body.group-locked.public-modal-open #btnBackToTop.back-to-top,
     margin-left: .7rem;
   }
 }
+
+/* 2026-08-20 · Capa final móvil: evita cortes en secciones internas */
+@media (max-width: 820px) {
+  html,
+  body,
+  .app-shell,
+  .main-content {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .main-content:not(.public-home) {
+    box-sizing: border-box;
+    width: 100%;
+    padding-left: clamp(.75rem, 3.4vw, 1rem) !important;
+    padding-right: clamp(.75rem, 3.4vw, 1rem) !important;
+  }
+
+  .start-screen,
+  .welcome-panel,
+  .profile-panel,
+  .admin-panel,
+  .messages-panel,
+  .support-panel,
+  .billing-shell,
+  .billing-heading,
+  .billing-card,
+  .subscription-status-card,
+  .teacher-message-compose,
+  .teacher-builder-card,
+  .report-panel,
+  .report-shell,
+  .question-card,
+  .accordion-card,
+  .learning-shell,
+  .learning-hero,
+  .learning-layout,
+  .learning-sidebar,
+  .learning-workspace,
+  .learning-unit,
+  .learning-manager,
+  .badges-shell,
+  .badges-hero,
+  .badges-next-card,
+  .badge-card,
+  .advisor-chat-panel,
+  .advisor-page-card,
+  .message-detail-card {
+    box-sizing: border-box;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow-wrap: anywhere;
+  }
+
+  .start-screen,
+  .profile-panel,
+  .admin-panel,
+  .messages-panel,
+  .support-panel,
+  .billing-card,
+  .report-shell,
+  .question-card,
+  .accordion-card,
+  .learning-hero,
+  .learning-workspace,
+  .learning-unit,
+  .learning-manager,
+  .badges-hero,
+  .badges-next-card,
+  .badge-card {
+    padding-left: clamp(.9rem, 4vw, 1.15rem) !important;
+    padding-right: clamp(.9rem, 4vw, 1.15rem) !important;
+  }
+
+  .main-content h1,
+  .main-content h2,
+  .main-content h3,
+  .main-content h4,
+  .main-content p,
+  .main-content li,
+  .main-content strong,
+  .main-content span,
+  .main-content small,
+  .main-content label,
+  .main-content button,
+  .main-content a {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  .main-content input,
+  .main-content select,
+  .main-content textarea,
+  .main-content .admin-input,
+  .main-content .btn,
+  .main-content button {
+    box-sizing: border-box;
+    max-width: 100%;
+  }
+
+  .exam-hub-grid,
+  .billing-grid,
+  .stats-grid,
+  .bank-grid,
+  .report-actions,
+  .teacher-options-grid,
+  .support-email-grid,
+  .messages-grid,
+  .learning-resource-grid,
+  .learning-practice-options,
+  .learning-manager-grid,
+  .learning-manager-grid-top,
+  .learning-editor-board,
+  .learning-manager-actions,
+  .badges-summary-grid,
+  .badges-grid {
+    grid-template-columns: 1fr !important;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .learning-shell {
+    gap: .9rem;
+  }
+
+  .learning-hero h2,
+  .badges-hero h2,
+  .billing-heading h2,
+  .start-screen h2 {
+    font-size: clamp(2rem, 9.5vw, 3rem) !important;
+    line-height: 1.05 !important;
+    text-wrap: balance;
+  }
+
+  .learning-hero p,
+  .badges-hero p,
+  .billing-heading p,
+  .start-screen p {
+    font-size: clamp(1rem, 5.3vw, 1.35rem) !important;
+    line-height: 1.45 !important;
+  }
+
+  .learning-layout {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+  }
+
+  .learning-sidebar {
+    padding: .9rem !important;
+  }
+
+  .learning-branch-list,
+  .learning-topic-grid,
+  .learning-subtopic-grid,
+  .learning-level-tabs,
+  .learning-toolbar {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    gap: .8rem !important;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: .35rem;
+  }
+
+  .learning-branch,
+  .learning-topic,
+  .learning-subtopic,
+  .learning-level-tabs button {
+    flex: 0 0 min(84vw, 330px) !important;
+    scroll-snap-align: start;
+    white-space: normal !important;
+    min-width: 0 !important;
+  }
+
+  .learning-level-tabs button {
+    flex-basis: min(42vw, 170px) !important;
+  }
+
+  .learning-mobile-picker {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: .85rem !important;
+    padding: .9rem !important;
+  }
+
+  .learning-mobile-picker select {
+    width: 100% !important;
+  }
+
+  .learning-unit-head,
+  .learning-actions,
+  .billing-tabs,
+  .report-pagination,
+  .message-actions,
+  .advisor-quick,
+  .advisor-input-row {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: .75rem !important;
+  }
+
+  .learning-actions .btn,
+  .learning-report-link,
+  .billing-tabs button,
+  .report-pagination .btn,
+  .advisor-quick button {
+    flex: 1 1 100% !important;
+    min-width: 0 !important;
+    white-space: normal !important;
+  }
+
+  .learning-resource-grid article,
+  .learning-practice,
+  .learning-teacher-slot,
+  .learning-teacher-content,
+  .learning-content-block,
+  .learning-content-figure,
+  .learning-pdf-viewer,
+  .learning-video-embed,
+  .learning-video-player {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .learning-content-image,
+  .learning-content-figure img,
+  .question-card img,
+  .question-preview img,
+  .message-attachments img {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    object-fit: contain;
+  }
+
+  .learning-resource-grid ol,
+  .learning-resource-grid ul,
+  .learning-content-block ol,
+  .learning-content-block ul,
+  .question-card ol,
+  .question-card ul,
+  .question-preview ol,
+  .question-preview ul {
+    box-sizing: border-box;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 1.35rem !important;
+    padding-right: .5rem !important;
+  }
+
+  .learning-resource-grid li,
+  .learning-content-block li,
+  .question-card li,
+  .question-preview li,
+  .option-label,
+  .teacher-option-editor,
+  .learning-teacher-options span {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .q-formula,
+  .katex-display,
+  .learning-resource-grid .katex-display,
+  .learning-unit .katex-display,
+  .learning-practice .katex-display,
+  .question-card .katex-display,
+  .question-preview .katex-display {
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .options-list,
+  .learning-teacher-options {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .option-label {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .summary-table,
+  .report-table,
+  .result-table,
+  .admin-table {
+    min-width: 760px;
+  }
+
+  .report-table-wrap,
+  .summary-table-wrap,
+  .table-wrap,
+  .results-table-wrap {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .advisor-chat-panel {
+    left: .75rem !important;
+    right: .75rem !important;
+    bottom: 5.5rem !important;
+    max-height: min(78dvh, 680px) !important;
+  }
+
+  .advisor-messages {
+    min-width: 0;
+    overflow-x: hidden;
+  }
+
+  .advisor-input-row input {
+    flex: 1 1 min(0, 100%);
+    min-width: 0;
+  }
+}
