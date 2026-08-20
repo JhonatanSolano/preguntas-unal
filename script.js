@@ -3864,7 +3864,7 @@ function renderLearningResourceSlots(resource) {
       <article class="learning-teacher-content learning-wide">
         <div class="learning-content-top"><span class="section-kicker">Contenido agregado por el docente</span>${canEditLearningResource(resource) ? `<button class="btn btn-outline" type="button" data-learning-edit-resource>Editar</button>` : ""}</div>
         ${resource?.title ? `<h4>${escapeHtml(resource.title)}</h4>` : ""}
-        ${resource?.imageUrl ? `<img class="learning-content-image" src="${escapeHtml(resource.imageUrl)}" alt="Imagen del tema" loading="lazy" />` : ""}
+        ${resource?.imageUrl ? `<img class="learning-content-image" src="${escapeHtml(resource.imageUrl)}" alt="Imagen del tema" loading="lazy" />${canEditLearningResource(resource) ? `<div class="learning-file-actions"><button class="btn btn-outline" type="button" data-learning-remove-file="image">Quitar imagen</button></div>` : ""}` : ""}
         ${resource?.theoryText ? `<div class="learning-content-block"><h5>Explicación</h5><p>${renderInlineMathText(resource.theoryText)}</p></div>` : ""}
         ${keyConcepts.length ? `<div class="learning-content-block"><h5>Conceptos clave</h5><ul>${keyConcepts.map(concept => `<li>${escapeHtml(concept)}</li>`).join("")}</ul></div>` : ""}
         ${resource?.stepsText ? `<div class="learning-content-block"><h5>Pasos guiados</h5><ol>${resource.stepsText.split(/\r?\n/).filter(Boolean).map(step => `<li>${renderInlineMathText(step)}</li>`).join("")}</ol></div>` : ""}
@@ -4097,18 +4097,18 @@ function renderLearningUnit(branch, topic, subtopic, level) {
         <ol>${data.example.map(step => `<li>${renderInlineMathText(step)}</li>`).join("")}</ol>
       </article>
       <div id="learningTeacherContentSlot" class="learning-teacher-slot learning-wide"></div>
-      <article>
-        <h4>Material descargable</h4>
-        <div id="learningPdfSlot">
-          <p>Guía descargable del tema. El profesor podrá agregarla cuando esté disponible.</p>
-          <button class="btn btn-outline" type="button" disabled>PDF próximamente</button>
-        </div>
-      </article>
-      <article>
+      <article class="learning-wide learning-video-card">
         <h4>Video del profesor</h4>
         <div id="learningVideoSlot">
           <p>Espacio listo para insertar videos propios por tema y nivel.</p>
           <button class="btn btn-outline" type="button" disabled>Video próximamente</button>
+        </div>
+      </article>
+      <article class="learning-wide learning-pdf-card">
+        <h4>Material descargable</h4>
+        <div id="learningPdfSlot">
+          <p>Guía descargable del tema. El profesor podrá agregarla cuando esté disponible.</p>
+          <button class="btn btn-outline" type="button" disabled>PDF próximamente</button>
         </div>
       </article>
     </div>
@@ -4274,7 +4274,7 @@ async function guardarLearningResource() {
   }
   if (status) {
     status.textContent = "Guardando contenido...";
-    status.className = "bank-status";
+    status.className = "bank-status error";
   }
   try {
     const uploads = {
@@ -4306,10 +4306,7 @@ async function guardarLearningResource() {
     }, { merge: true });
     learningResourcesCache.delete(learningResourceCacheKey(selection));
     resetLearningManagerFiles();
-    if (status) {
-      status.textContent = "Contenido guardado. Los estudiantes lo verán en esta unidad.";
-      status.className = "bank-status ok";
-    }
+    if (status) setStatusTemporal("learningManagerStatus", "Contenido guardado. Los estudiantes lo verán en esta unidad.", "ok");
     renderLearningResourceForSelection(selection);
   } catch (error) {
     if (status) {
@@ -4326,13 +4323,17 @@ async function quitarLearningResourceFile(kind) {
     alert("Solo puedes editar recursos creados por ti.");
     return;
   }
-  const isPdf = kind === "pdf";
-  const path = isPdf ? resource.pdfPath : resource.videoPath;
-  if (!confirm(`¿Deseas quitar este ${isPdf ? "PDF" : "video"} del contenido?`)) return;
-  if (path) await deleteObject(storageRef(storage, path)).catch(() => {});
-  await updateDoc(doc(db, LEARNING_RESOURCE_COLLECTION, resource.id), isPdf
-    ? { pdfUrl: "", pdfPath: "", updatedAt: serverTimestamp() }
-    : { videoUrl: "", videoPath: "", updatedAt: serverTimestamp() });
+  const labels = { pdf: "PDF", video: "video", image: "imagen" };
+  const paths = { pdf: resource.pdfPath, video: resource.videoPath, image: resource.imagePath };
+  const updatesByKind = {
+    pdf: { pdfUrl: "", pdfPath: "", updatedAt: serverTimestamp() },
+    video: { videoUrl: "", videoPath: "", updatedAt: serverTimestamp() },
+    image: { imageUrl: "", imagePath: "", updatedAt: serverTimestamp() }
+  };
+  if (!updatesByKind[kind]) return;
+  if (!confirm(`¿Deseas quitar este ${labels[kind]} del contenido?`)) return;
+  if (paths[kind]) await deleteObject(storageRef(storage, paths[kind])).catch(() => {});
+  await updateDoc(doc(db, LEARNING_RESOURCE_COLLECTION, resource.id), updatesByKind[kind]);
   learningResourcesCache.delete(learningResourceCacheKey(selection));
   await renderLearningResourceForSelection(selection);
 }
@@ -10533,20 +10534,14 @@ async function guardarPerfilDesdeFormulario() {
     : ["displayName", "birthDate", "gender", "country", "region", "city"];
   const missingRequired = requiredFields.some(key => !String(datos[key] || "").trim());
   if (nombre.length < 3 || missingRequired) {
-    if (status) {
-      status.textContent = "Completa todos los campos obligatorios del perfil.";
-      status.className = "bank-status error";
-    }
+    setStatusTemporal("profileStatus", "Completa todos los campos obligatorios del perfil.", "error");
     return;
   }
   await updateProfile(usuarioActual, { displayName: nombre });
   await guardarPerfilUsuario(datos);
   renderProfile();
   actualizarBienvenida();
-  if (status) {
-    status.textContent = "Perfil actualizado.";
-    status.className = "bank-status ok";
-  }
+  setStatusTemporal("profileStatus", "Perfil actualizado.", "ok");
 }
 function setPhoneStatus(message, type = "") {
   const status = document.getElementById("phoneStatus");
