@@ -312,7 +312,7 @@ service cloud.firestore {
 
     match /learningResources/{resourceId} {
       allow read: if signedIn();
-      allow create: if hasActiveSubscription() && isAdmin() &&
+      allow create: if isPlatformOwner() &&
         request.resource.data.ownerUid == request.auth.uid &&
         request.resource.data.branchId is string &&
         request.resource.data.topicId is string &&
@@ -323,7 +323,7 @@ service cloud.firestore {
           request.resource.data.scope != "global" ||
           request.auth.token.email == "solanojhonatan2000@gmail.com"
         );
-      allow update: if hasActiveSubscription() && isAdmin() &&
+      allow update: if isPlatformOwner() &&
         resource.data.ownerUid == request.auth.uid &&
         request.resource.data.ownerUid == resource.data.ownerUid &&
         request.resource.data.branchId is string &&
@@ -335,7 +335,7 @@ service cloud.firestore {
           request.resource.data.scope != "global" ||
           request.auth.token.email == "solanojhonatan2000@gmail.com"
         );
-      allow delete: if hasActiveSubscription() && isAdmin() &&
+      allow delete: if isPlatformOwner() &&
         resource.data.ownerUid == request.auth.uid;
     }
 

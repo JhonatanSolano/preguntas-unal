@@ -33,7 +33,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="style.css?v=20260820-02" />
+  <link rel="stylesheet" href="style.css?v=20260820-03" />
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -1929,6 +1929,14 @@
 
       <section class="profile-panel owner-settings hidden" id="ownerSettingsPanel">
         <h2>Panel del dueño</h2>
+        <details class="accordion-card" open>
+          <summary>Métricas de la app</summary>
+          <p class="mini-help">Resumen privado de usuarios registrados y suscripciones activas en la plataforma.</p>
+          <div class="owner-metrics-summary" id="ownerAppMetricsSummary"></div>
+          <div class="owner-metrics-grid" id="ownerAppMetricsBreakdown"></div>
+          <button class="btn btn-outline" id="btnRefreshOwnerAppMetrics" type="button">Actualizar métricas</button>
+          <p class="bank-status" id="ownerAppMetricsStatus"></p>
+        </details>
         <details class="accordion-card">
           <summary>Instituciones registradas</summary>
           <p class="danger-text">Solo el dueño de la app puede eliminar una institución completa desde aquí.</p>
@@ -2301,6 +2309,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260820-04"></script>
+  <script type="module" src="script.js?v=20260820-05"></script>
 </body>
 </html>

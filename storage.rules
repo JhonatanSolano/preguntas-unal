@@ -6,6 +6,10 @@ service firebase.storage {
       return request.auth != null;
     }
 
+    function isPlatformOwner() {
+      return signedIn() && request.auth.token.email == "solanojhonatan2000@gmail.com";
+    }
+
     function hasActiveSubscription() {
       return signedIn() && (
         request.auth.token.email == "solanojhonatan2000@gmail.com" ||
@@ -154,10 +158,10 @@ service firebase.storage {
 
     match /learningResources/{ownerUid}/{resourceId}/{fileName} {
       allow read: if signedIn();
-      allow create, update: if hasActiveSubscription() &&
+      allow create, update: if isPlatformOwner() &&
         request.auth.uid == ownerUid &&
         validLearningResource();
-      allow delete: if hasActiveSubscription() &&
+      allow delete: if isPlatformOwner() &&
         request.auth.uid == ownerUid;
     }
 

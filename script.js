@@ -1079,7 +1079,7 @@ function esProfesorInstitucional(perfil = perfilActual) {
 }
 
 function puedeGestionarContenidoAprendizaje(perfil = perfilActual) {
-  return !!usuarioActual && rolUsuario(perfil) === "teacher";
+  return !!usuarioActual && esPropietarioPlataforma();
 }
 
 function facturacionDisponible(perfil = perfilActual) {
@@ -3842,7 +3842,7 @@ async function cargarLearningResource(selection, force = false) {
     if (resourceSubtopic !== (selection.subtopicId || selection.topicId)) return;
     const visibleGlobal = data.scope === "global" || !data.scope;
     const visibleClass = data.scope === "class" && data.classId && data.classId === currentClassId;
-    const ownResource = puedeGestionarContenidoAprendizaje() && data.ownerUid === usuarioActual?.uid;
+    const ownResource = esPropietarioPlataforma() && data.ownerUid === usuarioActual?.uid;
     if (!visibleGlobal && !visibleClass && !ownResource) return;
     if (!selected) selected = data;
     if (visibleGlobal && !selected?.classId) selected = data;
@@ -3854,7 +3854,7 @@ async function cargarLearningResource(selection, force = false) {
 }
 
 function canEditLearningResource(resource) {
-  return !!resource && puedeGestionarContenidoAprendizaje() && resource.ownerUid === usuarioActual?.uid;
+  return !!resource && esPropietarioPlataforma() && resource.ownerUid === usuarioActual?.uid;
 }
 
 function renderLearningResourceSlots(resource) {
@@ -4107,7 +4107,7 @@ function renderLearningUnit(branch, topic, subtopic, level) {
   const canTrackLearning = esEstudianteCuenta();
   const progress = canTrackLearning ? learningProgressAll() : {};
   const completed = canTrackLearning && progress[learningProgressId(branch.id, topic.id, subtopic.id, level)]?.completed;
-  const examActionText = puedeGestionarContenidoAprendizaje() ? "Ver examen" : "Ir al examen";
+  const examActionText = esProfesor() ? "Ver examen" : "Ir al examen";
   unit.innerHTML = `
     <header class="learning-unit-head">
       <div>
@@ -4188,7 +4188,7 @@ function renderLearningManager(selection = resolveLearningSelection()) {
   if (scopeHelp) {
     scopeHelp.textContent = owner
       ? "Como dueño puedes editar contenido estructural de toda la plataforma o preparar recursos para un aula específica."
-      : "Como profesor, selecciona el aula donde se verá este contenido. Solo puedes editar o reemplazar recursos creados por ti.";
+      : "El contenido estructural de Aprendizaje solo puede ser editado por el dueño de la app.";
   }
   if (scopeLabel) scopeLabel.classList.toggle("hidden", !owner);
   if (scopeSel) {
@@ -4367,7 +4367,7 @@ async function guardarLearningResource() {
       ...(await subirLearningFile(pdf, selection, "pdf", resourceId)),
       ...(await subirLearningFile(video, selection, "video", resourceId))
     };
-    const scope = esPropietarioPlataforma() ? selection.scope : "class";
+    const scope = selection.scope;
     await setDoc(doc(db, LEARNING_RESOURCE_COLLECTION, resourceId), {
       ownerUid: usuarioActual.uid,
       ownerEmail: usuarioActual.email || "",
@@ -4406,7 +4406,7 @@ async function quitarLearningResourceFile(kind) {
   const selection = getLearningManagerSelection();
   const resource = await cargarLearningResource(selection, true);
   if (!canEditLearningResource(resource)) {
-    alert("Solo puedes editar recursos creados por ti.");
+    alert("Solo el dueño de la app puede editar este contenido.");
     return;
   }
   const labels = { pdf: "PDF", video: "video", image: "imagen" };
@@ -4482,7 +4482,7 @@ document.getElementById("sectionAprendizaje")?.addEventListener("click", async e
   if (event.target.closest("#btnLearningExam")) {
     const selection = resolveLearningSelection();
     const examKey = LEVEL_TO_EXAM[selection.level] || "diagnostico";
-    if (puedeGestionarContenidoAprendizaje()) {
+    if (esProfesor()) {
       enfocarExamenProfesorDesdeAprendizaje(examKey);
     } else {
       activarNav(examKey);
@@ -5042,6 +5042,106 @@ async function eliminarInstitucionCompleta(dane, password = "") {
   }
 }
 
+function perfilConAccesoInstitucionalActivo(data = {}) {
+  return !!(
+    data.subscriptionInherited === true &&
+    data.institutionSubscriptionStatus === "active" &&
+    data.institutionAccessRevoked !== true &&
+    data.institutionMemberStatus !== "removed" &&
+    data.institutionMemberStatus !== "blocked"
+  );
+}
+
+function perfilSuscritoParaMetricas(data = {}) {
+  if (data.subscriptionStatus === "active") return true;
+  return perfilConAccesoInstitucionalActivo(data);
+}
+
+function categoriaUsuarioMetricas(data = {}) {
+  const role = data.role || data.tipoCuenta || "";
+  const email = (data.email || data.correo || "").toLowerCase();
+  if (email === ADMIN_EMAIL) return "owner";
+  if (role === "institution") return "institutions";
+  if (role === "teacher") return "teachers";
+  if (role === "student") {
+    const institutional = data.accountMode === "institutional" || !!data.institutionDane || data.subscriptionInherited === true;
+    return institutional ? "institutionStudents" : "independentStudents";
+  }
+  return "other";
+}
+
+function crearMetricasVaciasApp() {
+  return {
+    total: { registered: 0, subscribed: 0 },
+    institutions: { label: "Instituciones", registered: 0, subscribed: 0 },
+    teachers: { label: "Docentes", registered: 0, subscribed: 0 },
+    independentStudents: { label: "Estudiantes independientes", registered: 0, subscribed: 0 },
+    institutionStudents: { label: "Estudiantes institucionales", registered: 0, subscribed: 0 },
+    other: { label: "Otros usuarios", registered: 0, subscribed: 0 }
+  };
+}
+
+async function renderOwnerAppMetrics() {
+  const summary = document.getElementById("ownerAppMetricsSummary");
+  const breakdown = document.getElementById("ownerAppMetricsBreakdown");
+  const status = document.getElementById("ownerAppMetricsStatus");
+  if (!summary || !breakdown || !esPropietarioPlataforma()) return;
+  summary.innerHTML = `<article><strong>...</strong><span>Registrados</span></article><article><strong>...</strong><span>Suscritos</span></article>`;
+  breakdown.innerHTML = "";
+  if (status) {
+    status.textContent = "Cargando métricas privadas...";
+    status.className = "bank-status info";
+  }
+  try {
+    const snap = await getDocs(collection(db, "users"));
+    const metrics = crearMetricasVaciasApp();
+    snap.forEach(item => {
+      const data = item.data() || {};
+      const category = categoriaUsuarioMetricas(data);
+      if (category === "owner") return;
+      const target = metrics[category] || metrics.other;
+      target.registered += 1;
+      metrics.total.registered += 1;
+      if (perfilSuscritoParaMetricas(data)) {
+        target.subscribed += 1;
+        metrics.total.subscribed += 1;
+      }
+    });
+    summary.innerHTML = `
+      <article>
+        <strong>${metrics.total.registered}</strong>
+        <span>Registrados en la app</span>
+      </article>
+      <article>
+        <strong>${metrics.total.subscribed}</strong>
+        <span>Suscritos o con acceso activo</span>
+      </article>
+    `;
+    const keys = ["institutions", "teachers", "independentStudents", "institutionStudents", "other"];
+    breakdown.innerHTML = keys.map(key => {
+      const item = metrics[key];
+      const pct = item.registered ? Math.round((item.subscribed / item.registered) * 100) : 0;
+      return `
+        <article class="owner-metric-card">
+          <span>${escapeHtml(item.label)}</span>
+          <strong>${item.subscribed}/${item.registered}</strong>
+          <small>${pct}% con acceso activo</small>
+          <div class="owner-metric-bar"><i style="width:${pct}%"></i></div>
+        </article>
+      `;
+    }).join("");
+    if (status) {
+      status.textContent = "Métricas actualizadas.";
+      status.className = "bank-status ok";
+    }
+  } catch (error) {
+    console.warn("No fue posible cargar métricas del dueño", error);
+    if (status) {
+      status.textContent = "No fue posible cargar las métricas.";
+      status.className = "bank-status error";
+    }
+  }
+}
 async function renderOwnerInstitutions() {
   const cont = document.getElementById("ownerInstitutionsList");
   if (!cont || !esPropietarioPlataforma()) return;
@@ -5085,7 +5185,10 @@ function renderConfiguracion() {
     document.getElementById("updatePasswordSection")?.classList.toggle("hidden", !tienePasswordActual());
     if (active) actualizarBancoEstudiante();
   }
-  if (esPropietarioPlataforma()) renderOwnerInstitutions();
+  if (esPropietarioPlataforma()) {
+    renderOwnerInstitutions();
+    renderOwnerAppMetrics();
+  }
 }
 
 function soporteNotificaciones() {
@@ -12005,6 +12108,7 @@ document.getElementById("btnClosePhotoOverlay")?.addEventListener("click", () =>
   document.getElementById("photoOverlay")?.classList.add("hidden");
   document.getElementById("photoOverlay")?.classList.remove("question-image-mode");
 });
+document.getElementById("btnRefreshOwnerAppMetrics")?.addEventListener("click", renderOwnerAppMetrics);
 document.getElementById("btnSendPhoneCode")?.addEventListener("click", enviarCodigoTelefono);
 document.getElementById("btnVerifyPhoneCode")?.addEventListener("click", verificarCodigoTelefono);
 document.getElementById("btnSettingsChangeGroup")?.addEventListener("click", estudianteCambiarClase);
