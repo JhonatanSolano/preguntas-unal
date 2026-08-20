@@ -12788,16 +12788,25 @@ body.group-locked.public-modal-open #btnBackToTop.back-to-top,
 }
 
 /* 2026-08-20 · Ajuste fino del selector de aula en registro masivo */
+#sectionAdmin label:has(#bulkStudentClass) {
+  display: block;
+  padding-inline: 1.25rem;
+  box-sizing: border-box;
+}
+
 #sectionAdmin #bulkStudentClass {
-  width: min(calc(100% - 2rem), 760px);
-  margin-left: 1rem;
-  margin-right: auto;
+  display: block;
+  width: min(100%, 760px);
+  margin: .45rem 0 0;
 }
 
 @media (max-width: 760px) {
+  #sectionAdmin label:has(#bulkStudentClass) {
+    padding-inline: 1rem;
+  }
+
   #sectionAdmin #bulkStudentClass {
-    width: calc(100% - 1.4rem);
-    margin-left: .7rem;
+    width: 100%;
   }
 }
 
