@@ -115,7 +115,7 @@ const EMAIL_RATE_LIMIT = {
 function setCors(res) {
   res.set("Access-Control-Allow-Origin", APP_ORIGIN);
   res.set("Vary", "Origin");
-  res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Firebase-AppCheck");
   res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
 }
 
@@ -134,6 +134,27 @@ async function requireAuth(req) {
   const match = header.match(/^Bearer\s+(.+)$/i);
   if (!match) throw new Error("AUTH_REQUIRED");
   return admin.auth().verifyIdToken(match[1]);
+}
+
+async function requireAppCheck(req) {
+  const token = String(req.get("X-Firebase-AppCheck") || "").trim();
+  if (!token) throw new Error("APP_CHECK_REQUIRED");
+  try {
+    return await admin.appCheck().verifyToken(token);
+  } catch (err) {
+    console.warn("App Check inválido", err);
+    throw new Error("APP_CHECK_REQUIRED");
+  }
+}
+
+async function enforceAppCheck(req, res) {
+  try {
+    await requireAppCheck(req);
+    return true;
+  } catch {
+    res.status(401).json({ error: "No se pudo verificar la seguridad de la app. Recarga e intenta nuevamente." });
+    return false;
+  }
 }
 
 function firestoreDateMillis(value) {
@@ -319,6 +340,7 @@ exports.generateAiResponse = onRequest({ region: "us-central1", secrets: [gemini
   if (req.method === "OPTIONS") return res.status(204).send("");
   if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
 
+  if (!(await enforceAppCheck(req, res))) return;
   const apiKey = geminiApiKey.value();
   const { history = [], currentUserInput = "", currentData = {} } = req.body || {};
   if (!apiKey) return res.status(500).json({ error: "Falta configurar GEMINI_API_KEY." });
@@ -376,6 +398,7 @@ exports.sendPasswordResetEmailCustom = onRequest({ region: "us-central1", secret
   if (req.method === "OPTIONS") return res.status(204).send("");
   if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
 
+  if (!(await enforceAppCheck(req, res))) return;
   const email = String(req.body?.email || "").trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/i.test(email)) {
     return res.status(400).json({ error: "Correo inválido." });
@@ -453,6 +476,7 @@ exports.sendEmailVerificationCustom = onRequest({ region: "us-central1", secrets
   if (req.method === "OPTIONS") return res.status(204).send("");
   if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
 
+  if (!(await enforceAppCheck(req, res))) return;
   const email = String(req.body?.email || "").trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/i.test(email)) {
     return res.status(400).json({ error: "Correo inválido." });
@@ -838,6 +862,7 @@ exports.createPaymentIntent = onRequest({
   if (req.method === "OPTIONS") return res.status(204).send("");
   if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
 
+  if (!(await enforceAppCheck(req, res))) return;
   let decoded;
   try {
     decoded = await requireAuth(req);
@@ -1282,6 +1307,7 @@ exports.deleteInstitutionDeep = onRequest({ region: "us-central1" }, async (req,
   if (req.method === "OPTIONS") return res.status(204).send("");
   if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
 
+  if (!(await enforceAppCheck(req, res))) return;
   let decoded;
   try {
     decoded = await requireAuth(req);
@@ -1362,6 +1388,7 @@ exports.manageInstitutionMembers = onRequest({ region: "us-central1" }, async (r
   if (req.method === "OPTIONS") return res.status(204).send("");
   if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
 
+  if (!(await enforceAppCheck(req, res))) return;
   let decoded;
   try {
     decoded = await requireAuth(req);
@@ -1645,6 +1672,7 @@ exports.getExamAccessState = onRequest({ region: "us-central1" }, async (req, re
   if (req.method === "OPTIONS") return res.status(204).send("");
   if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
 
+  if (!(await enforceAppCheck(req, res))) return;
   let decoded;
   try {
     decoded = await requireAuth(req);
@@ -1690,6 +1718,7 @@ exports.getTeacherExamQuestions = onRequest({ region: "us-central1" }, async (re
   if (req.method === "OPTIONS") return res.status(204).send("");
   if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
 
+  if (!(await enforceAppCheck(req, res))) return;
   let decoded;
   try {
     decoded = await requireAuth(req);
@@ -1773,6 +1802,7 @@ exports.getExamAttemptFeedback = onRequest({ region: "us-central1" }, async (req
   if (req.method === "OPTIONS") return res.status(204).send("");
   if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
 
+  if (!(await enforceAppCheck(req, res))) return;
   let decoded;
   try {
     decoded = await requireAuth(req);
@@ -1815,6 +1845,7 @@ exports.updateExamAccessConfig = onRequest({ region: "us-central1" }, async (req
   if (req.method === "OPTIONS") return res.status(204).send("");
   if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
 
+  if (!(await enforceAppCheck(req, res))) return;
   let decoded;
   try {
     decoded = await requireAuth(req);
@@ -2038,6 +2069,7 @@ exports.submitExamAttempt = onRequest({ region: "us-central1" }, async (req, res
   if (req.method === "OPTIONS") return res.status(204).send("");
   if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
 
+  if (!(await enforceAppCheck(req, res))) return;
   let decoded;
   try {
     decoded = await requireAuth(req);
@@ -2241,6 +2273,7 @@ exports.getAcademicReport = onRequest({ region: "us-central1" }, async (req, res
   if (req.method === "OPTIONS") return res.status(204).send("");
   if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
 
+  if (!(await enforceAppCheck(req, res))) return;
   let decoded;
   try {
     decoded = await requireAuth(req);

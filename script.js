@@ -1,7 +1,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
 import {
   initializeAppCheck,
-  ReCaptchaV3Provider
+  ReCaptchaV3Provider,
+  getToken as getAppCheckToken
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app-check.js";
 import {
   getAuth,
@@ -86,8 +87,9 @@ const APP_CONFIG = {
 };
 
 const app = initializeApp(firebaseConfig);
+let appCheck = null;
 try {
-  initializeAppCheck(app, {
+  appCheck = initializeAppCheck(app, {
     provider: new ReCaptchaV3Provider(APP_CONFIG.recaptchaSiteKey),
     isTokenAutoRefreshEnabled: true
   });
@@ -99,6 +101,32 @@ const db = getFirestore(app);
 const storage = getStorage(app);
 setPersistence(auth, browserLocalPersistence);
 document.title = APP_CONFIG.name;
+
+async function obtenerHeadersAppCheck() {
+  if (!appCheck) throw new Error("No se pudo verificar la seguridad de la app. Recarga e intenta nuevamente.");
+  const token = await getAppCheckToken(appCheck, false);
+  if (!token?.token) throw new Error("No se pudo verificar la seguridad de la app. Recarga e intenta nuevamente.");
+  return { "X-Firebase-AppCheck": token.token };
+}
+
+async function fetchConAppCheck(endpoint, options = {}) {
+  const headers = {
+    ...(options.headers || {}),
+    ...(await obtenerHeadersAppCheck())
+  };
+  return fetch(endpoint, { ...options, headers });
+}
+
+async function authedFetch(endpoint, options = {}, forceRefreshToken = false) {
+  if (!usuarioActual) throw new Error("Debes iniciar sesión.");
+  const idToken = await usuarioActual.getIdToken(forceRefreshToken);
+  const headers = {
+    ...(options.headers || {}),
+    "Authorization": `Bearer ${idToken}`,
+    ...(await obtenerHeadersAppCheck())
+  };
+  return fetch(endpoint, { ...options, headers });
+}
 
 const ADMIN_EMAIL = "solanojhonatan2000@gmail.com";
 const STORAGE_LOGIN_EXPECTED_TYPE = "matematicasBolsilloLoginExpectedType";
@@ -1754,13 +1782,9 @@ async function solicitarIntencionPago(payload) {
   if (!usuarioActual) throw new Error("Debes iniciar sesión.");
   const endpoint = APP_CONFIG.payments.checkoutEndpoint;
   if (!endpoint) throw new Error("No hay endpoint de pagos configurado.");
-  const idToken = await usuarioActual.getIdToken();
-  const response = await fetch(endpoint, {
+  const response = await authedFetch(endpoint, {
     method: "POST",
-    headers: {
-      "Authorization": `Bearer ${idToken}`,
-      "Content-Type": "application/json"
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload)
   });
   const data = await response.json().catch(() => ({}));
@@ -5020,13 +5044,9 @@ async function eliminarInstitucionCompleta(dane, password = "") {
     const credential = EmailAuthProvider.credential(usuarioActual.email, password);
     await reauthenticateWithCredential(usuarioActual, credential);
   }
-  const idToken = await usuarioActual.getIdToken(true);
-  const response = await fetch(APP_CONFIG.deepDeleteEndpoint, {
+  const response = await authedFetch(APP_CONFIG.deepDeleteEndpoint, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${idToken}`
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       institutionDane: normalized,
       deleteOwnInstitutionAccount: !esPropietarioPlataforma() && esInstitucion()
@@ -7410,13 +7430,9 @@ function normalizarExamSettings(settings = {}) {
 
 async function postBackendAutenticado(endpoint, payload = {}) {
   if (!usuarioActual) throw new Error("Debes iniciar sesión.");
-  const idToken = await usuarioActual.getIdToken();
-  const response = await fetch(endpoint, {
+  const response = await authedFetch(endpoint, {
     method: "POST",
-    headers: {
-      "Authorization": `Bearer ${idToken}`,
-      "Content-Type": "application/json"
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload)
   });
   const data = await response.json().catch(() => ({}));
@@ -10036,7 +10052,7 @@ async function recuperarPassword() {
     return;
   }
   try {
-    const response = await fetch(APP_CONFIG.passwordResetEndpoint, {
+    const response = await fetchConAppCheck(APP_CONFIG.passwordResetEndpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email })
@@ -10051,7 +10067,7 @@ async function recuperarPassword() {
 }
 
 async function enviarVerificacionEmailPersonalizada(email) {
-  const response = await fetch(APP_CONFIG.emailVerificationEndpoint, {
+  const response = await fetchConAppCheck(APP_CONFIG.emailVerificationEndpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email })
@@ -10454,12 +10470,9 @@ async function enviarMensajeAsesor(text) {
       .filter(msg => msg.sender === "bot" || msg.sender === "user")
       .slice(-12)
       .map(msg => ({ role: msg.sender === "bot" ? "model" : "user", parts: [{ text: msg.text }] }));
-    const response = await fetch(APP_CONFIG.asesorEndpoint, {
+    const response = await authedFetch(APP_CONFIG.asesorEndpoint, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${await usuarioActual.getIdToken()}`
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ history, currentUserInput: input, currentData: contextoAsesor(modeForRequest) })
     });
     const data = await response.json().catch(() => ({}));
