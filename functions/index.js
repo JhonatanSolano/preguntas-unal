@@ -112,6 +112,18 @@ const EMAIL_RATE_LIMIT = {
   perIpPerHour: 20
 };
 
+const EMAIL_QUEUE = {
+  batchSize: 100,
+  maxAttempts: 5
+};
+
+const QUESTION_CACHE = {
+  ttlMs: 2 * 60 * 1000,
+  maxEntries: 200
+};
+const baseQuestionCache = new Map();
+const teacherQuestionCache = new Map();
+
 function setCors(res) {
   res.set("Access-Control-Allow-Origin", APP_ORIGIN);
   res.set("Vary", "Origin");
@@ -624,6 +636,141 @@ async function sendEmail({ to, subject, html }) {
   });
   if (!response.ok) throw new Error(await response.text());
 }
+async function enqueueEmail({ to, subject, html, type = "generic", sourcePath = "", metadata = {} }) {
+  const recipients = (Array.isArray(to) ? to : [to]).map(normalizeEmail).filter(Boolean);
+  if (!recipients.length || !subject || !html) return null;
+  const ref = db.collection("emailQueue").doc();
+  await ref.set({
+    to: recipients,
+    subject: String(subject).slice(0, 240),
+    html,
+    type: String(type || "generic").slice(0, 60),
+    sourcePath: String(sourcePath || "").slice(0, 300),
+    metadata,
+    status: "pending",
+    attempts: 0,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+  });
+  return ref.id;
+}
+
+async function enqueuePaymentReceiptEmail(transaction, options = {}) {
+  if (!transaction.email) return null;
+  return enqueueEmail({
+    to: transaction.email,
+    subject: `Comprobante de pago - ${transaction.planName || "Matemáticas En Tu Bolsillo"}`,
+    html: buildPaymentReceiptHtml(transaction, options),
+    type: "payment-receipt",
+    sourcePath: options.sourcePath || "",
+    metadata: {
+      uid: transaction.uid || "",
+      reference: transaction.reference || "",
+      transactionId: transaction.transactionId || ""
+    }
+  });
+}
+
+async function updateEmailSource(sourcePath, payload) {
+  if (!sourcePath) return;
+  try {
+    await db.doc(sourcePath).set(payload, { merge: true });
+  } catch (err) {
+    console.warn("No se pudo actualizar el origen del correo", sourcePath, err);
+  }
+}
+
+function buildUserClaims(data = {}, email = "") {
+  const role = String(data.role || data.tipoCuenta || "").trim().toLowerCase();
+  const expiryMs = firestoreDateMillis(data.subscriptionExpiresAt);
+  const directActive = data.subscriptionStatus === "active" && (!Number.isFinite(expiryMs) || expiryMs > Date.now());
+  const inheritedActive = data.subscriptionInherited === true && data.institutionSubscriptionStatus === "active";
+  const blocked = data.institutionAccessRevoked === true || data.institutionMemberStatus === "removed" || data.institutionMemberStatus === "blocked";
+  const platformOwner = normalizeEmail(email || data.email) === "solanojhonatan2000@gmail.com";
+  return {
+    role: role || null,
+    accountMode: String(data.accountMode || data.billingMode || "").slice(0, 32) || null,
+    institutionDane: normalizeDane(data.institutionDane || data.institutionCode || data.dane || "") || null,
+    subscriptionActive: platformOwner || (!blocked && (directActive || inheritedActive)),
+    subscriptionInherited: inheritedActive && !blocked,
+    platformOwner
+  };
+}
+
+async function syncAuthClaimsForUser(uid, data = null) {
+  if (!uid) return;
+  try {
+    const userData = data || ((await db.collection("users").doc(uid).get()).data() || {});
+    const authUser = await admin.auth().getUser(uid).catch(() => null);
+    const claims = buildUserClaims(userData, authUser?.email || userData.email || "");
+    await admin.auth().setCustomUserClaims(uid, claims);
+  } catch (err) {
+    console.warn("No se pudieron sincronizar custom claims", uid, err);
+  }
+}
+
+exports.syncUserCustomClaims = onDocumentWritten({
+  region: "us-central1",
+  document: "users/{uid}",
+  maxInstances: 20
+}, async event => {
+  const uid = event.params.uid;
+  if (!event.data.after.exists) {
+    await admin.auth().setCustomUserClaims(uid, {}).catch(() => {});
+    return;
+  }
+  await syncAuthClaimsForUser(uid, event.data.after.data() || {});
+});
+
+exports.processEmailQueue = onSchedule({
+  region: "us-central1",
+  schedule: "every 1 minutes",
+  timeZone: "America/Bogota",
+  secrets: [resendApiKey],
+  timeoutSeconds: 300,
+  maxInstances: 1,
+  retryCount: 1
+}, async () => {
+  const snap = await db.collection("emailQueue")
+    .where("status", "==", "pending")
+    .orderBy("createdAt", "asc")
+    .limit(EMAIL_QUEUE.batchSize)
+    .get();
+  for (const docSnap of snap.docs) {
+    const ref = docSnap.ref;
+    const data = docSnap.data() || {};
+    const attempts = Number(data.attempts || 0);
+    await ref.set({
+      status: "sending",
+      attempts: attempts + 1,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+    try {
+      await sendEmail({ to: data.to || [], subject: data.subject || "Notificación", html: data.html || "" });
+      await ref.set({
+        status: "sent",
+        sentAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+      await updateEmailSource(data.sourcePath, {
+        emailSentAt: admin.firestore.FieldValue.serverTimestamp(),
+        emailStatus: "sent"
+      });
+    } catch (err) {
+      const nextStatus = attempts + 1 >= EMAIL_QUEUE.maxAttempts ? "failed" : "pending";
+      await ref.set({
+        status: nextStatus,
+        lastError: String(err?.message || err).slice(0, 500),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+      await updateEmailSource(data.sourcePath, {
+        emailStatus: nextStatus === "failed" ? "error" : "pending",
+        emailError: String(err?.message || err).slice(0, 500),
+        emailUpdatedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+    }
+  }
+});
 
 function formatCOP(value = 0) {
   return new Intl.NumberFormat("es-CO", {
@@ -735,14 +882,17 @@ exports.sendClassMessageEmail = onDocumentWritten({
       <p>Este correo es solo informativo. Para responder, entra a la app y abre la campana de notificaciones.</p>
       <p style="font-size:12px;color:#66788a">© Todos los derechos reservados. Matemáticas En Tu Bolsillo.</p>
     </div>`;
-  await sendEmail({
+  await enqueueEmail({
     to: enabledEmails,
     subject: after.subject || "Nuevo mensaje interno",
-    html
+    html,
+    type: "class-message",
+    sourcePath: event.data.after.ref.path,
+    metadata: { messageId: event.params.messageId || "", className: after.className || "" }
   });
   await event.data.after.ref.set({
-    emailSentAt: admin.firestore.FieldValue.serverTimestamp(),
-    emailStatus: "sent"
+    emailQueuedAt: admin.firestore.FieldValue.serverTimestamp(),
+    emailStatus: "queued"
   }, { merge: true });
 });
 
@@ -793,14 +943,17 @@ exports.sendInternalNotificationEmail = onDocumentWritten({
       <p>Este correo es solo informativo. Para revisar detalles o responder, entra a la app.</p>
       <p style="font-size:12px;color:#66788a">© Todos los derechos reservados. Matemáticas En Tu Bolsillo.</p>
     </div>`;
-  await sendEmail({
+  await enqueueEmail({
     to: targetEmail,
     subject: safeTitle,
-    html
+    html,
+    type: "internal-notification",
+    sourcePath: event.data.after.ref.path,
+    metadata: { notificationId: event.params.notificationId || "", notificationType }
   });
   await event.data.after.ref.set({
-    emailSentAt: admin.firestore.FieldValue.serverTimestamp(),
-    emailStatus: "sent"
+    emailQueuedAt: admin.firestore.FieldValue.serverTimestamp(),
+    emailStatus: "queued"
   }, { merge: true });
 });
 
@@ -1185,10 +1338,14 @@ exports.wompiWebhook = onRequest({
       createdAt: admin.firestore.FieldValue.serverTimestamp()
     });
     try {
-      await sendPaymentReceiptEmail(transactionPayload, { paidDate: now, displayName: intent.institutionName || "" });
+      await enqueuePaymentReceiptEmail(transactionPayload, {
+        paidDate: now,
+        displayName: intent.institutionName || "",
+        sourcePath: `billingTransactions/${transactionDocId}`
+      });
       await db.collection("billingTransactions").doc(transactionDocId).set({
-        receiptEmailStatus: "sent",
-        receiptEmailSentAt: admin.firestore.FieldValue.serverTimestamp()
+        receiptEmailStatus: "queued",
+        receiptEmailQueuedAt: admin.firestore.FieldValue.serverTimestamp()
       }, { merge: true });
     } catch (emailError) {
       console.warn("No se pudo enviar comprobante de pago.", emailError);
@@ -1970,29 +2127,63 @@ function baseQuestionSetId(level = "", bank = "principal", classId = "aula") {
   return `nivel1_${mediumGroupForBank(bank, classId)}`;
 }
 
+function rememberCacheEntry(cache, key, value) {
+  if (cache.size >= QUESTION_CACHE.maxEntries) {
+    const oldest = cache.keys().next().value;
+    if (oldest) cache.delete(oldest);
+  }
+  cache.set(key, { value, expiresAt: Date.now() + QUESTION_CACHE.ttlMs });
+  return value;
+}
+
+function readCacheEntry(cache, key) {
+  const item = cache.get(key);
+  if (!item) return null;
+  if (item.expiresAt <= Date.now()) {
+    cache.delete(key);
+    return null;
+  }
+  return item.value;
+}
+
 async function getBaseQuestionsFor(level = "", bank = "principal", classId = "aula") {
   const setId = baseQuestionSetId(level, bank, classId);
+  const cacheKey = `base:${setId}`;
+  const cached = readCacheEntry(baseQuestionCache, cacheKey);
+  if (cached) return cached.map(question => ({
+    ...question,
+    opciones: Array.isArray(question.opciones) ? [...question.opciones] : []
+  }));
   const snap = await db.collection("baseQuestionSets").doc(setId).get();
   const data = snap.exists ? (snap.data() || {}) : {};
   const questions = Array.isArray(data.questions) ? data.questions : [];
-  return questions.map(question => ({
+  const normalized = questions.map(question => ({
+    ...question,
+    opciones: Array.isArray(question.opciones) ? [...question.opciones] : []
+  }));
+  return rememberCacheEntry(baseQuestionCache, cacheKey, normalized).map(question => ({
     ...question,
     opciones: Array.isArray(question.opciones) ? [...question.opciones] : []
   }));
 }
 async function getTeacherQuestionsFor(ownerUid = "", level = "", bank = "principal") {
   const normalizedBank = normalizeExamBank(bank);
+  const cacheKey = `teacher:${ownerUid}:${level}:${normalizedBank}`;
+  const cached = readCacheEntry(teacherQuestionCache, cacheKey);
+  if (cached) return cached;
   try {
-    return await db.collection("teacherQuestions")
+    const snap = await db.collection("teacherQuestions")
       .where("ownerUid", "==", ownerUid)
       .where("level", "==", level)
       .where("bank", "==", normalizedBank)
       .get();
+    return rememberCacheEntry(teacherQuestionCache, cacheKey, snap);
   } catch (error) {
     console.warn("teacherQuestions filtered query failed, using owner fallback", error);
-    return db.collection("teacherQuestions")
+    const snap = await db.collection("teacherQuestions")
       .where("ownerUid", "==", ownerUid)
       .get();
+    return rememberCacheEntry(teacherQuestionCache, cacheKey, snap);
   }
 }
 
@@ -2347,9 +2538,16 @@ exports.getAcademicReport = onRequest({ region: "us-central1" }, async (req, res
 
   const userData = userSnap.exists ? userSnap.data() : {};
   const timezoneConfig = timezoneConfigFromProfile(userData, req.body || {});
+  const requestedLimit = Number(req.body?.limit || 500);
+  const reportLimit = Math.min(Math.max(Number.isFinite(requestedLimit) ? requestedLimit : 500, 1), 1000);
   const [membersSnap, officialAttemptsSnap] = await Promise.all([
     db.collection("classStudents").where("classId", "==", classId).get(),
-    db.collection("examAttempts").where("classId", "==", classId).get()
+    db.collection("examAttempts")
+      .where("classId", "==", classId)
+      .where("level", "==", level)
+      .orderBy("presentedAtMs", "desc")
+      .limit(reportLimit + 1)
+      .get()
   ]);
 
   const members = new Map();
@@ -2360,9 +2558,10 @@ exports.getAcademicReport = onRequest({ region: "us-central1" }, async (req, res
   });
 
   const rows = [];
-  officialAttemptsSnap.docs.forEach(docSnap => {
+  const attemptDocs = officialAttemptsSnap.docs.slice(0, reportLimit);
+  const hasMore = officialAttemptsSnap.docs.length > reportLimit;
+  attemptDocs.forEach(docSnap => {
     const attempt = docSnap.data() || {};
-    if (attempt.level !== level) return;
     const studentUid = attempt.studentUid || "";
     const studentEmail = attempt.studentEmail || "";
     const member = members.get(studentUid) ||
@@ -2398,6 +2597,11 @@ exports.getAcademicReport = onRequest({ region: "us-central1" }, async (req, res
     level,
     examName: examLevelName(level),
     generatedAt: new Date().toISOString(),
+    page: {
+      limit: reportLimit,
+      returned: rows.length,
+      hasMore
+    },
     rows
   });
 });
