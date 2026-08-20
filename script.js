@@ -3208,6 +3208,25 @@ function renderExamenesHub() {
   });
 }
 
+function enfocarExamenProfesorDesdeAprendizaje(examKey = "diagnostico") {
+  activarNav("examenes");
+  setTimeout(() => {
+    renderExamenesHub();
+    const banco = bancoActivo || "principal";
+    const bankCard = [...document.querySelectorAll("[data-admin-bank-card]")].find(card => card.dataset.adminBankCard === banco) || document.querySelector("[data-admin-bank-card]");
+    if (bankCard) bankCard.open = true;
+    const scope = bankCard || document;
+    const levelCard = [...scope.querySelectorAll("[data-admin-level-card]")].find(card => card.dataset.adminLevelCard === examKey) || [...document.querySelectorAll("[data-admin-level-card]")].find(card => card.dataset.adminLevelCard === examKey);
+    if (levelCard) {
+      levelCard.open = true;
+      levelCard.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else {
+      document.getElementById("adminExamBankPanel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    const levelSelect = document.getElementById("teacherQuestionLevel");
+    if (levelSelect && [...levelSelect.options].some(option => option.value === examKey)) levelSelect.value = examKey;
+  }, 80);
+}
 function renderAsesorInfo() {
   const section = document.getElementById("sectionAsesorIA");
   if (!section) return;
@@ -3393,7 +3412,7 @@ function renderAdminExamBanks() {
     ["examen", "Examen Final", () => PREGUNTAS_EXAMEN]
   ];
   cont.innerHTML = BANCOS_DISPONIBLES.map(banco => `
-    <details class="accordion-card admin-bank-card">
+    <details class="accordion-card admin-bank-card" data-admin-bank-card="${escapeHtml(banco)}">
       <summary>${NOMBRES_BANCOS[banco]}</summary>
       <div class="admin-bank-levels">
         ${niveles.map(([clave, nombre, resolver]) => {
@@ -3401,7 +3420,7 @@ function renderAdminExamBanks() {
             ? combinarPreguntasNivel(clave, banco)
             : resolver(banco);
           return `
-            <details class="accordion-card admin-level-card">
+            <details class="accordion-card admin-level-card" data-admin-level-card="${escapeHtml(clave)}">
               <summary>${nombre} · ${preguntas.length} preguntas</summary>
               <div class="question-preview-list" data-admin-bank="${banco}" data-admin-level="${clave}">
                 ${renderQuestionPreviewList(preguntas)}
@@ -4086,6 +4105,7 @@ function renderLearningUnit(branch, topic, subtopic, level) {
   const canTrackLearning = esEstudianteCuenta();
   const progress = canTrackLearning ? learningProgressAll() : {};
   const completed = canTrackLearning && progress[learningProgressId(branch.id, topic.id, subtopic.id, level)]?.completed;
+  const examActionText = puedeGestionarContenidoAprendizaje() ? "Ver examen" : "Ir al examen";
   unit.innerHTML = `
     <header class="learning-unit-head">
       <div>
@@ -4136,7 +4156,7 @@ function renderLearningUnit(branch, topic, subtopic, level) {
 
     <div class="learning-actions">
       ${canTrackLearning ? `<button class="btn btn-outline ${completed ? "learning-complete-done" : ""}" type="button" id="btnLearningComplete" ${completed ? "disabled" : ""}>${completed ? "Completado" : "Marcar como estudiado"}</button>` : ""}
-      <button class="btn btn-primary" type="button" id="btnLearningExam">Ir al examen ${escapeHtml(LEVEL_LABELS[level])} · ${etiquetaDuracionNivel(level)}</button>
+      <button class="btn btn-primary" type="button" id="btnLearningExam">${examActionText} ${escapeHtml(LEVEL_LABELS[level])} · ${etiquetaDuracionNivel(level)}</button>
       ${puedeGestionarContenidoAprendizaje() ? `<button class="btn btn-outline" type="button" data-learning-edit-resource>Editar contenido</button>` : ""}
       <a class="learning-report-link" href="${learningReportMailto("contenido de aprendizaje")}">Reportar un problema</a>
     </div>
@@ -4425,7 +4445,12 @@ document.getElementById("sectionAprendizaje")?.addEventListener("click", async e
   if (event.target.closest("#btnLearningExam")) {
     const selection = resolveLearningSelection();
     const examKey = LEVEL_TO_EXAM[selection.level] || "diagnostico";
-    activarNav(examKey);
+    if (puedeGestionarContenidoAprendizaje()) {
+      enfocarExamenProfesorDesdeAprendizaje(examKey);
+    } else {
+      activarNav(examKey);
+      if (examKey === "nivel1") abrirNivel("nivel1");
+    }
   }
   if (event.target.closest("[data-learning-edit-resource]")) {
     const selection = getLearningManagerSelection();
