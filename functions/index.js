@@ -107,6 +107,11 @@ const AI_RATE_LIMIT = {
   maxHistoryItems: 12
 };
 
+const EMAIL_RATE_LIMIT = {
+  perEmailPerHour: 3,
+  perIpPerHour: 20
+};
+
 function setCors(res) {
   res.set("Access-Control-Allow-Origin", APP_ORIGIN);
   res.set("Vary", "Origin");
@@ -129,6 +134,25 @@ async function requireAuth(req) {
   const match = header.match(/^Bearer\s+(.+)$/i);
   if (!match) throw new Error("AUTH_REQUIRED");
   return admin.auth().verifyIdToken(match[1]);
+}
+
+function firestoreDateMillis(value) {
+  if (!value) return NaN;
+  if (typeof value.toMillis === "function") return value.toMillis();
+  return new Date(value).getTime();
+}
+
+async function hasServerActiveSubscription(decoded = {}) {
+  if (normalizeEmail(decoded.email) === "solanojhonatan2000@gmail.com") return true;
+  if (!decoded.uid) return false;
+  const snap = await db.collection("users").doc(decoded.uid).get();
+  if (!snap.exists) return false;
+  const data = snap.data() || {};
+  if (data.institutionAccessRevoked === true || data.institutionMemberStatus === "removed" || data.institutionMemberStatus === "blocked") return false;
+  if (data.subscriptionInherited === true && data.institutionSubscriptionStatus === "active") return true;
+  if (data.subscriptionStatus !== "active") return false;
+  const expiryMs = firestoreDateMillis(data.subscriptionExpiresAt);
+  return !Number.isFinite(expiryMs) || expiryMs > Date.now();
 }
 
 async function assertAiRateLimit(uid) {
@@ -154,6 +178,34 @@ async function assertAiRateLimit(uid) {
       dayCount: currentDayCount + 1,
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     }, { merge: true });
+    return { allowed: true };
+  });
+}
+
+function clientRateLimitIp(req) {
+  return String(req.get("x-forwarded-for") || req.ip || "unknown").split(",")[0].trim() || "unknown";
+}
+
+async function assertEmailRateLimit(req, email, purpose) {
+  const now = new Date();
+  const hourKey = Math.floor(now.getTime() / 3600000);
+  const ipHash = sha256(clientRateLimitIp(req)).slice(0, 24);
+  const emailHash = sha256(normalizeEmail(email)).slice(0, 24);
+  const purposeKey = String(purpose || "email").replace(/[^a-z0-9_-]/gi, "").slice(0, 32) || "email";
+  const emailRef = db.collection("emailRateLimits").doc(`${purposeKey}_email_${emailHash}`);
+  const ipRef = db.collection("emailRateLimits").doc(`${purposeKey}_ip_${ipHash}`);
+  return db.runTransaction(async tx => {
+    const [emailSnap, ipSnap] = await Promise.all([tx.get(emailRef), tx.get(ipRef)]);
+    const emailData = emailSnap.exists ? emailSnap.data() || {} : {};
+    const ipData = ipSnap.exists ? ipSnap.data() || {} : {};
+    const emailCount = emailData.hourKey === hourKey ? Number(emailData.count || 0) : 0;
+    const ipCount = ipData.hourKey === hourKey ? Number(ipData.count || 0) : 0;
+    if (emailCount >= EMAIL_RATE_LIMIT.perEmailPerHour || ipCount >= EMAIL_RATE_LIMIT.perIpPerHour) {
+      return { allowed: false, retryAfterSeconds: 3600 };
+    }
+    const payload = { hourKey, updatedAt: admin.firestore.FieldValue.serverTimestamp() };
+    tx.set(emailRef, { ...payload, count: emailCount + 1 }, { merge: true });
+    tx.set(ipRef, { ...payload, count: ipCount + 1 }, { merge: true });
     return { allowed: true };
   });
 }
@@ -278,6 +330,10 @@ exports.generateAiResponse = onRequest({ region: "us-central1", secrets: [gemini
 
   try {
     const decoded = await requireAuth(req);
+    const hasAccess = await hasServerActiveSubscription(decoded);
+    if (!hasAccess) {
+      return res.status(403).json({ error: "Activa tu suscripción para usar el Asesor IA." });
+    }
     const rateLimit = await assertAiRateLimit(decoded.uid);
     if (!rateLimit.allowed) {
       res.set("Retry-After", String(rateLimit.retryAfterSeconds || 60));
@@ -326,6 +382,11 @@ exports.sendPasswordResetEmailCustom = onRequest({ region: "us-central1", secret
   }
 
   try {
+    const rateLimit = await assertEmailRateLimit(req, email, "password-reset");
+    if (!rateLimit.allowed) {
+      res.set("Retry-After", String(rateLimit.retryAfterSeconds || 3600));
+      return res.status(429).json({ error: "Demasiados intentos. Intenta nuevamente más tarde." });
+    }
     const resetLink = await admin.auth().generatePasswordResetLink(email, {
       url: "https://matematicasentubolsillo.com/",
       handleCodeInApp: false
@@ -398,6 +459,11 @@ exports.sendEmailVerificationCustom = onRequest({ region: "us-central1", secrets
   }
 
   try {
+    const rateLimit = await assertEmailRateLimit(req, email, "email-verification");
+    if (!rateLimit.allowed) {
+      res.set("Retry-After", String(rateLimit.retryAfterSeconds || 3600));
+      return res.status(429).json({ error: "Demasiados intentos. Intenta nuevamente más tarde." });
+    }
     const verificationLink = await admin.auth().generateEmailVerificationLink(email, {
       url: "https://matematicasentubolsillo.com/verificado.html",
       handleCodeInApp: false
@@ -923,6 +989,18 @@ exports.wompiWebhook = onRequest({
     return res.status(200).json({ ok: true, ignored: "intent-not-found" });
   }
 
+  const expectedAmountInCents = Number(intent.amountInCents || 0);
+  const receivedAmountInCents = Number(transaction.amount_in_cents || 0);
+  const receivedCurrency = String(transaction.currency || "COP").toUpperCase();
+  const amountMatches = status !== "APPROVED" || (
+    expectedAmountInCents > 0 &&
+    receivedAmountInCents === expectedAmountInCents &&
+    receivedCurrency === "COP"
+  );
+  const statusForStorage = status === "APPROVED" && !amountMatches ? "AMOUNT_MISMATCH" : status;
+  const transactionDocId = String(transactionId || reference);
+  const duplicateApproved = status === "APPROVED" && String(intent.status || "").toUpperCase() === "APPROVED";
+
   const transactionPayload = {
     uid: intent.uid,
     email: intent.email || "",
@@ -935,18 +1013,53 @@ exports.wompiWebhook = onRequest({
     paymentMethodLabel: intent.paymentMethod === "pse" ? "PSE" : (intent.paymentMethod === "nequi" ? "Nequi" : "Tarjeta"),
     institutionDane: intent.institutionDane || "",
     institutionName: intent.institutionName || "",
-    amountInCents: transaction.amount_in_cents || intent.amountInCents,
-    amountCOP: (transaction.amount_in_cents || intent.amountInCents || 0) / 100,
-    currency: transaction.currency || "COP",
-    status,
+    amountInCents: receivedAmountInCents || expectedAmountInCents,
+    amountCOP: (receivedAmountInCents || expectedAmountInCents || 0) / 100,
+    currency: receivedCurrency,
+    status: statusForStorage,
+    amountValidationStatus: amountMatches ? "ok" : "mismatch",
+    expectedAmountInCents,
+    receivedAmountInCents,
     receiptUrl: transaction.receipt_url || transaction.redirect_url || "",
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    paidAt: status === "APPROVED" ? admin.firestore.FieldValue.serverTimestamp() : null
+    paidAt: status === "APPROVED" && amountMatches ? admin.firestore.FieldValue.serverTimestamp() : null
   };
-  await db.collection("billingTransactions").doc(String(transactionId || reference)).set(transactionPayload, { merge: true });
+  await db.collection("billingTransactions").doc(transactionDocId).set(transactionPayload, { merge: true });
+
+  if (status === "APPROVED" && !amountMatches) {
+    await db.collection("paymentIntents").doc(reference).set({
+      status: "AMOUNT_MISMATCH",
+      amountValidationStatus: "mismatch",
+      expectedAmountInCents,
+      receivedAmountInCents,
+      receivedCurrency,
+      transactionId,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+    await db.collection("billingEvents").add({
+      type: "payment-amount-mismatch",
+      reference,
+      transactionId,
+      expectedAmountInCents,
+      receivedAmountInCents,
+      receivedCurrency,
+      createdAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+    return res.status(200).json({ ok: true, ignored: "amount-mismatch" });
+  }
+
+  if (duplicateApproved) {
+    await db.collection("billingTransactions").doc(transactionDocId).set({
+      duplicateIgnored: true,
+      duplicateIgnoredAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+    return res.status(200).json({ ok: true, ignored: "duplicate-approved" });
+  }
+
   await db.collection("paymentIntents").doc(reference).set({
-    status,
+    status: statusForStorage,
     transactionId,
+    amountValidationStatus: "ok",
     updatedAt: admin.firestore.FieldValue.serverTimestamp()
   }, { merge: true });
 
@@ -1013,13 +1126,13 @@ exports.wompiWebhook = onRequest({
     });
     try {
       await sendPaymentReceiptEmail(transactionPayload, { paidDate: now, displayName: intent.institutionName || "" });
-      await db.collection("billingTransactions").doc(String(transactionId || reference)).set({
+      await db.collection("billingTransactions").doc(transactionDocId).set({
         receiptEmailStatus: "sent",
         receiptEmailSentAt: admin.firestore.FieldValue.serverTimestamp()
       }, { merge: true });
     } catch (emailError) {
       console.warn("No se pudo enviar comprobante de pago.", emailError);
-      await db.collection("billingTransactions").doc(String(transactionId || reference)).set({
+      await db.collection("billingTransactions").doc(transactionDocId).set({
         receiptEmailStatus: "error",
         receiptEmailError: String(emailError?.message || emailError).slice(0, 500),
         receiptEmailUpdatedAt: admin.firestore.FieldValue.serverTimestamp()

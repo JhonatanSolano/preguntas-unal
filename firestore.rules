@@ -444,7 +444,33 @@ service cloud.firestore {
       );
       allow create: if hasActiveSubscription() &&
         request.resource.data.fromUid == request.auth.uid &&
-        !request.resource.data.keys().hasAny(["emailNotification", "emailBody", "emailSubject"]);
+        request.resource.data.targetUid is string &&
+        request.resource.data.targetEmail is string &&
+        request.resource.data.type is string &&
+        !request.resource.data.keys().hasAny(["emailNotification", "emailBody", "emailSubject"]) &&
+        (
+          request.resource.data.targetUid == request.auth.uid ||
+          (
+            request.resource.data.classId is string &&
+            (
+              ownsClass(request.resource.data.classId) ||
+              ownsInstitutionOfClass(request.resource.data.classId) ||
+              (
+                exists(/databases/$(database)/documents/classes/$(request.resource.data.classId)) &&
+                get(/databases/$(database)/documents/classes/$(request.resource.data.classId)).data.ownerUid == request.resource.data.targetUid &&
+                hasClassAccess(request.resource.data.classId)
+              )
+            )
+          ) ||
+          (
+            request.resource.data.institutionDane is string &&
+            exists(/databases/$(database)/documents/institutions/$(request.resource.data.institutionDane)) &&
+            (
+              ownsInstitution(request.resource.data.institutionDane) ||
+              get(/databases/$(database)/documents/institutions/$(request.resource.data.institutionDane)).data.ownerUid == request.resource.data.targetUid
+            )
+          )
+        );
       allow update: if hasActiveSubscription() && (
         resource.data.targetUid == request.auth.uid ||
         resource.data.targetEmail == request.auth.token.email

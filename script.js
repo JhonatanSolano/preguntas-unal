@@ -5090,7 +5090,7 @@ async function renderOwnerAppMetrics() {
   breakdown.innerHTML = "";
   if (status) {
     status.textContent = "Cargando métricas privadas...";
-    status.className = "bank-status info";
+    status.className = "bank-status error";
   }
   try {
     const snap = await getDocs(collection(db, "users"));
@@ -5130,10 +5130,7 @@ async function renderOwnerAppMetrics() {
         </article>
       `;
     }).join("");
-    if (status) {
-      status.textContent = "Métricas actualizadas.";
-      status.className = "bank-status ok";
-    }
+    if (status) setStatusTemporal("ownerAppMetricsStatus", "Métricas actualizadas.", "ok", 5000);
   } catch (error) {
     console.warn("No fue posible cargar métricas del dueño", error);
     if (status) {
