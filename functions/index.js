@@ -176,6 +176,41 @@ async function hasServerActiveSubscription(decoded = {}) {
   return !Number.isFinite(expiryMs) || expiryMs > Date.now();
 }
 
+function roleForAiAccess(data = {}) {
+  const role = String(data.role || data.tipoCuenta || "").trim().toLowerCase();
+  if (role === "student" || role === "teacher" || role === "institution") return role;
+  return "";
+}
+
+function subscriptionStillActiveFromData(data = {}) {
+  if (data.subscriptionStatus !== "active") return false;
+  const expiryMs = firestoreDateMillis(data.subscriptionExpiresAt);
+  return !Number.isFinite(expiryMs) || expiryMs > Date.now();
+}
+
+async function institutionSubscriptionActive(data = {}) {
+  if (data.institutionAccessRevoked === true || data.institutionMemberStatus === "removed" || data.institutionMemberStatus === "blocked") return false;
+  if (data.subscriptionInherited === true && data.institutionSubscriptionStatus === "active") return true;
+  const dane = normalizeDane(data.institutionDane || data.institutionCode || data.dane || "");
+  if (!dane) return false;
+  const snap = await db.collection("institutions").doc(dane).get();
+  if (!snap.exists) return false;
+  return subscriptionStillActiveFromData(snap.data() || {});
+}
+
+async function hasServerAiAccess(decoded = {}) {
+  if (normalizeEmail(decoded.email) === "solanojhonatan2000@gmail.com") return true;
+  if (!decoded.uid) return false;
+  const snap = await db.collection("users").doc(decoded.uid).get();
+  if (!snap.exists) return false;
+  const data = snap.data() || {};
+  const role = roleForAiAccess(data);
+  if (role !== "student" && role !== "teacher") return false;
+  if (data.institutionAccessRevoked === true || data.institutionMemberStatus === "removed" || data.institutionMemberStatus === "blocked") return false;
+  if (subscriptionStillActiveFromData(data)) return true;
+  return institutionSubscriptionActive(data);
+}
+
 async function assertAiRateLimit(uid) {
   const now = new Date();
   const minuteKey = Math.floor(now.getTime() / 60000);
@@ -352,7 +387,7 @@ exports.generateAiResponse = onRequest({ region: "us-central1", secrets: [gemini
 
   try {
     const decoded = await requireAuth(req);
-    const hasAccess = await hasServerActiveSubscription(decoded);
+    const hasAccess = await hasServerAiAccess(decoded);
     if (!hasAccess) {
       return res.status(403).json({ error: "Activa tu suscripción para usar el Asesor IA." });
     }

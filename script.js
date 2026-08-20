@@ -1149,6 +1149,28 @@ function esEstudianteIndependiente(perfil = perfilActual) {
   return rolUsuario(perfil) === "student" && !cuentaInstitucional(perfil) && !esInstitucion(perfil);
 }
 
+function asesorIaDisponible(perfil = perfilActual) {
+  if (esPropietarioPlataforma()) return true;
+  if (esInstitucion(perfil)) return false;
+  const role = rolUsuario(perfil);
+  if (role !== "student" && role !== "teacher") return false;
+  return suscripcionActiva(perfil);
+}
+
+function exigirAccesoAsesor(mensaje = "Activa Premium para conversar con el Asesor IA.") {
+  if (asesorIaDisponible()) return true;
+  if (!suscripcionActiva() && !cuentaInstitucional() && !esInstitucion()) return exigirSuscripcion(mensaje);
+  const status = document.getElementById("advisorStatus") || document.getElementById("paymentStatus");
+  if (status) {
+    status.textContent = "El Asesor IA solo está disponible para estudiantes y profesores con acceso Premium.";
+    status.className = "bank-status error";
+    setTimeout(() => {
+      if (status.textContent.includes("Asesor IA solo")) status.textContent = "";
+    }, 5000);
+  }
+  return false;
+}
+
 function tienePruebaDiagnosticoGratis(perfil = perfilActual) {
   return esEstudianteIndependiente(perfil) && !suscripcionActiva(perfil);
 }
@@ -5101,16 +5123,20 @@ function crearMetricasVaciasApp() {
   };
 }
 
-async function renderOwnerAppMetrics() {
+async function renderOwnerAppMetrics(options = {}) {
   const summary = document.getElementById("ownerAppMetricsSummary");
   const breakdown = document.getElementById("ownerAppMetricsBreakdown");
   const status = document.getElementById("ownerAppMetricsStatus");
+  const showStatus = !!options.showStatus;
   if (!summary || !breakdown || !esPropietarioPlataforma()) return;
   summary.innerHTML = `<article><strong>...</strong><span>Registrados</span></article><article><strong>...</strong><span>Suscritos</span></article>`;
   breakdown.innerHTML = "";
-  if (status) {
+  if (status && showStatus) {
     status.textContent = "Cargando métricas privadas...";
     status.className = "bank-status error";
+  } else if (status) {
+    status.textContent = "";
+    status.className = "bank-status";
   }
   try {
     const snap = await getDocs(collection(db, "users"));
@@ -5150,10 +5176,10 @@ async function renderOwnerAppMetrics() {
         </article>
       `;
     }).join("");
-    if (status) setStatusTemporal("ownerAppMetricsStatus", "Métricas actualizadas.", "ok", 5000);
+    if (status && showStatus) setStatusTemporal("ownerAppMetricsStatus", "Métricas actualizadas.", "ok", 5000);
   } catch (error) {
     console.warn("No fue posible cargar métricas del dueño", error);
-    if (status) {
+    if (status && showStatus) {
       status.textContent = "No fue posible cargar las métricas.";
       status.className = "bank-status error";
     }
@@ -10443,7 +10469,7 @@ function contextoAsesor(mode = advisorMode) {
 async function enviarMensajeAsesor(text) {
   const input = String(text || "").trim();
   if (!input || advisorLoading) return;
-  if (!exigirSuscripcion("Activa tu suscripción para conversar con el Asesor IA.")) return;
+  if (!exigirAccesoAsesor("Activa Premium para conversar con el Asesor IA.")) return;
   abrirAsesorIA();
   advisorMessages.push({ id: `${Date.now()}-user`, sender: "user", text: input });
   renderAsesorMessages();
@@ -10496,7 +10522,7 @@ async function enviarMensajeAsesor(text) {
 }
 
 function abrirAsesorIA() {
-  if (!exigirSuscripcion("Activa tu suscripción para conversar con el Asesor IA.")) return;
+  if (!exigirAccesoAsesor("Activa Premium para conversar con el Asesor IA.")) return;
   cargarEstadoAsesor();
   renderAsesorQuickReplies();
   renderAsesorMessages();
@@ -12118,7 +12144,7 @@ document.getElementById("btnClosePhotoOverlay")?.addEventListener("click", () =>
   document.getElementById("photoOverlay")?.classList.add("hidden");
   document.getElementById("photoOverlay")?.classList.remove("question-image-mode");
 });
-document.getElementById("btnRefreshOwnerAppMetrics")?.addEventListener("click", renderOwnerAppMetrics);
+document.getElementById("btnRefreshOwnerAppMetrics")?.addEventListener("click", () => renderOwnerAppMetrics({ showStatus: true }));
 document.getElementById("btnSendPhoneCode")?.addEventListener("click", enviarCodigoTelefono);
 document.getElementById("btnVerifyPhoneCode")?.addEventListener("click", verificarCodigoTelefono);
 document.getElementById("btnSettingsChangeGroup")?.addEventListener("click", estudianteCambiarClase);
