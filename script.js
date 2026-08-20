@@ -2871,6 +2871,7 @@ function mostrarSeccion(sec) {
   if (sec !== "mensajes") limpiarBorradorMensajeProfesor();
   if (sec !== "examenes") limpiarBorradorPreguntaProfesor();
   if (sec !== "suscripcion") planChangeInProgress = false;
+  if (sec !== "aprendizaje") resetLearningManagerEditor();
   document.getElementById("sectionInicio").classList.toggle("hidden", sec !== "inicio");
   document.getElementById("sectionAprendizaje")?.classList.toggle("hidden", sec !== "aprendizaje");
   document.getElementById("sectionInsignias")?.classList.toggle("hidden", sec !== "insignias");
@@ -3837,46 +3838,65 @@ function canEditLearningResource(resource) {
 }
 
 function renderLearningResourceSlots(resource) {
+  const unit = document.getElementById("learningUnit");
   const pdfSlot = document.getElementById("learningPdfSlot");
   const videoSlot = document.getElementById("learningVideoSlot");
-  const teacherSlot = document.getElementById("learningTeacherContentSlot");
+  const imageSlot = document.getElementById("learningContentImageSlot");
+  const editSlot = document.getElementById("learningEditResourceSlot");
+  const theoryText = document.getElementById("learningTheoryText");
+  const conceptList = document.getElementById("learningConceptList");
+  const stepList = document.getElementById("learningStepList");
+  const practiceSlot = document.getElementById("learningPracticeTeacherSlot");
+  const canEdit = canEditLearningResource(resource);
+
+  if (editSlot) {
+    editSlot.innerHTML = canEdit
+      ? `<button class="btn btn-outline" type="button" data-learning-edit-resource>Editar contenido</button>`
+      : "";
+  }
+  if (imageSlot) {
+    imageSlot.innerHTML = resource?.imageUrl
+      ? `<figure class="learning-content-figure"><img class="learning-content-image" src="${escapeHtml(resource.imageUrl)}" alt="Imagen del tema" loading="lazy" />${canEdit ? `<figcaption><button class="btn btn-outline" type="button" data-learning-remove-file="image">Quitar imagen</button></figcaption>` : ""}</figure>`
+      : "";
+  }
+  if (theoryText && resource?.theoryText) {
+    theoryText.innerHTML = renderInlineMathText(resource.theoryText);
+  }
+  const keyConcepts = Array.isArray(resource?.keyConcepts) ? resource.keyConcepts.filter(Boolean) : [];
+  if (conceptList && keyConcepts.length) {
+    conceptList.innerHTML = keyConcepts.map(concept => `<li>${escapeHtml(concept)}</li>`).join("");
+  }
+  if (stepList && resource?.stepsText) {
+    stepList.innerHTML = resource.stepsText.split(/\r?\n/).filter(Boolean).map(step => `<li>${renderInlineMathText(step)}</li>`).join("");
+  }
+  if (practiceSlot) {
+    const practiceOptions = Array.isArray(resource?.practiceOptions) ? resource.practiceOptions.filter(Boolean) : [];
+    practiceSlot.innerHTML = resource?.practiceQuestion ? `
+      <div class="learning-content-block learning-wide">
+        <h5>Práctica del profesor</h5>
+        <p>${renderInlineMathText(resource.practiceQuestion)}</p>
+        ${practiceOptions.length ? `<div class="learning-teacher-options">${practiceOptions.map((option, idx) => `<span class="${Number(resource.practiceAnswer) === idx ? "correct" : ""}">${String.fromCharCode(65 + idx)}. ${renderInlineMathText(option)}</span>`).join("")}</div>` : ""}
+      </div>
+    ` : "";
+  }
   if (pdfSlot) {
     pdfSlot.innerHTML = resource?.pdfUrl
-      ? `<p>${escapeHtml(resource.title || "Guía descargable")}</p><div class="learning-pdf-viewer"><iframe src="${escapeHtml(resource.pdfUrl)}#toolbar=0" title="PDF del tema" loading="lazy"></iframe></div><div class="learning-file-actions"><a class="btn btn-outline" href="${escapeHtml(resource.pdfUrl)}" target="_blank" rel="noopener">Ver en ventana</a><a class="btn btn-outline" href="${escapeHtml(resource.pdfUrl)}" download>Descargar PDF</a>${canEditLearningResource(resource) ? `<button class="btn btn-outline" type="button" data-learning-remove-file="pdf">Quitar PDF</button>` : ""}</div>`
+      ? `<p>${escapeHtml(resource.title || "Guía descargable")}</p><div class="learning-pdf-viewer"><iframe src="${escapeHtml(resource.pdfUrl)}#toolbar=0" title="PDF del tema" loading="lazy"></iframe></div><div class="learning-file-actions"><a class="btn btn-outline" href="${escapeHtml(resource.pdfUrl)}" target="_blank" rel="noopener">Ver en ventana</a><a class="btn btn-outline" href="${escapeHtml(resource.pdfUrl)}" download>Descargar PDF</a>${canEdit ? `<button class="btn btn-outline" type="button" data-learning-remove-file="pdf">Quitar PDF</button>` : ""}</div>`
       : `<p>Guía descargable del tema. El profesor podrá agregarla cuando esté disponible.</p><button class="btn btn-outline" type="button" disabled>PDF próximamente</button>`;
   }
   if (videoSlot) {
     const url = resource?.videoUrl || resource?.externalVideoUrl || "";
     const isUploadedVideo = !!resource?.videoUrl;
     videoSlot.innerHTML = url
-      ? `<p>${escapeHtml(resource.title || "Video del profesor")}</p>${isUploadedVideo ? `<video class="learning-video-player" src="${escapeHtml(url)}" controls controlsList="nodownload noplaybackrate" playsinline preload="metadata"></video>` : `<div class="learning-video-embed"><iframe src="${escapeHtml(videoEmbedUrl(url))}" title="Video del tema" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>`}<div class="learning-file-actions">${canEditLearningResource(resource) ? `<button class="btn btn-outline" type="button" data-learning-remove-file="video">Quitar video</button>` : ""}</div>`
+      ? `<p>${escapeHtml(resource.title || "Video del profesor")}</p>${isUploadedVideo ? `<video class="learning-video-player" src="${escapeHtml(url)}" controls controlsList="nodownload noplaybackrate" playsinline preload="metadata"></video>` : `<div class="learning-video-embed"><iframe src="${escapeHtml(videoEmbedUrl(url))}" title="Video del tema" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>`}<div class="learning-file-actions">${canEdit ? `<button class="btn btn-outline" type="button" data-learning-remove-file="video">Quitar video</button>` : ""}</div>`
       : `<p>Espacio listo para insertar videos propios por tema y nivel.</p><button class="btn btn-outline" type="button" disabled>Video próximamente</button>`;
   }
-  if (teacherSlot) {
-    const practiceOptions = Array.isArray(resource?.practiceOptions) ? resource.practiceOptions.filter(Boolean) : [];
-    const keyConcepts = Array.isArray(resource?.keyConcepts) ? resource.keyConcepts.filter(Boolean) : [];
-    const conceptList = document.getElementById("learningConceptList");
-    if (conceptList && keyConcepts.length) {
-      conceptList.innerHTML = keyConcepts.map(concept => `<li>${escapeHtml(concept)}</li>`).join("");
-    }
-    const hasContent = resource?.theoryText || resource?.stepsText || resource?.imageUrl || resource?.practiceQuestion || keyConcepts.length;
-    teacherSlot.innerHTML = hasContent ? `
-      <article class="learning-teacher-content learning-wide">
-        <div class="learning-content-top"><span class="section-kicker">Contenido agregado por el docente</span>${canEditLearningResource(resource) ? `<button class="btn btn-outline" type="button" data-learning-edit-resource>Editar</button>` : ""}</div>
-        ${resource?.title ? `<h4>${escapeHtml(resource.title)}</h4>` : ""}
-        ${resource?.imageUrl ? `<img class="learning-content-image" src="${escapeHtml(resource.imageUrl)}" alt="Imagen del tema" loading="lazy" />${canEditLearningResource(resource) ? `<div class="learning-file-actions"><button class="btn btn-outline" type="button" data-learning-remove-file="image">Quitar imagen</button></div>` : ""}` : ""}
-        ${resource?.theoryText ? `<div class="learning-content-block"><h5>Explicación</h5><p>${renderInlineMathText(resource.theoryText)}</p></div>` : ""}
-        ${keyConcepts.length ? `<div class="learning-content-block"><h5>Conceptos clave</h5><ul>${keyConcepts.map(concept => `<li>${escapeHtml(concept)}</li>`).join("")}</ul></div>` : ""}
-        ${resource?.stepsText ? `<div class="learning-content-block"><h5>Pasos guiados</h5><ol>${resource.stepsText.split(/\r?\n/).filter(Boolean).map(step => `<li>${renderInlineMathText(step)}</li>`).join("")}</ol></div>` : ""}
-        ${resource?.practiceQuestion ? `<div class="learning-content-block"><h5>Práctica del profesor</h5><p>${renderInlineMathText(resource.practiceQuestion)}</p>${practiceOptions.length ? `<div class="learning-teacher-options">${practiceOptions.map((option, idx) => `<span class="${Number(resource.practiceAnswer) === idx ? "correct" : ""}">${String.fromCharCode(65 + idx)}. ${renderInlineMathText(option)}</span>`).join("")}</div>` : ""}</div>` : ""}
-      </article>
-    ` : "";
-    if (window.renderMathInElement) renderMathInElement(teacherSlot, { delimiters: MATH_DELIMITERS, throwOnError: false });
-  }
+  if (unit && window.renderMathInElement) renderMathInElement(unit, { delimiters: MATH_DELIMITERS, throwOnError: false });
 }
 
 function populateLearningManagerResource(resource) {
   if (!puedeGestionarContenidoAprendizaje()) return;
+  resetLearningManagerFiles();
   const setValue = (id, value = "") => {
     const input = document.getElementById(id);
     if (input) input.value = value || "";
@@ -3899,7 +3919,6 @@ async function renderLearningResourceForSelection(selection) {
   try {
     const resource = await cargarLearningResource(selection);
     renderLearningResourceSlots(resource);
-    populateLearningManagerResource(resource);
   } catch (error) {
     console.warn("No fue posible cargar recursos de aprendizaje", error);
   }
@@ -4086,7 +4105,7 @@ function renderLearningUnit(branch, topic, subtopic, level) {
     <div class="learning-resource-grid">
       <article>
         <h4>Teoría interactiva</h4>
-        <p>${renderInlineMathText(data.theory)}</p>
+        <p id="learningTheoryText">${renderInlineMathText(data.theory)}</p>
       </article>
       <article>
         <h4>Conceptos clave</h4>
@@ -4094,9 +4113,9 @@ function renderLearningUnit(branch, topic, subtopic, level) {
       </article>
       <article class="learning-wide learning-step-card">
         <h4>Ejemplo paso a paso</h4>
-        <ol>${data.example.map(step => `<li>${renderInlineMathText(step)}</li>`).join("")}</ol>
+        <ol id="learningStepList">${data.example.map(step => `<li>${renderInlineMathText(step)}</li>`).join("")}</ol>
       </article>
-      <div id="learningTeacherContentSlot" class="learning-teacher-slot learning-wide"></div>
+      <div id="learningContentImageSlot" class="learning-content-image-slot learning-wide"></div>
       <article class="learning-wide learning-video-card">
         <h4>Video del profesor</h4>
         <div id="learningVideoSlot">
@@ -4117,12 +4136,14 @@ function renderLearningUnit(branch, topic, subtopic, level) {
       <span class="section-kicker">Práctica</span>
       <h4>Cuando termines este subtema, continúa con el examen ${escapeHtml(LEVEL_LABELS[level])}.</h4>
       <p>La práctica evaluable usa el flujo oficial de exámenes, intentos, tiempos, disponibilidad y retroalimentación que ya tiene tu aula.</p>
+      <div id="learningPracticeTeacherSlot" class="learning-practice-teacher-slot"></div>
       <p class="bank-status" data-learning-status></p>
     </div>
 
     <div class="learning-actions">
       ${canTrackLearning ? `<button class="btn btn-outline ${completed ? "learning-complete-done" : ""}" type="button" id="btnLearningComplete" ${completed ? "disabled" : ""}>${completed ? "Completado" : "Marcar como estudiado"}</button>` : ""}
       <button class="btn btn-primary" type="button" id="btnLearningExam">Ir al examen ${escapeHtml(LEVEL_LABELS[level])} · ${etiquetaDuracionNivel(level)}</button>
+      <span id="learningEditResourceSlot"></span>
       ${esPropietarioPlataforma() ? `<button class="btn btn-outline" type="button" id="btnLearningEditBase">Editar contenido base</button>` : ""}
       <a class="learning-report-link" href="${learningReportMailto("contenido de aprendizaje")}">Reportar un problema</a>
     </div>
@@ -4219,6 +4240,21 @@ function cargarContenidoBaseEnEditor() {
   document.getElementById("learningTeacherManager")?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
+function resetLearningManagerEditor() {
+  if (!puedeGestionarContenidoAprendizaje()) return;
+  ["learningManagerTitle", "learningManagerVideoUrl", "learningManagerTheory", "learningManagerConcepts", "learningManagerSteps", "learningManagerPracticeQuestion", "learningManagerOption0", "learningManagerOption1", "learningManagerOption2"].forEach(id => {
+    const input = document.getElementById(id);
+    if (input) input.value = "";
+  });
+  const answer = document.getElementById("learningManagerPracticeAnswer");
+  if (answer) answer.value = "0";
+  resetLearningManagerFiles();
+  const status = document.getElementById("learningManagerStatus");
+  if (status) {
+    status.textContent = "";
+    status.className = "bank-status";
+  }
+}
 function resetLearningManagerFiles() {
   ["learningManagerImage", "learningManagerPdf", "learningManagerVideo"].forEach(id => {
     const input = document.getElementById(id);
@@ -4403,6 +4439,9 @@ document.getElementById("sectionAprendizaje")?.addEventListener("click", async e
     return;
   }
   if (event.target.closest("[data-learning-edit-resource]")) {
+    const selection = getLearningManagerSelection();
+    const resource = await cargarLearningResource(selection, true);
+    populateLearningManagerResource(resource);
     document.getElementById("learningTeacherManager")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
   const removeFileButton = event.target.closest("[data-learning-remove-file]");
@@ -4413,16 +4452,7 @@ document.getElementById("sectionAprendizaje")?.addEventListener("click", async e
     await guardarLearningResource();
   }
   if (event.target.closest("#btnLearningResourceClear")) {
-    ["learningManagerTitle", "learningManagerVideoUrl", "learningManagerTheory", "learningManagerConcepts", "learningManagerSteps", "learningManagerPracticeQuestion", "learningManagerOption0", "learningManagerOption1", "learningManagerOption2"].forEach(id => {
-      const input = document.getElementById(id);
-      if (input) input.value = "";
-    });
-    resetLearningManagerFiles();
-    const status = document.getElementById("learningManagerStatus");
-    if (status) {
-      status.textContent = "";
-      status.className = "bank-status";
-    }
+    resetLearningManagerEditor();
   }
 });
 

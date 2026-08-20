@@ -11079,6 +11079,15 @@ p#googleInstitutionStatus.bank-status.error {
   background: linear-gradient(180deg, #fbfffd, #f2fbfb) !important;
 }
 
+.learning-content-figure {
+  margin: 0;
+  display: grid;
+  gap: 12px;
+}
+.learning-content-figure figcaption {
+  display: flex;
+  justify-content: flex-start;
+}
 .learning-content-image {
   width: min(100%, 820px);
   max-height: 360px;
@@ -11200,6 +11209,7 @@ p#googleInstitutionStatus.bank-status.error {
   }
 
   .learning-content-image {
+
     max-height: 260px;
   }
 }
