@@ -1789,9 +1789,7 @@ exports.getTeacherExamQuestions = onRequest({ region: "us-central1" }, async (re
 
   const feedbackPublished = permissionSnap.exists &&
     permissionSnap.data()?.examSettings?.[level]?.feedbackPublished === true;
-  const questionsSnap = await db.collection("teacherQuestions")
-    .where("ownerUid", "==", ownerUid)
-    .get();
+  const questionsSnap = await getTeacherQuestionsFor(ownerUid, level, bank);
   const questions = questionsSnap.docs
     .map(docSnap => ({ id: docSnap.id, ...docSnap.data() }))
     .filter(question =>
@@ -1982,6 +1980,21 @@ async function getBaseQuestionsFor(level = "", bank = "principal", classId = "au
     opciones: Array.isArray(question.opciones) ? [...question.opciones] : []
   }));
 }
+async function getTeacherQuestionsFor(ownerUid = "", level = "", bank = "principal") {
+  const normalizedBank = normalizeExamBank(bank);
+  try {
+    return await db.collection("teacherQuestions")
+      .where("ownerUid", "==", ownerUid)
+      .where("level", "==", level)
+      .where("bank", "==", normalizedBank)
+      .get();
+  } catch (error) {
+    console.warn("teacherQuestions filtered query failed, using owner fallback", error);
+    return db.collection("teacherQuestions")
+      .where("ownerUid", "==", ownerUid)
+      .get();
+  }
+}
 
 async function isActiveClassMember(classId = "", decoded = {}, userData = {}) {
   const email = normalizeEmail(decoded.email || userData.email);
@@ -2147,9 +2160,7 @@ exports.submitExamAttempt = onRequest({ region: "us-central1" }, async (req, res
 
   const attemptBaseParts = [decoded.uid, classId, bank, level].map(safeDocPart);
 
-  const teacherSnap = await db.collection("teacherQuestions")
-    .where("ownerUid", "==", classData.ownerUid || "")
-    .get();
+  const teacherSnap = await getTeacherQuestionsFor(classData.ownerUid || "", level, bank);
   const teacherQuestionsById = new Map();
   teacherSnap.docs.forEach(docSnap => {
     const data = docSnap.data() || {};
