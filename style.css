@@ -12573,3 +12573,216 @@ body.group-locked.public-modal-open #btnBackToTop.back-to-top,
     grid-template-columns: 1fr;
   }
 }
+
+/* 2026-08-20 · Respiración interna y anti-desborde en administración, reportes y exámenes */
+#sectionAdmin,
+#sectionReportes,
+#sectionAdminMetricas,
+#sectionExamenes,
+#sectionDiagnostico,
+#sectionNivel1,
+#sectionExamenFinal {
+  overflow-x: hidden;
+}
+
+#sectionAdmin .start-screen,
+#sectionReportes .start-screen,
+#sectionAdminMetricas .start-screen,
+#sectionExamenes .start-screen,
+#sectionDiagnostico .start-screen,
+#sectionNivel1 .start-screen,
+#sectionExamenFinal .start-screen,
+#sectionAdmin .accordion-card,
+#sectionExamenes .accordion-card {
+  box-sizing: border-box;
+  width: min(100%, 1180px);
+  max-width: calc(100vw - 32px);
+  margin-left: auto;
+  margin-right: auto;
+  min-width: 0;
+}
+
+#sectionAdmin .accordion-card,
+#sectionReportes .report-shell,
+#sectionExamenes .accordion-card,
+#sectionExamenes .question-preview,
+#sectionDiagnostico .question-card,
+#sectionNivel1 .question-card,
+#sectionExamenFinal .question-card {
+  padding-left: clamp(1rem, 2.4vw, 1.6rem);
+  padding-right: clamp(1rem, 2.4vw, 1.6rem);
+}
+
+#bulkStudentClass {
+  display: block;
+  width: min(100%, 760px);
+  margin-top: .45rem;
+}
+
+#sectionReportes .report-panel {
+  width: min(100%, 1120px);
+  max-width: calc(100vw - 32px);
+  padding-left: clamp(1.1rem, 3vw, 2.25rem);
+  padding-right: clamp(1.1rem, 3vw, 2.25rem);
+}
+
+#sectionReportes .report-shell {
+  border: 1px solid rgba(185, 213, 227, .8);
+  border-radius: 22px;
+  padding: clamp(1rem, 2.6vw, 1.4rem);
+  overflow: visible;
+}
+
+#sectionReportes .bank-grid,
+#sectionReportes .report-actions {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+#sectionReportes .bank-grid > label,
+#sectionReportes .report-actions > * {
+  min-width: 0;
+}
+
+#sectionReportes .admin-input,
+#sectionAdmin .admin-input,
+#sectionExamenes .admin-input {
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+#sectionReportes .report-actions .btn {
+  min-width: min(180px, 100%);
+  white-space: normal;
+  line-height: 1.2;
+}
+
+#sectionReportes .report-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+#sectionReportes .report-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: .75rem;
+}
+
+#sectionExamenes .admin-exam-bank-panel,
+#sectionExamenes .admin-bank-levels,
+#sectionExamenes .question-preview-list,
+#sectionExamenes .question-preview,
+#sectionExamenes .question-preview > :not(summary),
+#sectionDiagnostico .question-card,
+#sectionNivel1 .question-card,
+#sectionExamenFinal .question-card {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+#sectionExamenes .question-preview {
+  overflow: visible;
+}
+
+#sectionExamenes .question-preview summary {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+}
+
+#sectionExamenes .question-preview ol,
+#sectionExamenes .question-preview ul,
+#sectionDiagnostico .question-card ol,
+#sectionNivel1 .question-card ol,
+#sectionExamenFinal .question-card ol {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+  padding-right: clamp(.75rem, 2vw, 1rem);
+  overflow-wrap: anywhere;
+}
+
+#sectionExamenes .question-preview li,
+#sectionDiagnostico .question-card li,
+#sectionNivel1 .question-card li,
+#sectionExamenFinal .question-card li,
+#sectionExamenes .question-preview p,
+#sectionDiagnostico .question-card p,
+#sectionNivel1 .question-card p,
+#sectionExamenFinal .question-card p {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+#sectionExamenes .question-preview .q-formula,
+#sectionExamenes .question-preview .katex-display,
+#sectionDiagnostico .q-formula,
+#sectionDiagnostico .katex-display,
+#sectionNivel1 .q-formula,
+#sectionNivel1 .katex-display,
+#sectionExamenFinal .q-formula,
+#sectionExamenFinal .katex-display {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 760px) {
+  #sectionAdmin .start-screen,
+  #sectionReportes .start-screen,
+  #sectionAdminMetricas .start-screen,
+  #sectionExamenes .start-screen,
+  #sectionDiagnostico .start-screen,
+  #sectionNivel1 .start-screen,
+  #sectionExamenFinal .start-screen,
+  #sectionAdmin .accordion-card,
+  #sectionExamenes .accordion-card {
+    max-width: calc(100vw - 24px);
+  }
+
+  #sectionReportes .report-panel {
+    max-width: calc(100vw - 24px);
+    padding-left: .95rem;
+    padding-right: .95rem;
+  }
+
+  #sectionReportes .report-shell {
+    padding: .95rem;
+  }
+
+  #sectionReportes .bank-grid,
+  #sectionReportes .report-actions {
+    grid-template-columns: 1fr !important;
+    gap: .8rem;
+  }
+
+  #sectionReportes .report-actions .btn,
+  #sectionReportes #reportSearchInput {
+    width: 100%;
+  }
+
+  #bulkStudentClass {
+    width: 100%;
+  }
+
+  #sectionExamenes .question-preview-list {
+    gap: .7rem;
+  }
+
+  #sectionExamenes .question-preview,
+  #sectionDiagnostico .question-card,
+  #sectionNivel1 .question-card,
+  #sectionExamenFinal .question-card {
+    padding-left: .9rem;
+    padding-right: .9rem;
+  }
+}
