@@ -518,13 +518,48 @@ exports.consumePasswordResetLink = onRequest({ region: "us-central1" }, async (r
   }
 });
 
+async function deleteUnverifiedRegistration(email, uid = "") {
+  const normalizedEmail = normalizeEmail(email);
+  let targetUid = uid;
+  try {
+    const userRecord = targetUid
+      ? await admin.auth().getUser(targetUid)
+      : await admin.auth().getUserByEmail(normalizedEmail);
+    targetUid = userRecord.uid;
+    if (userRecord.emailVerified) return false;
+    await admin.auth().deleteUser(targetUid);
+  } catch (err) {
+    if (err?.code !== "auth/user-not-found") {
+      console.warn("No se pudo eliminar Auth no verificado.", normalizedEmail, err);
+    }
+  }
+
+  const batch = admin.firestore().batch();
+  if (targetUid) batch.delete(admin.firestore().collection("users").doc(targetUid));
+  const membersSnap = await admin.firestore().collection("institutionMembers")
+    .where("email", "==", normalizedEmail)
+    .limit(10)
+    .get()
+    .catch(() => null);
+  membersSnap?.docs?.forEach(docSnap => {
+    batch.set(docSnap.ref, {
+      userUid: admin.firestore.FieldValue.delete(),
+      displayName: admin.firestore.FieldValue.delete(),
+      registeredAt: admin.firestore.FieldValue.delete(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+  });
+  await batch.commit().catch(err => console.warn("No se pudo limpiar registro no verificado.", normalizedEmail, err));
+  return true;
+}
+
 exports.sendEmailVerificationCustom = onRequest({ region: "us-central1", secrets: [resendApiKey] }, async (req, res) => {
   setCors(res);
   if (req.method === "OPTIONS") return res.status(204).send("");
   if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
 
   if (!(await enforceAppCheck(req, res))) return;
-  const email = String(req.body?.email || "").trim().toLowerCase();
+  const email = normalizeEmail(req.body?.email);
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/i.test(email)) {
     return res.status(400).json({ error: "Correo inválido." });
   }
@@ -535,17 +570,31 @@ exports.sendEmailVerificationCustom = onRequest({ region: "us-central1", secrets
       res.set("Retry-After", String(rateLimit.retryAfterSeconds || 3600));
       return res.status(429).json({ error: "Demasiados intentos. Intenta nuevamente más tarde." });
     }
+    const userRecord = await admin.auth().getUserByEmail(email);
+    if (userRecord.emailVerified) return res.status(200).json({ ok: true });
     const verificationLink = await admin.auth().generateEmailVerificationLink(email, {
       url: "https://matematicasentubolsillo.com/verificado.html",
       handleCodeInApp: false
     });
+    const token = crypto.randomUUID();
+    const expiresAt = admin.firestore.Timestamp.fromDate(new Date(Date.now() + 30 * 60 * 1000));
+    await admin.firestore().collection("emailVerificationLinks").doc(token).set({
+      email,
+      uid: userRecord.uid,
+      verificationLink,
+      expiresAt,
+      used: false,
+      createdAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+    const protectedLink = `https://us-central1-preguntas-tipo-examen.cloudfunctions.net/consumeEmailVerificationLink?token=${encodeURIComponent(token)}`;
     const html = `
       <div style="font-family:Arial,sans-serif;line-height:1.6;color:#162838;max-width:640px;margin:auto;padding:24px">
         <h1 style="color:#06345f">Verifica tu correo</h1>
         <p>Gracias por crear tu cuenta en <strong>Matemáticas En Tu Bolsillo</strong>.</p>
         <p>Para activar tu acceso, confirma que este correo te pertenece.</p>
+        <p>Por seguridad, este enlace estará disponible durante <strong>30 minutos</strong>. Si caduca, deberás registrarte nuevamente.</p>
         <p style="margin:28px 0">
-          <a href="${escapeHtml(verificationLink)}" style="background:#0d9488;color:white;padding:14px 22px;border-radius:999px;text-decoration:none;font-weight:bold">Verificar correo</a>
+          <a href="${escapeHtml(protectedLink)}" style="background:#0d9488;color:white;padding:14px 22px;border-radius:999px;text-decoration:none;font-weight:bold">Verificar correo</a>
         </p>
         <p>Si no creaste esta cuenta, puedes ignorar este correo.</p>
         <p style="font-size:12px;color:#66788a">© Todos los derechos reservados. Matemáticas En Tu Bolsillo.</p>
@@ -560,6 +609,56 @@ exports.sendEmailVerificationCustom = onRequest({ region: "us-central1", secrets
   }
 
   return res.status(200).json({ ok: true });
+});
+
+exports.consumeEmailVerificationLink = onRequest({ region: "us-central1" }, async (req, res) => {
+  const token = String(req.query?.token || "").trim();
+  const expiredUrl = `${APP_URL}?verifyExpired=1`;
+  if (!token) return res.redirect(302, expiredUrl);
+  try {
+    const ref = admin.firestore().collection("emailVerificationLinks").doc(token);
+    const snap = await ref.get();
+    if (!snap.exists) return res.redirect(302, expiredUrl);
+    const data = snap.data() || {};
+    const expiresMs = data.expiresAt?.toMillis?.() || 0;
+    if (data.used === true || !expiresMs || expiresMs < Date.now() || !data.verificationLink) {
+      await deleteUnverifiedRegistration(data.email, data.uid || "");
+      await ref.set({ expired: true, expiredAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true }).catch(() => {});
+      return res.redirect(302, expiredUrl);
+    }
+    await ref.set({
+      used: true,
+      usedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+    return res.redirect(302, data.verificationLink);
+  } catch (err) {
+    console.error("Email verification consume error", err);
+    return res.redirect(302, expiredUrl);
+  }
+});
+
+exports.cleanupExpiredEmailVerifications = onSchedule({
+  region: "us-central1",
+  schedule: "every 15 minutes",
+  timeZone: "America/Bogota",
+  timeoutSeconds: 300,
+  maxInstances: 1,
+  retryCount: 1
+}, async () => {
+  const now = admin.firestore.Timestamp.now();
+  const snap = await admin.firestore().collection("emailVerificationLinks")
+    .where("expiresAt", "<=", now)
+    .limit(50)
+    .get();
+  for (const docSnap of snap.docs) {
+    const data = docSnap.data() || {};
+    if (data.used === true || data.expired === true) continue;
+    await deleteUnverifiedRegistration(data.email, data.uid || "");
+    await docSnap.ref.set({
+      expired: true,
+      expiredAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+  }
 });
 
 function escapeHtml(text = "") {
@@ -1654,6 +1753,16 @@ exports.manageInstitutionMembers = onRequest({ region: "us-central1" }, async (r
         });
       });
       if (!cleanedMembers.length) return res.status(400).json({ error: "Agrega correos válidos." });
+
+      if (role === "student") {
+        const existingClassStudentRefs = cleanedMembers.map(member =>
+          db.collection("classStudents").doc(`${classId}_${safeEmailId(member.email)}`)
+        );
+        const existingClassStudents = await db.getAll(...existingClassStudentRefs);
+        if (existingClassStudents.some(docSnap => docSnap.exists)) {
+          return res.status(409).json({ error: "Estudiante ya inscrito en el aula." });
+        }
+      }
 
       const limits = institutionPlanLimits(institution);
       const max = role === "teacher" ? limits.maxTeachers : limits.maxStudents;

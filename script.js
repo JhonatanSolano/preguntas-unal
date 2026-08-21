@@ -9574,9 +9574,22 @@ async function asegurarAulaIndependienteAutomatica() {
   return true;
 }
 
+async function estudianteYaInscritoEnAula(classId, email) {
+  const normalized = String(email || "").trim().toLowerCase();
+  if (!classId || !normalized) return false;
+  const direct = await getDoc(doc(db, "classStudents", `${classId}_${safeEmailId(normalized)}`)).catch(() => null);
+  return !!direct?.exists?.();
+}
+
 async function crearInvitacionClase(clase, { email, name = "" }) {
   const inviteToken = generarTokenSeguro();
   const id = `${clase.id}_${safeEmailId(email)}`;
+  const alreadyMember = await getDoc(doc(db, "classStudents", id)).catch(() => null);
+  if (alreadyMember?.exists?.()) {
+    const err = new Error("Estudiante ya inscrito en el aula.");
+    err.code = "student-already-in-class";
+    throw err;
+  }
   const teacherName = perfilActual?.displayName || usuarioActual?.displayName || usuarioActual?.email || "Profesor";
   await setDoc(doc(db, "classInvites", id), {
     classId: clase.id,
@@ -11234,8 +11247,14 @@ async function adminCambiarGrupoEstudiante() {
     status.textContent = "Escribe un correo Gmail válido y selecciona aula.";
     return;
   }
-  await crearInvitacionClase(aula, { email });
-  status.textContent = `Invitación enviada a ${email} para unirse a ${aula.name}.`;
+  try {
+    await crearInvitacionClase(aula, { email });
+    status.textContent = `Invitación enviada a ${email} para unirse a ${aula.name}.`;
+    status.className = "bank-status success";
+  } catch (err) {
+    status.textContent = err?.code === "student-already-in-class" ? "Estudiante ya inscrito en el aula." : "No fue posible crear la invitación.";
+    status.className = "bank-status error";
+  }
 }
 
 async function registrarEstudiantesBulk() {
@@ -11255,7 +11274,21 @@ async function registrarEstudiantesEnClase(claseId, raw, status) {
   const students = parseStudentLines(raw);
   const unique = [...new Map(students.map(item => [item.email, item])).values()];
   if (!unique.length || !clase) {
-    if (status) status.textContent = "Agrega correos Gmail válidos y selecciona aula.";
+    if (status) {
+      status.textContent = "Agrega correos Gmail válidos y selecciona aula.";
+      status.className = "bank-status error";
+    }
+    return;
+  }
+  const duplicatedAccepted = [];
+  for (const student of unique) {
+    if (await estudianteYaInscritoEnAula(claseId, student.email)) duplicatedAccepted.push(student.email);
+  }
+  if (duplicatedAccepted.length) {
+    if (status) {
+      status.textContent = "Estudiante ya inscrito en el aula.";
+      status.className = "bank-status error";
+    }
     return;
   }
   if (status) status.textContent = "Creando invitaciones...";
@@ -11274,8 +11307,19 @@ async function registrarEstudiantesEnClase(claseId, raw, status) {
     }
     return;
   }
-  await Promise.all(unique.map(student => crearInvitacionClase(clase, student)));
-  if (status) status.textContent = `${unique.length} invitación(es) enviada(s) para ${clase.name}.`;
+  try {
+    await Promise.all(unique.map(student => crearInvitacionClase(clase, student)));
+  } catch (err) {
+    if (status) {
+      status.textContent = err?.code === "student-already-in-class" ? "Estudiante ya inscrito en el aula." : "No fue posible crear las invitaciones.";
+      status.className = "bank-status error";
+    }
+    return;
+  }
+  if (status) {
+    status.textContent = `${unique.length} invitación(es) enviada(s) para ${clase.name}.`;
+    status.className = "bank-status success";
+  }
   await renderAdminStudentsByClass();
 }
 
@@ -11643,6 +11687,12 @@ document.getElementById("btnAndroidPromoClose")?.addEventListener("click", () =>
 });
 if (sessionStorage.getItem("androidPromoDismissed") === "1") {
   document.getElementById("androidPromo")?.classList.add("hidden");
+}
+if (new URLSearchParams(window.location.search).get("verifyExpired") === "1") {
+  abrirAuth("register");
+  mostrarErrorAuth("El enlace de verificación caducó. Regístrate nuevamente para recibir un link nuevo.");
+  window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
+  actualizarBloqueoScrollPublico();
 }
 if (new URLSearchParams(window.location.search).get("resetExpired") === "1") {
   document.getElementById("forgotPasswordCard")?.classList.remove("hidden");

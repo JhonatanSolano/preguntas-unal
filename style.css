@@ -13154,3 +13154,46 @@ body.group-locked.public-modal-open #btnBackToTop.back-to-top,
     min-width: 0;
   }
 }
+
+/* Strong account deletion form alignment across account types */
+.danger-zone > input.admin-input,
+.danger-zone > .confirm-row,
+.danger-zone > .bank-status,
+.danger-zone > p,
+.danger-zone > h3,
+.danger-zone > .btn,
+.institution-delete-card > .danger-text,
+.institution-delete-card > label,
+.institution-delete-card > .check-line,
+.institution-delete-card > .bank-status,
+.institution-delete-card > .btn {
+  box-sizing: border-box;
+  width: calc(100% - 2rem) !important;
+  max-width: calc(100% - 2rem) !important;
+  margin-left: 1rem !important;
+  margin-right: 1rem !important;
+}
+.danger-zone > input.admin-input,
+.institution-delete-card input.admin-input {
+  display: block;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: .45rem 0 0 !important;
+}
+.danger-zone > input.admin-input {
+  width: calc(100% - 2rem) !important;
+  margin-left: 1rem !important;
+  margin-right: 1rem !important;
+}
+.danger-zone .confirm-row,
+.institution-delete-card .check-line {
+  display: flex;
+  align-items: flex-start;
+  gap: .55rem;
+  overflow-wrap: anywhere;
+}
+.danger-zone .confirm-row input,
+.institution-delete-card .check-line input {
+  flex: 0 0 auto;
+  margin-top: .2rem;
+}
