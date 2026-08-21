@@ -33,7 +33,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="style.css?v=20260821-04" />
+  <link rel="stylesheet" href="style.css?v=20260821-05" />
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -1662,6 +1662,13 @@
         <p class="bank-status" id="profileStatus"></p>
       </details>
 
+      <details class="profile-panel accordion-card hidden" id="googleLinkPanel">
+        <summary>Acceso con Google</summary>
+        <p id="googleLinkHelp">Vincula tu correo con Google para poder usar el botón de Google en próximos ingresos.</p>
+        <button class="btn btn-secondary" id="btnLinkGoogleProvider" type="button">Vincular Google</button>
+        <p class="bank-status" id="googleLinkStatus"></p>
+      </details>
+
       <details class="profile-panel phone-panel" id="phoneVerifyPanel">
         <summary>Verificar número de teléfono</summary>
         <img class="panel-logo" src="assets/icon-180.png" alt="Logo de Matemáticas En Tu Bolsillo" />
@@ -2321,6 +2328,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260821-06"></script>
+  <script type="module" src="script.js?v=20260821-07"></script>
 </body>
 </html>

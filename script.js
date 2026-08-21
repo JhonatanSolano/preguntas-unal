@@ -14,6 +14,7 @@ import {
   deleteUser,
   EmailAuthProvider,
   linkWithCredential,
+  linkWithPopup,
   onAuthStateChanged,
   reauthenticateWithCredential,
   setPersistence,
@@ -4819,12 +4820,32 @@ async function miembrosInstitucionActual() {
   return snap.docs.map(item => ({ id: item.id, ...item.data() }));
 }
 
+async function invitacionesInstitucionActual() {
+  const dane = normalizarDane(perfilActual?.institutionDane);
+  if (!dane) return [];
+  const snap = await getDocs(query(collection(db, "classInvites"), where("institutionDane", "==", dane)));
+  return snap.docs.map(item => ({ id: item.id, ...item.data() }));
+}
+
+function estadoVisibleMiembroInstitucion(member, acceptedInviteKeys) {
+  const email = String(member.email || "").toLowerCase();
+  const key = `${member.classId || ""}::${email}`;
+  if (member.status === "removed" || member.status === "blocked") return "bloqueado";
+  return acceptedInviteKeys.has(key) ? "activo" : "pendiente";
+}
+
 async function renderInstitutionPanel() {
   actualizarSelectGradosInstitucion();
   const summary = document.getElementById("institutionSummaryBox");
   const list = document.getElementById("institutionMembersList");
-  const members = await miembrosInstitucionActual().catch(() => []);
-  const requests = await solicitudesInstitucionActual().catch(() => []);
+  const [members, requests, invites] = await Promise.all([
+    miembrosInstitucionActual().catch(() => []),
+    solicitudesInstitucionActual().catch(() => []),
+    invitacionesInstitucionActual().catch(() => [])
+  ]);
+  const acceptedInviteKeys = new Set(invites
+    .filter(item => item.status === "accepted")
+    .map(item => `${item.classId || ""}::${String(item.email || item.studentEmail || "").toLowerCase()}`));
   const students = members.filter(item => item.role === "student" && item.status !== "removed");
   const teachers = members.filter(item => item.role === "teacher" && item.status !== "removed");
   const limits = limitesPlanInstitucional();
@@ -4867,7 +4888,7 @@ async function renderInstitutionPanel() {
           <summary>${grade} · ${items.length} integrante(s)</summary>
           <div class="student-row-list">
             ${items.map(item => `<article class="student-row">
-              <div><strong>${item.name || item.displayName || "Sin nombre"}</strong><span>${item.email}</span><small>${item.role === "teacher" ? "Profesor" : "Estudiante"} · ${item.className || "Sin aula"} · ${item.status || "activo"}</small></div>
+              <div><strong>${item.name || item.displayName || "Sin nombre"}</strong><span>${item.email}</span><small>${item.role === "teacher" ? "Profesor" : "Estudiante"} · ${item.className || "Sin aula"} · ${estadoVisibleMiembroInstitucion(item, acceptedInviteKeys)}</small></div>
               <button class="btn btn-outline danger" type="button" data-delete-institution-member="${item.id}">Eliminar</button>
             </article>`).join("")}
           </div>
@@ -8197,7 +8218,9 @@ function actualizarReglasPassword() {
   const password = document.getElementById("registerPassword")?.value || "";
   const detalle = detallePassword(password);
   Object.entries(detalle).forEach(([regla, ok]) => {
-    document.querySelector(`#passwordRules [data-rule="${regla}"]`)?.classList.toggle("valid", ok);
+    const item = document.querySelector(`#passwordRules [data-rule="${regla}"]`);
+    item?.classList.toggle("valid", ok);
+    item?.classList.toggle("invalid", !ok);
   });
   const valido = Object.values(detalle).every(Boolean);
   const btn = document.getElementById("btnEmailRegister");
@@ -8213,13 +8236,19 @@ function actualizarReglasPasswordInstitucion() {
 function actualizarReglasPasswordEn(panelId, password) {
   const detalle = detallePassword(password || "");
   Object.entries(detalle).forEach(([regla, ok]) => {
-    document.querySelector(`#${panelId} [data-rule="${regla}"]`)?.classList.toggle("valid", ok);
+    const item = document.querySelector(`#${panelId} [data-rule="${regla}"]`);
+    item?.classList.toggle("valid", ok);
+    item?.classList.toggle("invalid", !ok);
   });
   return Object.values(detalle).every(Boolean);
 }
 
 function tienePasswordActual() {
   return usuarioActual?.providerData?.some(provider => provider.providerId === "password");
+}
+
+function tieneGoogleVinculado() {
+  return usuarioActual?.providerData?.some(provider => provider.providerId === "google.com");
 }
 
 function mensajePasswordFirebase(err) {
@@ -9014,6 +9043,7 @@ function renderProfile() {
   document.getElementById("profileBirth")?.closest("label")?.classList.toggle("hidden", institucion);
   document.getElementById("profileGender")?.closest("label")?.classList.toggle("hidden", institucion);
   document.getElementById("teacherDeletePanel")?.classList.toggle("hidden", !modoAdmin || institucion);
+  actualizarPanelGooglePerfil();
 }
 
 function codigoClaseAleatorio() {
@@ -9792,9 +9822,19 @@ async function loginEmail() {
     setPendingLoginType(expectedType);
     const cred = await signInWithEmailAndPassword(auth, email, password);
     if (requiereVerificacionEmail(cred.user) && cred.user.email?.toLowerCase() !== ADMIN_EMAIL) {
+      let reenviado = false;
+      try {
+        await enviarVerificacionEmailPersonalizada(email);
+        reenviado = true;
+      } catch (mailErr) {
+        console.warn("No se pudo reenviar verificación al iniciar sesión.", mailErr);
+      }
+      suppressAuthResetOnce = true;
       await signOut(auth);
       clearPendingLoginType();
-      setStatus("loginStatus", "Debes verificar tu correo. Abre el enlace de verificación antes de iniciar sesión.", "error");
+      mostrarLoginErrorTemporal("loginStatus", reenviado
+        ? "Tu correo aún no está verificado. Te reenviamos el enlace de verificación a Gmail."
+        : "Tu correo aún no está verificado. No pudimos reenviar el enlace; intenta nuevamente o contacta soporte.");
       return;
     }
     const snap = await getDoc(doc(db, "users", cred.user.uid));
@@ -10941,6 +10981,61 @@ async function guardarPerfilDesdeFormulario() {
   renderProfile();
   actualizarBienvenida();
   setStatusTemporal("profileStatus", "Perfil actualizado.", "ok");
+}
+
+function actualizarPanelGooglePerfil() {
+  const panel = document.getElementById("googleLinkPanel");
+  const btn = document.getElementById("btnLinkGoogleProvider");
+  const help = document.getElementById("googleLinkHelp");
+  if (!panel) return;
+  const hidden = !usuarioActual || esInstitucion(perfilActual);
+  panel.classList.toggle("hidden", hidden);
+  if (hidden) return;
+  const linked = tieneGoogleVinculado();
+  if (btn) {
+    btn.disabled = linked;
+    btn.textContent = linked ? "Google vinculado" : "Vincular Google";
+  }
+  if (help) {
+    help.textContent = linked
+      ? "Ya puedes usar el botón de Google para iniciar sesión con este mismo correo."
+      : "Vincula tu correo con Google para poder usar el botón de Google en próximos ingresos.";
+  }
+}
+
+async function vincularGoogleDesdePerfil() {
+  const btn = document.getElementById("btnLinkGoogleProvider");
+  if (!usuarioActual) return;
+  if (esInstitucion(perfilActual)) {
+    setStatusTemporal("googleLinkStatus", "Las instituciones ingresan únicamente con correo y contraseña.", "error");
+    return;
+  }
+  if (tieneGoogleVinculado()) {
+    setStatusTemporal("googleLinkStatus", "Google ya está vinculado a esta cuenta.", "ok");
+    return;
+  }
+  try {
+    setButtonLoading(btn, true, "Vinculando...");
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ login_hint: usuarioActual.email || "" });
+    const result = await linkWithPopup(usuarioActual, provider);
+    await guardarDatosGoogleIniciales(result.user);
+    await cargarPerfilUsuario();
+    renderProfile();
+    setStatusTemporal("googleLinkStatus", "Google quedó vinculado correctamente.", "ok");
+  } catch (err) {
+    console.error("No se pudo vincular Google.", err);
+    const code = err?.code || "";
+    let msg = "No se pudo vincular Google. Intenta nuevamente.";
+    if (code.includes("popup-closed")) msg = "No se completó la vinculación con Google.";
+    if (code.includes("credential-already-in-use")) msg = "Ese correo de Google ya está vinculado a otra cuenta.";
+    if (code.includes("provider-already-linked")) msg = "Google ya está vinculado a esta cuenta.";
+    if (code.includes("requires-recent-login")) msg = "Por seguridad debes cerrar sesión, volver a ingresar y vincular Google nuevamente.";
+    setStatusTemporal("googleLinkStatus", msg, "error");
+  } finally {
+    setButtonLoading(btn, false);
+    actualizarPanelGooglePerfil();
+  }
 }
 function setPhoneStatus(message, type = "") {
   const status = document.getElementById("phoneStatus");
@@ -12324,6 +12419,7 @@ document.getElementById("tabLogin")?.addEventListener("click", () => volverSelec
 document.getElementById("tabRegister")?.addEventListener("click", () => volverSelectorAuth("register"));
 document.getElementById("registerPassword")?.addEventListener("input", actualizarReglasPassword);
 document.getElementById("btnSaveProfile")?.addEventListener("click", guardarPerfilDesdeFormulario);
+document.getElementById("btnLinkGoogleProvider")?.addEventListener("click", vincularGoogleDesdePerfil);
 document.getElementById("btnChoosePhoto")?.addEventListener("click", () => document.getElementById("profilePhotoInput")?.click());
 document.getElementById("btnTakePhoto")?.addEventListener("click", () => document.getElementById("profileCameraInput")?.click());
 document.getElementById("profilePhotoInput")?.addEventListener("change", e => cargarFotoPerfil(e.target.files?.[0]));

@@ -382,6 +382,8 @@ service cloud.firestore {
     match /classInvites/{inviteId} {
       allow read: if hasActiveSubscription() && (
         isAdmin() ||
+        ownsInstitution(resource.data.institutionDane) ||
+        ownsInstitutionOfClass(resource.data.classId) ||
         resource.data.email == request.auth.token.email ||
         resource.data.studentEmail == request.auth.token.email
       );

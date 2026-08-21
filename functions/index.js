@@ -605,7 +605,8 @@ exports.sendEmailVerificationCustom = onRequest({ region: "us-central1", secrets
       html
     });
   } catch (err) {
-    console.warn("No se pudo enviar verificación personalizada.", err);
+    console.error("No se pudo enviar verificación personalizada.", err);
+    return res.status(500).json({ error: "No se pudo enviar el correo de verificación. Intenta nuevamente o comunícate con soporte." });
   }
 
   return res.status(200).json({ ok: true });
@@ -674,8 +675,7 @@ function escapeHtml(text = "") {
 async function sendInviteEmail(invite) {
   const apiKey = resendApiKey.value();
   if (!apiKey) {
-    console.warn("RESEND_API_KEY no está configurada; no se envió correo.");
-    return;
+    throw new Error("RESEND_API_KEY no está configurada; no se envió correo.");
   }
   const recipientEmail = invite.email || invite.studentEmail;
   const className = invite.className || "Aula";
@@ -731,8 +731,7 @@ async function sendInviteEmail(invite) {
 async function sendEmail({ to, subject, html }) {
   const apiKey = resendApiKey.value();
   if (!apiKey) {
-    console.warn("RESEND_API_KEY no está configurada; no se envió correo.");
-    return;
+    throw new Error("RESEND_API_KEY no está configurada; no se envió correo.");
   }
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",

@@ -13259,3 +13259,20 @@ body.group-locked.public-modal-open #btnBackToTop.back-to-top,
     min-width: 0 !important;
   }
 }
+
+.password-rules p,
+.auth-gate .password-rules p,
+.profile-panel .password-rules p,
+.settings-shell .password-rules p {
+  color: #c62839 !important;
+}
+.password-rules p.invalid::before {
+  content: "• ";
+  font-weight: 900;
+}
+.password-rules p.valid,
+.auth-gate .password-rules p.valid,
+.profile-panel .password-rules p.valid,
+.settings-shell .password-rules p.valid {
+  color: #0f9f7a !important;
+}
