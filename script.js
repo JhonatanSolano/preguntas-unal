@@ -88,12 +88,30 @@ const APP_CONFIG = {
 
 const app = initializeApp(firebaseConfig);
 let appCheck = null;
+window.__matematicasAppCheckStatus = {
+  initialized: false,
+  tokenReady: false,
+  lastError: ""
+};
 try {
   appCheck = initializeAppCheck(app, {
     provider: new ReCaptchaV3Provider(APP_CONFIG.recaptchaSiteKey),
     isTokenAutoRefreshEnabled: true
   });
+  window.__matematicasAppCheckStatus.initialized = true;
+  getAppCheckToken(appCheck, true)
+    .then(() => {
+      window.__matematicasAppCheckStatus.tokenReady = true;
+      window.__matematicasAppCheckStatus.lastError = "";
+      console.info("App Check verificado correctamente para Matemáticas En Tu Bolsillo.");
+    })
+    .catch(err => {
+      window.__matematicasAppCheckStatus.tokenReady = false;
+      window.__matematicasAppCheckStatus.lastError = String(err?.message || err);
+      console.error("No se pudo obtener token de App Check.", err);
+    });
 } catch (err) {
+  window.__matematicasAppCheckStatus.lastError = String(err?.message || err);
   console.warn("No se pudo iniciar App Check. La autenticación continuará sin App Check.", err);
 }
 const auth = getAuth(app);
