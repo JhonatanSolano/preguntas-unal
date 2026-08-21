@@ -578,20 +578,35 @@ async function sendInviteEmail(invite) {
     console.warn("RESEND_API_KEY no está configurada; no se envió correo.");
     return;
   }
-  const studentEmail = invite.email || invite.studentEmail;
+  const recipientEmail = invite.email || invite.studentEmail;
   const className = invite.className || "Aula";
-  const teacherName = invite.teacherName || "Tu profesor";
-  const teacherEmail = invite.teacherEmail || "";
+  const invitedByInstitution = invite.invitedByType === "institution";
+  const invitedRole = invite.invitedRole || "student";
+  const senderName = invite.teacherName || invite.institutionName || (invitedByInstitution ? "Tu institución" : "Tu profesor");
+  const senderEmail = invite.teacherEmail || invite.institutionEmail || "";
   const acceptUrl = safeAppUrl(invite.acceptUrl);
-  if (!studentEmail || !acceptUrl) return;
+  if (!recipientEmail || !acceptUrl) return;
+
+  const roleLabel = invitedRole === "teacher" ? "profesor" : "estudiante";
+  const title = invitedByInstitution
+    ? `Invitación institucional a ${className}`
+    : "Invitación a clase";
+  const intro = invitedByInstitution
+    ? `<strong>${escapeHtml(senderName)}</strong> te inscribió como <strong>${escapeHtml(roleLabel)}</strong> en el aula <strong>${escapeHtml(className)}</strong> de Matemáticas En Tu Bolsillo.`
+    : `<strong>${escapeHtml(senderName)}</strong> te invitó a unirte al aula <strong>${escapeHtml(className)}</strong> en Matemáticas En Tu Bolsillo.`;
+  const senderLabel = invitedByInstitution ? "Correo de la institución" : "Correo del profesor";
+  const buttonText = invitedRole === "teacher" ? "Aceptar invitación" : "Unirme al aula";
+  const subject = invitedByInstitution
+    ? `${senderName} te invitó a ${className}`
+    : `${senderName} te invitó a ${className}`;
 
   const html = `
     <div style="font-family:Arial,sans-serif;line-height:1.6;color:#162838;max-width:640px;margin:auto;padding:24px">
-      <h1 style="color:#06345f">Invitación a clase</h1>
-      <p><strong>${escapeHtml(teacherName)}</strong> te invitó a unirte al aula <strong>${escapeHtml(className)}</strong> en Matemáticas En Tu Bolsillo.</p>
-      <p>Correo del profesor: ${escapeHtml(teacherEmail)}</p>
+      <h1 style="color:#06345f">${escapeHtml(title)}</h1>
+      <p>${intro}</p>
+      ${senderEmail ? `<p>${escapeHtml(senderLabel)}: ${escapeHtml(senderEmail)}</p>` : ""}
       <p style="margin:28px 0">
-        <a href="${escapeHtml(acceptUrl)}" style="background:#0d9488;color:white;padding:14px 22px;border-radius:999px;text-decoration:none;font-weight:bold">Unirme a la clase</a>
+        <a href="${escapeHtml(acceptUrl)}" style="background:#0d9488;color:white;padding:14px 22px;border-radius:999px;text-decoration:none;font-weight:bold">${escapeHtml(buttonText)}</a>
       </p>
       <p>Si no esperabas esta invitación, puedes ignorar este correo.</p>
       <p style="font-size:12px;color:#66788a">© Todos los derechos reservados. Matemáticas En Tu Bolsillo.</p>
@@ -605,8 +620,8 @@ async function sendInviteEmail(invite) {
     },
     body: JSON.stringify({
       from: "Matemáticas En Tu Bolsillo <noreply@matematicasentubolsillo.com>",
-      to: [studentEmail],
-      subject: `${teacherName} te invitó a ${className}`,
+      to: [recipientEmail],
+      subject,
       html
     })
   });
@@ -614,7 +629,6 @@ async function sendInviteEmail(invite) {
     throw new Error(await response.text());
   }
 }
-
 async function sendEmail({ to, subject, html }) {
   const apiKey = resendApiKey.value();
   if (!apiKey) {
@@ -1608,6 +1622,7 @@ exports.manageInstitutionMembers = onRequest({ region: "us-central1" }, async (r
     if (action === "add") {
       const role = String(req.body?.role || "").trim();
       const grade = String(req.body?.grade || "").trim();
+      const classId = String(req.body?.classId || "").trim();
       const members = Array.isArray(req.body?.members) ? req.body.members : [];
       if (!["student", "teacher"].includes(role)) return res.status(400).json({ error: "Tipo de integrante no válido." });
       if (!members.length) return res.status(400).json({ error: "Agrega al menos un correo válido." });
@@ -1615,6 +1630,18 @@ exports.manageInstitutionMembers = onRequest({ region: "us-central1" }, async (r
         return res.status(403).json({ error: "La institución necesita una suscripción activa para agregar integrantes." });
       }
 
+
+      if (!classId) return res.status(400).json({ error: "Primero selecciona el aula para los integrantes." });
+      const classRef = db.collection("classes").doc(classId);
+      const classSnap = await classRef.get();
+      if (!classSnap.exists) return res.status(404).json({ error: "Aula no encontrada." });
+      const classData = classSnap.data() || {};
+      if (normalizeDane(classData.institutionDane) !== institutionDane) {
+        return res.status(403).json({ error: "El aula seleccionada no pertenece a esta institución." });
+      }
+      if (!isPlatformOwner && classData.ownerUid !== decoded.uid && classData.ownerUid !== institution.ownerUid) {
+        return res.status(403).json({ error: "No tienes permiso para agregar integrantes a esta aula." });
+      }
       const cleanedMembers = [];
       const seen = new Set();
       members.forEach(member => {
@@ -1660,6 +1687,11 @@ exports.manageInstitutionMembers = onRequest({ region: "us-central1" }, async (r
             email: member.email,
             role,
             grade,
+            classId,
+            className: classData.name || "",
+            classCode: classData.code || "",
+            classOwnerUid: classData.ownerUid || institution.ownerUid || "",
+            classOwnerEmail: classData.ownerEmail || institution.ownerEmail || "",
             status: "active",
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
             ...(alreadyActive ? {} : { createdAt: admin.firestore.FieldValue.serverTimestamp() })
@@ -1667,6 +1699,37 @@ exports.manageInstitutionMembers = onRequest({ region: "us-central1" }, async (r
         });
         return { added: cleanedMembers.length, newCount: incomingNew.length, max };
       });
+
+      const inviteBatch = db.batch();
+      cleanedMembers.forEach(member => {
+        const inviteToken = crypto.randomBytes(24).toString("hex");
+        const inviteRef = db.collection("classInvites").doc(`${classId}_${safeEmailId(member.email)}`);
+        inviteBatch.set(inviteRef, {
+          classId,
+          className: classData.name || "",
+          classCode: classData.code || "",
+          email: member.email,
+          studentEmail: member.email,
+          studentName: member.name || "",
+          invitedRole: role,
+          teacherUid: classData.ownerUid || institution.ownerUid || "",
+          ownerUid: classData.ownerUid || institution.ownerUid || "",
+          teacherEmail: classData.ownerEmail || institution.ownerEmail || "",
+          teacherName: institution.institutionName || classData.name || "Tu institución",
+          institutionEmail: institution.ownerEmail || "",
+          institutionDane,
+          institutionName: institution.institutionName || "",
+          invitedByUid: decoded.uid,
+          invitedByEmail: callerEmail,
+          invitedByType: "institution",
+          status: "pending",
+          inviteToken,
+          acceptUrl: `${APP_URL}?classInvite=${encodeURIComponent(inviteToken)}`,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          createdAt: admin.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+      });
+      await inviteBatch.commit();
 
       await db.collection("billingEvents").add({
         type: "institution-member-add",

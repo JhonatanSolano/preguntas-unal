@@ -4866,7 +4866,7 @@ async function renderInstitutionPanel() {
           <summary>${grade} · ${items.length} integrante(s)</summary>
           <div class="student-row-list">
             ${items.map(item => `<article class="student-row">
-              <div><strong>${item.name || item.displayName || "Sin nombre"}</strong><span>${item.email}</span><small>${item.role === "teacher" ? "Profesor" : "Estudiante"} · ${item.status || "activo"}</small></div>
+              <div><strong>${item.name || item.displayName || "Sin nombre"}</strong><span>${item.email}</span><small>${item.role === "teacher" ? "Profesor" : "Estudiante"} · ${item.className || "Sin aula"} · ${item.status || "activo"}</small></div>
               <button class="btn btn-outline danger" type="button" data-delete-institution-member="${item.id}">Eliminar</button>
             </article>`).join("")}
           </div>
@@ -4953,8 +4953,16 @@ async function agregarMiembrosInstitucion() {
   const raw = document.getElementById("institutionBulkMembers")?.value || "";
   const role = document.getElementById("institutionMemberRole")?.value || "student";
   const grade = document.getElementById("institutionMemberGrade")?.value || "";
+  const classId = document.getElementById("institutionMemberClass")?.value || "";
   const dane = normalizarDane(perfilActual?.institutionDane);
   const members = [...new Map(parseInstitutionMemberLines(raw).map(item => [item.email, item])).values()];
+  if (!classId || !adminClases.some(clase => clase.id === classId)) {
+    if (status) {
+      status.textContent = "Primero crea y selecciona el aula a la que se unirán.";
+      status.className = "bank-status error";
+    }
+    return;
+  }
   if (!dane || !members.length) {
     if (status) {
       status.textContent = "Agrega correos válidos y verifica la institución.";
@@ -4983,6 +4991,7 @@ async function agregarMiembrosInstitucion() {
       institutionDane: dane,
       role,
       grade,
+      classId,
       members
     })
   });
@@ -8992,16 +9001,23 @@ async function buscarClasePorCodigo(code) {
   return { id: docSnap.id, ...docSnap.data() };
 }
 
-async function crearClaseAdmin() {
-  const status = document.getElementById("adminClassStatus");
+async function crearClaseAdmin(options = {}) {
+  const status = document.getElementById(options.statusId || "adminClassStatus");
   if (!exigirSuscripcion("Activa tu suscripción para crear aulas.")) return;
-  const btn = document.getElementById("btnCreateClass");
-  const name = document.getElementById("adminClassName")?.value.trim();
+  const btn = document.getElementById(options.buttonId || "btnCreateClass");
+  const nameInput = document.getElementById(options.nameId || "adminClassName");
+  const name = nameInput?.value.trim() || "";
   if (!name) {
-    status.textContent = "Escribe el nombre del aula.";
+    if (status) {
+      status.textContent = "Escribe el nombre del aula.";
+      status.className = "bank-status error";
+    }
     return;
   }
-  status.textContent = "Creando aula...";
+  if (status) {
+    status.textContent = "Creando aula...";
+    status.className = "bank-status error";
+  }
   if (btn) btn.disabled = true;
   try {
     let code = "";
@@ -9014,18 +9030,22 @@ async function crearClaseAdmin() {
       }
     }
     if (!code) {
-      status.textContent = "No se pudo generar un código único. Intenta de nuevo.";
+      if (status) {
+        status.textContent = "No se pudo generar un código único. Intenta de nuevo.";
+        status.className = "bank-status error";
+      }
       return;
     }
     const ref = doc(collection(db, "classes"));
+    const institutionalOwner = esInstitucion() || cuentaInstitucional();
     const payload = {
       name,
       code,
       codeKey: normalizarCodigoClase(code),
       ownerEmail: usuarioActual.email,
       ownerUid: usuarioActual.uid,
-      institutionDane: cuentaInstitucional() ? (perfilActual?.institutionDane || "") : "",
-      institutionName: cuentaInstitucional() ? (perfilActual?.institutionName || "") : "",
+      institutionDane: institutionalOwner ? (perfilActual?.institutionDane || "") : "",
+      institutionName: institutionalOwner ? (perfilActual?.institutionName || "") : "",
       status: "activa",
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
@@ -9036,18 +9056,20 @@ async function crearClaseAdmin() {
     adminClases = [{ id: ref.id, ...payload }, ...adminClases.filter(c => c.id !== ref.id)];
     renderClassSelectors();
     await cargarClasesAdmin();
-    document.getElementById("adminClassName").value = "";
-    status.textContent = `Aula creada. Código generado: ${code}`;
+    if (nameInput) nameInput.value = "";
+    if (status) setStatusTemporal(options.statusId || "adminClassStatus", `Aula creada. Código generado: ${code}`, "success", 5000);
   } catch (err) {
     console.error(err);
-    status.textContent = "No se pudo crear el aula. Revisa reglas de Firestore y conexión.";
+    if (status) {
+      status.textContent = "No se pudo crear el aula. Revisa reglas de Firestore y conexión.";
+      status.className = "bank-status error";
+    }
   } finally {
     if (btn) btn.disabled = false;
   }
 }
-
 async function cargarClasesAdmin() {
-  if (!modoAdmin || !usuarioActual) return;
+  if (!(modoAdmin || esInstitucion()) || !usuarioActual) return;
   try {
     const snap = await getDocs(query(collection(db, "classes"), where("ownerUid", "==", usuarioActual.uid)));
     adminClases = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -9059,8 +9081,10 @@ async function cargarClasesAdmin() {
     await cargarPermisosRemotos(idsAulasAdmin());
     renderClassSelectors();
     renderProfile();
-    escucharEstudiantesAdmin();
-    renderAdminStudentsByClass().catch(err => console.warn("No se pudieron cargar estudiantes.", err));
+    if (modoAdmin) {
+      escucharEstudiantesAdmin();
+      renderAdminStudentsByClass().catch(err => console.warn("No se pudieron cargar estudiantes.", err));
+    }
   } catch (err) {
     console.warn("No se pudieron cargar clases.", err);
     renderClassSelectors();
@@ -9084,6 +9108,7 @@ function renderClassSelectors() {
   const metricsClass = document.getElementById("adminMetricsClassSelect");
   const examAccessClass = document.getElementById("examAccessClassSelect");
   const reportClass = document.getElementById("reportClassSelect");
+  const institutionMemberClass = document.getElementById("institutionMemberClass");
   const options = adminClases.length
     ? adminClases.map(c => `<option value="${c.id}">${c.name} (${c.code})</option>`).join("")
     : `<option value="">Sin aulas creadas</option>`;
@@ -9123,6 +9148,11 @@ function renderClassSelectors() {
     const current = reportClass.value || adminClaseActiva || "";
     reportClass.innerHTML = options;
     reportClass.value = adminClases.some(c => c.id === current) ? current : (adminClaseActiva || idsAulasAdmin()[0] || "");
+  }
+  if (institutionMemberClass) {
+    const current = institutionMemberClass.value || adminClaseActiva || "";
+    institutionMemberClass.innerHTML = options;
+    institutionMemberClass.value = adminClases.some(c => c.id === current) ? current : (adminClaseActiva || idsAulasAdmin()[0] || "");
   }
 }
 
@@ -9267,6 +9297,7 @@ async function prepararSesionAutenticada() {
       iniciarListenersComunicacion();
       cargarClasesAdmin().catch(err => console.warn("No se pudieron cargar clases admin.", err));
     }
+    if (await aceptarInvitacionPendiente()) return;
     activarNav(suscripcionActiva() ? seccionRestaurable() : "suscripcion");
     guardarPerfilUsuario({ role: "teacher", isAdmin: true, grupo: "admin" }).catch(err => console.warn("No se pudo guardar perfil admin.", err));
     return;
@@ -9400,6 +9431,33 @@ async function entrarGrupo() {
   modoAdmin = false;
   localStorage.setItem(STORAGE_GRUPO, grupoActivo);
   localStorage.setItem(STORAGE_CLASE_ACTIVA, claseActiva);
+  if ((invite.invitedRole || invite.role || "") === "teacher" && esProfesor()) {
+    grupoActivo = "admin";
+    localStorage.setItem(STORAGE_GRUPO, grupoActivo);
+    await updateDoc(inviteDoc.ref, {
+      status: "accepted",
+      acceptedAt: serverTimestamp(),
+      acceptedByUid: usuarioActual.uid,
+      updatedAt: serverTimestamp()
+    });
+    await guardarPerfilUsuario({
+      role: "teacher",
+      tipoCuenta: "teacher",
+      isAdmin: true,
+      grupo: "admin",
+      classId: clase.id,
+      className: clase.name,
+      classCode: clase.code,
+      classOwnerUid: clase.ownerUid || invite.ownerUid || invite.teacherUid || "",
+      classOwnerEmail: clase.ownerEmail || invite.teacherEmail || ""
+    });
+    localStorage.removeItem(STORAGE_INVITE_TOKEN);
+    document.body.classList.remove("group-locked");
+    aplicarModoUsuario();
+    activarNav("admin");
+    mostrarWarn(`Aceptaste la invitación al aula ${clase.name}.`);
+    return true;
+  }
   await guardarPerfilUsuario({
     grupo: grupoActivo,
     isAdmin: false,
@@ -9836,6 +9894,12 @@ async function registrarEmail() {
       institutionDane: accountMode === "institutional" ? institutionDane : "",
       institutionName: accountMode === "institutional" ? (miembroInstitucional?.institutionName || institucionRegistro?.institutionName || "") : "",
       institutionOwnerUid: accountMode === "institutional" ? (miembroInstitucional?.ownerUid || institucionRegistro?.ownerUid || "") : "",
+      classId: accountMode === "institutional" ? (miembroInstitucional?.classId || "") : "",
+      className: accountMode === "institutional" ? (miembroInstitucional?.className || "") : "",
+      classCode: accountMode === "institutional" ? (miembroInstitucional?.classCode || "") : "",
+      classOwnerUid: accountMode === "institutional" ? (miembroInstitucional?.classOwnerUid || miembroInstitucional?.ownerUid || "") : "",
+      classOwnerEmail: accountMode === "institutional" ? (miembroInstitucional?.classOwnerEmail || miembroInstitucional?.ownerEmail || "") : "",
+      grupo: accountMode === "institutional" && role === "student" ? (miembroInstitucional?.classId || "") : (role === "teacher" ? "admin" : ""),
       institutionSubscriptionStatus: accountMode === "institutional" ? "active" : "",
       subscriptionInherited: accountMode === "institutional",
       isAdmin: email === ADMIN_EMAIL,
@@ -9847,7 +9911,12 @@ async function registrarEmail() {
         userUid: cred.user.uid,
         displayName: nombre,
         status: "active",
-        registeredAt: serverTimestamp()
+        registeredAt: serverTimestamp(),
+        classId: miembroInstitucional?.classId || "",
+        className: miembroInstitucional?.className || "",
+        classCode: miembroInstitucional?.classCode || "",
+        classOwnerUid: miembroInstitucional?.classOwnerUid || miembroInstitucional?.ownerUid || "",
+        classOwnerEmail: miembroInstitucional?.classOwnerEmail || miembroInstitucional?.ownerEmail || ""
       });
     }
     await enviarVerificacionEmailPersonalizada(email);
@@ -12174,6 +12243,7 @@ document.getElementById("btnUpdatePassword")?.addEventListener("click", actualiz
 document.getElementById("createPasswordNew")?.addEventListener("input", e => actualizarReglasPasswordEn("createPasswordRules", e.target.value));
 document.getElementById("updatePasswordNew")?.addEventListener("input", e => actualizarReglasPasswordEn("updatePasswordRules", e.target.value));
 document.getElementById("btnCreateClass")?.addEventListener("click", crearClaseAdmin);
+document.getElementById("btnCreateInstitutionClass")?.addEventListener("click", () => crearClaseAdmin({ nameId: "institutionClassName", statusId: "institutionClassStatus", buttonId: "btnCreateInstitutionClass" }));
 document.getElementById("adminClassSelect")?.addEventListener("change", e => {
   adminClaseActiva = e.target.value;
   adminGrupoActual = adminClaseActiva;

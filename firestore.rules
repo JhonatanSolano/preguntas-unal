@@ -213,10 +213,14 @@ service cloud.firestore {
 
     match /classes/{classId} {
       allow read: if signedIn();
-      allow create: if hasActiveSubscription() && isAdmin() &&
-        request.resource.data.ownerUid == request.auth.uid;
-      allow update, delete: if hasActiveSubscription() && isAdmin() &&
-        resource.data.ownerUid == request.auth.uid;
+      allow create: if hasActiveSubscription() && (
+        (isAdmin() && request.resource.data.ownerUid == request.auth.uid) ||
+        (ownsInstitution(request.resource.data.institutionDane) && request.resource.data.ownerUid == request.auth.uid)
+      );
+      allow update, delete: if hasActiveSubscription() && (
+        (isAdmin() && resource.data.ownerUid == request.auth.uid) ||
+        ownsInstitution(resource.data.institutionDane)
+      );
     }
 
     match /countries/{document=**} {

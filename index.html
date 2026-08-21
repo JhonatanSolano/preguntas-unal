@@ -1890,6 +1890,15 @@
           <div class="stats-grid compact" id="institutionSummaryBox"></div>
         </details>
         <details class="accordion-card">
+          <summary>Crear aula institucional</summary>
+          <p>Crea primero el aula. Cada curso o grupo de la institución debe tener su propio código único.</p>
+          <label>Nombre del aula
+            <input type="text" id="institutionClassName" class="admin-input" placeholder="9A, 10B, 11C o Matemáticas 10A" />
+          </label>
+          <button class="btn btn-primary" id="btnCreateInstitutionClass" type="button">Crear aula</button>
+          <p class="bank-status" id="institutionClassStatus"></p>
+        </details>
+        <details class="accordion-card">
           <summary>Agregar estudiantes y profesores</summary>
           <p>Registra correos autorizados. Cuando esas personas creen cuenta con el mismo correo, recibirán los beneficios institucionales.</p>
           <div class="bank-grid">
@@ -1901,6 +1910,9 @@
             </label>
             <label>Curso o grado
               <select id="institutionMemberGrade" class="admin-input"></select>
+            </label>
+            <label>Aula a la que se unirá
+              <select id="institutionMemberClass" class="admin-input"></select>
             </label>
           </div>
           <textarea id="institutionBulkMembers" class="admin-input" rows="5" placeholder="Nombre Apellido <correo@gmail.com>&#10;correo2@gmail.com"></textarea>
@@ -2309,6 +2321,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260821-02"></script>
+  <script type="module" src="script.js?v=20260821-03"></script>
 </body>
 </html>
