@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
 import {
   initializeAppCheck,
-  ReCaptchaV3Provider,
+  ReCaptchaEnterpriseProvider,
   getToken as getAppCheckToken
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app-check.js";
 import {
@@ -95,7 +95,7 @@ window.__matematicasAppCheckStatus = {
 };
 try {
   appCheck = initializeAppCheck(app, {
-    provider: new ReCaptchaV3Provider(APP_CONFIG.recaptchaSiteKey),
+    provider: new ReCaptchaEnterpriseProvider(APP_CONFIG.recaptchaSiteKey),
     isTokenAutoRefreshEnabled: true
   });
   window.__matematicasAppCheckStatus.initialized = true;
