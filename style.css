@@ -1917,6 +1917,20 @@ body.admin-mode #sectionExamenes .exams-hub {
   color: var(--c-red);
   font-weight: 800;
 }
+.institution-delete-card > .danger-text,
+.institution-delete-card > label,
+.institution-delete-card > .check-line,
+.institution-delete-card > #institutionDeleteStatus {
+  width: calc(100% - 2rem);
+  margin-inline: 1rem;
+}
+.institution-delete-card > label input.admin-input {
+  width: 100%;
+}
+.institution-delete-card > .check-line input {
+  flex: 0 0 auto;
+  margin-top: .2rem;
+}
 .check-line {
   display: flex;
   align-items: flex-start;

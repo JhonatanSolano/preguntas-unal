@@ -4964,7 +4964,7 @@ async function agregarMiembrosInstitucion() {
   }
   if (status) {
     status.textContent = "Guardando integrantes...";
-    status.className = "bank-status";
+    status.className = "bank-status error";
   }
   const currentMembers = await miembrosInstitucionActual().catch(() => []);
   const capacity = validarCupoInstitucional(role, members, currentMembers);
@@ -4989,7 +4989,7 @@ async function agregarMiembrosInstitucion() {
   const result = await response.json().catch(() => ({}));
   if (!response.ok || !result.ok) throw new Error(result.error || "No fue posible guardar los integrantes.");
   document.getElementById("institutionBulkMembers").value = "";
-  if (status) status.textContent = result.message || `${members.length} integrante(s) agregado(s) a la institución.`;
+  if (status) setStatusTemporal("institutionMembersStatus", result.message || `${members.length} integrante(s) agregado(s) a la institución.`, "success", 5000);
   await renderInstitutionPanel();
 }
 
