@@ -798,7 +798,7 @@ function buildUserClaims(data = {}, email = "") {
   const expiryMs = firestoreDateMillis(data.subscriptionExpiresAt);
   const directActive = data.subscriptionStatus === "active" && (!Number.isFinite(expiryMs) || expiryMs > Date.now());
   const inheritedActive = data.subscriptionInherited === true && data.institutionSubscriptionStatus === "active";
-  const blocked = data.institutionAccessRevoked === true || data.institutionMemberStatus === "removed" || data.institutionMemberStatus === "blocked";
+  const blocked = data.institutionAccessRevoked === true || data.institutionAccessBlocked === true || data.institutionPremiumBlocked === true || data.subscriptionPremiumBlocked === true || data.institutionMemberStatus === "removed" || data.institutionMemberStatus === "blocked";
   const platformOwner = normalizeEmail(email || data.email) === "solanojhonatan2000@gmail.com";
   return {
     role: role || null,
@@ -1406,6 +1406,10 @@ exports.wompiWebhook = onRequest({
       maxInstitutionUsers: intent.maxInstitutionUsers || null,
       maxTeachers: intent.maxTeachers || null,
       maxStudents: intent.maxStudents || null,
+      subscriptionPremiumBlocked: false,
+      institutionPremiumBlocked: false,
+      institutionAccessBlocked: false,
+      institutionAccessRevoked: false,
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     };
     const sourceId = transaction.payment_source_id || transaction.payment_source?.id;
@@ -1438,8 +1442,45 @@ exports.wompiWebhook = onRequest({
         maxInstitutionUsers: intent.maxInstitutionUsers || null,
         maxTeachers: intent.maxTeachers || null,
         maxStudents: intent.maxStudents || null,
+        subscriptionPremiumBlocked: false,
+        subscriptionBlockedAt: admin.firestore.FieldValue.delete(),
+        subscriptionBlockedByUid: admin.firestore.FieldValue.delete(),
+        subscriptionBlockedByEmail: admin.firestore.FieldValue.delete(),
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
       }, { merge: true });
+
+      const institutionUsersSnap = await db.collection("users").where("institutionDane", "==", String(intent.institutionDane)).get();
+      let accessBatch = db.batch();
+      let accessCount = 0;
+      for (const userDoc of institutionUsersSnap.docs) {
+        const user = userDoc.data() || {};
+        if (["removed", "blocked"].includes(String(user.institutionMemberStatus || ""))) continue;
+        const role = String(user.role || user.tipoCuenta || "").toLowerCase();
+        const payload = role === "institution"
+          ? {
+              subscriptionStatus: "active",
+              subscriptionPremiumBlocked: false,
+              institutionPremiumBlocked: false,
+              institutionAccessBlocked: false,
+              institutionAccessRevoked: false,
+              updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            }
+          : {
+              institutionSubscriptionStatus: "active",
+              subscriptionInherited: true,
+              institutionPremiumBlocked: false,
+              institutionAccessBlocked: false,
+              institutionAccessRevoked: false,
+              updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            };
+        accessBatch.set(userDoc.ref, payload, { merge: true });
+        accessCount += 1;
+        if (accessCount % 450 === 0) {
+          await accessBatch.commit();
+          accessBatch = db.batch();
+        }
+      }
+      if (accessCount % 450 !== 0) await accessBatch.commit();
     }
     await db.collection("notifications").add({
       targetUid: intent.uid,
@@ -1688,6 +1729,84 @@ exports.deleteInstitutionDeep = onRequest({ region: "us-central1" }, async (req,
   return res.status(200).json({ ok: true, deleted, authUsersQueued: authUids.size });
 });
 
+exports.blockInstitutionPremium = onRequest({ region: "us-central1" }, async (req, res) => {
+  setCors(res);
+  if (req.method === "OPTIONS") return res.status(204).send("");
+  if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
+  if (!(await enforceAppCheck(req, res))) return;
+
+  let decoded;
+  try {
+    decoded = await requireAuth(req);
+  } catch {
+    return res.status(401).json({ error: "Debes iniciar sesión." });
+  }
+
+  const callerEmail = normalizeEmail(decoded.email);
+  if (callerEmail !== "solanojhonatan2000@gmail.com") {
+    return res.status(403).json({ error: "Solo el dueño de la app puede bloquear instituciones." });
+  }
+
+  const institutionDane = normalizeDane(req.body?.institutionDane || "");
+  if (!institutionDane) return res.status(400).json({ error: "Falta el código DANE de la institución." });
+
+  const institutionRef = db.collection("institutions").doc(institutionDane);
+  const institutionSnap = await institutionRef.get();
+  if (!institutionSnap.exists) return res.status(404).json({ error: "Institución no encontrada." });
+
+  await institutionRef.set({
+    subscriptionStatus: "blocked",
+    subscriptionPremiumBlocked: true,
+    subscriptionBlockedAt: admin.firestore.FieldValue.serverTimestamp(),
+    subscriptionBlockedByUid: decoded.uid,
+    subscriptionBlockedByEmail: callerEmail,
+    subscriptionInherited: false,
+    subscriptionAutoRenew: false,
+    subscriptionPaymentPaused: true,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+  }, { merge: true });
+
+  const usersSnap = await db.collection("users").where("institutionDane", "==", institutionDane).get();
+  let batch = db.batch();
+  let count = 0;
+  for (const userDoc of usersSnap.docs) {
+    const user = userDoc.data() || {};
+    const role = String(user.role || user.tipoCuenta || "").toLowerCase();
+    const payload = role === "institution"
+      ? {
+          subscriptionStatus: "blocked",
+          subscriptionPremiumBlocked: true,
+          subscriptionAutoRenew: false,
+          subscriptionPaymentPaused: true,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        }
+      : {
+          institutionSubscriptionStatus: "blocked",
+          institutionAccessBlocked: true,
+          institutionPremiumBlocked: true,
+          subscriptionInherited: false,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        };
+    batch.set(userDoc.ref, payload, { merge: true });
+    count += 1;
+    if (count % 450 === 0) {
+      await batch.commit();
+      batch = db.batch();
+    }
+  }
+  if (count % 450 !== 0) await batch.commit();
+
+  await db.collection("billingEvents").add({
+    type: "institution-premium-block",
+    institutionDane,
+    requestedByUid: decoded.uid,
+    requestedByEmail: callerEmail,
+    affectedUsers: count,
+    createdAt: admin.firestore.FieldValue.serverTimestamp()
+  }).catch(() => {});
+
+  return res.status(200).json({ ok: true, affectedUsers: count, message: "Institución bloqueada. Se reactivará automáticamente con un nuevo pago aprobado." });
+});
 exports.manageInstitutionMembers = onRequest({ region: "us-central1" }, async (req, res) => {
   setCors(res);
   if (req.method === "OPTIONS") return res.status(204).send("");

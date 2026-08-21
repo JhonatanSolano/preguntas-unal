@@ -66,6 +66,7 @@ const APP_CONFIG = {
   passwordResetEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/sendPasswordResetEmailCustom",
   emailVerificationEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/sendEmailVerificationCustom",
   deepDeleteEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/deleteInstitutionDeep",
+  blockInstitutionEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/blockInstitutionPremium",
   institutionMemberEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/manageInstitutionMembers",
   examAccessEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/getExamAccessState",
   examAccessUpdateEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/updateExamAccessConfig",
@@ -1151,7 +1152,7 @@ function seccionInicioActual() {
 function suscripcionActiva(perfil = perfilActual) {
   if (esPropietarioPlataforma()) return true;
   if (cuentaInstitucional(perfil) && !esInstitucion(perfil)) {
-    if (perfil?.institutionAccessRevoked || perfil?.institutionMemberStatus === "removed" || perfil?.institutionMemberStatus === "blocked") return false;
+    if (perfil?.institutionAccessRevoked || perfil?.institutionAccessBlocked || perfil?.institutionPremiumBlocked || perfil?.subscriptionPremiumBlocked || perfil?.institutionMemberStatus === "removed" || perfil?.institutionMemberStatus === "blocked") return false;
     return perfil?.institutionSubscriptionStatus === "active" || perfil?.subscriptionInherited === true || perfil?.subscriptionStatus === "active";
   }
   if (perfil?.subscriptionStatus !== "active") return false;
@@ -5116,6 +5117,9 @@ function perfilConAccesoInstitucionalActivo(data = {}) {
     data.subscriptionInherited === true &&
     data.institutionSubscriptionStatus === "active" &&
     data.institutionAccessRevoked !== true &&
+    data.institutionAccessBlocked !== true &&
+    data.institutionPremiumBlocked !== true &&
+    data.subscriptionPremiumBlocked !== true &&
     data.institutionMemberStatus !== "removed" &&
     data.institutionMemberStatus !== "blocked"
   );
@@ -5222,11 +5226,30 @@ async function renderOwnerInstitutions() {
   }
   cont.innerHTML = snap.docs.map(item => {
     const data = item.data();
-    return `<article class="student-row">
-      <div><strong>${data.institutionName || item.id}</strong><span>DANE ${data.institutionDane || item.id}</span><small>${data.institutionDepartmentName || ""} ${data.institutionMunicipalityName || ""}</small></div>
+    const blocked = data.subscriptionStatus === "blocked" || data.subscriptionPremiumBlocked === true;
+    const status = blocked
+      ? `<small class="danger-text">Premium bloqueado hasta nuevo pago o renovación.</small>`
+      : `<small>${data.institutionDepartmentName || ""} ${data.institutionMunicipalityName || ""}</small>`;
+    return `<article class="student-row owner-institution-row ${blocked ? "student-blocked" : ""}">
+      <div><strong>${data.institutionName || item.id}</strong><span>DANE ${data.institutionDane || item.id}</span>${status}</div>
+      <button class="btn ${blocked ? "btn-primary" : "btn-outline"}" type="button" data-owner-block-institution="${item.id}" ${blocked ? "disabled" : ""}>${blocked ? "Bloqueada" : "Bloquear institución"}</button>
       <button class="btn btn-outline danger" type="button" data-owner-delete-institution="${item.id}">Eliminar institución</button>
     </article>`;
   }).join("");
+}
+
+async function bloquearInstitucionPremium(dane) {
+  const normalized = normalizarDane(dane);
+  if (!normalized || !APP_CONFIG.blockInstitutionEndpoint) return;
+  if (!confirm("¿Deseas bloquear el acceso premium de esta institución?\n\nLa institución seguirá registrada, pero perderá beneficios premium hasta que pague o renueve un plan.")) return;
+  const response = await authedFetch(APP_CONFIG.blockInstitutionEndpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ institutionDane: normalized })
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || "No fue posible bloquear la institución.");
+  mostrarOk(data.message || "Institución bloqueada hasta nuevo pago o renovación.");
 }
 
 function renderConfiguracion() {
@@ -12331,6 +12354,17 @@ document.getElementById("institutionMembersList")?.addEventListener("click", e =
   if (btn) eliminarMiembroInstitucion(btn.dataset.deleteInstitutionMember);
 });
 document.getElementById("ownerInstitutionsList")?.addEventListener("click", async e => {
+  const blockBtn = e.target.closest("[data-owner-block-institution]");
+  if (blockBtn) {
+    try {
+      await bloquearInstitucionPremium(blockBtn.dataset.ownerBlockInstitution);
+      await renderOwnerInstitutions();
+    } catch (err) {
+      console.error(err);
+      mostrarError(err.message || "No fue posible bloquear la institución.");
+    }
+    return;
+  }
   const btn = e.target.closest("[data-owner-delete-institution]");
   if (!btn) return;
   await eliminarInstitucionCompleta(btn.dataset.ownerDeleteInstitution);

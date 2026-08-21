@@ -13197,3 +13197,65 @@ body.group-locked.public-modal-open #btnBackToTop.back-to-top,
   flex: 0 0 auto;
   margin-top: .2rem;
 }
+
+/* Strong administrative field alignment: keep controls inside card rhythm */
+#sectionAdmin .accordion-card > label,
+#sectionConfiguracion .accordion-card > label,
+#ownerSettingsPanel .accordion-card > label,
+#institutionSettingsPanel .accordion-card > label {
+  box-sizing: border-box;
+  display: block;
+  width: calc(100% - 2rem) !important;
+  max-width: calc(100% - 2rem) !important;
+  margin-left: 1rem !important;
+  margin-right: 1rem !important;
+}
+
+#sectionAdmin .accordion-card > label > .admin-input,
+#sectionConfiguracion .accordion-card > label > .admin-input,
+#ownerSettingsPanel .accordion-card > label > .admin-input,
+#institutionSettingsPanel .accordion-card > label > .admin-input {
+  box-sizing: border-box;
+  display: block;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: .45rem 0 0 !important;
+}
+
+#sectionAdmin .accordion-card > textarea.admin-input,
+#sectionAdmin .accordion-card > input.admin-input,
+#sectionConfiguracion .accordion-card > textarea.admin-input,
+#sectionConfiguracion .accordion-card > input.admin-input,
+#institutionSettingsPanel .accordion-card > textarea.admin-input,
+#institutionSettingsPanel .accordion-card > input.admin-input,
+.class-students-list .student-search {
+  box-sizing: border-box;
+  display: block;
+  width: calc(100% - 2rem) !important;
+  max-width: calc(100% - 2rem) !important;
+  margin-left: 1rem !important;
+  margin-right: 1rem !important;
+}
+
+.institution-delete-card .check-line {
+  color: var(--danger, #dc2626) !important;
+  font-weight: 900 !important;
+}
+
+.owner-institution-row {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.owner-institution-row .btn {
+  min-width: min(220px, 100%);
+}
+
+@media (max-width: 760px) {
+  .owner-institution-row {
+    grid-template-columns: 1fr !important;
+  }
+  .owner-institution-row .btn {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+}
