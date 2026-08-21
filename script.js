@@ -8276,6 +8276,28 @@ function limpiarLoginCredenciales() {
   document.getElementById("googleInstitutionPanel")?.classList.add("hidden");
 }
 
+function cerrarPanelGoogleInstitucional() {
+  const input = document.getElementById("googleInstitutionDane");
+  if (input) input.value = "";
+  setStatus("googleInstitutionStatus", "");
+  document.getElementById("googleInstitutionPanel")?.classList.add("hidden");
+  document.getElementById("loginPanel")?.classList.remove("hidden");
+  document.getElementById("registerPanel")?.classList.add("hidden");
+  document.getElementById("loginTypeStep")?.classList.add("hidden");
+  actualizarLoginAccountType();
+}
+
+async function cancelarFlujoGoogleInstitucional() {
+  googleAuthFlowInProgress = false;
+  clearPendingLoginType();
+  ocultarReloadSesion();
+  cerrarPanelGoogleInstitucional();
+  if (auth.currentUser && !grupoActivo && !esEstudianteCuenta(perfilActual)) {
+    suppressAuthResetOnce = true;
+    await signOut(auth).catch(() => {});
+  }
+}
+
 function modalPublicoAbierto() {
   return ["loginCard", "institutionInfoCard", "faqCard", "forgotPasswordCard", "forgotUserCard", "roleChoiceCard"]
     .some(id => !document.getElementById(id)?.classList.contains("hidden"));
@@ -8405,7 +8427,7 @@ function cerrarFaqCard() {
 }
 
 function cerrarAuthCard() {
-  if (usuarioActual && !grupoActivo) {
+  if (usuarioActual && !grupoActivo && esEstudianteCuenta(perfilActual)) {
     mostrarEntradaGrupo();
     return;
   }
@@ -10056,48 +10078,49 @@ async function loginGoogleInstitucional() {
     setPendingLoginType(expectedType);
     const cred = await signInWithPopup(auth, new GoogleAuthProvider());
     const email = (cred.user.email || "").toLowerCase();
-    const snap = await getDoc(doc(db, "users", cred.user.uid));
-    const profile = snap.exists() ? snap.data() : {};
     const expectedRole = expectedType === "teacher" ? "teacher" : "student";
-    if (snap.exists()) {
-      if (!loginCoincideConTipo(profile, expectedType, email) || normalizarDane(profile.institutionDane) !== dane) {
-        suppressAuthResetOnce = true;
-        await signOut(auth);
-        clearPendingLoginType();
-        ocultarReloadSesion();
-        mostrarLoginErrorTemporal("googleInstitutionStatus", "No tienes permisos de acceso por ninguna institución con ese correo y código DANE.");
-        return;
-      }
-      clearPendingLoginType();
-      await guardarDatosGoogleIniciales(cred.user);
-      await prepararSesionAutenticada();
-      ocultarReloadSesion();
-      return;
-    }
-    const member = await buscarMiembroInstitucional(email, dane);
-    if (!member || member.role !== expectedRole || member.status === "removed" || member.status === "blocked") {
+    const [snap, member] = await Promise.all([
+      getDoc(doc(db, "users", cred.user.uid)),
+      buscarMiembroInstitucional(email, dane).catch(() => null)
+    ]);
+    const profile = snap.exists() ? snap.data() : {};
+    const memberAuthorized = !!member &&
+      member.role === expectedRole &&
+      member.status !== "removed" &&
+      member.status !== "blocked" &&
+      normalizarDane(member.institutionDane) === dane;
+    const profileAuthorized = snap.exists() &&
+      loginCoincideConTipo(profile, expectedType, email) &&
+      normalizarDane(profile.institutionDane) === dane &&
+      profile.institutionMemberStatus !== "removed" &&
+      profile.institutionMemberStatus !== "blocked";
+
+    if (!profileAuthorized && !memberAuthorized) {
       suppressAuthResetOnce = true;
-      await signOut(auth);
+      await signOut(auth).catch(() => {});
       clearPendingLoginType();
       ocultarReloadSesion();
       mostrarLoginErrorTemporal("googleInstitutionStatus", "No tienes permisos de acceso por ninguna institución con ese correo y código DANE.");
       return;
     }
+
     const institutionState = await institucionTienePlanActivo(dane);
     if (!institutionState.active) {
       suppressAuthResetOnce = true;
-      await signOut(auth);
+      await signOut(auth).catch(() => {});
       clearPendingLoginType();
       ocultarReloadSesion();
       mostrarLoginErrorTemporal("googleInstitutionStatus", "La institución no tiene una suscripción activa.");
       return;
     }
+
+    const source = memberAuthorized ? member : profile;
     await guardarPerfilUsuario({
       uid: cred.user.uid,
       email,
-      displayName: cred.user.displayName || member.name || "",
-      photoData: cred.user.photoURL || "",
-      photoFullURL: fotoPerfilAltaCalidad(cred.user.photoURL || ""),
+      displayName: profile.displayName || cred.user.displayName || source.name || "",
+      photoData: profile.photoData || cred.user.photoURL || "",
+      photoFullURL: profile.photoFullURL || fotoPerfilAltaCalidad(cred.user.photoURL || ""),
       role: expectedRole,
       tipoCuenta: expectedRole,
       accountMode: "institutional",
@@ -10105,27 +10128,49 @@ async function loginGoogleInstitucional() {
       institutionStatus: "active",
       institutionMemberStatus: "active",
       institutionDane: dane,
-      institutionName: member.institutionName || institutionState.data?.institutionName || "",
-      institutionOwnerUid: member.ownerUid || institutionState.data?.ownerUid || "",
+      institutionName: source.institutionName || institutionState.data?.institutionName || "",
+      institutionOwnerUid: source.ownerUid || institutionState.data?.ownerUid || "",
+      classId: source.classId || profile.classId || "",
+      className: source.className || profile.className || "",
+      classCode: source.classCode || profile.classCode || "",
+      classOwnerUid: source.classOwnerUid || source.ownerUid || profile.classOwnerUid || "",
+      classOwnerEmail: source.classOwnerEmail || source.ownerEmail || profile.classOwnerEmail || "",
+      grupo: expectedRole === "teacher" ? "admin" : (source.classId || profile.classId || ""),
       institutionSubscriptionStatus: "active",
       subscriptionInherited: true,
       authProvider: "google.com"
     });
-    await updateDoc(doc(db, "institutionMembers", member.id), {
-      userUid: cred.user.uid,
-      displayName: cred.user.displayName || member.name || "",
-      status: "active",
-      registeredAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    });
+
+    if (memberAuthorized) {
+      await updateDoc(doc(db, "institutionMembers", member.id), {
+        userUid: cred.user.uid,
+        displayName: cred.user.displayName || member.name || profile.displayName || "",
+        status: "active",
+        registeredAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        classId: member.classId || profile.classId || "",
+        className: member.className || profile.className || "",
+        classCode: member.classCode || profile.classCode || "",
+        classOwnerUid: member.classOwnerUid || member.ownerUid || profile.classOwnerUid || "",
+        classOwnerEmail: member.classOwnerEmail || member.ownerEmail || profile.classOwnerEmail || ""
+      });
+    }
+
     clearPendingLoginType();
+    await guardarDatosGoogleIniciales(cred.user);
     await prepararSesionAutenticada();
     ocultarReloadSesion();
   } catch (err) {
+    suppressAuthResetOnce = true;
+    await signOut(auth).catch(() => {});
     ocultarReloadSesion();
     clearPendingLoginType();
     console.error(err);
-    mostrarLoginErrorTemporal("googleInstitutionStatus", "No fue posible ingresar con Google. Revisa el código DANE o intenta de nuevo.");
+    const code = err?.code || "";
+    const message = code.includes("account-exists-with-different-credential") || code.includes("credential-already-in-use")
+      ? "Este correo ya está registrado con contraseña. Ingresa con correo y contraseña; después podrás vincular Google desde tu perfil."
+      : "No fue posible ingresar con Google. Revisa el código DANE o intenta de nuevo.";
+    mostrarLoginErrorTemporal("googleInstitutionStatus", message);
   } finally {
     googleAuthFlowInProgress = false;
     setButtonLoading(googleButton, false);
@@ -11608,9 +11653,7 @@ document.getElementById("btnEmailRegister")?.addEventListener("click", registrar
 document.getElementById("btnGoogleLogin")?.addEventListener("click", loginGoogle);
 document.getElementById("btnContinueGoogleInstitution")?.addEventListener("click", loginGoogleInstitucional);
 document.getElementById("btnCancelGoogleInstitution")?.addEventListener("click", () => {
-  document.getElementById("googleInstitutionDane").value = "";
-  document.getElementById("googleInstitutionPanel")?.classList.add("hidden");
-  cambiarAuthMode("login");
+  cancelarFlujoGoogleInstitucional();
 });
 document.getElementById("googleInstitutionDane")?.addEventListener("keydown", event => {
   if (event.key === "Enter") {
