@@ -10095,7 +10095,11 @@ async function loginGoogle() {
   } catch (err) {
     ocultarReloadSesion();
     clearPendingLoginType();
-    mostrarLoginErrorTemporal("loginStatus", "No se pudo ingresar con Google.");
+    const code = err?.code || "";
+    const message = code.includes("account-exists-with-different-credential") || code.includes("credential-already-in-use")
+      ? "Este correo ya está registrado con contraseña. Ingresa con correo y contraseña; después podrás vincular Google desde tu perfil."
+      : "No se pudo ingresar con Google.";
+    mostrarLoginErrorTemporal("loginStatus", message);
   } finally {
     googleAuthFlowInProgress = false;
     setButtonLoading(googleButton, false);
@@ -12712,11 +12716,12 @@ onAuthStateChanged(auth, async user => {
     return;
   }
   if (requiereVerificacionEmail(user) && user.email?.toLowerCase() !== ADMIN_EMAIL) {
+    suppressAuthResetOnce = true;
     await signOut(auth);
     ocultarReloadSesion();
     document.body.classList.add("group-locked");
-    mostrarAuthInicial();
-    mostrarWarn("Tu correo aún no está verificado. Abre el enlace que llegó a Gmail.");
+    mostrarLoginConError("");
+    setStatusTemporal("loginStatus", "Tu correo aún no está verificado. Abre el enlace de verificación que llegó a Gmail.", "error", 5000);
     return;
   }
   limpiarWarn();
