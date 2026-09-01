@@ -3045,6 +3045,15 @@ function seccionScrollableActiva() {
 function esZonaScrollNativa(target) {
   return target?.closest?.("iframe, embed, object, textarea, select, [contenteditable='true'], .learning-pdf-viewer, .side-drawer, .notifications-list, .message-thread, .advisor-chat-log");
 }
+const SCROLL_BRIDGE_MAX_WHEEL_DELTA = 320;
+const SCROLL_BRIDGE_MAX_TOUCH_DELTA = 220;
+function ajustarDeltaScroll(deltaY, tipo = "wheel") {
+  const abs = Math.abs(deltaY);
+  if (abs < 1) return deltaY;
+  const factor = tipo === "touch" ? 1.75 : abs < 12 ? 3.35 : abs < 40 ? 2.55 : 1.9;
+  const max = tipo === "touch" ? SCROLL_BRIDGE_MAX_TOUCH_DELTA : SCROLL_BRIDGE_MAX_WHEEL_DELTA;
+  return Math.sign(deltaY) * Math.min(abs * factor, max);
+}
 function desplazarSeccionActiva(deltaY) {
   const root = seccionScrollableActiva();
   if (!root) return false;
@@ -3063,7 +3072,7 @@ function instalarPuenteScrollTrackpad() {
     const root = seccionScrollableActiva();
     const nativeScroller = ancestroScrollableVertical(target, event.deltaY);
     if (nativeScroller && nativeScroller !== root) return;
-    if (!desplazarSeccionActiva(event.deltaY)) return;
+    if (!desplazarSeccionActiva(ajustarDeltaScroll(event.deltaY, "wheel"))) return;
     event.preventDefault();
   }, { capture: true, passive: false });
   document.addEventListener("touchstart", event => {
@@ -3083,7 +3092,7 @@ function instalarPuenteScrollTrackpad() {
       touchY = currentY;
       return;
     }
-    if (!desplazarSeccionActiva(deltaY)) return;
+    if (!desplazarSeccionActiva(ajustarDeltaScroll(deltaY, "touch"))) return;
     touchY = currentY;
     event.preventDefault();
   }, { capture: true, passive: false });
