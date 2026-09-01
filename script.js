@@ -15,6 +15,7 @@ import {
   EmailAuthProvider,
   linkWithCredential,
   linkWithPopup,
+  fetchSignInMethodsForEmail,
   onAuthStateChanged,
   reauthenticateWithCredential,
   setPersistence,
@@ -3097,7 +3098,7 @@ function activarNav(sec, options = {}) {
       const locked = document.getElementById("examsLockedMsg");
       if (locked) {
         locked.hidden = false;
-        locked.textContent = "Primero debes pertenecer a una clase o aula.";
+        locked.textContent = esEstudianteIndependiente() ? "Tu aula se asigna automáticamente." : "Tu institución debe asignarte a un aula.";
       }
     }, 0);
   }
@@ -3105,7 +3106,7 @@ function activarNav(sec, options = {}) {
     sec = "configuracion";
     setTimeout(() => {
       const status = document.getElementById("settingsClassStatus");
-      if (status) status.textContent = "Primero debes pertenecer a una clase o aula. Ingresa el código cuando lo tengas.";
+      if (status) status.textContent = esEstudianteIndependiente() ? "Tu aula se asigna automáticamente." : "Tu institución debe asignarte a un aula.";
     }, 0);
   }
   if (sec !== seccionActual && !options.fromHistory) {
@@ -3243,7 +3244,7 @@ function renderExamenesHub() {
   const sinAula = !aulaActualValida();
   if (locked) {
     locked.hidden = !sinAula;
-    locked.textContent = "Primero debes pertenecer a una clase o aula.";
+    locked.textContent = esEstudianteIndependiente() ? "Tu aula se asigna automáticamente." : "Tu institución debe asignarte a un aula.";
   }
   if (intro) {
     intro.textContent = sinAula
@@ -4805,12 +4806,14 @@ function gradosInstitucion(perfil = perfilActual) {
 }
 
 function actualizarSelectGradosInstitucion() {
-  const select = document.getElementById("institutionMemberGrade");
-  if (!select) return;
   const grades = gradosInstitucion();
-  select.innerHTML = grades.length
-    ? grades.map(grade => `<option value="${grade}">${grade}</option>`).join("")
-    : `<option value="">Sin grados configurados</option>`;
+  ["institutionMemberGrade", "institutionClassGrade"].forEach(id => {
+    const select = document.getElementById(id);
+    if (!select) return;
+    select.innerHTML = grades.length
+      ? grades.map(grade => `<option value="${grade}">${grade}</option>`).join("")
+      : `<option value="">Sin grados configurados</option>`;
+  });
 }
 
 async function miembrosInstitucionActual() {
@@ -4831,6 +4834,7 @@ function estadoVisibleMiembroInstitucion(member, acceptedInviteKeys) {
   const email = String(member.email || "").toLowerCase();
   const key = `${member.classId || ""}::${email}`;
   if (member.status === "removed" || member.status === "blocked") return "bloqueado";
+  if (member.status === "active" && member.userUid) return "activo";
   return acceptedInviteKeys.has(key) ? "activo" : "pendiente";
 }
 
@@ -4850,6 +4854,19 @@ async function renderInstitutionPanel() {
   const teachers = members.filter(item => item.role === "teacher" && item.status !== "removed");
   const limits = limitesPlanInstitucional();
   const grades = gradosInstitucion();
+  const classList = document.getElementById("institutionClassesList");
+  if (classList) {
+    const classes = Array.isArray(adminClases) ? adminClases : [];
+    classList.innerHTML = classes.length
+      ? classes.map(clase => `<article class="institution-class-row">
+          <div>
+            <strong>${escapeHtml(clase.name || "Aula sin nombre")}</strong>
+            <span>Código de aula: ${escapeHtml(clase.code || "Sin código")}</span>
+            <small>Curso o grado: ${escapeHtml(clase.grade || clase.course || "Sin curso")}</small>
+          </div>
+        </article>`).join("")
+      : `<p class="mini-help">Aún no hay aulas creadas.</p>`;
+  }
   if (summary) {
     summary.innerHTML = [
       ["Institución", perfilActual?.institutionName || "Sin nombre"],
@@ -8224,7 +8241,7 @@ function actualizarReglasPassword() {
   });
   const valido = Object.values(detalle).every(Boolean);
   const btn = document.getElementById("btnEmailRegister");
-  if (btn) btn.disabled = !valido;
+  if (btn) btn.disabled = false;
   return valido;
 }
 
@@ -8289,6 +8306,14 @@ function mostrarAuthInicial(intent = "login") {
   actualizarLoginAccountType();
 }
 
+function resetPasswordVisibility(scope = document) {
+  scope.querySelectorAll?.("[data-toggle-password]").forEach(btn => {
+    const input = document.getElementById(btn.dataset.togglePassword || "");
+    if (input && input.type !== "password") input.type = "password";
+    btn.setAttribute("aria-label", "Ver contraseña");
+  });
+}
+
 function limpiarLoginCredenciales() {
   const campos = [
     "loginEmail",
@@ -8299,6 +8324,8 @@ function limpiarLoginCredenciales() {
     const input = document.getElementById(id);
     if (input) input.value = "";
   });
+  resetPasswordVisibility(document.getElementById("loginCard") || document);
+  actualizarReglasPasswordEn("passwordRules", "");
   setStatus("loginStatus", "");
   setStatus("loginTypeStatus", "");
   setStatus("googleInstitutionStatus", "");
@@ -8358,6 +8385,7 @@ function limpiarCamposPublicos(cardId) {
   });
   card.querySelectorAll("textarea").forEach(textarea => { textarea.value = ""; });
   card.querySelectorAll("select").forEach(select => { select.value = ""; });
+  resetPasswordVisibility(card);
   card.querySelectorAll("details").forEach(detail => { detail.open = false; });
   card.querySelectorAll(".bank-status, .message-status, .status, [id$='Status']").forEach(status => {
     status.textContent = "";
@@ -8369,7 +8397,7 @@ function limpiarCamposPublicos(cardId) {
 function limpiarAuthPublico() {
   limpiarCamposPublicos("loginCard");
   clasePendienteIngreso = null;
-  document.getElementById("classCodeStep")?.classList.remove("hidden");
+  document.getElementById("classCodeStep")?.classList.add("hidden");
   document.getElementById("groupCodeStep")?.classList.add("hidden");
 }
 
@@ -8403,7 +8431,7 @@ function mostrarLoginConError(message) {
   const title = document.getElementById("authTitle");
   if (title) title.textContent = "Ingreso Matemáticas En Tu Bolsillo";
   actualizarLoginAccountType();
-  setStatus("loginStatus", message || "Tipo de cuenta equivocado. Selecciona el tipo correcto e intenta nuevamente.", "error");
+  setStatusTemporal("loginStatus", message || "Tipo de cuenta equivocado. Selecciona el tipo correcto e intenta nuevamente.", "error", 5000);
   actualizarBloqueoScrollPublico();
   enfocarModalPublico("loginCard");
 }
@@ -8456,10 +8484,6 @@ function cerrarFaqCard() {
 }
 
 function cerrarAuthCard() {
-  if (usuarioActual && !grupoActivo && esEstudianteCuenta(perfilActual)) {
-    mostrarEntradaGrupo();
-    return;
-  }
   limpiarAuthPublico();
   document.getElementById("loginCard")?.classList.add("hidden");
   actualizarBloqueoScrollPublico();
@@ -8479,19 +8503,8 @@ function cerrarFlujosAuth() {
 }
 
 function mostrarEntradaGrupo() {
-  document.getElementById("roleChoiceCard")?.classList.add("hidden");
-  document.getElementById("loginCard")?.classList.remove("hidden");
-  document.getElementById("btnAuthClose")?.classList.add("hidden");
-  document.querySelector(".auth-tabs")?.classList.add("hidden");
-  document.querySelector(".auth-divider")?.classList.add("hidden");
-  document.getElementById("loginPanel")?.classList.add("hidden");
-  document.getElementById("registerPanel")?.classList.add("hidden");
-  document.getElementById("btnGoogleLogin")?.closest(".auth-actions")?.classList.add("hidden");
-  document.getElementById("groupEntry")?.classList.remove("hidden");
-  clasePendienteIngreso = null;
-  document.getElementById("classCodeStep")?.classList.remove("hidden");
-  document.getElementById("groupCodeStep")?.classList.add("hidden");
-  document.getElementById("groupEntryText").textContent = "Cuenta validada. Ingresa el código del aula compartido por tu profesor o continúa más tarde desde configuración.";
+  document.getElementById("groupEntry")?.classList.add("hidden");
+  document.getElementById("classCodeStep")?.classList.add("hidden");
   actualizarBloqueoScrollPublico();
 }
 
@@ -8573,29 +8586,32 @@ function mostrarSplashBienvenida() {
   });
 }
 
-function mostrarWarn(msg, tipo = "") {
+function mostrarWarn(msg, tipo = "error", ms = 5000) {
   const warn = document.getElementById("grupoWarn");
+  if (!warn) return;
   warn.textContent = msg;
   warn.hidden = false;
   warn.classList.toggle("error", tipo === "error");
+  warn.classList.toggle("ok", tipo === "ok" || tipo === "success");
+  clearTimeout(statusTimers.grupoWarn);
+  statusTimers.grupoWarn = setTimeout(() => {
+    warn.textContent = "";
+    warn.hidden = true;
+    warn.classList.remove("error", "ok");
+  }, ms);
 }
 
 function mostrarErrorAuth(msg, ms = 5000) {
-  mostrarWarn(msg, "error");
-  clearTimeout(statusTimers.grupoWarn);
-  statusTimers.grupoWarn = setTimeout(() => {
-    const warn = document.getElementById("grupoWarn");
-    if (!warn) return;
-    warn.textContent = "";
-    warn.hidden = true;
-    warn.classList.remove("error");
-  }, ms);
+  mostrarWarn(msg, "error", ms);
 }
 
 function limpiarWarn() {
   const warn = document.getElementById("grupoWarn");
+  if (!warn) return;
   warn.hidden = true;
-  warn.classList.remove("error");
+  warn.textContent = "";
+  warn.classList.remove("error", "ok");
+  clearTimeout(statusTimers.grupoWarn);
 }
 
 const statusTimers = {};
@@ -9081,6 +9097,8 @@ async function crearClaseAdmin(options = {}) {
   if (!exigirSuscripcion("Activa tu suscripción para crear aulas.")) return;
   const btn = document.getElementById(options.buttonId || "btnCreateClass");
   const nameInput = document.getElementById(options.nameId || "adminClassName");
+  const gradeInput = options.gradeId ? document.getElementById(options.gradeId) : null;
+  const grade = gradeInput?.value || "";
   const name = nameInput?.value.trim() || "";
   if (!name) {
     if (status) {
@@ -9121,6 +9139,8 @@ async function crearClaseAdmin(options = {}) {
       ownerUid: usuarioActual.uid,
       institutionDane: institutionalOwner ? (perfilActual?.institutionDane || "") : "",
       institutionName: institutionalOwner ? (perfilActual?.institutionName || "") : "",
+      grade: institutionalOwner ? grade : "",
+      course: institutionalOwner ? grade : "",
       status: "activa",
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
@@ -9131,6 +9151,7 @@ async function crearClaseAdmin(options = {}) {
     adminClases = [{ id: ref.id, ...payload }, ...adminClases.filter(c => c.id !== ref.id)];
     renderClassSelectors();
     await cargarClasesAdmin();
+    if (esInstitucion()) await renderInstitutionPanel().catch(error => console.warn("No se pudo refrescar el panel institucional.", error));
     if (nameInput) nameInput.value = "";
     if (status) setStatusTemporal(options.statusId || "adminClassStatus", `Aula creada. Código generado: ${code}`, "success", 5000);
   } catch (err) {
@@ -9506,33 +9527,6 @@ async function entrarGrupo() {
   modoAdmin = false;
   localStorage.setItem(STORAGE_GRUPO, grupoActivo);
   localStorage.setItem(STORAGE_CLASE_ACTIVA, claseActiva);
-  if ((invite.invitedRole || invite.role || "") === "teacher" && esProfesor()) {
-    grupoActivo = "admin";
-    localStorage.setItem(STORAGE_GRUPO, grupoActivo);
-    await updateDoc(inviteDoc.ref, {
-      status: "accepted",
-      acceptedAt: serverTimestamp(),
-      acceptedByUid: usuarioActual.uid,
-      updatedAt: serverTimestamp()
-    });
-    await guardarPerfilUsuario({
-      role: "teacher",
-      tipoCuenta: "teacher",
-      isAdmin: true,
-      grupo: "admin",
-      classId: clase.id,
-      className: clase.name,
-      classCode: clase.code,
-      classOwnerUid: clase.ownerUid || invite.ownerUid || invite.teacherUid || "",
-      classOwnerEmail: clase.ownerEmail || invite.teacherEmail || ""
-    });
-    localStorage.removeItem(STORAGE_INVITE_TOKEN);
-    document.body.classList.remove("group-locked");
-    aplicarModoUsuario();
-    activarNav("admin");
-    mostrarWarn(`Aceptaste la invitación al aula ${clase.name}.`);
-    return true;
-  }
   await guardarPerfilUsuario({
     grupo: grupoActivo,
     isAdmin: false,
@@ -9731,6 +9725,20 @@ async function aceptarInvitacionPendiente() {
     acceptedByUid: usuarioActual.uid,
     updatedAt: serverTimestamp()
   });
+  if (invite.institutionDane) {
+    await setDoc(doc(db, "institutionMembers", memberDocId(invite.institutionDane, usuarioActual.email)), {
+      userUid: usuarioActual.uid,
+      displayName: perfilActual?.displayName || usuarioActual.displayName || invite.studentName || "",
+      status: "active",
+      registeredAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      classId: clase.id,
+      className: clase.name,
+      classCode: clase.code,
+      classOwnerUid: clase.ownerUid || invite.ownerUid || invite.teacherUid || "",
+      classOwnerEmail: clase.ownerEmail || invite.teacherEmail || ""
+    }, { merge: true }).catch(() => {});
+  }
   await guardarPerfilUsuario({
     grupo: clase.id,
     classId: clase.id,
@@ -9749,7 +9757,7 @@ async function aceptarInvitacionPendiente() {
   aplicarModoUsuario();
   activarNav("inicio");
   actualizarEstadoDiagnostico();
-  mostrarWarn(`Te uniste al aula ${clase.name}.`);
+  mostrarWarn(`Te uniste al aula ${clase.name}.`, "ok");
   return true;
 }
 
@@ -9815,10 +9823,28 @@ async function loginEmail() {
   const expectedType = document.getElementById("loginAccountType")?.value || "";
   setStatus("loginStatus", "");
   if (!expectedType) {
-    setStatus("loginStatus", "Selecciona primero el tipo de cuenta.", "error");
+    setStatusTemporal("loginStatus", "Selecciona primero el tipo de cuenta.", "error", 5000);
+    return;
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    setStatusTemporal("loginStatus", "Usuario no encontrado. Debe primero crear una cuenta.", "error", 5000);
+    return;
+  }
+  if (!password) {
+    setStatusTemporal("loginStatus", "Correo o contraseña incorrecta.", "error", 5000);
     return;
   }
   try {
+    let methods = [];
+    try {
+      methods = await fetchSignInMethodsForEmail(auth, email);
+    } catch (methodErr) {
+      console.warn("No se pudieron consultar métodos de ingreso.", methodErr);
+    }
+    if (Array.isArray(methods) && methods.length === 0) {
+      setStatusTemporal("loginStatus", "Usuario no encontrado. Debe primero crear una cuenta.", "error", 5000);
+      return;
+    }
     setPendingLoginType(expectedType);
     const cred = await signInWithEmailAndPassword(auth, email, password);
     if (requiereVerificacionEmail(cred.user) && cred.user.email?.toLowerCase() !== ADMIN_EMAIL) {
@@ -9832,9 +9858,9 @@ async function loginEmail() {
       suppressAuthResetOnce = true;
       await signOut(auth);
       clearPendingLoginType();
-      mostrarLoginErrorTemporal("loginStatus", reenviado
-        ? "Tu correo aún no está verificado. Te reenviamos el enlace de verificación a Gmail."
-        : "Tu correo aún no está verificado. No pudimos reenviar el enlace; intenta nuevamente o contacta soporte.");
+      setStatusTemporal("loginStatus", reenviado
+        ? "Debe verificar primero su cuenta. Por favor, revisa tu correo registrado."
+        : "Debe verificar primero su cuenta. Por favor, revisa tu correo registrado.", "error", 5000);
       return;
     }
     const snap = await getDoc(doc(db, "users", cred.user.uid));
@@ -9842,7 +9868,7 @@ async function loginEmail() {
     if (!snap.exists()) {
       await signOut(auth);
       clearPendingLoginType();
-      setStatus("loginStatus", "Correo o contraseña incorrecta.", "error");
+      setStatusTemporal("loginStatus", "Usuario no encontrado. Debe primero crear una cuenta.", "error", 5000);
       return;
     }
     if (!loginCoincideConTipo(profile, expectedType, cred.user.email)) {
@@ -9850,12 +9876,18 @@ async function loginEmail() {
       loginRejectMessagePending = message;
       await signOut(auth);
       clearPendingLoginType();
-      setStatus("loginStatus", message, "error");
+      setStatusTemporal("loginStatus", message, "error", 5000);
       return;
     }
   } catch (err) {
     clearPendingLoginType();
-    setStatus("loginStatus", "Correo o contraseña incorrecta.", "error");
+    const code = err?.code || "";
+    const message = code.includes("user-not-found")
+      ? "Usuario no encontrado. Debe primero crear una cuenta."
+      : code.includes("wrong-password") || code.includes("invalid-credential") || code.includes("invalid-login-credentials")
+        ? "Correo o contraseña incorrecta."
+        : "Correo o contraseña incorrecta.";
+    setStatusTemporal("loginStatus", message, "error", 5000);
   }
 }
 
@@ -9924,17 +9956,12 @@ async function registrarEmail() {
   }
   let institucionRegistro = null;
   let miembroInstitucional = null;
-  if (accountMode === "institutional") {
-    if (!institutionDane) {
-      mostrarWarn("Escribe el código DANE de la institución.");
-      return;
-    }
+  if (accountMode === "institutional" && !institutionDane) {
+    mostrarWarn("Escribe el código DANE de la institución.");
+    return;
   }
   document.getElementById("registerRole").value = role;
   document.getElementById("registerAccountMode").value = accountMode;
-  if (accountMode === "institutional" && !email.endsWith("@gmail.com")) {
-    // Los estudiantes institucionales pueden usar el correo autorizado por su colegio.
-  }
   if (accountMode === "independent" && !email.endsWith("@gmail.com")) {
     mostrarWarn("Solo se permiten correos @gmail.com.");
     return;
@@ -9947,27 +9974,26 @@ async function registrarEmail() {
     mostrarWarn("Completa fecha de nacimiento, sexo o género, país, departamento y ciudad.");
     return;
   }
+  if (accountMode === "institutional") {
+    miembroInstitucional = await buscarMiembroInstitucional(email, institutionDane).catch(() => null);
+    if (!miembroInstitucional || miembroInstitucional.role !== role || miembroInstitucional.status === "removed" || miembroInstitucional.status === "blocked") {
+      mostrarWarn(role === "teacher"
+        ? "Tu correo no aparece autorizado como profesor activo de esta institución."
+        : "Tu correo no aparece autorizado como estudiante activo de esta institución.");
+      return;
+    }
+    const institutionState = await institucionTienePlanActivo(institutionDane);
+    institucionRegistro = institutionState.data;
+    if (!institutionState.active) {
+      mostrarWarn("La institución aún no tiene una suscripción activa. Comunícate con rectoría o coordinación.");
+      return;
+    }
+  }
   try {
     registroEnCurso = true;
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(cred.user, { displayName: nombre });
-    if (accountMode === "institutional") {
-      miembroInstitucional = await buscarMiembroInstitucional(email, institutionDane);
-      if (!miembroInstitucional || miembroInstitucional.role !== role || miembroInstitucional.status === "removed" || miembroInstitucional.status === "blocked") {
-        await deleteUser(cred.user).catch(() => {});
-        registroEnCurso = false;
-        mostrarWarn(`Tu correo no aparece autorizado como ${role === "teacher" ? "profesor" : "estudiante"} activo de esa institución.`);
-        return;
-      }
-      const institutionState = await institucionTienePlanActivo(institutionDane);
-      institucionRegistro = institutionState.data;
-      if (!institutionState.active) {
-        await deleteUser(cred.user).catch(() => {});
-        registroEnCurso = false;
-        mostrarWarn("La institución aún no tiene una suscripción activa. Comunícate con rectoría o coordinación.");
-        return;
-      }
-    } else {
+    if (accountMode !== "institutional") {
       const miembroExistente = await buscarMiembroInstitucionalPorEmail(email);
       if (miembroExistente && miembroExistente.status !== "removed" && miembroExistente.status !== "blocked") {
         const institutionState = await institucionTienePlanActivo(miembroExistente.institutionDane);
@@ -10010,18 +10036,28 @@ async function registrarEmail() {
         displayName: nombre,
         status: "active",
         registeredAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
         classId: miembroInstitucional?.classId || "",
         className: miembroInstitucional?.className || "",
         classCode: miembroInstitucional?.classCode || "",
         classOwnerUid: miembroInstitucional?.classOwnerUid || miembroInstitucional?.ownerUid || "",
         classOwnerEmail: miembroInstitucional?.classOwnerEmail || miembroInstitucional?.ownerEmail || ""
       });
+      const inviteId = (miembroInstitucional.classId || "") + "_" + safeEmailId(email);
+      if (miembroInstitucional.classId) {
+        await setDoc(doc(db, "classInvites", inviteId), {
+          status: "accepted",
+          acceptedAt: serverTimestamp(),
+          acceptedByUid: cred.user.uid,
+          updatedAt: serverTimestamp()
+        }, { merge: true }).catch(() => {});
+      }
     }
     await enviarVerificacionEmailPersonalizada(email);
     await signOut(auth);
     registroEnCurso = false;
     volverSelectorAuth("login");
-    mostrarWarn("Cuenta creada. Te enviamos un correo de verificación; abre el enlace y luego inicia sesión.");
+    mostrarWarn("Cuenta creada. Te enviamos un correo de verificación; abre el enlace y luego inicia sesión.", "ok");
   } catch (err) {
     registroEnCurso = false;
     if (err?.code === "auth/email-already-in-use") {
@@ -10047,19 +10083,10 @@ async function loginGoogle() {
     mostrarErrorAuth("Este tipo de cuenta debe registrarse manualmente con el código DANE institucional.");
     return;
   }
-  if (authIntent === "login" && ["institutionalStudent", "teacher"].includes(expectedType)) {
-    document.getElementById("googleInstitutionPanel")?.classList.remove("hidden");
-    document.getElementById("loginPanel")?.classList.add("hidden");
-    document.querySelector(".auth-divider")?.classList.add("hidden");
-    document.getElementById("btnGoogleLogin")?.closest(".auth-actions")?.classList.add("hidden");
-    setStatus("googleInstitutionStatus", "");
-    document.getElementById("googleInstitutionDane")?.focus();
-    return;
-  }
   try {
     googleAuthFlowInProgress = true;
     mostrarReloadSesion();
-    setButtonLoading(googleButton, true, "Ingresando...");
+    setButtonLoading(googleButton, true, authIntent === "register" ? "Registrando..." : "Ingresando...");
     if (authIntent === "login") setPendingLoginType(expectedType);
     const cred = await signInWithPopup(auth, new GoogleAuthProvider());
     const snap = await getDoc(doc(db, "users", cred.user.uid));
@@ -10079,7 +10106,16 @@ async function loginGoogle() {
       mostrarErrorAuth("Usuario ya registrado, por favor inicie sesión.");
       return;
     }
-    if (!snap.exists() || !loginCoincideConTipo(profile, expectedType, cred.user.email)) {
+    if (!snap.exists()) {
+      suppressAuthResetOnce = true;
+      await signOut(auth);
+      clearPendingLoginType();
+      ocultarReloadSesion();
+      mostrarLoginConError("Usuario no encontrado. Debe primero crear una cuenta.");
+      return;
+    }
+    if (!loginCoincideConTipo(profile, expectedType, cred.user.email)) {
+      suppressAuthResetOnce = true;
       await signOut(auth);
       clearPendingLoginType();
       ocultarReloadSesion();
@@ -10087,6 +10123,22 @@ async function loginGoogle() {
         ? "Google solo puede usarse con un correo ya registrado como estudiante independiente."
         : mensajeTipoCuentaNoAutorizado(expectedType));
       return;
+    }
+    if (["institutionalStudent", "teacher"].includes(expectedType)) {
+      const dane = normalizarDane(profile.institutionDane || "");
+      const expectedRole = expectedType === "teacher" ? "teacher" : "student";
+      const member = await buscarMiembroInstitucional((cred.user.email || "").toLowerCase(), dane).catch(() => null);
+      const autorizado = dane && member && member.role === expectedRole && !["removed", "blocked"].includes(member.status || "");
+      if (!autorizado) {
+        suppressAuthResetOnce = true;
+        await signOut(auth).catch(() => {});
+        clearPendingLoginType();
+        ocultarReloadSesion();
+        mostrarLoginConError(expectedType === "teacher"
+          ? "Tu correo no aparece autorizado como profesor activo de esta institución."
+          : "Tu correo no aparece autorizado como estudiante activo de esta institución.");
+        return;
+      }
     }
     clearPendingLoginType();
     await guardarDatosGoogleIniciales(cred.user);
@@ -10254,7 +10306,7 @@ async function registrarIndependienteGoogle(user) {
     billingMode: "independent",
     authProvider: "google.com"
   });
-  mostrarWarn("Cuenta independiente creada con Google. Completa tu perfil y suscripción para activar todos los beneficios.");
+  mostrarWarn("Cuenta independiente creada con Google. Completa tu perfil y suscripción para activar todos los beneficios.", "ok");
 }
 
 async function guardarDatosGoogleIniciales(user) {
@@ -11468,10 +11520,7 @@ async function registrarEstudiantesEnClase(claseId, raw, status) {
       classOwnerEmail: clase.ownerEmail || usuarioActual.email || "",
       students: unique
     });
-    if (status) {
-      status.textContent = `${unique.length} solicitud(es) enviada(s) a la institución para aprobación.`;
-      status.className = "bank-status success";
-    }
+    if (status) setStatusTemporal("adminStudentsStatus", `${unique.length} solicitud(es) enviada(s) a la institución para aprobación.`, "success", 5000);
     return;
   }
   try {
@@ -11588,7 +11637,7 @@ async function eliminarEstudianteRegistrado(id) {
       studentEmail: data.email || "",
       studentName: data.name || data.displayName || ""
     });
-    mostrarWarn("Solicitud enviada a la institución. El estudiante se eliminará cuando sea aprobada.");
+    mostrarWarn("Solicitud enviada a la institución. El estudiante se eliminará cuando sea aprobada.", "ok");
     await renderAdminStudentsByClass();
     return;
   }
@@ -12459,7 +12508,7 @@ document.getElementById("btnUpdatePassword")?.addEventListener("click", actualiz
 document.getElementById("createPasswordNew")?.addEventListener("input", e => actualizarReglasPasswordEn("createPasswordRules", e.target.value));
 document.getElementById("updatePasswordNew")?.addEventListener("input", e => actualizarReglasPasswordEn("updatePasswordRules", e.target.value));
 document.getElementById("btnCreateClass")?.addEventListener("click", crearClaseAdmin);
-document.getElementById("btnCreateInstitutionClass")?.addEventListener("click", () => crearClaseAdmin({ nameId: "institutionClassName", statusId: "institutionClassStatus", buttonId: "btnCreateInstitutionClass" }));
+document.getElementById("btnCreateInstitutionClass")?.addEventListener("click", () => crearClaseAdmin({ nameId: "institutionClassName", gradeId: "institutionClassGrade", statusId: "institutionClassStatus", buttonId: "btnCreateInstitutionClass" }));
 document.getElementById("adminClassSelect")?.addEventListener("change", e => {
   adminClaseActiva = e.target.value;
   adminGrupoActual = adminClaseActiva;
@@ -12720,8 +12769,7 @@ onAuthStateChanged(auth, async user => {
     await signOut(auth);
     ocultarReloadSesion();
     document.body.classList.add("group-locked");
-    mostrarLoginConError("");
-    setStatusTemporal("loginStatus", "Tu correo aún no está verificado. Abre el enlace de verificación que llegó a Gmail.", "error", 5000);
+    mostrarLoginConError("Debe verificar primero su cuenta. Por favor, revisa tu correo registrado.");
     return;
   }
   limpiarWarn();
@@ -12731,7 +12779,7 @@ onAuthStateChanged(auth, async user => {
     ocultarReloadSesion();
     document.body.classList.add("group-locked");
     mostrarAuthInicial("login");
-    setStatus("loginStatus", "Correo o contraseña incorrecta.", "error");
+    setStatusTemporal("loginStatus", "Usuario no encontrado. Debe primero crear una cuenta.", "error", 5000);
     return;
   }
   const perfilLogin = userSnap.data();
@@ -12750,7 +12798,7 @@ onAuthStateChanged(auth, async user => {
     ocultarReloadSesion();
     document.body.classList.add("group-locked");
     mostrarAuthInicial("login");
-    setStatus("loginStatus", "Correo o contraseña incorrecta.", "error");
+    setStatusTemporal("loginStatus", "Usuario no encontrado. Debe primero crear una cuenta.", "error", 5000);
     return;
   }
   if (user.providerData?.some(provider => provider.providerId === "google.com")) {

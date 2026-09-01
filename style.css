@@ -13260,19 +13260,109 @@ body.group-locked.public-modal-open #btnBackToTop.back-to-top,
   }
 }
 
+/* Estados de autenticación y formularios institucionales */
+.bank-status.error,
+.warn-msg.error,
+#grupoWarn.warn-msg.error,
+#loginStatus.bank-status.error,
+#loginTypeStatus.bank-status.error,
+#googleInstitutionStatus.bank-status.error,
+#registerPanel + .bank-status.error {
+  color: #c62839 !important;
+  font-weight: 900 !important;
+  text-shadow: none !important;
+}
+
+.bank-status.ok,
+.bank-status.success,
+.warn-msg.ok {
+  color: #0f9f7a !important;
+  font-weight: 900 !important;
+  text-shadow: none !important;
+}
+
 .password-rules p,
 .auth-gate .password-rules p,
 .profile-panel .password-rules p,
 .settings-shell .password-rules p {
   color: #c62839 !important;
+  font-weight: 900 !important;
+  text-shadow: none !important;
 }
-.password-rules p.invalid::before {
-  content: "• ";
-  font-weight: 900;
-}
+
 .password-rules p.valid,
 .auth-gate .password-rules p.valid,
 .profile-panel .password-rules p.valid,
 .settings-shell .password-rules p.valid {
   color: #0f9f7a !important;
+}
+
+.institution-classes-list {
+  display: grid;
+  gap: .75rem;
+  margin: 1rem;
+}
+
+.institution-class-row {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  padding: 1rem;
+  border: 1px solid rgba(13, 148, 136, .22);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, .84);
+  box-shadow: 0 12px 28px rgba(6, 31, 47, .06);
+}
+
+.institution-class-row div {
+  min-width: 0;
+  display: grid;
+  gap: .22rem;
+}
+
+.institution-class-row strong,
+.institution-class-row span,
+.institution-class-row small {
+  overflow-wrap: anywhere;
+}
+
+#institutionSettingsPanel .bank-grid,
+#sectionAdmin .bank-grid,
+#sectionReportes .bank-grid {
+  box-sizing: border-box;
+  width: calc(100% - 2rem);
+  max-width: calc(100% - 2rem);
+  margin-left: 1rem;
+  margin-right: 1rem;
+}
+
+#institutionSettingsPanel .bank-grid .admin-input,
+#sectionAdmin .bank-grid .admin-input,
+#sectionReportes .bank-grid .admin-input {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+}
+
+@media (max-width: 760px) {
+  .institution-classes-list {
+    margin: .85rem;
+  }
+
+  .institution-class-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  #institutionSettingsPanel .bank-grid,
+  #sectionAdmin .bank-grid,
+  #sectionReportes .bank-grid {
+    width: calc(100% - 1.4rem);
+    max-width: calc(100% - 1.4rem);
+    margin-left: .7rem;
+    margin-right: .7rem;
+  }
 }

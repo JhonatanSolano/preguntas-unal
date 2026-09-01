@@ -33,7 +33,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="style.css?v=20260821-05" />
+  <link rel="stylesheet" href="style.css?v=20260831-01" />
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -440,7 +440,7 @@
           <p data-rule="numbers">Mínimo dos números</p>
           <p data-rule="symbol">Mínimo un símbolo permitido: ! @ # $ % ^ & * ( ) _ + - = [ ] { } ; : , . ?</p>
         </div>
-        <button class="btn btn-primary" id="btnEmailRegister" type="button" disabled>Crear cuenta</button>
+        <button class="btn btn-primary" id="btnEmailRegister" type="button">Crear cuenta</button>
         <button class="btn btn-outline" id="btnRegisterBackToType" type="button">Cambiar tipo de registro</button>
         <button class="btn btn-outline" id="btnRegisterGoLogin" type="button">Ir a iniciar sesión</button>
       </div>
@@ -1897,13 +1897,19 @@
           <div class="stats-grid compact" id="institutionSummaryBox"></div>
         </details>
         <details class="accordion-card">
-          <summary>Crear aula institucional</summary>
+          <summary>Crear Aula</summary>
           <p>Crea primero el aula. Cada curso o grupo de la institución debe tener su propio código único.</p>
-          <label>Nombre del aula
-            <input type="text" id="institutionClassName" class="admin-input" placeholder="9A, 10B, 11C o Matemáticas 10A" />
-          </label>
+          <div class="bank-grid">
+            <label>Curso o grado
+              <select id="institutionClassGrade" class="admin-input"></select>
+            </label>
+            <label>Nombre del aula
+              <input type="text" id="institutionClassName" class="admin-input" placeholder="9A, 10B, 11C o Matemáticas 10A" />
+            </label>
+          </div>
           <button class="btn btn-primary" id="btnCreateInstitutionClass" type="button">Crear aula</button>
           <p class="bank-status" id="institutionClassStatus"></p>
+          <div id="institutionClassesList" class="institution-classes-list"></div>
         </details>
         <details class="accordion-card">
           <summary>Agregar estudiantes y profesores</summary>
@@ -2328,6 +2334,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260821-08"></script>
+  <script type="module" src="script.js?v=20260831-01"></script>
 </body>
 </html>

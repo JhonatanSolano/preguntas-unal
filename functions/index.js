@@ -1893,9 +1893,14 @@ exports.manageInstitutionMembers = onRequest({ region: "us-central1" }, async (r
             .where("role", "==", role)
         );
         const activeEmails = new Set();
+        const existingStatusByEmail = new Map();
         querySnap.docs.forEach(docSnap => {
           const data = docSnap.data() || {};
-          if (data.status !== "removed") activeEmails.add(normalizeEmail(data.email));
+          if (data.status !== "removed") {
+            const email = normalizeEmail(data.email);
+            activeEmails.add(email);
+            existingStatusByEmail.set(email, data.status || "pending");
+          }
         });
         const incomingNew = cleanedMembers.filter(member => !activeEmails.has(member.email));
         if (activeEmails.size + incomingNew.length > max) {
@@ -1919,7 +1924,7 @@ exports.manageInstitutionMembers = onRequest({ region: "us-central1" }, async (r
             classCode: classData.code || "",
             classOwnerUid: classData.ownerUid || institution.ownerUid || "",
             classOwnerEmail: classData.ownerEmail || institution.ownerEmail || "",
-            status: "active",
+            status: existingStatusByEmail.get(member.email) === "active" ? "active" : "pending",
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
             ...(alreadyActive ? {} : { createdAt: admin.firestore.FieldValue.serverTimestamp() })
           }, { merge: true });
