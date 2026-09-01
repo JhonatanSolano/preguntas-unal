@@ -13368,3 +13368,410 @@ body.group-locked.public-modal-open .auth-shell:not(.hidden) .password-rules p.v
     margin-right: .7rem;
   }
 }
+
+/* UI UX Pro Max design layer: cohesive app polish, resilient mobile layout and accessible motion */
+:root {
+  --ui-surface: #ffffff;
+  --ui-surface-soft: #f7fbfc;
+  --ui-border: #cfe2ea;
+  --ui-border-strong: #9ac6d4;
+  --ui-primary: #0d6372;
+  --ui-primary-strong: #082c4a;
+  --ui-accent: #c46a09;
+  --ui-success: #0f8f72;
+  --ui-danger: #c62839;
+  --ui-focus: rgba(13, 148, 136, .34);
+  --ui-shadow-card: 0 14px 34px rgba(8, 44, 74, .08);
+  --ui-shadow-hover: 0 18px 42px rgba(8, 44, 74, .13);
+  --ui-motion-fast: 150ms;
+  --ui-motion-base: 220ms;
+  --ui-motion-slow: 360ms;
+  --ui-ease-out: cubic-bezier(.2, .8, .2, 1);
+  --ui-ease-spring: cubic-bezier(.16, 1, .3, 1);
+}
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+body {
+  overscroll-behavior-y: contain;
+}
+body.app-active .main-content:not(.hidden) {
+  width: min(100%, 1180px);
+  max-width: 1180px;
+  margin-inline: auto;
+  padding-inline: clamp(.9rem, 3vw, 2rem);
+  overflow-x: clip;
+  scroll-padding-bottom: calc(6.25rem + env(safe-area-inset-bottom));
+}
+@supports not (overflow: clip) {
+  body.app-active .main-content:not(.hidden) {
+    overflow-x: hidden;
+  }
+}
+.main-content *,
+.auth-shell *,
+.side-drawer *,
+.advisor-widget * {
+  min-width: 0;
+}
+.main-content p,
+.main-content li,
+.main-content span,
+.main-content small,
+.main-content strong,
+.main-content label,
+.main-content td,
+.main-content th,
+.auth-shell p,
+.auth-shell label,
+.auth-shell span,
+.drawer-link,
+.advisor-message {
+  overflow-wrap: anywhere;
+}
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 3px solid var(--ui-focus) !important;
+  outline-offset: 3px !important;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.9), 0 0 0 5px var(--ui-focus) !important;
+}
+:where(button, .btn, .drawer-link, .auth-tab, .learning-branch, .learning-topic, .learning-subtopic, .exam-hub-card, .checkout-plan-card, .payment-method) {
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: rgba(13, 148, 136, .16);
+}
+.btn,
+.drawer-link,
+.auth-tab,
+.accordion-card > summary,
+.class-student-group > summary,
+.learning-level-tabs button,
+.learning-practice-options button,
+.learning-actions .btn,
+.exam-tabs button,
+.report-pagination .btn,
+.student-row .btn,
+.teacher-question-actions .btn,
+.payment-carousel-actions .btn,
+.billing-card .btn,
+.support-panel .btn {
+  min-height: 44px;
+  transition: transform var(--ui-motion-fast) var(--ui-ease-out), box-shadow var(--ui-motion-base) var(--ui-ease-out), background-color var(--ui-motion-base) var(--ui-ease-out), border-color var(--ui-motion-base) var(--ui-ease-out), color var(--ui-motion-base) var(--ui-ease-out), opacity var(--ui-motion-base) var(--ui-ease-out);
+}
+.btn:not(:disabled):active,
+.drawer-link:not(:disabled):active,
+.auth-tab:not(:disabled):active,
+.learning-branch:not(:disabled):active,
+.learning-topic:not(:disabled):active,
+.learning-subtopic:not(:disabled):active,
+.exam-hub-card:not(:disabled):active,
+.checkout-plan-card:not(:disabled):active,
+.payment-method:not(:disabled):active {
+  transform: scale(.985);
+}
+.btn:disabled,
+button:disabled,
+select:disabled,
+input:disabled,
+textarea:disabled {
+  cursor: not-allowed !important;
+  opacity: .56 !important;
+}
+.admin-input,
+.auth-shell input,
+.auth-shell select,
+.auth-shell textarea,
+.profile-panel input,
+.profile-panel select,
+.profile-panel textarea,
+.settings-shell input,
+.settings-shell select,
+.settings-shell textarea {
+  min-height: 48px;
+  font-size: max(16px, 1rem);
+  line-height: 1.45;
+  transition: border-color var(--ui-motion-base) var(--ui-ease-out), box-shadow var(--ui-motion-base) var(--ui-ease-out), background-color var(--ui-motion-base) var(--ui-ease-out);
+}
+.admin-input:focus,
+.auth-shell input:focus,
+.auth-shell select:focus,
+.auth-shell textarea:focus,
+.profile-panel input:focus,
+.profile-panel select:focus,
+.profile-panel textarea:focus,
+.settings-shell input:focus,
+.settings-shell select:focus,
+.settings-shell textarea:focus {
+  border-color: var(--ui-primary) !important;
+  box-shadow: 0 0 0 4px rgba(13, 148, 136, .14) !important;
+}
+.section-card,
+.accordion-card,
+.profile-panel,
+.settings-shell,
+.admin-panel,
+.billing-card,
+.support-panel,
+.learning-hero,
+.learning-sidebar,
+.learning-workspace,
+.learning-unit,
+.learning-manager,
+.learning-teacher-content,
+.learning-resource-grid article,
+.learning-practice,
+.badges-hero,
+.badge-card,
+.badges-next-card,
+.exam-hub-card,
+.admin-exam-bank-panel,
+.report-shell,
+.student-row,
+.owner-institution-row,
+.institution-class-row {
+  border-color: var(--ui-border) !important;
+  box-shadow: var(--ui-shadow-card);
+}
+@media (hover: hover) and (pointer: fine) {
+  .section-card:hover,
+  .profile-panel:hover,
+  .billing-card:hover,
+  .learning-resource-grid article:hover,
+  .learning-practice:hover,
+  .badge-card:hover,
+  .exam-hub-card:hover,
+  .student-row:hover,
+  .institution-class-row:hover {
+    box-shadow: var(--ui-shadow-hover);
+  }
+}
+.bank-status,
+.warn-msg,
+.mini-help {
+  line-height: 1.55;
+}
+.bank-status.error,
+.warn-msg.error {
+  color: var(--ui-danger) !important;
+}
+.bank-status.ok,
+.bank-status.success,
+.warn-msg.ok {
+  color: var(--ui-success) !important;
+}
+.report-table-wrap,
+.summary-table-wrap,
+.table-wrap,
+.results-table-wrap,
+.billing-history-list,
+.exam-question-list,
+.questions-container {
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.learning-layout,
+.learning-resource-grid,
+.learning-practice-options,
+.learning-actions,
+.learning-manager-grid,
+.learning-manager-grid-top,
+.learning-editor-board,
+.learning-manager-actions,
+.badges-summary-grid,
+.badges-grid,
+.exam-hub-grid,
+.report-actions,
+.bank-grid,
+.profile-form-grid {
+  align-items: stretch;
+}
+.learning-pdf-viewer,
+.learning-video-embed,
+.learning-video-player,
+.learning-content-figure,
+.learning-content-image,
+.question-card,
+.feedback-item,
+.result-card,
+.exam-access-card {
+  max-width: 100%;
+  overflow: hidden;
+}
+.learning-pdf-viewer iframe,
+.learning-video-embed iframe,
+.learning-video-player,
+.learning-content-figure img,
+.learning-content-image {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+}
+.learning-video-embed,
+.learning-video-player {
+  aspect-ratio: 16 / 9;
+  background: #061f2f;
+}
+.learning-pdf-viewer iframe {
+  min-height: clamp(420px, 70dvh, 820px);
+}
+.learning-file-actions,
+.learning-manager-actions,
+.teacher-question-actions,
+.report-actions,
+.payment-carousel-actions,
+.billing-actions,
+.result-actions,
+.student-row {
+  gap: .75rem;
+}
+.ui-section-enter {
+  animation: ui-section-enter var(--ui-motion-slow) var(--ui-ease-spring) both;
+}
+.ui-item-enter {
+  animation: ui-item-enter var(--ui-motion-slow) var(--ui-ease-spring) both;
+  animation-delay: var(--ui-stagger, 0ms);
+}
+@keyframes ui-section-enter {
+  from { opacity: .001; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes ui-item-enter {
+  from { opacity: .001; transform: translateY(12px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (max-width: 760px) {
+  body.app-active .main-content:not(.hidden) {
+    width: 100%;
+    padding-inline: max(.85rem, env(safe-area-inset-left)) max(.85rem, env(safe-area-inset-right));
+    padding-bottom: calc(6.6rem + env(safe-area-inset-bottom));
+  }
+  .section-card,
+  .accordion-card,
+  .profile-panel,
+  .settings-shell,
+  .admin-panel,
+  .billing-card,
+  .support-panel,
+  .learning-hero,
+  .learning-sidebar,
+  .learning-workspace,
+  .learning-unit,
+  .learning-manager,
+  .badges-hero,
+  .badge-card,
+  .badges-next-card,
+  .admin-exam-bank-panel,
+  .report-shell {
+    width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    border-radius: 14px !important;
+  }
+  .learning-resource-grid,
+  .learning-practice-options,
+  .learning-actions,
+  .learning-manager-grid,
+  .learning-manager-grid-top,
+  .learning-editor-board,
+  .learning-manager-actions,
+  .badges-summary-grid,
+  .badges-grid,
+  .exam-hub-grid,
+  .report-actions,
+  .bank-grid,
+  .profile-form-grid,
+  .profile-form-grid.three {
+    grid-template-columns: 1fr !important;
+    width: 100% !important;
+  }
+  .student-row,
+  .owner-institution-row,
+  .institution-class-row,
+  .exam-access-card {
+    grid-template-columns: 1fr !important;
+    align-items: stretch !important;
+  }
+  .student-row .btn,
+  .owner-institution-row .btn,
+  .learning-actions .btn,
+  .report-actions .btn,
+  .teacher-question-actions .btn,
+  .payment-carousel-actions .btn,
+  .billing-card .btn,
+  .support-panel .btn {
+    width: 100% !important;
+    max-width: none !important;
+  }
+  .learning-toolbar,
+  .learning-unit-head,
+  .learning-manager-head,
+  .question-builder-heading {
+    align-items: stretch !important;
+    gap: .75rem !important;
+  }
+  .learning-toolbar > *,
+  .learning-unit-head > *,
+  .learning-manager-head > *,
+  .question-builder-heading > * {
+    min-width: 0;
+  }
+  .learning-pdf-viewer iframe {
+    min-height: 68dvh;
+  }
+  .q-header,
+  .option-label {
+    grid-template-columns: 1fr !important;
+  }
+}
+@media (max-width: 420px) {
+  body.app-active .main-content:not(.hidden) {
+    padding-inline: .72rem;
+  }
+  .btn,
+  .drawer-link,
+  .auth-tab,
+  .admin-input,
+  .learning-branch,
+  .learning-topic,
+  .learning-subtopic,
+  .learning-level-tabs button,
+  .learning-practice-options button {
+    min-height: 48px;
+  }
+  .learning-hero h2,
+  .badges-hero h2,
+  .section-title,
+  .start-screen h2 {
+    font-size: clamp(1.65rem, 10vw, 2.25rem) !important;
+    line-height: 1.08 !important;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+  }
+  .ui-section-enter,
+  .ui-item-enter {
+    animation: none !important;
+  }
+}
+.password-toggle svg {
+  display: block;
+  width: 1.2rem;
+  height: 1.2rem;
+  margin: auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+.q-header {
+  flex-wrap: wrap;
+}
+

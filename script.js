@@ -2999,9 +2999,25 @@ function mostrarSeccion(sec) {
     const activeSection = document.querySelector(".main-content:not(.hidden)");
     if (activeSection) activeSection.scrollTo({ top: 0, left: 0, behavior: "auto" });
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    animarSeccionActiva();
   });
 }
 
+function animarSeccionActiva() {
+  const activeSection = document.querySelector(".main-content:not(.hidden)");
+  if (!activeSection || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  activeSection.classList.remove("ui-section-enter");
+  void activeSection.offsetWidth;
+  activeSection.classList.add("ui-section-enter");
+  const items = activeSection.querySelectorAll(".section-card, .accordion-card, .profile-panel, .billing-card, .learning-resource-grid article, .learning-practice, .learning-teacher-content, .badge-card, .badges-next-card, .exam-hub-card, .student-row, .institution-class-row, .exam-access-card");
+  items.forEach((item, index) => {
+    if (index >= 16) return;
+    item.style.setProperty("--ui-stagger", `${Math.min(index * 28, 224)}ms`);
+    item.classList.remove("ui-item-enter");
+    void item.offsetWidth;
+    item.classList.add("ui-item-enter");
+  });
+}
 function hayBorradorMensajeProfesor() {
   if (!modoAdmin) return false;
   const subject = document.getElementById("messageSubject")?.value.trim() || "";
@@ -8313,11 +8329,24 @@ function mostrarAuthInicial(intent = "login") {
   actualizarLoginAccountType();
 }
 
+function passwordToggleSvg(visible = false) {
+  return visible
+    ? `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 3l18 18"/><path d="M10.58 10.58A2 2 0 0 0 12 14a2 2 0 0 0 1.42-.58"/><path d="M9.88 5.89A9.37 9.37 0 0 1 12 5.65c6.25 0 9.75 6.35 9.75 6.35a17.52 17.52 0 0 1-3.06 3.8"/><path d="M6.61 6.83A17.22 17.22 0 0 0 2.25 12S5.75 18.35 12 18.35a9.31 9.31 0 0 0 4.22-1"/></svg>`
+    : `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M2.25 12s3.5-6.25 9.75-6.25S21.75 12 21.75 12s-3.5 6.25-9.75 6.25S2.25 12 2.25 12Z"/><circle cx="12" cy="12" r="2.75"/></svg>`;
+}
+
+function renderPasswordToggle(btn, visible = false) {
+  if (!btn) return;
+  btn.innerHTML = passwordToggleSvg(visible);
+  btn.setAttribute("aria-label", visible ? "Ocultar contraseña" : "Ver contraseña");
+  btn.setAttribute("aria-pressed", visible ? "true" : "false");
+}
+
 function resetPasswordVisibility(scope = document) {
   scope.querySelectorAll?.("[data-toggle-password]").forEach(btn => {
     const input = document.getElementById(btn.dataset.togglePassword || "");
     if (input && input.type !== "password") input.type = "password";
-    btn.setAttribute("aria-label", "Ver contraseña");
+    renderPasswordToggle(btn, false);
   });
 }
 
@@ -12508,6 +12537,7 @@ document.addEventListener("toggle", e => {
   });
 }, true);
 document.querySelectorAll("[data-toggle-password]").forEach(btn => {
+  renderPasswordToggle(btn, false);
   btn.addEventListener("click", () => alternarPassword(btn.dataset.togglePassword));
 });
 document.querySelectorAll("[data-notification-toggle]").forEach(toggle => {
@@ -13674,5 +13704,4 @@ async function restaurarIntentoActivo() {
     else iniciarTimerExamen(true);
   }
 }
-
 
