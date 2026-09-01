@@ -13284,7 +13284,8 @@ body.group-locked.public-modal-open #btnBackToTop.back-to-top,
 .password-rules p,
 .auth-gate .password-rules p,
 .profile-panel .password-rules p,
-.settings-shell .password-rules p {
+.settings-shell .password-rules p,
+body.group-locked.public-modal-open .auth-shell:not(.hidden) .password-rules p {
   color: #c62839 !important;
   font-weight: 900 !important;
   text-shadow: none !important;
@@ -13293,7 +13294,8 @@ body.group-locked.public-modal-open #btnBackToTop.back-to-top,
 .password-rules p.valid,
 .auth-gate .password-rules p.valid,
 .profile-panel .password-rules p.valid,
-.settings-shell .password-rules p.valid {
+.settings-shell .password-rules p.valid,
+body.group-locked.public-modal-open .auth-shell:not(.hidden) .password-rules p.valid {
   color: #0f9f7a !important;
 }
 
