@@ -15,7 +15,6 @@ import {
   EmailAuthProvider,
   linkWithCredential,
   linkWithPopup,
-  fetchSignInMethodsForEmail,
   onAuthStateChanged,
   reauthenticateWithCredential,
   setPersistence,
@@ -9844,16 +9843,6 @@ async function loginEmail() {
     return;
   }
   try {
-    let methods = [];
-    try {
-      methods = await fetchSignInMethodsForEmail(auth, email);
-    } catch (methodErr) {
-      console.warn("No se pudieron consultar métodos de ingreso.", methodErr);
-    }
-    if (Array.isArray(methods) && methods.length === 0) {
-      setStatusTemporal("loginStatus", "Usuario no encontrado. Debe primero crear una cuenta.", "error", 5000);
-      return;
-    }
     setPendingLoginType(expectedType);
     const cred = await signInWithEmailAndPassword(auth, email, password);
     if (requiereVerificacionEmail(cred.user) && cred.user.email?.toLowerCase() !== ADMIN_EMAIL) {
