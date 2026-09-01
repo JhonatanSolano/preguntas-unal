@@ -369,14 +369,6 @@
 
         <div class="auth-divider hidden"><span>o</span></div>
 
-        <div class="auth-form hidden" id="googleInstitutionPanel">
-          <p class="mini-help">Para ingresar con Google como usuario institucional, escribe el código DANE del colegio que autorizó tu correo.</p>
-          <input type="text" id="googleInstitutionDane" class="admin-input" placeholder="Código DANE de la institución" inputmode="numeric" autocomplete="off" />
-          <button class="btn btn-primary" id="btnContinueGoogleInstitution" type="button">Continuar con Google</button>
-          <button class="btn btn-outline" id="btnCancelGoogleInstitution" type="button">Salir</button>
-          <p class="bank-status" id="googleInstitutionStatus"></p>
-        </div>
-
         <div class="auth-tabs hidden" role="tablist" aria-label="Acceso">
           <button class="auth-tab active" id="tabLogin" type="button">Iniciar sesión</button>
           <button class="auth-tab" id="tabRegister" type="button">Registro estudiante independiente</button>
@@ -446,7 +438,7 @@
       </div>
 
         <div class="group-entry hidden" id="groupEntry">
-          <p id="groupEntryText">Cuenta validada. Ingresa el código del aula compartido por tu profesor o continúa más tarde desde configuración.</p>
+          <p id="groupEntryText">Cuenta validada. Continúa dentro de la app para ver tu acceso disponible.</p>
           <div class="admin-login" id="classCodeStep">
             <input type="text" id="claseCodigo" class="admin-input class-code-input" placeholder="Código de aula" autocomplete="one-time-code" spellcheck="false" />
             <button class="btn btn-primary" id="btnValidarClase">Entrar al aula</button>
@@ -2334,6 +2326,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260831-01"></script>
+  <script type="module" src="script.js?v=20260901-01"></script>
 </body>
 </html>

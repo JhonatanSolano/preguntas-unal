@@ -2033,6 +2033,112 @@ exports.manageInstitutionMembers = onRequest({ region: "us-central1" }, async (r
   }
 });
 
+exports.removeInstitutionClassStudent = onRequest({ region: "us-central1" }, async (req, res) => {
+  setCors(res);
+  if (req.method === "OPTIONS") return res.status(204).send("");
+  if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
+  if (!(await enforceAppCheck(req, res))) return;
+  let decoded;
+  try {
+    decoded = await requireAuth(req);
+  } catch {
+    return res.status(401).json({ error: "Debes iniciar sesión." });
+  }
+  const studentId = String(req.body?.studentId || "").trim();
+  if (!studentId) return res.status(400).json({ error: "Falta el estudiante a eliminar." });
+  try {
+    const callerEmail = normalizeEmail(decoded.email);
+    const isPlatformOwner = callerEmail === "solanojhonatan2000@gmail.com";
+    const studentRef = db.collection("classStudents").doc(studentId);
+    const studentSnap = await studentRef.get();
+    if (!studentSnap.exists) return res.status(404).json({ error: "Estudiante no encontrado en el aula." });
+    const student = studentSnap.data() || {};
+    const classId = String(student.classId || student.aulaId || student.grupo || "").trim();
+    if (!classId) return res.status(400).json({ error: "El estudiante no tiene aula asociada." });
+    const classSnap = await db.collection("classes").doc(classId).get();
+    if (!classSnap.exists) return res.status(404).json({ error: "El aula asociada ya no existe." });
+    const classData = classSnap.data() || {};
+    const institutionDane = normalizeDane(student.institutionDane || classData.institutionDane);
+    if (!institutionDane) return res.status(400).json({ error: "El aula no pertenece a una institución." });
+    const teacherSnap = await db.collection("institutionMembers").doc(institutionMemberDocId(institutionDane, callerEmail)).get();
+    const teacher = teacherSnap.exists ? teacherSnap.data() || {} : {};
+    const teacherCanRemove = teacher.role === "teacher" && teacher.status === "active" && String(teacher.classId || "") === classId;
+    if (!isPlatformOwner && !teacherCanRemove) {
+      return res.status(403).json({ error: "No tienes permiso para eliminar estudiantes de esta aula institucional." });
+    }
+    const studentEmail = normalizeEmail(student.email);
+    const studentUid = String(student.userUid || "");
+    await studentRef.delete();
+    const remainingSnap = studentEmail
+      ? await db.collection("classStudents").where("email", "==", studentEmail).get()
+      : { docs: [] };
+    const remaining = remainingSnap.docs
+      .map(docSnap => ({ id: docSnap.id, ...docSnap.data() }))
+      .find(item => item.id !== studentId && normalizeDane(item.institutionDane) === institutionDane && String(item.status || "activo") !== "bloqueado");
+    const userRefs = [];
+    if (studentUid) userRefs.push(db.collection("users").doc(studentUid));
+    if (!studentUid && studentEmail) {
+      const usersSnap = await db.collection("users").where("email", "==", studentEmail).get();
+      usersSnap.docs.forEach(userDoc => userRefs.push(userDoc.ref));
+    }
+    const batch = db.batch();
+    userRefs.forEach(userRef => {
+      batch.set(userRef, remaining ? {
+        grupo: remaining.classId || remaining.aulaId || "",
+        classId: remaining.classId || remaining.aulaId || "",
+        className: remaining.className || remaining.groupName || "",
+        classCode: remaining.classCode || "",
+        classOwnerUid: remaining.ownerUid || remaining.classOwnerUid || "",
+        classOwnerEmail: remaining.ownerEmail || remaining.classOwnerEmail || "",
+        institutionMemberStatus: "active",
+        subscriptionInherited: true,
+        institutionSubscriptionStatus: "active",
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      } : {
+        grupo: "",
+        classId: "",
+        className: "",
+        classCode: "",
+        classOwnerUid: "",
+        classOwnerEmail: "",
+        institutionMemberStatus: "removed",
+        subscriptionInherited: false,
+        institutionSubscriptionStatus: "removed",
+        institutionAccessRevoked: true,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+    });
+    if (studentEmail) {
+      batch.set(db.collection("institutionMembers").doc(institutionMemberDocId(institutionDane, studentEmail)), remaining ? {
+        classId: remaining.classId || remaining.aulaId || "",
+        className: remaining.className || remaining.groupName || "",
+        classCode: remaining.classCode || "",
+        status: "active",
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      } : {
+        status: "removed",
+        removedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+    }
+    await batch.commit();
+    await db.collection("billingEvents").add({
+      type: "institution-teacher-student-remove",
+      institutionDane,
+      classId,
+      studentId,
+      studentEmail,
+      requestedByUid: decoded.uid,
+      requestedByEmail: callerEmail,
+      createdAt: admin.firestore.FieldValue.serverTimestamp()
+    }).catch(() => {});
+    return res.status(200).json({ ok: true, message: "Estudiante eliminado del aula." });
+  } catch (err) {
+    console.error("removeInstitutionClassStudent error", err);
+    return res.status(400).json({ error: err?.message || "No fue posible eliminar el estudiante institucional." });
+  }
+});
+
 const COUNTRY_TIMEZONES = {
   CO: {
     countryCode: "CO",
