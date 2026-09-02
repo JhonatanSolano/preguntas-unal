@@ -3018,6 +3018,48 @@ function animarSeccionActiva() {
   });
 }
 
+const SCROLL_GESTURE_FALLBACK_MAX_DELTA = 420;
+function normalizarDeltaGestual(deltaY, factor = 1) {
+  const abs = Math.abs(deltaY);
+  if (abs < 1) return 0;
+  return Math.sign(deltaY) * Math.min(abs * factor, SCROLL_GESTURE_FALLBACK_MAX_DELTA);
+}
+function puedeUsarScrollGlobal(target = document.body) {
+  if (document.body.classList.contains("landing-menu-open") || document.body.classList.contains("public-modal-open")) return false;
+  return !target?.closest?.("input, textarea, select, iframe, embed, object, [contenteditable='true'], .auth-shell:not(.hidden), .app-modal-overlay:not(.hidden), .message-detail-overlay:not(.hidden), .overlay:not(.hidden), .side-drawer, .notifications-list, .message-thread, .advisor-chat-log");
+}
+function instalarRescateScrollGlobal() {
+  if (window.__matematicasNativeScrollFallback) return;
+  window.__matematicasNativeScrollFallback = true;
+  let touchY = 0;
+  window.addEventListener("wheel", event => {
+    if (!puedeUsarScrollGlobal(event.target) || !event.deltaY || event.ctrlKey) return;
+    const before = window.scrollY || document.documentElement.scrollTop || 0;
+    requestAnimationFrame(() => {
+      const after = window.scrollY || document.documentElement.scrollTop || 0;
+      if (Math.abs(after - before) > 0.5) return;
+      window.scrollBy({ top: normalizarDeltaGestual(event.deltaY, 2.4), left: 0, behavior: "auto" });
+    });
+  }, { passive: true });
+  window.addEventListener("touchstart", event => {
+    if (event.touches.length !== 1) return;
+    touchY = event.touches[0].clientY;
+  }, { passive: true });
+  window.addEventListener("touchmove", event => {
+    if (!puedeUsarScrollGlobal(event.target) || event.touches.length !== 1) return;
+    const currentY = event.touches[0].clientY;
+    const deltaY = touchY - currentY;
+    if (Math.abs(deltaY) < 2) return;
+    const before = window.scrollY || document.documentElement.scrollTop || 0;
+    requestAnimationFrame(() => {
+      const after = window.scrollY || document.documentElement.scrollTop || 0;
+      if (Math.abs(after - before) > 0.5) return;
+      window.scrollBy({ top: normalizarDeltaGestual(deltaY, 1.8), left: 0, behavior: "auto" });
+    });
+    touchY = currentY;
+  }, { passive: true });
+}
+instalarRescateScrollGlobal();
 function hayBorradorMensajeProfesor() {
   if (!modoAdmin) return false;
   const subject = document.getElementById("messageSubject")?.value.trim() || "";

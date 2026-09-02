@@ -13871,3 +13871,17 @@ body.group-locked.public-modal-open:not(.landing-menu-open) #institutionInfoCard
     overflow-x: hidden !important;
   }
 }
+
+html,
+body,
+body.group-locked:not(.landing-menu-open):not(.public-modal-open),
+body.app-active:not(.landing-menu-open),
+body.admin-mode:not(.landing-menu-open),
+body.exam-active:not(.landing-menu-open) {
+  overflow-y: auto !important;
+  overscroll-behavior-y: auto !important;
+  touch-action: pan-y pinch-zoom !important;
+}
+body:not(.landing-menu-open):not(.public-modal-open) {
+  position: static !important;
+}
