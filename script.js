@@ -3038,19 +3038,17 @@ function ancestroScrollableVertical(start, deltaY) {
 function seccionScrollableActiva() {
   const modal = document.querySelector(".auth-shell:not(.hidden) .auth-gate, .auth-shell:not(.hidden) .start-screen, .app-modal-overlay:not(.hidden) .plan-change-modal, .message-detail-overlay:not(.hidden) .message-detail-card, .overlay:not(.hidden) .overlay-card");
   if (modal && modal.scrollHeight > modal.clientHeight + 1) return modal;
-  const section = document.querySelector(".main-content:not(.hidden)");
-  if (section && section.scrollHeight > section.clientHeight + 1) return section;
   return document.scrollingElement || document.documentElement;
 }
 function esZonaScrollNativa(target) {
   return target?.closest?.("iframe, embed, object, textarea, select, [contenteditable='true'], .learning-pdf-viewer, .side-drawer, .notifications-list, .message-thread, .advisor-chat-log");
 }
-const SCROLL_BRIDGE_MAX_WHEEL_DELTA = 320;
-const SCROLL_BRIDGE_MAX_TOUCH_DELTA = 220;
+const SCROLL_BRIDGE_MAX_WHEEL_DELTA = 520;
+const SCROLL_BRIDGE_MAX_TOUCH_DELTA = 360;
 function ajustarDeltaScroll(deltaY, tipo = "wheel") {
   const abs = Math.abs(deltaY);
   if (abs < 1) return deltaY;
-  const factor = tipo === "touch" ? 1.75 : abs < 12 ? 3.35 : abs < 40 ? 2.55 : 1.9;
+  const factor = tipo === "touch" ? 2.35 : abs < 12 ? 5.2 : abs < 40 ? 3.9 : 2.7;
   const max = tipo === "touch" ? SCROLL_BRIDGE_MAX_TOUCH_DELTA : SCROLL_BRIDGE_MAX_WHEEL_DELTA;
   return Math.sign(deltaY) * Math.min(abs * factor, max);
 }

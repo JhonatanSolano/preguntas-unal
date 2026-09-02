@@ -13795,9 +13795,10 @@ body:not(.group-locked):not(.landing-menu-open) {
 body.app-active,
 body.admin-mode,
 body.exam-active {
-  height: 100dvh !important;
+  height: auto !important;
   min-height: 100dvh !important;
-  overflow: hidden !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
   touch-action: pan-y pinch-zoom;
 }
 body.landing-menu-open {
@@ -13820,15 +13821,15 @@ body.exam-active .main-content:not(.hidden),
 body:not(.group-locked) .main-content:not(.hidden) {
   position: relative !important;
   height: auto !important;
-  max-height: calc(100dvh - 7.5rem) !important;
+  max-height: none !important;
   overflow-x: clip !important;
-  overflow-y: auto !important;
-  overscroll-behavior-y: contain !important;
+  overflow-y: visible !important;
+  overscroll-behavior-y: auto !important;
   -webkit-overflow-scrolling: touch !important;
   touch-action: pan-y pinch-zoom;
 }
 body.exam-active .main-content:not(.hidden) {
-  max-height: calc(100dvh - 6.5rem) !important;
+  max-height: none !important;
 }
 body.group-locked.public-modal-open:not(.landing-menu-open) .auth-shell:not(.hidden) {
   pointer-events: auto;
@@ -13857,7 +13858,7 @@ body.group-locked.public-modal-open:not(.landing-menu-open) #institutionInfoCard
   body.admin-mode .main-content:not(.hidden),
   body.exam-active .main-content:not(.hidden),
   body:not(.group-locked) .main-content:not(.hidden) {
-    max-height: calc(100dvh - 5.75rem - env(safe-area-inset-bottom)) !important;
+    max-height: none !important;
   }
 }
 @supports not (overflow: clip) {
