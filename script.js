@@ -9888,7 +9888,16 @@ async function loginEmail() {
   try {
     setPendingLoginType(expectedType);
     const cred = await signInWithEmailAndPassword(auth, email, password);
-    if (requiereVerificacionEmail(cred.user) && cred.user.email?.toLowerCase() !== ADMIN_EMAIL) {
+
+    const snap = await getDoc(doc(db, "users", cred.user.uid));
+    const profile = snap.exists() ? snap.data() : {};
+    if (!snap.exists()) {
+      await signOut(auth);
+      clearPendingLoginType();
+      setStatusTemporal("loginStatus", "Usuario no encontrado. Debe primero crear una cuenta.", "error", 5000);
+      return;
+    }
+    if (requiereVerificacionEmail(cred.user, profile) && cred.user.email?.toLowerCase() !== ADMIN_EMAIL) {
       let reenviado = false;
       try {
         await enviarVerificacionEmailPersonalizada(email);
@@ -9902,14 +9911,6 @@ async function loginEmail() {
       setStatusTemporal("loginStatus", reenviado
         ? "Debe verificar primero su cuenta. Por favor, revisa tu correo registrado."
         : "Debe verificar primero su cuenta. Por favor, revisa tu correo registrado.", "error", 5000);
-      return;
-    }
-    const snap = await getDoc(doc(db, "users", cred.user.uid));
-    const profile = snap.exists() ? snap.data() : {};
-    if (!snap.exists()) {
-      await signOut(auth);
-      clearPendingLoginType();
-      setStatusTemporal("loginStatus", "Usuario no encontrado. Debe primero crear una cuenta.", "error", 5000);
       return;
     }
     if (!loginCoincideConTipo(profile, expectedType, cred.user.email)) {
@@ -10069,6 +10070,9 @@ async function registrarEmail() {
       subscriptionInherited: accountMode === "institutional",
       isAdmin: email === ADMIN_EMAIL,
       phoneVerified: false,
+      emailVerificationRequired: true,
+      emailVerificationStatus: "pending",
+      authProvider: "password",
       ...perfilRegistro
     });
     if (accountMode === "institutional" && miembroInstitucional) {
@@ -10153,6 +10157,22 @@ async function loginGoogle() {
       clearPendingLoginType();
       ocultarReloadSesion();
       mostrarLoginConError("Usuario no encontrado. Debe primero crear una cuenta.");
+      return;
+    }
+    if (requiereVerificacionEmail(cred.user, profile) && cred.user.email?.toLowerCase() !== ADMIN_EMAIL) {
+      let reenviado = false;
+      try {
+        await enviarVerificacionEmailPersonalizada(cred.user.email || "");
+        reenviado = true;
+      } catch (mailErr) {
+        console.warn("No se pudo reenviar verificación al iniciar sesión.", mailErr);
+      }
+      suppressAuthResetOnce = true;
+      await signOut(auth);
+      clearPendingLoginType();
+      setStatusTemporal("loginStatus", reenviado
+        ? "Debe verificar primero su cuenta. Por favor, revisa tu correo registrado."
+        : "Debe verificar primero su cuenta. Por favor, revisa tu correo registrado.", "error", 5000);
       return;
     }
     if (!loginCoincideConTipo(profile, expectedType, cred.user.email)) {
@@ -11683,8 +11703,9 @@ function alternarPassword(id) {
   input.type = input.type === "password" ? "text" : "password";
 }
 
-function requiereVerificacionEmail(user) {
-  return user?.providerData?.some(provider => provider.providerId === "password") && !user.emailVerified;
+function requiereVerificacionEmail(user, profile = null) {
+  if (!user?.providerData?.some(provider => provider.providerId === "password") || user.emailVerified) return false;
+  return profile?.emailVerificationRequired === true || profile?.emailVerificationStatus === "pending";
 }
 
 document.getElementById("btnValidarClase")?.addEventListener("click", entrarGrupo);
@@ -12678,14 +12699,6 @@ onAuthStateChanged(auth, async user => {
     ocultarReloadSesion();
     return;
   }
-  if (requiereVerificacionEmail(user) && user.email?.toLowerCase() !== ADMIN_EMAIL) {
-    suppressAuthResetOnce = true;
-    await signOut(auth);
-    ocultarReloadSesion();
-    document.body.classList.add("group-locked");
-    mostrarLoginConError("Debe verificar primero su cuenta. Por favor, revisa tu correo registrado.");
-    return;
-  }
   limpiarWarn();
   const userSnap = await getDoc(doc(db, "users", user.uid));
   if (!userSnap.exists()) {
@@ -12697,6 +12710,14 @@ onAuthStateChanged(auth, async user => {
     return;
   }
   const perfilLogin = userSnap.data();
+  if (requiereVerificacionEmail(user, perfilLogin) && user.email?.toLowerCase() !== ADMIN_EMAIL) {
+    suppressAuthResetOnce = true;
+    await signOut(auth);
+    ocultarReloadSesion();
+    document.body.classList.add("group-locked");
+    mostrarLoginConError("Debe verificar primero su cuenta. Por favor, revisa tu correo registrado.");
+    return;
+  }
   const rolLogin = rolUsuario(perfilLogin);
   const expectedLoginType = getPendingLoginType();
   if (expectedLoginType && !loginCoincideConTipo(perfilLogin, expectedLoginType, user.email)) {
