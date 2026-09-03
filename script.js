@@ -1,9 +1,9 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
 import {
   initializeAppCheck,
   ReCaptchaEnterpriseProvider,
   getToken as getAppCheckToken
-} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app-check.js";
+} from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app-check.js";
 import {
   getAuth,
   GoogleAuthProvider,
@@ -26,7 +26,7 @@ import {
   updatePhoneNumber,
   updatePassword,
   updateProfile
-} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+} from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
 import {
   collection,
   deleteDoc,
@@ -43,14 +43,14 @@ import {
   setDoc,
   updateDoc,
   where
-} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+} from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
 import {
   deleteObject,
   getDownloadURL,
   getStorage,
   ref as storageRef,
   uploadBytes
-} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-storage.js";
+} from "https://www.gstatic.com/firebasejs/12.18.0/firebase-storage.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCx2xCjNzfeH_KfQKMuKImuE13X6DnAk7I",
