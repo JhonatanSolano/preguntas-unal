@@ -10284,7 +10284,7 @@ async function loginGoogle() {
         : mensajeTipoCuentaNoAutorizado(expectedType));
       return;
     }
-    if (["institutionalStudent", "teacher"].includes(expectedType)) {
+    if (cred.user.email?.toLowerCase() !== ADMIN_EMAIL && ["institutionalStudent", "teacher"].includes(expectedType)) {
       const dane = normalizarDane(profile.institutionDane || "");
       const expectedRole = expectedType === "teacher" ? "teacher" : "student";
       const member = await buscarMiembroInstitucional((cred.user.email || "").toLowerCase(), dane).catch(() => null);
