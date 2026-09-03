@@ -11705,7 +11705,7 @@ function alternarPassword(id) {
 
 function requiereVerificacionEmail(user, profile = null) {
   if (!user?.providerData?.some(provider => provider.providerId === "password") || user.emailVerified) return false;
-  return profile?.emailVerificationRequired === true || profile?.emailVerificationStatus === "pending";
+  return profile?.emailVerificationRequired === true;
 }
 
 document.getElementById("btnValidarClase")?.addEventListener("click", entrarGrupo);
