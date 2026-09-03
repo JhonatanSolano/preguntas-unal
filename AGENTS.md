@@ -13,7 +13,8 @@
 - For design work, improve clarity, spacing, contrast, responsiveness, and accessibility without changing the data model or business logic.
 
 ## Business Rules
-- Independent students use the `student-monthly` plan and may access the free diagnostic flow until Premium is active.
+- Independent students use the `student-annual` plan: $20.000 COP for one year, paid manually through Wompi, with no saved payment methods or automatic renewal.
+- Independent students without Premium may access only Aritmética in Aprendizaje and the related Banco principal exams; Asesor IA and internal messages stay locked.
 - Institution plans enforce quotas for institution users, teachers, and students.
 - Institution member creation and removal must go through `manageInstitutionMembers`; direct client creation of `institutionMembers` is intentionally blocked by Firestore rules.
 - The platform owner is `solanojhonatan2000@gmail.com`.
@@ -39,3 +40,15 @@
 - Login role gates must prevent access with the wrong account type.
 - Paid features must remain locked unless the active plan permits them.
 - Institution quotas must be enforced by backend transaction, not only by UI.
+
+## Specialized Agent Lanes
+- `agente-produccion`: deployment, GitHub Pages, Firebase deploys, DNS checks, environment health and release verification only.
+- `agente-pruebas`: syntax checks, regression tests, browser verification, mobile/desktop QA and test evidence only.
+- `agente-pagos-wompi`: Wompi checkout, webhooks, payment intents, receipts, billing history and payment security only.
+- `agente-suscripciones-reglas`: premium/free entitlements, annual access, expiration, role gates and Firestore rules only.
+- `agente-firebase-auth`: Firebase Auth, verification emails, password reset, Google linking, phone verification and legacy login compatibility only.
+- `agente-diseno-ui`: visual design, responsive layout, spacing, animation, accessibility and UX polish only.
+- `agente-docente-aulas`: teacher dashboards, classrooms, students, exam permissions, reports and institutional requests only.
+- `agente-asesor-ia`: AI tutor prompts, eligibility checks, rate limits, response quality and AI safety only.
+- `agente-mensajes`: internal messaging, replies, attachments, notifications and email copies only.
+- `agente-contenido-aprendizaje`: learning catalog, topics, resources, study progress and free/Premium learning access only.

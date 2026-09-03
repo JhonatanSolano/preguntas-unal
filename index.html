@@ -247,7 +247,7 @@
         <article>
           <span class="feature-icon" aria-hidden="true">💳</span>
           <strong>Suscripción y pagos seguros</strong>
-          <p>Facturación por plan, historial de pagos y checkout externo preparado para PSE, tarjetas débito y crédito sin almacenar datos financieros sensibles.</p>
+          <p>Pago anual único, historial de pagos y checkout externo por Wompi sin almacenar datos financieros sensibles.</p>
         </article>
         <article>
           <span class="feature-icon" aria-hidden="true">🏫</span>
@@ -264,11 +264,11 @@
       <div class="pricing-grid">
         <article class="pricing-card featured">
           <span>Estudiante independiente</span>
-          <h3>$10.000 COP <small>/ mes</small></h3>
+          <h3>$20.000 COP <small>/ año</small></h3>
           <p>Ideal para estudiantes de 9.º a 11.º que se preparan por cuenta propia para ICFES, admisión UNAL u otros exámenes.</p>
           <ul class="pricing-list">
-            <li>Acceso individual mensual.</li>
-            <li>Exámenes, estadísticas, mensajes y Asesor IA según el plan activo.</li>
+            <li>Acceso individual anual.</li>
+            <li>Gratis: solo Aritmética y sus exámenes. Premium: acceso completo, mensajes y Asesor IA.</li>
             <li>Perfil, resultados e historial guardados en la nube.</li>
           </ul>
           <button class="btn btn-primary" id="btnStudentPlanLanding" type="button">Crear cuenta</button>
@@ -293,7 +293,7 @@
       <div class="timeline-grid">
         <article><span>1</span><strong>Crear una cuenta</strong><p>Registro con Google o correo Gmail y contraseña segura.</p></article>
         <article><span>2</span><strong>Completar el perfil</strong><p>Datos personales y teléfono verificable para una cuenta más segura.</p></article>
-        <article><span>3</span><strong>Activar suscripción</strong><p>Pago manual o renovación automática autorizada, con historial y comprobantes en Facturación.</p></article>
+        <article><span>3</span><strong>Activar suscripción</strong><p>Pago anual manual por Wompi, con historial y comprobantes en Facturación.</p></article>
         <article><span>4</span><strong>Entrar al aula</strong><p>Código único o invitación directa enviada por el profesor.</p></article>
         <article><span>5</span><strong>Resolver ejercicios</strong><p>Pruebas cronometradas, intentos controlados y preguntas sin responder como incorrectas.</p></article>
         <article><span>6</span><strong>Mejorar continuamente</strong><p>Resultados, métricas y comparaciones por banco, aula y nivel.</p></article>
@@ -309,7 +309,7 @@
           <li>Ruta por diagnóstico, nivel medio y examen final.</li>
           <li>Resultados organizados por intentos.</li>
           <li>Asesor IA, mensajes, estadísticas y soporte integrado.</li>
-          <li>Panel de suscripción, métodos de pago e historial de facturación.</li>
+          <li>Panel de suscripción anual e historial de facturación.</li>
         </ul>
       </article>
       <article id="profesores">
@@ -320,7 +320,7 @@
           <li>Permisos por aula y nivel.</li>
           <li>Métricas por estudiante y aula.</li>
           <li>Editor de mensajes, adjuntos y apoyo del Asesor IA.</li>
-          <li>Gestión de plan, renovación y métodos de pago desde Facturación.</li>
+          <li>Gestión de plan e historial de pagos desde Facturación.</li>
         </ul>
       </article>
     </section>
@@ -528,7 +528,7 @@
           </details>
           <details>
             <summary>¿Cuánto cuesta el plan independiente?</summary>
-            <p>El acceso para estudiante independiente está planteado en $10.000 COP mensuales.</p>
+            <p>El acceso Premium para estudiante independiente cuesta $20.000 COP por un año.</p>
           </details>
           <details>
             <summary>¿Un colegio puede pagar por sus estudiantes?</summary>
@@ -536,11 +536,11 @@
           </details>
           <details>
             <summary>¿La app guarda datos de tarjeta?</summary>
-            <p>No. Los pagos se procesan con pasarela certificada. La app solo guardará tokens seguros cuando el usuario autorice renovar automáticamente.</p>
+            <p>No. Los pagos se procesan con Wompi y la app no guarda tarjetas, CVV, cuentas, tokens de pago ni métodos para renovación automática.</p>
           </details>
           <details>
             <summary>¿Puedo usar PSE?</summary>
-            <p>Sí, el módulo está preparado para PSE. PSE funcionará como pago manual; la renovación automática requiere un método tokenizable soportado por la pasarela.</p>
+            <p>Sí. Wompi puede mostrar los medios disponibles en su checkout, pero la app no guarda ningún método de pago ni hace cobros automáticos.</p>
           </details>
           <details>
             <summary>¿Cómo contacto soporte?</summary>
@@ -573,7 +573,7 @@
         <div class="role-choice-grid">
           <button class="role-choice-card" data-role-choice="student" type="button">
             <strong>Estudiante independiente</strong>
-            <span>Usar la plataforma con tu propio plan mensual y entrar a aulas autorizadas.</span>
+            <span>Usar la plataforma con tu propio plan anual independiente.</span>
           </button>
         </div>
         <button class="btn btn-outline" id="btnInstitutionFromRole" type="button">Registrar institución educativa</button>
@@ -980,10 +980,10 @@
               <span class="subscription-price">Precio por definir</span>
             </div>
             <div class="checkout-plan-grid" aria-label="Planes disponibles">
-              <button class="checkout-plan-card active" type="button" data-checkout-plan="student-monthly">
+              <button class="checkout-plan-card active" type="button" data-checkout-plan="student-annual">
                 <span>Independiente</span>
-                <strong>$10.000 COP/mes</strong>
-                <small>Un estudiante, acceso mensual.</small>
+                <strong>$20.000 COP/año</strong>
+                <small>Un estudiante, acceso anual.</small>
               </button>
               <button class="checkout-plan-card" type="button" data-checkout-plan="institutional">
                 <span>Institucional</span>
@@ -1000,21 +1000,18 @@
           </section>
           <section class="payment-slide" data-payment-slide="1">
             <span class="payment-slide-kicker">Paso 2</span>
-            <h3>Selecciona el medio de pago</h3>
+            <h3>Pago anual seguro en Wompi</h3>
             <div class="checkout-layout">
               <aside class="checkout-summary-card">
                 <span>Suscríbete a Matemáticas En Tu Bolsillo</span>
-                <strong id="checkoutBigPrice">$10.000 COP</strong>
-                <small>Facturación mensual. El pago se confirma por pasarela.</small>
+                <strong id="checkoutBigPrice">$20.000 COP</strong>
+                <small>Pago anual único. Sin renovación automática ni métodos guardados.</small>
               </aside>
               <div>
                 <div class="payment-method-grid">
-                  <button class="payment-method active" type="button" data-payment-method="pse"><span>PSE</span><strong>Débito bancario</strong><small>Transferencia desde tu banco</small></button>
-                  <button class="payment-method" type="button" data-payment-method="nequi"><span>NEQUI</span><strong>Pago desde Nequi</strong><small>Recibe la solicitud y aprueba en tu app</small></button>
-                  <button class="payment-method" type="button" data-payment-method="credit-card"><span>VISA · MC · AMEX</span><strong>Tarjeta de crédito</strong><small>Checkout protegido por la pasarela</small></button>
-                  <button class="payment-method" type="button" data-payment-method="debit-card"><span>DÉBITO</span><strong>Tarjeta débito</strong><small>Pago seguro sin guardar tu tarjeta</small></button>
+                  <button class="payment-method active" type="button" data-payment-method="wompi"><span>WOMPI</span><strong>Checkout seguro</strong><small>Elige el medio disponible directamente en Wompi</small></button>
                 </div>
-                <p class="payment-security-note">Los datos financieros se ingresarán únicamente en el checkout certificado del proveedor de pagos.</p>
+                <p class="payment-security-note">La app no solicita, guarda ni tokeniza datos de tarjeta, CVV, cuentas bancarias, Nequi, PSE ni ningún método de pago.</p>
               </div>
             </div>
           </section>
@@ -1024,16 +1021,12 @@
             <div class="payment-summary">
               <p><span>Cuenta</span><strong id="paymentSummaryEmail">—</strong></p>
               <p><span>Plan</span><strong id="paymentSummaryPlan">—</strong></p>
-              <p><span>Medio seleccionado</span><strong id="paymentSummaryMethod">PSE</strong></p>
+              <p><span>Medio seleccionado</span><strong id="paymentSummaryMethod">Wompi</strong></p>
               <p><span>Impuestos</span><strong id="paymentSummaryTaxes">Incluidos cuando aplique</strong></p>
             </div>
             <label class="payment-save-method">
-              <input id="paymentSaveMethod" type="checkbox" />
-              <span>Guardar este método para futuros pagos y activar renovación automática mensual.</span>
-            </label>
-            <label class="payment-save-method">
               <input id="paymentAcceptTerms" type="checkbox" />
-              <span>Acepto la política de privacidad, condiciones del servicio y, si guardo el método, autorizo la renovación automática.</span>
+              <span>Acepto la política de privacidad y condiciones del servicio. Entiendo que este es un pago anual manual sin renovación automática.</span>
             </label>
             <button class="btn btn-primary" id="btnStartSecureCheckout" type="button">Continuar al pago seguro</button>
             <p class="bank-status" id="paymentStatus"></p>
@@ -1054,14 +1047,13 @@
         <div>
           <span class="section-kicker">Cuenta y pagos</span>
           <h2>Facturación</h2>
-          <p>Consulta tu plan, próxima renovación y formas de pago vinculadas.</p>
+          <p>Consulta tu plan anual, vencimiento e historial de pagos.</p>
         </div>
         <span class="billing-status" id="billingStatusBadge">Sin plan activo</span>
       </header>
 
       <div class="billing-tabs" role="tablist" aria-label="Opciones de facturación">
         <button class="active" type="button" data-billing-tab="subscription">Suscripción</button>
-        <button type="button" data-billing-tab="methods">Métodos de pago</button>
         <button type="button" data-billing-tab="history">Historial</button>
       </div>
 
@@ -1074,9 +1066,9 @@
             <div class="billing-dates">
               <p><span>Fecha de suscripción</span><strong id="billingStartedAt">—</strong></p>
               <p><span>Fecha de vencimiento</span><strong id="billingExpiresAt">—</strong></p>
-              <p><span>Próximo cobro</span><strong id="billingNextCharge">—</strong></p>
-              <p><span>Valor mensual</span><strong id="billingAmount">—</strong></p>
-              <p><span>Renovación automática</span><strong id="billingAutoRenew">—</strong></p>
+              <p><span>Próximo cobro</span><strong id="billingNextCharge">No aplica</strong></p>
+              <p><span>Valor anual</span><strong id="billingAmount">—</strong></p>
+              <p><span>Renovación automática</span><strong id="billingAutoRenew">No disponible</strong></p>
             </div>
             <p class="billing-renewal-copy" id="billingRenewalCopy">No hay una renovación programada.</p>
             <button class="btn btn-primary" id="btnUpgradePlan" type="button">Cambiar o mejorar plan</button>
@@ -1087,50 +1079,15 @@
             <h3>Lo que incluye tu plan</h3>
             <ul class="billing-benefits" id="billingBenefits"></ul>
           </article>
-
           <article class="billing-card billing-controls">
             <span class="billing-label">Renovación</span>
-            <h3>Administrar suscripción</h3>
-            <p id="billingPauseHelp">Puedes suspender la renovación automática antes de la fecha de cobro.</p>
-            <label class="billing-toggle">
-              <input id="billingPauseToggle" type="checkbox" />
-              <span></span>
-              Suspender próximo pago automático
-            </label>
-            <p class="billing-warning">
-              Si la suspensión continúa hasta el vencimiento, el plan terminará y se bloquearán sus beneficios.
-              Tus datos y resultados se conservarán según la Política de privacidad.
-            </p>
+            <h3>Pago manual anual</h3>
+            <p id="billingPauseHelp">No hay cobros automáticos. Cuando el plan venza, podrás renovar manualmente desde Suscripción.</p>
+            <p class="billing-warning">Tus datos y resultados se conservarán según la Política de privacidad, pero los beneficios Premium se bloquearán si el plan vence.</p>
             <p class="bank-status" id="billingActionStatus"></p>
           </article>
         </div>
       </div>
-
-      <div class="billing-tab-panel" data-billing-panel="methods">
-        <div class="billing-grid">
-          <article class="billing-card">
-            <div class="billing-card-title">
-              <div>
-                <span class="billing-label">Métodos de pago</span>
-                <h3>Formas de pago guardadas</h3>
-              </div>
-              <button class="btn btn-outline" id="btnAddPaymentMethod" type="button">Agregar método</button>
-            </div>
-            <div class="billing-payment-methods" id="billingPaymentMethods">
-              <p class="mini-help">No tienes formas de pago guardadas.</p>
-            </div>
-            <p class="mini-help">Solo verás marca, últimos cuatro dígitos y token seguro de la pasarela. Matemáticas En Tu Bolsillo nunca almacena números completos de tarjeta ni CVV.</p>
-          </article>
-
-          <article class="billing-card">
-            <span class="billing-label">Pago manual</span>
-            <h3>PSE, tarjeta crédito o débito</h3>
-            <p>Para pagar o agregar un nuevo método, inicia un checkout seguro desde Suscripción. PSE no se guarda como renovación automática; las tarjetas solo se guardan si autorizas expresamente la tokenización.</p>
-            <button class="btn btn-primary" id="btnPayFromBilling" type="button">Ir a pagar</button>
-          </article>
-        </div>
-      </div>
-
       <div class="billing-tab-panel" data-billing-panel="history">
         <article class="billing-card">
           <div class="billing-card-title">
@@ -2326,6 +2283,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260903-05"></script>
+  <script type="module" src="script.js?v=20260903-06"></script>
 </body>
 </html>

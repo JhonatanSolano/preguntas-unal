@@ -209,7 +209,7 @@ let equationInsertTarget = "message";
 let teacherQuestions = [];
 let teacherQuestionImageFile = null;
 let paymentStep = 0;
-let selectedPaymentMethod = "pse";
+let selectedPaymentMethod = "wompi";
 let selectedCheckoutPlanId = "";
 let billingHistoryItems = [];
 let activeBillingTab = "subscription";
@@ -537,11 +537,11 @@ function clearPendingLoginType() {
 
 const PLANES_COMERCIALES = {
   independentStudent: {
-    id: "student-monthly",
+    id: "student-annual",
     name: "Estudiante independiente",
-    priceCOP: 10000,
-    subtitle: "Para preparación individual ICFES, admisión UNAL y práctica personal.",
-    benefits: ["Acceso mensual individual", "Exámenes y estadísticas", "Mensajes y Asesor IA", "Sin institución asociada"]
+    priceCOP: 20000,
+    subtitle: "Pago único anual para preparación individual ICFES, admisión UNAL y práctica personal.",
+    benefits: ["Acceso anual individual", "Aritmética gratis sin Premium", "Acceso total con Premium", "Sin cobros automáticos"]
   },
   institution: [
     { id: "institution-0010", range: "1 a 10 estudiantes", label: "Institución inicial", priceCOP: 50000, maxInstitutionUsers: 1, maxTeachers: 1, maxStudents: 10, includes: "1 usuario de institución, 1 profesor y 10 alumnos" },
@@ -1206,6 +1206,11 @@ function bancoGratisIndependienteHabilitado(bank = bancoActivo, perfil = perfilA
   return (bank || "principal") === "principal";
 }
 
+function aprendizajeGratisIndependienteHabilitado(selection = resolveLearningSelection(), perfil = perfilActual) {
+  if (!tienePlanGratisIndependiente(perfil)) return true;
+  return (selection?.branchId || "aritmetica") === "aritmetica";
+}
+
 function examenGratisIndependienteHabilitado(clave, bank = bancoActivo, perfil = perfilActual) {
   if (!tienePlanGratisIndependiente(perfil)) return true;
   return bancoGratisIndependienteHabilitado(bank, perfil) && ["diagnostico", "nivel1", "examen"].includes(clave);
@@ -1369,14 +1374,15 @@ function nombreMetodoPago(method = selectedPaymentMethod) {
     nequi: "Nequi",
     "credit-card": "Tarjeta de crédito",
     "debit-card": "Tarjeta débito",
-    card: "Tarjeta guardada"
-  }[method] || "PSE";
+    card: "Tarjeta",
+    wompi: "Wompi"
+  }[method] || "Wompi";
 }
 
 function tipoMetodoWompi(method = selectedPaymentMethod) {
   if (method === "pse") return "PSE";
   if (method === "nequi") return "NEQUI";
-  return "CARD";
+  return "WOMPI_CHECKOUT";
 }
 
 function renderPasoPago() {
@@ -1419,7 +1425,7 @@ function renderSubscriptionPanel() {
       ? availablePlans.map(plan => `
           <button class="checkout-plan-card ${plan.id === selectedCheckoutPlanId ? "active" : ""}" type="button" data-checkout-plan="${escapeHtml(plan.id)}">
             <span>${escapeHtml(plan.name)}</span>
-            <strong>${escapeHtml(formatoPrecioCOP(plan.priceCOP))}/mes</strong>
+            <strong>${escapeHtml(formatoPrecioCOP(plan.priceCOP))}/año</strong>
             <small>${escapeHtml(plan.subtitle || plan.includes || "")}</small>
           </button>
         `).join("")
@@ -1429,7 +1435,7 @@ function renderSubscriptionPanel() {
   if (planDescription) {
     planDescription.textContent = selectedPlan?.subtitle || (esProfesor()
       ? "Para docentes autorizados por una institución. La institución administra cupos, profesores y estudiantes."
-      : "Acceso individual mensual para practicar, presentar exámenes, revisar métricas y usar el Asesor IA.");
+      : "Pago único anual para practicar, presentar exámenes, revisar métricas, usar mensajes y Asesor IA sin cobros automáticos.");
   }
   const priceLabel = document.querySelector(".subscription-price");
   if (priceLabel) priceLabel.textContent = price;
@@ -1498,11 +1504,6 @@ function beneficiosPlan() {
       ];
 }
 
-function metodosPagoPerfil() {
-  return Array.isArray(perfilActual?.paymentMethods)
-    ? perfilActual.paymentMethods.filter(method => method && method.id)
-    : [];
-}
 
 function estadoPagoLegible(status = "") {
   return {
@@ -1710,7 +1711,7 @@ function abrirSelectorCambioPlan() {
           return `
             <button class="plan-change-card ${current ? "current" : ""}" type="button" data-change-plan="${escapeHtml(plan.id)}" ${current ? "disabled" : ""}>
               <span>${escapeHtml(plan.label)}</span>
-              <strong>${escapeHtml(formatoPrecioCOP(plan.priceCOP))}/mes</strong>
+              <strong>${escapeHtml(formatoPrecioCOP(plan.priceCOP))}/año</strong>
               <small>${escapeHtml(plan.range)} · ${escapeHtml(plan.includes)}</small>
               ${current ? `<em>Plan actual</em>` : `<em>Seleccionar</em>`}
             </button>
@@ -1742,12 +1743,12 @@ function renderBillingPanel() {
   const active = suscripcionActiva();
   const plan = perfilActual?.subscriptionPlan || (active ? `Plan ${esProfesor() ? "Profesor" : "Estudiante"}` : "Sin suscripción activa");
   const amount = formatoPrecioCOP(perfilActual?.subscriptionAmountCOP || precioSuscripcion());
-  const nextBilling = perfilActual?.subscriptionNextBillingAt || perfilActual?.subscriptionExpiresAt;
-  const paused = perfilActual?.subscriptionPaymentPaused === true || perfilActual?.subscriptionAutoRenew === false;
+  const nextBilling = null;
+  const paused = true;
   const badge = document.getElementById("billingStatusBadge");
   if (badge) {
-    badge.textContent = active ? (paused ? "Renovación suspendida" : "Plan activo") : "Sin plan activo";
-    badge.classList.toggle("active", active && !paused);
+    badge.textContent = active ? "Plan anual activo" : "Sin plan activo";
+    badge.classList.toggle("active", active);
     badge.classList.toggle("paused", active && paused);
   }
   const planName = document.getElementById("billingPlanName");
@@ -1763,16 +1764,14 @@ function renderBillingPanel() {
   const autoRenew = document.getElementById("billingAutoRenew");
   if (started) started.textContent = fechaFacturacion(perfilActual?.subscriptionStartedAt);
   if (expires) expires.textContent = fechaFacturacion(perfilActual?.subscriptionExpiresAt);
-  if (next) next.textContent = paused ? "Suspendido" : fechaFacturacion(nextBilling);
+  if (next) next.textContent = "No aplica";
   if (amountElement) amountElement.textContent = amount;
-  if (autoRenew) autoRenew.textContent = active ? (paused ? "Desactivada" : "Activada") : "—";
+  if (autoRenew) autoRenew.textContent = active ? "No disponible" : "—";
   const renewal = document.getElementById("billingRenewalCopy");
   if (renewal) {
-    renewal.textContent = active && !paused
-      ? `Tu plan se renovará automáticamente el ${fechaFacturacion(nextBilling)}. Se te cobrará ${amount} al mes.`
-      : active
-        ? `La renovación automática está suspendida. Si no la reactivas antes del ${fechaFacturacion(perfilActual?.subscriptionExpiresAt)}, perderás los beneficios del plan.`
-        : "No hay una renovación programada.";
+    renewal.textContent = active
+      ? `Tu plan vence el ${fechaFacturacion(perfilActual?.subscriptionExpiresAt)}. Si quieres continuar después de esa fecha, vuelves a pagar manualmente el plan Premium.`
+      : "No hay renovación automática ni cobros programados.";
   }
   const benefits = document.getElementById("billingBenefits");
   if (benefits) benefits.innerHTML = beneficiosPlan().map(item => `<li>${escapeHtml(item)}</li>`).join("");
@@ -1781,28 +1780,6 @@ function renderBillingPanel() {
     const canChangePlan = esInstitucion();
     upgradeButton.hidden = !canChangePlan;
     upgradeButton.textContent = "Cambiar o mejorar plan";
-  }
-  const toggle = document.getElementById("billingPauseToggle");
-  if (toggle) {
-    toggle.checked = paused;
-    toggle.disabled = !active;
-  }
-  const methods = metodosPagoPerfil();
-  const methodsContainer = document.getElementById("billingPaymentMethods");
-  if (methodsContainer) {
-    methodsContainer.innerHTML = methods.length
-      ? methods.map(method => `
-          <div class="billing-payment-row">
-            <span class="billing-payment-icon">${escapeHtml((method.brand || method.type || "Pago").slice(0, 8))}</span>
-            <div>
-              <strong>${escapeHtml(method.label || `${method.brand || method.type || "Método"} terminada en ${method.last4 || "••••"}`)}</strong>
-              <small>${method.isDefault ? "Método principal" : "Método alternativo"} · ${escapeHtml(method.provider || APP_CONFIG.payments.provider)}</small>
-            </div>
-            <button class="btn btn-outline" type="button" data-default-payment-method="${escapeHtml(method.id)}" ${method.isDefault ? "disabled" : ""}>Principal</button>
-            <button class="btn btn-outline" type="button" data-remove-payment-method="${escapeHtml(method.id)}" ${methods.length < 2 ? "disabled" : ""}>Eliminar</button>
-          </div>
-        `).join("")
-      : `<p class="mini-help">No tienes formas de pago guardadas.</p>`;
   }
   renderBillingTabs();
   renderBillingHistory();
@@ -3228,7 +3205,7 @@ function actualizarBienvenida() {
   }
   if (texto) {
     texto.textContent = tienePruebaDiagnosticoGratis()
-      ? "Tienes activa la versión gratuita: perteneces automáticamente al aula Matemáticas En Tu Bolsillo y puedes completar el Banco principal con diagnóstico, nivel medio y examen final, cada uno con sus dos intentos, métricas y retroalimentación. Para bancos de reserva, mensajes, Asesor IA y demás beneficios debes activar Premium."
+      ? "Tienes activa la versión gratuita: en Aprendizaje solo puedes estudiar Aritmética y presentar los exámenes asociados al Banco principal. Para los demás temas, bancos, mensajes, Asesor IA y beneficios debes activar Premium."
       : !suscripcionActiva()
       ? "Tu cuenta está activa, pero las herramientas académicas están limitadas hasta que actives una suscripción o ingreses mediante una institución con plan vigente. Puedes completar tu perfil, revisar Suscripción y Facturación, y contactar soporte si necesitas ayuda."
       : aulaActualValida()
@@ -3270,7 +3247,7 @@ function renderExamenesHub() {
     intro.textContent = sinAula
       ? "Cuando ingreses el código de aula, podrás presentar los exámenes habilitados por tu profesor."
       : tienePruebaDiagnosticoGratis()
-      ? "Tu versión gratuita incluye el Banco principal completo: diagnóstico, nivel medio y examen final, con dos intentos, métricas y retroalimentación. Para bancos de reserva, mensajes y Asesor IA debes activar Premium."
+      ? "Tu versión gratuita incluye únicamente exámenes relacionados con Aritmética en el Banco principal. Para otros temas, bancos, mensajes y Asesor IA debes activar Premium."
       : "Elige el examen que vas a presentar o revisar.";
   }
   document.querySelectorAll("[data-go-exam]").forEach(btn => {
@@ -3831,7 +3808,7 @@ function actualizarBancoEstudiante() {
   const completado = bancoCompletado();
   title.textContent = `${NOMBRES_BANCOS[bancoActivo]} (${idx + 1} de ${BANCOS_DISPONIBLES.length})`;
   text.textContent = tienePlanGratisIndependiente()
-    ? "Plan gratis: completa diagnóstico, nivel medio y examen final del Banco principal. Activa Premium para desbloquear todos los bancos de reserva."
+    ? "Plan gratis: usa únicamente Aritmética y sus exámenes del Banco principal. Activa Premium para desbloquear todo."
     : completado
     ? "Este banco ya está completo. Puedes revisar sus resultados o avanzar al siguiente banco."
     : "Completa diagnóstico, nivel medio y examen final para avanzar al siguiente banco.";
@@ -4039,7 +4016,8 @@ function setLearningLast(selection) {
 }
 
 function resolveLearningSelection(selection = getLearningLast()) {
-  const branch = LEARNING_CATALOG.find(item => item.id === selection?.branchId) || LEARNING_CATALOG[0];
+  const requestedBranchId = tienePlanGratisIndependiente() ? "aritmetica" : selection?.branchId;
+  const branch = LEARNING_CATALOG.find(item => item.id === requestedBranchId) || LEARNING_CATALOG[0];
   const topic = branch.topics.find(item => item.id === selection?.topicId) || branch.topics[0];
   const subtopics = topic.subtopics?.length ? topic.subtopics : [makeLearningSubtopic(branch.title, topic.title, topic.title, topic.summary)];
   const subtopic = subtopics.find(item => item.id === selection?.subtopicId) || subtopics[0];
@@ -4105,7 +4083,8 @@ function renderLearningPanel() {
   if (progressBarEl) progressBarEl.style.width = `${summary.pct}%`;
   document.getElementById("learningBranchTitle").textContent = branch.title;
 
-  branchList.innerHTML = LEARNING_CATALOG.map(item => `
+  const visibleLearningCatalog = tienePlanGratisIndependiente() ? LEARNING_CATALOG.filter(item => item.id === "aritmetica") : LEARNING_CATALOG;
+  branchList.innerHTML = visibleLearningCatalog.map(item => `
     <button class="learning-branch ${item.id === branch.id ? "active" : ""}" type="button" data-learning-branch="${escapeHtml(item.id)}">
       <span>${item.icon}</span>
       <strong>${escapeHtml(item.title)}</strong>
@@ -4154,7 +4133,8 @@ function renderLearningMobilePicker(branch, topic, subtopic, level) {
   const subtopicSelect = document.getElementById("learningSubtopicSelect");
   const levelSelect = document.getElementById("learningLevelSelect");
   if (!branchSelect || !topicSelect || !subtopicSelect || !levelSelect) return;
-  branchSelect.innerHTML = LEARNING_CATALOG.map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.title)}</option>`).join("");
+  const visibleLearningCatalog = tienePlanGratisIndependiente() ? LEARNING_CATALOG.filter(item => item.id === "aritmetica") : LEARNING_CATALOG;
+  branchSelect.innerHTML = visibleLearningCatalog.map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.title)}</option>`).join("");
   branchSelect.value = branch.id;
   topicSelect.innerHTML = branch.topics.map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.title)}</option>`).join("");
   topicSelect.value = topic.id;
@@ -12333,7 +12313,6 @@ document.getElementById("btnPaymentNext")?.addEventListener("click", () => {
 document.getElementById("btnStartSecureCheckout")?.addEventListener("click", async () => {
   const status = document.getElementById("paymentStatus");
   const acceptTerms = document.getElementById("paymentAcceptTerms")?.checked;
-  const saveMethod = document.getElementById("paymentSaveMethod")?.checked;
   if (!acceptTerms) {
     if (status) {
       status.textContent = "Debes aceptar las condiciones del servicio y la política de privacidad antes de continuar.";
@@ -12359,8 +12338,8 @@ document.getElementById("btnStartSecureCheckout")?.addEventListener("click", asy
         planId: selectedPlan.id,
         paymentMethod: selectedPaymentMethod,
         providerPaymentMethod: tipoMetodoWompi(),
-        savePaymentMethod: !!saveMethod,
-        acceptRecurring: !!saveMethod,
+        savePaymentMethod: false,
+        acceptRecurring: false,
         source: "subscription-carousel"
       });
       if (status) {
@@ -12374,8 +12353,8 @@ document.getElementById("btnStartSecureCheckout")?.addEventListener("click", asy
       role: rolUsuario(),
       paymentMethod: selectedPaymentMethod,
       providerPaymentMethod: tipoMetodoWompi(),
-      savePaymentMethod: !!saveMethod,
-      acceptRecurring: !!saveMethod,
+      savePaymentMethod: false,
+      acceptRecurring: false,
       acceptTerms: true,
       source: "subscription-carousel"
     });
@@ -12418,77 +12397,6 @@ document.getElementById("billingHistory")?.addEventListener("click", event => {
   const button = event.target.closest("[data-download-receipt]");
   if (!button) return;
   descargarComprobantePago(button.dataset.downloadReceipt || "");
-});
-document.getElementById("billingPauseToggle")?.addEventListener("change", async event => {
-  const status = document.getElementById("billingActionStatus");
-  const pause = event.target.checked;
-  const wasPaused = perfilActual?.subscriptionPaymentPaused === true || perfilActual?.subscriptionAutoRenew === false;
-  if (!suscripcionActiva()) {
-    event.target.checked = false;
-    if (status) setStatusTemporal("billingActionStatus", "No tienes una suscripción activa para administrar.", "error");
-    return;
-  }
-  try {
-    await registrarSolicitudFacturacion(pause ? "pause-renewal" : "resume-renewal");
-    await guardarPerfilUsuario({ subscriptionPaymentPaused: pause, subscriptionAutoRenew: !pause });
-    if (status) {
-      setStatusTemporal("billingActionStatus", pause
-          ? "Suspensión registrada."
-          : "Reactivación registrada.",
-        "success");
-    }
-  } catch (error) {
-    console.error(error);
-    event.target.checked = !pause && wasPaused
-      ? true
-      : (perfilActual?.subscriptionPaymentPaused === true || perfilActual?.subscriptionAutoRenew === false);
-    if (status) setStatusTemporal("billingActionStatus", "No fue posible registrar la solicitud. Intenta nuevamente.", "error");
-  }
-});
-document.getElementById("billingPaymentMethods")?.addEventListener("click", async event => {
-  const defaultButton = event.target.closest("[data-default-payment-method]");
-  const button = event.target.closest("[data-remove-payment-method]");
-  if (defaultButton) {
-    const status = document.getElementById("billingActionStatus");
-    try {
-      await registrarSolicitudFacturacion("set-default-payment-method", { paymentMethodId: defaultButton.dataset.defaultPaymentMethod });
-      if (status) {
-        status.textContent = "Solicitud registrada. El método principal se actualizará cuando la pasarela confirme el cambio.";
-        status.className = "bank-status success";
-      }
-    } catch (error) {
-      console.error(error);
-      if (status) {
-        status.textContent = "No fue posible registrar la solicitud.";
-        status.className = "bank-status error";
-      }
-    }
-    return;
-  }
-  if (!button) return;
-  const methods = metodosPagoPerfil();
-  const status = document.getElementById("billingActionStatus");
-  if (methods.length < 2) {
-    if (status) {
-      status.textContent = "Agrega otra forma de pago antes de eliminar la única disponible.";
-      status.className = "bank-status error";
-    }
-    return;
-  }
-  if (!confirm("¿Deseas solicitar la eliminación de esta forma de pago?")) return;
-  try {
-    await registrarSolicitudFacturacion("remove-payment-method", { paymentMethodId: button.dataset.removePaymentMethod });
-    if (status) {
-      status.textContent = "Solicitud registrada. El método se eliminará cuando la pasarela confirme el cambio.";
-      status.className = "bank-status success";
-    }
-  } catch (error) {
-    console.error(error);
-    if (status) {
-      status.textContent = "No fue posible registrar la solicitud.";
-      status.className = "bank-status error";
-    }
-  }
 });
 document.getElementById("btnCloseMessageDetail")?.addEventListener("click", () => {
   activeMessageId = "";

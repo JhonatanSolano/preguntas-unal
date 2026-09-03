@@ -20,11 +20,12 @@ const APP_URL = "https://matematicasentubolsillo.com/";
 const APP_ORIGIN = "https://matematicasentubolsillo.com";
 
 const BILLING_PLANS = {
-  "student-monthly": {
+  "student-annual": {
     role: "student",
-    name: "Plan Estudiante mensual",
-    amountCOP: 10000,
-    benefits: ["Exámenes", "Estadísticas", "Mensajería académica", "Asesor IA"]
+    name: "Plan Premium Estudiante anual",
+    amountCOP: 20000,
+    durationYears: 1,
+    benefits: ["Acceso total anual", "Exámenes", "Estadísticas", "Mensajería académica", "Asesor IA"]
   },
   "institution-0010": {
     role: "institution",
@@ -82,7 +83,7 @@ const BILLING_PLANS = {
   },
   "teacher-monthly": {
     role: "teacher",
-    name: "Plan Profesor mensual",
+    name: "Plan Profesor institucional",
     amountCOP: null,
     benefits: ["Aulas", "Bancos de preguntas", "Mensajería", "Métricas", "Asesor IA"]
   }
@@ -282,9 +283,9 @@ function sha256(value) {
   return crypto.createHash("sha256").update(String(value)).digest("hex");
 }
 
-function addMonths(date, months = 1) {
+function addYears(date, years = 1) {
   const next = new Date(date);
-  next.setMonth(next.getMonth() + months);
+  next.setFullYear(next.getFullYear() + years);
   return next;
 }
 
@@ -1073,85 +1074,9 @@ exports.sendSubscriptionRenewalReminders = onSchedule({
   region: "us-central1",
   schedule: "0 8 * * *",
   timeZone: "America/Bogota",
-  secrets: [resendApiKey],
   retryCount: 2
 }, async () => {
-  const db = admin.firestore();
-  const now = Date.now();
-  const windowStart = admin.firestore.Timestamp.fromMillis(now + (60 * 60 * 1000 * 60));
-  const windowEnd = admin.firestore.Timestamp.fromMillis(now + (60 * 60 * 1000 * 84));
-  const usersSnap = await db.collection("users")
-    .where("subscriptionNextBillingAt", ">=", windowStart)
-    .where("subscriptionNextBillingAt", "<", windowEnd)
-    .get();
-
-  for (const userDoc of usersSnap.docs) {
-    const user = userDoc.data();
-    if (
-      user.subscriptionStatus !== "active" ||
-      user.subscriptionAutoRenew === false ||
-      user.subscriptionPaymentPaused === true ||
-      !user.email
-    ) continue;
-
-    const billingDate = user.subscriptionNextBillingAt?.toDate?.();
-    if (!billingDate) continue;
-    const billingKey = billingDate.toISOString().slice(0, 10);
-    const logRef = db.collection("billingReminderLog").doc(`${userDoc.id}_${billingKey}`);
-    if ((await logRef.get()).exists) continue;
-
-    const formattedDate = new Intl.DateTimeFormat("es-CO", {
-      timeZone: "America/Bogota",
-      day: "numeric",
-      month: "long",
-      year: "numeric"
-    }).format(billingDate);
-    const amount = new Intl.NumberFormat("es-CO", {
-      style: "currency",
-      currency: "COP",
-      maximumFractionDigits: 0
-    }).format(Number(user.subscriptionAmountCOP || 0));
-    const plan = user.subscriptionPlan || "tu plan actual";
-    const html = `
-      <div style="font-family:Arial,sans-serif;line-height:1.6;color:#162838;max-width:640px;margin:auto;padding:24px">
-        <h1 style="color:#06345f">Tu suscripción se renovará pronto</h1>
-        <p>Hola ${escapeHtml(user.displayName || "")},</p>
-        <p>Este es un aviso informativo: el <strong>${escapeHtml(formattedDate)}</strong> se realizará el cobro automático de <strong>${escapeHtml(amount)}</strong> correspondiente a <strong>${escapeHtml(plan)}</strong>.</p>
-        <p>El cobro se realizará mediante tu forma de pago principal registrada.</p>
-        <div style="padding:16px;background:#fff6e5;border-left:4px solid #d99a20;margin:22px 0">
-          <strong>¿No deseas continuar?</strong>
-          <p style="margin-bottom:0">Entra a Matemáticas En Tu Bolsillo antes del día de cobro, abre <strong>Facturación</strong> y suspende o cancela la renovación de tu suscripción.</p>
-        </div>
-        <p style="margin:28px 0">
-          <a href="https://matematicasentubolsillo.com/" style="background:#0d9488;color:white;padding:14px 22px;border-radius:999px;text-decoration:none;font-weight:bold">Entrar a la app</a>
-        </p>
-        <p>Si ya suspendiste o cancelaste la renovación, puedes ignorar este mensaje.</p>
-        <p style="font-size:12px;color:#66788a">© Todos los derechos reservados. Matemáticas En Tu Bolsillo.</p>
-      </div>`;
-
-    await sendEmail({
-      to: user.email,
-      subject: `Aviso de renovación: cobro programado para el ${formattedDate}`,
-      html
-    });
-    await logRef.set({
-      uid: userDoc.id,
-      email: user.email,
-      billingDate: user.subscriptionNextBillingAt,
-      sentAt: admin.firestore.FieldValue.serverTimestamp(),
-      channel: "email",
-      status: "sent"
-    });
-    await db.collection("notifications").add({
-      targetUid: userDoc.id,
-      targetEmail: user.email,
-      type: "billing-reminder",
-      title: "Tu suscripción se renovará pronto",
-      body: `El ${formattedDate} se cobrará ${amount}. Si no deseas continuar, cancela la renovación desde Facturación antes del cobro.`,
-      read: false,
-      createdAt: admin.firestore.FieldValue.serverTimestamp()
-    });
-  }
+  console.log("Renovaciones automaticas desactivadas: los planes Premium se renuevan manualmente desde Wompi.");
 });
 
 exports.createPaymentIntent = onRequest({
@@ -1173,18 +1098,14 @@ exports.createPaymentIntent = onRequest({
   const body = req.body || {};
   const planId = String(body.planId || "").trim();
   const plan = BILLING_PLANS[planId];
-  const paymentMethod = String(body.paymentMethod || "pse").trim();
-  const providerPaymentMethod = String(body.providerPaymentMethod || "").trim() || (paymentMethod === "pse" ? "PSE" : "CARD");
-  const savePaymentMethod = body.savePaymentMethod === true;
-  const acceptRecurring = body.acceptRecurring === true;
+  const paymentMethod = String(body.paymentMethod || "wompi").trim();
+  const providerPaymentMethod = String(body.providerPaymentMethod || "").trim() || "WOMPI_CHECKOUT";
+  const savePaymentMethod = false;
+  const acceptRecurring = false;
   const acceptTerms = body.acceptTerms === true;
 
   if (!plan) return res.status(400).json({ error: "Plan inválido." });
   if (!acceptTerms) return res.status(400).json({ error: "Debes aceptar las condiciones del servicio." });
-  if (savePaymentMethod && !acceptRecurring) {
-    return res.status(400).json({ error: "Para guardar un método debes autorizar la renovación automática." });
-  }
-
   const db = admin.firestore();
   const userSnap = await db.collection("users").doc(decoded.uid).get();
   if (!userSnap.exists) return res.status(403).json({ error: "Tu perfil no está registrado para facturación." });
@@ -1218,6 +1139,7 @@ exports.createPaymentIntent = onRequest({
     providerPaymentMethod,
     savePaymentMethod,
     acceptRecurring,
+    durationYears: plan.durationYears || 1,
     acceptTerms,
     amountCOP: plan.amountCOP,
     amountInCents,
@@ -1335,7 +1257,7 @@ exports.wompiWebhook = onRequest({
     planId: intent.planId,
     planName: intent.planName,
     paymentMethod: intent.paymentMethod,
-    paymentMethodLabel: intent.paymentMethod === "pse" ? "PSE" : (intent.paymentMethod === "nequi" ? "Nequi" : "Tarjeta"),
+    paymentMethodLabel: intent.paymentMethod === "pse" ? "PSE" : (intent.paymentMethod === "nequi" ? "Nequi" : "Wompi"),
     institutionDane: intent.institutionDane || "",
     institutionName: intent.institutionName || "",
     amountInCents: receivedAmountInCents || expectedAmountInCents,
@@ -1390,16 +1312,16 @@ exports.wompiWebhook = onRequest({
 
   if (status === "APPROVED") {
     const now = new Date();
-    const expiresAt = addMonths(now, 1);
+    const expiresAt = addYears(now, Number(intent.durationYears || 1));
     const userUpdate = {
       subscriptionStatus: "active",
       subscriptionPlan: intent.planName,
       subscriptionStartedAt: admin.firestore.Timestamp.fromDate(now),
       subscriptionExpiresAt: admin.firestore.Timestamp.fromDate(expiresAt),
       subscriptionAmountCOP: transactionPayload.amountCOP,
-      subscriptionAutoRenew: intent.savePaymentMethod === true,
-      subscriptionPaymentPaused: intent.savePaymentMethod !== true,
-      subscriptionNextBillingAt: intent.savePaymentMethod === true ? admin.firestore.Timestamp.fromDate(expiresAt) : null,
+      subscriptionAutoRenew: false,
+      subscriptionPaymentPaused: true,
+      subscriptionNextBillingAt: null,
       paymentProvider: "Wompi",
       lastPaymentId: String(transactionId || reference),
       maxInstitutionUsers: intent.maxInstitutionUsers || null,
@@ -1411,19 +1333,6 @@ exports.wompiWebhook = onRequest({
       institutionAccessRevoked: false,
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     };
-    const sourceId = transaction.payment_source_id || transaction.payment_source?.id;
-    if (sourceId && intent.savePaymentMethod === true) {
-      userUpdate.paymentSourceId = String(sourceId);
-      userUpdate.paymentMethods = admin.firestore.FieldValue.arrayUnion({
-        id: String(sourceId),
-        provider: "Wompi",
-        type: "card",
-        brand: transaction.payment_method?.extra?.brand || transaction.payment_method_type || "Tarjeta",
-        last4: transaction.payment_method?.extra?.last_four || transaction.payment_method?.extra?.last4 || "••••",
-        isDefault: true,
-        createdAt: admin.firestore.Timestamp.fromDate(now)
-      });
-    }
     await db.collection("users").doc(intent.uid).set(userUpdate, { merge: true });
     if (intent.role === "institution" && intent.institutionDane) {
       await db.collection("institutions").doc(String(intent.institutionDane)).set({
@@ -1433,9 +1342,9 @@ exports.wompiWebhook = onRequest({
         subscriptionStartedAt: admin.firestore.Timestamp.fromDate(now),
         subscriptionExpiresAt: admin.firestore.Timestamp.fromDate(expiresAt),
         subscriptionAmountCOP: transactionPayload.amountCOP,
-        subscriptionAutoRenew: intent.savePaymentMethod === true,
-        subscriptionPaymentPaused: intent.savePaymentMethod !== true,
-        subscriptionNextBillingAt: intent.savePaymentMethod === true ? admin.firestore.Timestamp.fromDate(expiresAt) : null,
+        subscriptionAutoRenew: false,
+        subscriptionPaymentPaused: true,
+        subscriptionNextBillingAt: null,
         paymentProvider: "Wompi",
         lastPaymentId: String(transactionId || reference),
         maxInstitutionUsers: intent.maxInstitutionUsers || null,
@@ -1547,38 +1456,11 @@ exports.processBillingRequest = onDocumentWritten({
   }
   const user = userSnap.data();
   try {
-    const methods = Array.isArray(user.paymentMethods) ? user.paymentMethods : [];
     const update = { updatedAt: admin.firestore.FieldValue.serverTimestamp() };
     let message = "";
 
-    if (after.type === "pause-renewal") {
-      update.subscriptionPaymentPaused = true;
-      update.subscriptionAutoRenew = false;
-      message = "Renovación automática suspendida.";
-    } else if (after.type === "resume-renewal") {
-      if (!methods.length && !user.paymentSourceId) {
-        throw new Error("No hay método tokenizado para reactivar la renovación.");
-      }
-      update.subscriptionPaymentPaused = false;
-      update.subscriptionAutoRenew = true;
-      message = "Renovación automática reactivada.";
-    } else if (after.type === "remove-payment-method") {
-      if (methods.length < 2) throw new Error("No se puede eliminar el único método de pago.");
-      const nextMethods = methods.filter(method => method.id !== after.paymentMethodId);
-      if (nextMethods.length === methods.length) throw new Error("Método de pago no encontrado.");
-      if (!nextMethods.some(method => method.isDefault)) nextMethods[0].isDefault = true;
-      update.paymentMethods = nextMethods;
-      if (user.paymentSourceId === after.paymentMethodId) update.paymentSourceId = nextMethods.find(method => method.isDefault)?.id || "";
-      message = "Método de pago eliminado.";
-    } else if (after.type === "set-default-payment-method") {
-      const nextMethods = methods.map(method => ({
-        ...method,
-        isDefault: method.id === after.paymentMethodId
-      }));
-      if (!nextMethods.some(method => method.isDefault)) throw new Error("Método de pago no encontrado.");
-      update.paymentMethods = nextMethods;
-      update.paymentSourceId = after.paymentMethodId;
-      message = "Método principal actualizado.";
+    if (["pause-renewal", "resume-renewal", "remove-payment-method", "set-default-payment-method"].includes(after.type)) {
+      throw new Error("La renovación automática y los métodos guardados ya no están disponibles. Renueva manualmente desde Suscripción.");
     } else if (after.type === "upgrade-plan") {
       message = "Solicitud de cambio de plan registrada.";
     } else if (after.type === "payment-intent") {
