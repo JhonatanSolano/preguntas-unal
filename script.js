@@ -13,6 +13,7 @@ import {
   createUserWithEmailAndPassword,
   deleteUser,
   EmailAuthProvider,
+  fetchSignInMethodsForEmail,
   linkWithCredential,
   linkWithPopup,
   onAuthStateChanged,
@@ -9922,14 +9923,29 @@ async function loginEmail() {
     }
   } catch (err) {
     clearPendingLoginType();
-    const code = err?.code || "";
-    const message = code.includes("user-not-found")
-      ? "Usuario no encontrado. Debe primero crear una cuenta."
-      : code.includes("wrong-password") || code.includes("invalid-credential") || code.includes("invalid-login-credentials")
-        ? "Correo o contraseña incorrecta."
-        : "Correo o contraseña incorrecta.";
+    const message = await mensajeErrorLoginEmail(err, email);
     setStatusTemporal("loginStatus", message, "error", 5000);
   }
+}
+
+async function mensajeErrorLoginEmail(err, email) {
+  const code = err?.code || "";
+  console.warn("Login manual rechazado por Firebase Auth.", { code });
+  if (code.includes("user-disabled")) return "Esta cuenta está deshabilitada. Contacta soporte.";
+  if (code.includes("too-many-requests")) return "Demasiados intentos. Espera unos minutos e intenta de nuevo.";
+  if (code.includes("network-request-failed")) return "No hay conexión estable. Revisa internet e intenta de nuevo.";
+  if (code.includes("user-not-found")) return "Usuario no encontrado. Debe primero crear una cuenta.";
+  if (code.includes("wrong-password") || code.includes("invalid-credential") || code.includes("invalid-login-credentials")) {
+    const methods = await fetchSignInMethodsForEmail(auth, email).catch(methodErr => {
+      console.warn("No se pudieron consultar proveedores de inicio de sesión.", { code: methodErr?.code || "" });
+      return null;
+    });
+    if (Array.isArray(methods) && methods.length && !methods.includes("password") && methods.includes("google.com")) {
+      return "Este correo está registrado con Google. Ingresa con el botón de Google o vincula/crea contraseña desde Perfil.";
+    }
+    return "Correo o contraseña incorrecta.";
+  }
+  return "No fue posible iniciar sesión. Intenta nuevamente.";
 }
 
 function loginCoincideConTipo(profile, expectedType, email = "") {
