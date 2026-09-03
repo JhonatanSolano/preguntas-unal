@@ -3019,48 +3019,6 @@ function animarSeccionActiva() {
   });
 }
 
-const SCROLL_GESTURE_FALLBACK_MAX_DELTA = 420;
-function normalizarDeltaGestual(deltaY, factor = 1) {
-  const abs = Math.abs(deltaY);
-  if (abs < 1) return 0;
-  return Math.sign(deltaY) * Math.min(abs * factor, SCROLL_GESTURE_FALLBACK_MAX_DELTA);
-}
-function puedeUsarScrollGlobal(target = document.body) {
-  if (document.body.classList.contains("landing-menu-open") || document.body.classList.contains("public-modal-open")) return false;
-  return !target?.closest?.("input, textarea, select, iframe, embed, object, [contenteditable='true'], .auth-shell:not(.hidden), .app-modal-overlay:not(.hidden), .message-detail-overlay:not(.hidden), .overlay:not(.hidden), .side-drawer, .notifications-list, .message-thread, .advisor-chat-log");
-}
-function instalarRescateScrollGlobal() {
-  if (window.__matematicasNativeScrollFallback) return;
-  window.__matematicasNativeScrollFallback = true;
-  let touchY = 0;
-  window.addEventListener("wheel", event => {
-    if (!puedeUsarScrollGlobal(event.target) || !event.deltaY || event.ctrlKey) return;
-    const before = window.scrollY || document.documentElement.scrollTop || 0;
-    requestAnimationFrame(() => {
-      const after = window.scrollY || document.documentElement.scrollTop || 0;
-      if (Math.abs(after - before) > 0.5) return;
-      window.scrollBy({ top: normalizarDeltaGestual(event.deltaY, 2.4), left: 0, behavior: "auto" });
-    });
-  }, { passive: true });
-  window.addEventListener("touchstart", event => {
-    if (event.touches.length !== 1) return;
-    touchY = event.touches[0].clientY;
-  }, { passive: true });
-  window.addEventListener("touchmove", event => {
-    if (!puedeUsarScrollGlobal(event.target) || event.touches.length !== 1) return;
-    const currentY = event.touches[0].clientY;
-    const deltaY = touchY - currentY;
-    if (Math.abs(deltaY) < 2) return;
-    const before = window.scrollY || document.documentElement.scrollTop || 0;
-    requestAnimationFrame(() => {
-      const after = window.scrollY || document.documentElement.scrollTop || 0;
-      if (Math.abs(after - before) > 0.5) return;
-      window.scrollBy({ top: normalizarDeltaGestual(deltaY, 1.8), left: 0, behavior: "auto" });
-    });
-    touchY = currentY;
-  }, { passive: true });
-}
-instalarRescateScrollGlobal();
 function hayBorradorMensajeProfesor() {
   if (!modoAdmin) return false;
   const subject = document.getElementById("messageSubject")?.value.trim() || "";
@@ -10399,7 +10357,7 @@ async function guardarDatosGoogleIniciales(user) {
 async function recuperarPassword() {
   const email = (document.getElementById("forgotPasswordEmail")?.value || document.getElementById("loginEmail")?.value || "").trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    setStatus("forgotPasswordStatus", "Escribe tu correo registrado.", "error");
+    setStatusTemporal("forgotPasswordStatus", "Escribe tu correo registrado.", "error", 5000);
     return;
   }
   try {
@@ -10411,9 +10369,9 @@ async function recuperarPassword() {
     if (!response.ok) throw new Error(await response.text());
     const input = document.getElementById("forgotPasswordEmail");
     if (input) input.value = "";
-    setStatus("forgotPasswordStatus", "Te enviamos un correo para restablecer la contraseña desde Matemáticas En Tu Bolsillo.");
+    setStatusTemporal("forgotPasswordStatus", "Te enviamos un correo para restablecer la contraseña desde Matemáticas En Tu Bolsillo.", "ok", 5000);
   } catch {
-    setStatus("forgotPasswordStatus", "No se pudo enviar la recuperación. Revisa el correo.", "error");
+    setStatusTemporal("forgotPasswordStatus", "No se pudo enviar la recuperación. Revisa el correo.", "error", 5000);
   }
 }
 
@@ -10445,6 +10403,7 @@ function abrirPanelRecuperarUsuario() {
   poblarPhoneCodes("recoverPhoneCode", document.getElementById("recoverPhoneCode")?.value || "+57");
   const backBtn = document.getElementById("btnRecoverBack");
   if (backBtn) backBtn.textContent = "Volver al inicio de sesión";
+  recoverAttemptCount = 0;
   setRecoverStep(1);
   setStatus("recoverStatus", "");
   mostrarSoporteRecuperacion(false);
@@ -10900,19 +10859,19 @@ async function buscarCandidatoRecuperacion() {
   const phoneId = recoveryPhoneId(phoneNumber);
   const nameKey = normalizarNombre(document.getElementById("recoverName")?.value || "");
   if (!phoneId || !nameKey) {
-    setStatus("recoverStatus", "Completa nombre y teléfono para continuar.", "error");
+    setStatusTemporal("recoverStatus", "Completa nombre y teléfono para continuar.", "error", 5000);
     mostrarSoporteRecuperacion(false);
     return null;
   }
   const snap = await getDoc(doc(db, "recoveryContacts", phoneId));
   if (!snap.exists()) {
-    setStatus("recoverStatus", mensajeRecuperacionProtegido(), "error");
+    setStatusTemporal("recoverStatus", mensajeRecuperacionProtegido(), "error", 5000);
     mostrarSoporteRecuperacion(true);
     return null;
   }
   const data = snap.data();
   if (!data.phoneVerified || data.nameKey !== nameKey) {
-    setStatus("recoverStatus", mensajeRecuperacionProtegido(), "error");
+    setStatusTemporal("recoverStatus", mensajeRecuperacionProtegido(), "error", 5000);
     mostrarSoporteRecuperacion(true);
     return null;
   }
@@ -10923,7 +10882,7 @@ async function buscarCandidatoRecuperacion() {
 async function enviarCodigoRecuperacion() {
   const btn = document.getElementById("btnRecoverSendCode");
   if (recoverAttemptCount >= 3) {
-    setStatus("recoverStatus", "Demasiados intentos. Comunícate con soporte para proteger tu cuenta.", "error");
+    setStatusTemporal("recoverStatus", "Demasiados intentos. Comunícate con soporte para proteger tu cuenta.", "error", 5000);
     mostrarSoporteRecuperacion(true);
     return;
   }
@@ -10941,24 +10900,24 @@ async function enviarCodigoRecuperacion() {
     recoverVerificationId = await provider.verifyPhoneNumber(recoverCandidate.phoneNumber, verifier);
     recoverVerificationExpiresAt = Date.now() + PHONE_CODE_DURATION_MS;
     setRecoverStep(2);
-    setStatus("recoverStatus", "Código enviado. Tienes 2 minutos para validarlo.");
+    setStatusTemporal("recoverStatus", "Código enviado. Tienes 2 minutos para validarlo.", "ok", 5000);
     iniciarCronometroRecuperacion();
   } catch (err) {
     console.error("Error en recuperación de usuario:", err);
     btn.disabled = false;
-    setStatus("recoverStatus", mensajeErrorTelefono(err), "error");
+    setStatusTemporal("recoverStatus", mensajeErrorTelefono(err), "error", 5000);
   }
 }
 
 async function verificarCodigoRecuperacion() {
   const code = document.getElementById("recoverCodeInput").value.trim();
   if (!recoverCandidate || !recoverVerificationId || Date.now() > recoverVerificationExpiresAt) {
-    setStatus("recoverStatus", "El código venció. Solicita uno nuevo.", "error");
+    setStatusTemporal("recoverStatus", "El código venció. Solicita uno nuevo.", "error", 5000);
     actualizarCronometroRecuperacion();
     return;
   }
   if (!code) {
-    setStatus("recoverStatus", "Escribe el código recibido por SMS.", "error");
+    setStatusTemporal("recoverStatus", "Escribe el código recibido por SMS.", "error", 5000);
     return;
   }
   try {
@@ -10966,7 +10925,7 @@ async function verificarCodigoRecuperacion() {
     const credential = PhoneAuthProvider.credential(recoverVerificationId, code);
     const cred = await signInWithCredential(auth, credential);
     if (cred.user.uid !== recoverCandidate.uid) {
-      throw new Error("El teléfono verificado no coincide con el usuario registrado.");
+      throw new Error("RECOVERY_PHONE_UID_MISMATCH");
     }
     const email = recoverCandidate.email;
     await signOut(auth);
@@ -10978,7 +10937,7 @@ async function verificarCodigoRecuperacion() {
     clearInterval(recoverCountdownInterval);
     actualizarCronometroRecuperacion();
     setRecoverStep(3);
-    setStatus("recoverStatus", `Hemos encontrado tu cuenta. Correo electrónico registrado: ${email}`);
+    setStatusTemporal("recoverStatus", `Hemos encontrado tu cuenta. Correo electrónico registrado: ${email}`, "ok", 5000);
     const backBtn = document.getElementById("btnRecoverBack");
     if (backBtn) backBtn.textContent = "Ir a iniciar sesión";
   } catch (err) {
@@ -10987,7 +10946,9 @@ async function verificarCodigoRecuperacion() {
       await signOut(auth).catch(() => {});
     }
     console.error("No se pudo validar recuperación:", err);
-    setStatus("recoverStatus", "Código inválido o vencido. Para proteger tu información, verifica el código o comunícate con soporte.", "error");
+    const mensaje = err?.message === "RECOVERY_PHONE_UID_MISMATCH" ? "El teléfono verificado no está vinculado a esa cuenta. Ingresa con tu correo o comunícate con soporte para actualizarlo." : "Código inválido o vencido. Para proteger tu información, verifica el código o comunícate con soporte.";
+    if (err?.message === "RECOVERY_PHONE_UID_MISMATCH") mostrarSoporteRecuperacion(true);
+    setStatusTemporal("recoverStatus", mensaje, "error", 5000);
   }
 }
 

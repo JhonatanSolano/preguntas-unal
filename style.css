@@ -13885,3 +13885,137 @@ body.exam-active:not(.landing-menu-open) {
 body:not(.landing-menu-open):not(.public-modal-open) {
   position: static !important;
 }
+/* Mobile stability: native vertical scroll, anchored footer and readable exam feedback */
+body:not(.group-locked):not(.landing-menu-open) {
+  min-height: 100dvh !important;
+  display: flex;
+  flex-direction: column;
+  overscroll-behavior-y: auto !important;
+}
+body:not(.group-locked):not(.landing-menu-open) .main-content:not(.hidden) {
+  flex: 1 0 auto;
+}
+body:not(.group-locked):not(.landing-menu-open) .site-footer {
+  flex: 0 0 auto;
+  margin-top: auto !important;
+}
+@media (max-width: 760px) {
+  html,
+  body,
+  body.group-locked:not(.landing-menu-open),
+  body.app-active:not(.landing-menu-open),
+  body.admin-mode:not(.landing-menu-open),
+  body.exam-active:not(.landing-menu-open) {
+    scroll-behavior: auto !important;
+    overscroll-behavior-y: auto !important;
+    touch-action: pan-y pinch-zoom !important;
+  }
+  body:not(.group-locked):not(.landing-menu-open) .main-content:not(.hidden),
+  body.app-active .main-content:not(.hidden),
+  body.admin-mode .main-content:not(.hidden),
+  body.exam-active .main-content:not(.hidden) {
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow-x: hidden !important;
+    overflow-y: visible !important;
+    overscroll-behavior-y: auto !important;
+    -webkit-overflow-scrolling: auto !important;
+    touch-action: pan-y pinch-zoom !important;
+    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom)) !important;
+  }
+  #groupGate.public-home,
+  body.group-locked #groupGate.public-home,
+  body.group-locked .main-content.public-home {
+    height: auto !important;
+    min-height: 100dvh !important;
+    max-height: none !important;
+    overflow-y: visible !important;
+    overscroll-behavior-y: auto !important;
+    -webkit-overflow-scrolling: auto !important;
+    touch-action: pan-y pinch-zoom !important;
+  }
+  .site-footer {
+    margin-top: auto !important;
+    padding: 1rem .9rem calc(1rem + env(safe-area-inset-bottom)) !important;
+  }
+  #sectionDiagnostico,
+  #sectionNivel1,
+  #sectionExamenFinal {
+    padding-inline: .85rem !important;
+  }
+  #sectionDiagnostico .question-card,
+  #sectionNivel1 .question-card,
+  #sectionExamenFinal .question-card,
+  #feedbackItems .feedback-item,
+  #feedbackItemsNivel .feedback-item,
+  #feedbackItemsExamen .feedback-item {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 1.25rem 1rem !important;
+    margin-bottom: 1.05rem !important;
+    overflow: visible !important;
+  }
+  #sectionDiagnostico .q-header,
+  #sectionNivel1 .q-header,
+  #sectionExamenFinal .q-header {
+    gap: .7rem !important;
+    margin-bottom: 1rem !important;
+  }
+  #sectionDiagnostico .q-text,
+  #sectionNivel1 .q-text,
+  #sectionExamenFinal .q-text {
+    font-size: clamp(1rem, 4.6vw, 1.18rem) !important;
+    line-height: 1.55 !important;
+  }
+  #sectionDiagnostico .options-list,
+  #sectionNivel1 .options-list,
+  #sectionExamenFinal .options-list {
+    gap: .75rem !important;
+  }
+  #sectionDiagnostico .option-label,
+  #sectionNivel1 .option-label,
+  #sectionExamenFinal .option-label {
+    align-items: flex-start !important;
+    padding: .85rem .9rem !important;
+    line-height: 1.45 !important;
+  }
+  #feedbackList,
+  #feedbackListNivel,
+  #feedbackListExamen {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 1rem .85rem !important;
+    overflow: visible !important;
+  }
+  .fb-expl {
+    box-sizing: border-box;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 1rem .95rem !important;
+    margin: .85rem 0 0 !important;
+    overflow: visible !important;
+    overflow-wrap: anywhere !important;
+    word-break: normal !important;
+  }
+  .fb-expl .q-formula,
+  .fb-expl .katex-display,
+  .fb-expl mjx-container,
+  .question-card .q-formula,
+  .question-card .katex-display,
+  .question-card mjx-container {
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  .advisor-widget {
+    right: max(.85rem, env(safe-area-inset-right)) !important;
+    bottom: calc(4.8rem + env(safe-area-inset-bottom)) !important;
+  }
+  .advisor-float {
+    width: 64px !important;
+    height: 64px !important;
+    font-size: 2rem !important;
+  }
+}
