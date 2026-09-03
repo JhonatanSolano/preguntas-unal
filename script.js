@@ -12702,12 +12702,21 @@ document.querySelectorAll(".drawer-link[data-section]").forEach(btn => {
     if (activarNav(btn.dataset.section)) cerrarDrawer();
   });
 });
+function limitarAcordeonesExamenesMovil(details) {
+  if (!details.open || !details.closest("#sectionExamenes") || !window.matchMedia("(max-width: 760px)").matches) return;
+  const section = details.closest("#sectionExamenes");
+  section.querySelectorAll("details.accordion-card[open]").forEach(other => {
+    if (other === details || other.contains(details) || details.contains(other)) return;
+    other.open = false;
+  });
+}
 document.addEventListener("toggle", e => {
   const details = e.target;
   if (!(details instanceof HTMLDetailsElement) || !details.open) return;
   details.parentElement?.querySelectorAll(":scope > details.accordion-card, :scope > details.profile-panel, :scope > details.phone-panel").forEach(other => {
     if (other !== details) other.open = false;
   });
+  limitarAcordeonesExamenesMovil(details);
 }, true);
 document.querySelectorAll("[data-toggle-password]").forEach(btn => {
   renderPasswordToggle(btn, false);

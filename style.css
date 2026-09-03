@@ -14019,3 +14019,96 @@ body:not(.group-locked):not(.landing-menu-open) .site-footer {
     font-size: 2rem !important;
   }
 }
+
+@media (max-width: 760px) {
+  body:not(.group-locked):not(.landing-menu-open) .main-content:not(.hidden),
+  body.app-active .main-content:not(.hidden),
+  body.admin-mode .main-content:not(.hidden),
+  body.exam-active .main-content:not(.hidden) {
+    flex: 0 0 auto !important;
+    padding-bottom: calc(1.75rem + env(safe-area-inset-bottom)) !important;
+    scroll-padding-bottom: calc(2rem + env(safe-area-inset-bottom)) !important;
+  }
+  body:not(.group-locked):not(.landing-menu-open) .site-footer {
+    margin-top: .5rem !important;
+  }
+  .site-footer {
+    padding-top: .85rem !important;
+    padding-bottom: calc(.85rem + env(safe-area-inset-bottom)) !important;
+  }
+  .site-footer p {
+    margin: .25rem 0 !important;
+  }
+  #sectionExamenes .start-screen,
+  #sectionExamenes .admin-exam-bank-panel,
+  #sectionExamenes .teacher-question-builder {
+    gap: .75rem !important;
+  }
+  #sectionExamenes .accordion-card,
+  #sectionExamenes .accordion-card[open],
+  #sectionExamenes .question-preview,
+  #sectionExamenes .question-preview[open] {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: .55rem 0 !important;
+    border-radius: 16px !important;
+    overflow: visible !important;
+    box-shadow: 0 10px 24px rgba(8, 44, 74, .06) !important;
+  }
+  #sectionExamenes .accordion-card summary,
+  #sectionExamenes .question-preview summary {
+    min-height: 72px !important;
+    padding: .9rem 1rem !important;
+    gap: .75rem !important;
+    font-size: clamp(1.05rem, 5.2vw, 1.35rem) !important;
+    line-height: 1.18 !important;
+  }
+  #sectionExamenes .accordion-card > :not(summary),
+  #sectionExamenes .question-preview > :not(summary) {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+  #sectionExamenes .admin-bank-levels,
+  #sectionExamenes .question-preview-list {
+    gap: .6rem !important;
+    padding: .15rem .55rem .65rem !important;
+  }
+  #sectionExamenes .question-preview ol,
+  #sectionExamenes .question-preview ul {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: .65rem 0 0 !important;
+    padding: .75rem .75rem .75rem 2rem !important;
+  }
+  #sectionExamenes .question-preview-explanation {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: .75rem 0 0 !important;
+    padding: .9rem .85rem !important;
+    overflow: visible !important;
+  }
+  #sectionExamenes .teacher-question-builder .accordion-card,
+  #sectionExamenes .teacher-created-question-list,
+  #sectionExamenes .teacher-created-question {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  #sectionExamenes .teacher-created-question {
+    grid-template-columns: 1fr !important;
+    gap: .65rem !important;
+    padding: .85rem !important;
+  }
+  .advisor-widget {
+    right: max(.65rem, env(safe-area-inset-right)) !important;
+    bottom: calc(3.25rem + env(safe-area-inset-bottom)) !important;
+  }
+  .advisor-float {
+    width: 56px !important;
+    height: 56px !important;
+    font-size: 1.75rem !important;
+  }
+}
