@@ -8625,11 +8625,54 @@ function limpiarWarn() {
 }
 
 const statusTimers = {};
+const statusElementTimers = new WeakMap();
+const AUTO_CLEAR_STATUS_CLASSES = ["error", "ok", "success"];
+function clearStatusElement(el) {
+  if (!el) return;
+  el.textContent = "";
+  el.classList.remove("error", "ok", "success");
+}
+function programarLimpiezaAvisoColor(el, ms = 5000) {
+  if (!el?.classList || !el.textContent.trim()) return;
+  const esAviso = el.classList.contains("bank-status") || el.classList.contains("warn-msg");
+  const tieneColor = AUTO_CLEAR_STATUS_CLASSES.some(cls => el.classList.contains(cls));
+  if (!esAviso || !tieneColor) return;
+  const previo = statusElementTimers.get(el);
+  if (previo) clearTimeout(previo);
+  const textoActual = el.textContent;
+  const timer = setTimeout(() => {
+    if (el.textContent === textoActual) clearStatusElement(el);
+  }, ms);
+  statusElementTimers.set(el, timer);
+}
+function activarLimpiezaGlobalAvisos() {
+  const revisar = root => {
+    if (!root) return;
+    if (root.matches?.(".bank-status, .warn-msg")) programarLimpiezaAvisoColor(root);
+    root.querySelectorAll?.(".bank-status.error, .bank-status.ok, .bank-status.success, .warn-msg.error, .warn-msg.ok, .warn-msg.success").forEach(el => programarLimpiezaAvisoColor(el));
+  };
+  revisar(document);
+  new MutationObserver(mutations => {
+    mutations.forEach(mutation => {
+      if (mutation.type === "characterData") revisar(mutation.target.parentElement);
+      if (mutation.type === "attributes") revisar(mutation.target);
+      mutation.addedNodes.forEach(node => {
+        if (node.nodeType === Node.ELEMENT_NODE) revisar(node);
+      });
+    });
+  }).observe(document.documentElement, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ["class"] });
+}
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", activarLimpiezaGlobalAvisos, { once: true });
+} else {
+  activarLimpiezaGlobalAvisos();
+}
 function setStatus(id, msg, tipo = "ok") {
   const el = document.getElementById(id);
   if (!el) return;
   el.textContent = msg;
   el.className = `bank-status${tipo ? ` ${tipo}` : ""}`;
+  programarLimpiezaAvisoColor(el);
 }
 
 function setStatusTemporal(id, msg, tipo = "ok", ms = 5000) {
@@ -8638,11 +8681,10 @@ function setStatusTemporal(id, msg, tipo = "ok", ms = 5000) {
   statusTimers[id] = setTimeout(() => {
     const el = document.getElementById(id);
     if (!el) return;
-    el.textContent = "";
-    el.className = "bank-status";
+    clearStatusElement(el);
+    if (el.classList.contains("bank-status")) el.className = "bank-status";
   }, ms);
 }
-
 function mostrarLoginErrorTemporal(id, msg, ms = 5000) {
   setStatusTemporal(id, msg, "error", ms);
 }
@@ -11120,6 +11162,7 @@ function setPhoneStatus(message, type = "") {
   status.textContent = message;
   status.classList.toggle("error", type === "error");
   status.classList.toggle("ok", type === "ok");
+  programarLimpiezaAvisoColor(status);
 }
 
 function formatCountdown(ms) {
@@ -11154,6 +11197,7 @@ function actualizarCronometroTelefono() {
   if (phoneVerificationId) {
     phoneVerificationId = "";
     phoneVerificationExpiresAt = 0;
+    reiniciarRecaptchaTelefono();
     setPhoneStatus("El tiempo finalizó. Pide otro código.", "error");
   }
   sendBtn.textContent = "Enviar código";
