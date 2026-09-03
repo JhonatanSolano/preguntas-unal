@@ -9889,9 +9889,8 @@ async function loginEmail() {
     setPendingLoginType(expectedType);
     const cred = await signInWithEmailAndPassword(auth, email, password);
 
-    const snap = await getDoc(doc(db, "users", cred.user.uid));
-    const profile = snap.exists() ? snap.data() : {};
-    if (!snap.exists()) {
+    const profile = await obtenerPerfilLoginSeguro(cred.user, expectedType);
+    if (!profile) {
       await signOut(auth);
       clearPendingLoginType();
       setStatusTemporal("loginStatus", "Usuario no encontrado. Debe primero crear una cuenta.", "error", 5000);
@@ -9946,6 +9945,105 @@ function loginCoincideConTipo(profile, expectedType, email = "") {
   return role === "student" && !institutional;
 }
 
+async function obtenerPerfilLoginSeguro(user, expectedType = "") {
+  const snap = await getDoc(doc(db, "users", user.uid));
+  if (snap.exists()) return snap.data();
+  return restaurarPerfilLegacyLogin(user, expectedType);
+}
+
+async function restaurarPerfilLegacyLogin(user, expectedType = "") {
+  const email = (user?.email || "").toLowerCase();
+  if (!user?.uid || !email) return null;
+  if (email === ADMIN_EMAIL && expectedType === "teacher") {
+    return guardarPerfilLegacy(user, {
+      role: "teacher",
+      tipoCuenta: "teacher",
+      accountMode: "independent",
+      billingMode: "independent",
+      isAdmin: true,
+      grupo: "admin",
+      subscriptionStatus: "active"
+    });
+  }
+  if (expectedType === "independentStudent") {
+    return guardarPerfilLegacy(user, {
+      role: "student",
+      tipoCuenta: "student",
+      accountMode: "independent",
+      billingMode: "independent",
+      isAdmin: false,
+      grupo: ""
+    });
+  }
+  if (expectedType === "institution") {
+    const adminSnap = await getDocs(query(collection(db, "institutionAdmins"), where("uid", "==", user.uid), where("status", "==", "active"), limit(1))).catch(() => null);
+    const admin = adminSnap?.docs?.[0]?.data();
+    if (!admin?.institutionDane) return null;
+    const institutionSnap = await getDoc(doc(db, "institutions", admin.institutionDane)).catch(() => null);
+    const institution = institutionSnap?.exists() ? institutionSnap.data() : {};
+    if (institution.ownerUid && institution.ownerUid !== user.uid) return null;
+    return guardarPerfilLegacy(user, {
+      ...institution,
+      institutionDane: admin.institutionDane,
+      institutionName: institution.institutionName || admin.institutionName || "",
+      ownerUid: user.uid,
+      ownerEmail: email,
+      role: "institution",
+      tipoCuenta: "institution",
+      accountMode: "institution",
+      billingMode: "institution",
+      isInstitutionAdmin: true,
+      isAdmin: false,
+      grupo: ""
+    });
+  }
+  if (["teacher", "institutionalStudent"].includes(expectedType)) {
+    const expectedRole = expectedType === "teacher" ? "teacher" : "student";
+    const memberSnap = await getDocs(query(collection(db, "institutionMembers"), where("email", "==", email), where("role", "==", expectedRole), where("status", "==", "active"), limit(1))).catch(() => null);
+    const member = memberSnap?.docs?.[0]?.data();
+    if (!member?.institutionDane) return null;
+    return guardarPerfilLegacy(user, {
+      role: expectedRole,
+      tipoCuenta: expectedRole,
+      accountMode: "institutional",
+      billingMode: "institutional",
+      isAdmin: expectedRole === "teacher",
+      institutionStatus: "active",
+      institutionMemberStatus: "active",
+      institutionDane: member.institutionDane,
+      institutionName: member.institutionName || "",
+      institutionOwnerUid: member.ownerUid || "",
+      classId: member.classId || "",
+      className: member.className || "",
+      classCode: member.classCode || "",
+      classOwnerUid: member.classOwnerUid || member.ownerUid || "",
+      classOwnerEmail: member.classOwnerEmail || member.ownerEmail || "",
+      grupo: expectedRole === "student" ? (member.classId || "") : "admin",
+      institutionSubscriptionStatus: "active",
+      subscriptionInherited: true
+    });
+  }
+  return null;
+}
+
+async function guardarPerfilLegacy(user, data) {
+  const email = (user.email || "").toLowerCase();
+  const profile = {
+    uid: user.uid,
+    email,
+    displayName: user.displayName || data.displayName || data.name || "",
+    emailVerificationRequired: false,
+    emailVerificationStatus: "legacy",
+    legacyProfileRestored: true,
+    legacyProfileRestoredAt: serverTimestamp(),
+    createdLabel: new Date().toLocaleDateString("es-CO"),
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+    ...data
+  };
+  await setDoc(doc(db, "users", user.uid), profile, { merge: true });
+  return profile;
+}
 function actualizarLoginAccountType() {
   const type = document.getElementById("loginAccountType")?.value || "";
   const typeStep = document.getElementById("loginTypeStep");
@@ -10135,7 +10233,7 @@ async function loginGoogle() {
     if (authIntent === "login") setPendingLoginType(expectedType);
     const cred = await signInWithPopup(auth, new GoogleAuthProvider());
     const snap = await getDoc(doc(db, "users", cred.user.uid));
-    const profile = snap.exists() ? snap.data() : {};
+    let profile = snap.exists() ? snap.data() : null;
     if (authIntent === "register" && expectedType === "independentStudent" && !snap.exists()) {
       clearPendingLoginType();
       await registrarIndependienteGoogle(cred.user);
@@ -10151,7 +10249,8 @@ async function loginGoogle() {
       mostrarErrorAuth("Usuario ya registrado, por favor inicie sesión.");
       return;
     }
-    if (!snap.exists()) {
+    if (!profile) profile = await restaurarPerfilLegacyLogin(cred.user, expectedType);
+    if (!profile) {
       suppressAuthResetOnce = true;
       await signOut(auth);
       clearPendingLoginType();
@@ -12701,7 +12800,9 @@ onAuthStateChanged(auth, async user => {
   }
   limpiarWarn();
   const userSnap = await getDoc(doc(db, "users", user.uid));
-  if (!userSnap.exists()) {
+  let perfilLogin = userSnap.exists() ? userSnap.data() : null;
+  if (!perfilLogin) perfilLogin = await restaurarPerfilLegacyLogin(user, getPendingLoginType());
+  if (!perfilLogin) {
     await signOut(auth);
     ocultarReloadSesion();
     document.body.classList.add("group-locked");
@@ -12709,7 +12810,6 @@ onAuthStateChanged(auth, async user => {
     setStatusTemporal("loginStatus", "Usuario no encontrado. Debe primero crear una cuenta.", "error", 5000);
     return;
   }
-  const perfilLogin = userSnap.data();
   if (requiereVerificacionEmail(user, perfilLogin) && user.email?.toLowerCase() !== ADMIN_EMAIL) {
     suppressAuthResetOnce = true;
     await signOut(auth);
