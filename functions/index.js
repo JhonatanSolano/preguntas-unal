@@ -18,6 +18,7 @@ const wompiEventsSecret = defineSecret("WOMPI_EVENTS_SECRET");
 const WOMPI_CHECKOUT_URL = "https://checkout.wompi.co/p/";
 const APP_URL = "https://matematicasentubolsillo.com/";
 const APP_ORIGIN = "https://matematicasentubolsillo.com";
+const INSTITUTIONAL_COMMERCE_FROZEN = true;
 
 const BILLING_PLANS = {
   "student-annual": {
@@ -1105,6 +1106,9 @@ exports.createPaymentIntent = onRequest({
   const acceptTerms = body.acceptTerms === true;
 
   if (!plan) return res.status(400).json({ error: "Plan inválido." });
+  if (INSTITUTIONAL_COMMERCE_FROZEN && plan.role === "institution") {
+    return res.status(403).json({ error: "Los planes institucionales están congelados temporalmente y no se pueden comprar." });
+  }
   if (!acceptTerms) return res.status(400).json({ error: "Debes aceptar las condiciones del servicio." });
   const db = admin.firestore();
   const userSnap = await db.collection("users").doc(decoded.uid).get();

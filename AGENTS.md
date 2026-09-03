@@ -15,7 +15,7 @@
 ## Business Rules
 - Independent students use the `student-annual` plan: $20.000 COP for one year, paid manually through Wompi, with no saved payment methods or automatic renewal.
 - Independent students without Premium may access only Aritmética in Aprendizaje and the related Banco principal exams; Asesor IA and internal messages stay locked.
-- Institution plans enforce quotas for institution users, teachers, and students.
+- Institution commerce is frozen: do not sell, display, or create institution plans in public, subscription, billing, privacy, terms, or refund flows until explicitly reactivated.
 - Institution member creation and removal must go through `manageInstitutionMembers`; direct client creation of `institutionMembers` is intentionally blocked by Firestore rules.
 - The platform owner is `solanojhonatan2000@gmail.com`.
 - Institutional teachers and students must match an authorized institution member record.

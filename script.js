@@ -81,7 +81,7 @@ const APP_CONFIG = {
     provider: "Wompi",
     checkoutReady: true,
     checkoutEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/createPaymentIntent",
-    studentPriceCOP: 10000,
+    studentPriceCOP: 20000,
     teacherPriceCOP: null
   },
   support: {
@@ -534,6 +534,8 @@ function clearPendingLoginType() {
     sessionStorage.removeItem(STORAGE_LOGIN_EXPECTED_TYPE);
   } catch {}
 }
+
+const INSTITUTIONAL_FLOW_FROZEN = true;
 
 const PLANES_COMERCIALES = {
   independentStudent: {
@@ -1254,13 +1256,7 @@ function formatoPrecioCOP(value) {
 }
 
 function planesDisponiblesPago() {
-  if (esInstitucion()) {
-    return PLANES_COMERCIALES.institution.map(plan => ({
-      ...plan,
-      name: plan.label,
-      subtitle: `${plan.range}. Incluye ${plan.includes}.`
-    }));
-  }
+  if (esInstitucion()) return [];
   if (esEstudianteIndependiente()) {
     const plan = PLANES_COMERCIALES.independentStudent;
     return [{
@@ -1403,7 +1399,7 @@ function renderPasoPago() {
 function renderSubscriptionPanel() {
   const active = suscripcionActiva();
   const selectedPlan = asegurarPlanPagoSeleccionado();
-  const role = esInstitucion() ? "Institución" : (esProfesor() ? "Profesor" : "Estudiante");
+  const role = esProfesor() ? "Profesor" : "Estudiante";
   const price = formatoPrecioCOP(precioSuscripcion());
   const title = document.getElementById("subscriptionStatusTitle");
   const text = document.getElementById("subscriptionStatusText");
@@ -1429,12 +1425,12 @@ function renderSubscriptionPanel() {
             <small>${escapeHtml(plan.subtitle || plan.includes || "")}</small>
           </button>
         `).join("")
-      : `<div class="checkout-plan-card active"><span>Plan institucional</span><strong>Incluido por la institución</strong><small>La facturación la administra la institución educativa.</small></div>`;
+      : `<div class="checkout-plan-card active"><span>Sin plan directo</span><strong>No disponible</strong><small>Este tipo de cuenta no tiene compra directa habilitada.</small></div>`;
   }
-  if (planName) planName.textContent = selectedPlan?.name || (esProfesor() ? "Plan institucional para docentes" : "Plan estudiante independiente");
+  if (planName) planName.textContent = selectedPlan?.name || (esProfesor() ? "Acceso docente congelado" : "Plan estudiante independiente");
   if (planDescription) {
     planDescription.textContent = selectedPlan?.subtitle || (esProfesor()
-      ? "Para docentes autorizados por una institución. La institución administra cupos, profesores y estudiantes."
+      ? "La modalidad institucional está congelada temporalmente y no tiene compra directa habilitada."
       : "Pago único anual para practicar, presentar exámenes, revisar métricas, usar mensajes y Asesor IA sin cobros automáticos.");
   }
   const priceLabel = document.querySelector(".subscription-price");
@@ -1743,13 +1739,11 @@ function renderBillingPanel() {
   const active = suscripcionActiva();
   const plan = perfilActual?.subscriptionPlan || (active ? `Plan ${esProfesor() ? "Profesor" : "Estudiante"}` : "Sin suscripción activa");
   const amount = formatoPrecioCOP(perfilActual?.subscriptionAmountCOP || precioSuscripcion());
-  const nextBilling = null;
-  const paused = true;
   const badge = document.getElementById("billingStatusBadge");
   if (badge) {
     badge.textContent = active ? "Plan anual activo" : "Sin plan activo";
     badge.classList.toggle("active", active);
-    badge.classList.toggle("paused", active && paused);
+    badge.classList.toggle("paused", false);
   }
   const planName = document.getElementById("billingPlanName");
   const summary = document.getElementById("billingPlanSummary");
@@ -1759,25 +1753,15 @@ function renderBillingPanel() {
     : "Activa un plan para desbloquear las funciones académicas.";
   const started = document.getElementById("billingStartedAt");
   const expires = document.getElementById("billingExpiresAt");
-  const next = document.getElementById("billingNextCharge");
   const amountElement = document.getElementById("billingAmount");
-  const autoRenew = document.getElementById("billingAutoRenew");
   if (started) started.textContent = fechaFacturacion(perfilActual?.subscriptionStartedAt);
   if (expires) expires.textContent = fechaFacturacion(perfilActual?.subscriptionExpiresAt);
-  if (next) next.textContent = "No aplica";
   if (amountElement) amountElement.textContent = amount;
-  if (autoRenew) autoRenew.textContent = active ? "No disponible" : "—";
-  const renewal = document.getElementById("billingRenewalCopy");
-  if (renewal) {
-    renewal.textContent = active
-      ? `Tu plan vence el ${fechaFacturacion(perfilActual?.subscriptionExpiresAt)}. Si quieres continuar después de esa fecha, vuelves a pagar manualmente el plan Premium.`
-      : "No hay renovación automática ni cobros programados.";
-  }
   const benefits = document.getElementById("billingBenefits");
   if (benefits) benefits.innerHTML = beneficiosPlan().map(item => `<li>${escapeHtml(item)}</li>`).join("");
   const upgradeButton = document.getElementById("btnUpgradePlan");
   if (upgradeButton) {
-    const canChangePlan = esInstitucion();
+    const canChangePlan = false;
     upgradeButton.hidden = !canChangePlan;
     upgradeButton.textContent = "Cambiar o mejorar plan";
   }
@@ -5271,7 +5255,7 @@ async function renderOwnerInstitutions() {
     const data = item.data();
     const blocked = data.subscriptionStatus === "blocked" || data.subscriptionPremiumBlocked === true;
     const status = blocked
-      ? `<small class="danger-text">Premium bloqueado hasta nuevo pago o renovación.</small>`
+      ? `<small class="danger-text">Premium bloqueado hasta nuevo pago.</small>`
       : `<small>${data.institutionDepartmentName || ""} ${data.institutionMunicipalityName || ""}</small>`;
     return `<article class="student-row owner-institution-row ${blocked ? "student-blocked" : ""}">
       <div><strong>${data.institutionName || item.id}</strong><span>DANE ${data.institutionDane || item.id}</span>${status}</div>
@@ -5284,7 +5268,7 @@ async function renderOwnerInstitutions() {
 async function bloquearInstitucionPremium(dane) {
   const normalized = normalizarDane(dane);
   if (!normalized || !APP_CONFIG.blockInstitutionEndpoint) return;
-  if (!confirm("¿Deseas bloquear el acceso premium de esta institución?\n\nLa institución seguirá registrada, pero perderá beneficios premium hasta que pague o renueve un plan.")) return;
+  if (!confirm("¿Deseas bloquear el acceso premium de esta institución?\n\nLa institución seguirá registrada, pero perderá beneficios premium hasta que se reactive su acceso.")) return;
   const response = await authedFetch(APP_CONFIG.blockInstitutionEndpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -5292,7 +5276,7 @@ async function bloquearInstitucionPremium(dane) {
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data.error || "No fue posible bloquear la institución.");
-  mostrarOk(data.message || "Institución bloqueada hasta nuevo pago o renovación.");
+  mostrarOk(data.message || "Institución bloqueada hasta nuevo pago.");
 }
 
 function renderConfiguracion() {
@@ -8446,7 +8430,8 @@ function mostrarInstitutionInfo() {
   document.getElementById("tabRegister")?.classList.remove("active");
   document.getElementById("tabInstitutionRegister")?.classList.add("active");
   document.getElementById("institutionInfoCard")?.classList.remove("hidden");
-  inicializarFormularioInstitucional();
+  if (!INSTITUTIONAL_FLOW_FROZEN) inicializarFormularioInstitucional();
+  else setStatusTemporal("institutionStatus", "El registro institucional está congelado temporalmente mientras se redefine esta modalidad.", "error", 5000);
   actualizarBloqueoScrollPublico();
   enfocarModalPublico("institutionInfoCard");
 }
@@ -8822,6 +8807,7 @@ function sincronizarColegioInstitucional() {
 
 async function crearCuentaInstitucional() {
   const statusId = "institutionStatus";
+  if (INSTITUTIONAL_FLOW_FROZEN) return setStatusTemporal(statusId, "El registro institucional está congelado temporalmente y no se pueden crear instituciones nuevas.", "error", 5000);
   const adminName = document.getElementById("institutionAdminName")?.value.trim() || "";
   const email = document.getElementById("institutionEmail")?.value.trim().toLowerCase() || "";
   const password = document.getElementById("institutionPassword")?.value || "";
@@ -10998,8 +10984,8 @@ function continuarLoginType() {
   }
   setStatus("loginTypeStatus", "");
   if (authIntent === "register") {
-    if (type === "institution") {
-      mostrarInstitutionInfo();
+    if (INSTITUTIONAL_FLOW_FROZEN && type !== "independentStudent") {
+      setStatusTemporal("loginTypeStatus", "El registro institucional está congelado temporalmente. Por ahora solo está disponible el registro de estudiante independiente.", "error", 5000);
       return;
     }
     sincronizarRegistroConTipoLogin(type);
