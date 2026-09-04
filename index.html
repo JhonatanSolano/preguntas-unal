@@ -222,7 +222,7 @@
       <span class="section-kicker">Cómo funciona</span>
       <h2>De la cuenta al progreso medible en seis pasos.</h2>
       <div class="timeline-grid">
-        <article><span>1</span><strong>Crear cuenta</strong><p>Registro como estudiante independiente con Google o con correo Gmail y contraseña segura.</p></article>
+        <article><span>1</span><strong>Crear cuenta</strong><p>Registro como estudiante con correo Gmail y contraseña segura. Google se vincula después desde Perfil.</p></article>
         <article><span>2</span><strong>Verificar acceso</strong><p>Correo verificado, perfil completo y teléfono opcional para recuperación de usuario.</p></article>
         <article><span>3</span><strong>Usar el plan gratis</strong><p>Acceso limitado a Aritmética y a los exámenes relacionados del Banco principal.</p></article>
         <article><span>4</span><strong>Activar Premium</strong><p>Pago anual manual de $20.000 COP por Wompi, sin guardar métodos ni programar cobros.</p></article>
@@ -320,12 +320,11 @@
         </div>
 
         <div class="auth-form hidden" id="registerPanel">
-        <p class="mini-help" id="registerSelectedTypeLabel">Completa tu registro como estudiante. El registro de profesor está reservado por ahora para el dueño de la app.</p>
+        <p class="mini-help" id="registerSelectedTypeLabel">Completa tu registro como estudiante. El registro de profesor queda congelado porque el dueño ya tiene su cuenta creada.</p>
         <input type="text" id="registerName" class="admin-input" placeholder="Nombre de usuario" autocomplete="name" />
         <input type="email" id="registerEmail" class="admin-input" placeholder="Correo electrónico" autocomplete="email" />
         <select id="registerAccountType" class="admin-input hidden" aria-label="Tipo de registro">
           <option value="independent">Estudiante</option>
-          <option value="ownerTeacher">Profesor</option>
         </select>
         <input type="text" id="registerInstitutionDane" class="admin-input hidden" placeholder="Código DANE de la institución" autocomplete="off" inputmode="numeric" />
         <p class="mini-help hidden" id="registerInstitutionHint">El código DANE debe coincidir con la institución que autorizó tu correo.</p>
@@ -2141,6 +2140,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260903-09"></script>
+  <script type="module" src="script.js?v=20260904-02"></script>
 </body>
 </html>

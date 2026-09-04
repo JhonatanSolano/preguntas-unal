@@ -9880,7 +9880,7 @@ async function loginEmail() {
       return;
     }
     if (!loginCoincideConTipo(profile, expectedType, cred.user.email)) {
-      const message = "Tipo de cuenta equivocado. Selecciona el tipo de cuenta correcto e intenta nuevamente.";
+      const message = expectedType === "teacher" ? mensajeTipoCuentaNoAutorizado(expectedType) : "Tipo de cuenta equivocado. Selecciona el tipo de cuenta correcto e intenta nuevamente.";
       loginRejectMessagePending = message;
       await signOut(auth);
       clearPendingLoginType();
@@ -10033,22 +10033,25 @@ function actualizarLoginAccountType() {
   const googleActions = document.getElementById("btnGoogleLogin")?.closest(".auth-actions");
   const divider = document.querySelector(".auth-divider");
   const googleButton = document.getElementById("btnGoogleLogin");
-  const showGoogle = !typeStepVisible && !!type && (
-    (authIntent === "login" && type !== "institution") ||
-    (authIntent === "register" && type === "independentStudent")
-  );
+  const showGoogle = !typeStepVisible && authIntent === "login" && ["independentStudent", "teacher"].includes(type);
   googleActions?.classList.toggle("hidden", !showGoogle);
   divider?.classList.toggle("hidden", !showGoogle);
-  if (googleButton) {
-    googleButton.textContent = authIntent === "register" ? "Registrarme con Google" : "Entrar con Google";
-  }
+  if (googleButton) googleButton.textContent = "Entrar con Google";
 }
 
 function mensajeTipoCuentaNoAutorizado(expectedType) {
-  if (expectedType === "teacher") return "No estás autorizado como profesor por ninguna institución.";
+  if (expectedType === "teacher") return "Solo el dueño de la app puede ingresar como profesor. Si eres estudiante, vuelve y selecciona Estudiante.";
   if (expectedType === "institution") return "Este correo no corresponde a una institución educativa registrada.";
   if (expectedType === "institutionalStudent") return "Este correo no está autorizado como estudiante asociado a una institución.";
   return "Este correo no corresponde a un estudiante independiente registrado.";
+}
+
+function perfilPermiteLoginGoogle(profile, user) {
+  const providerLinked = user?.providerData?.some(provider => provider.providerId === "google.com");
+  if (!providerLinked) return false;
+  const email = String(user?.email || profile?.email || "").toLowerCase();
+  if (profile?.googleLoginEnabled === true || profile?.googleLinked === true || !!profile?.googleUid) return true;
+  return profile?.authProvider === "google.com" && email !== ADMIN_EMAIL;
 }
 
 async function registrarEmail() {
@@ -10056,9 +10059,19 @@ async function registrarEmail() {
   const email = document.getElementById("registerEmail").value.trim().toLowerCase();
   const password = document.getElementById("registerPassword").value;
   const accountType = document.getElementById("registerAccountType")?.value || "independent";
-  const role = accountType === "ownerTeacher" ? "teacher" : "student";
-  const accountMode = accountType === "institutional" || accountType === "institutionalTeacher" ? "institutional" : "independent";
-  const institutionDane = normalizarDane(document.getElementById("registerInstitutionDane")?.value || "");
+  if (accountType !== "independent") {
+    const registerType = document.getElementById("registerAccountType");
+    if (registerType) registerType.value = "independent";
+    const roleInput = document.getElementById("registerRole");
+    const modeInput = document.getElementById("registerAccountMode");
+    if (roleInput) roleInput.value = "student";
+    if (modeInput) modeInput.value = "independent";
+    mostrarWarn("El registro de profesor está congelado. Crea cuenta como Estudiante.");
+    return;
+  }
+  const role = "student";
+  const accountMode = "independent";
+  const institutionDane = "";
   const perfilRegistro = perfilBasicoDesdeFormulario("register");
   if (nombre.length < 3) {
     mostrarWarn("Escribe un nombre de usuario de mínimo 3 caracteres.");
@@ -10068,12 +10081,8 @@ async function registrarEmail() {
     mostrarWarn("Escribe un correo electrónico válido.");
     return;
   }
-  if (email === ADMIN_EMAIL && role !== "teacher") {
-    mostrarWarn("Este correo pertenece al dueño de la app. Debe registrarse o ingresar como profesor.");
-    return;
-  }
-  if (role === "teacher" && email !== ADMIN_EMAIL) {
-    mostrarWarn("El registro de profesor está reservado por ahora para el dueño de la app.");
+  if (email === ADMIN_EMAIL) {
+    mostrarWarn("Este correo pertenece al dueño de la app. Ya debe ingresar como profesor.");
     return;
   }
   if (accountMode === "independent" && !email.endsWith("@gmail.com")) {
@@ -10208,8 +10217,8 @@ async function loginGoogle() {
     mostrarErrorAuth("Las instituciones educativas deben ingresar únicamente con correo y contraseña.");
     return;
   }
-  if (authIntent === "register" && expectedType !== "independentStudent") {
-    mostrarErrorAuth("Este tipo de cuenta debe registrarse manualmente con el código DANE institucional.");
+  if (authIntent === "register") {
+    mostrarErrorAuth("El registro con Google está desactivado. Crea tu cuenta como estudiante con correo y contraseña; luego podrás vincular Google desde Perfil.");
     return;
   }
   try {
@@ -10220,21 +10229,6 @@ async function loginGoogle() {
     const cred = await signInWithPopup(auth, new GoogleAuthProvider());
     const snap = await getDoc(doc(db, "users", cred.user.uid));
     let profile = snap.exists() ? snap.data() : null;
-    if (authIntent === "register" && expectedType === "independentStudent" && !snap.exists()) {
-      clearPendingLoginType();
-      await registrarIndependienteGoogle(cred.user);
-      await prepararSesionAutenticada();
-      ocultarReloadSesion();
-      return;
-    }
-    if (authIntent === "register" && expectedType === "independentStudent" && snap.exists()) {
-      suppressAuthResetOnce = true;
-      await signOut(auth);
-      clearPendingLoginType();
-      ocultarReloadSesion();
-      mostrarErrorAuth("Usuario ya registrado, por favor inicie sesión.");
-      return;
-    }
     if (!profile) profile = await restaurarPerfilLegacyLogin(cred.user, expectedType);
     if (!profile) {
       suppressAuthResetOnce = true;
@@ -10258,6 +10252,14 @@ async function loginGoogle() {
       setStatusTemporal("loginStatus", reenviado
         ? "Debe verificar primero su cuenta. Por favor, revisa tu correo registrado."
         : "Debe verificar primero su cuenta. Por favor, revisa tu correo registrado.", "error", 5000);
+      return;
+    }
+    if (!perfilPermiteLoginGoogle(profile, cred.user)) {
+      suppressAuthResetOnce = true;
+      await signOut(auth);
+      clearPendingLoginType();
+      ocultarReloadSesion();
+      mostrarLoginConError("Debes ingresar con correo y contraseña. Para usar Google, primero vincúlalo desde Perfil.");
       return;
     }
     if (!loginCoincideConTipo(profile, expectedType, cred.user.email)) {
@@ -10335,7 +10337,10 @@ async function registrarIndependienteGoogle(user) {
     tipoCuenta: "student",
     accountMode: "independent",
     billingMode: "independent",
-    authProvider: "google.com"
+    authProvider: "google.com",
+    googleLinked: true,
+    googleLoginEnabled: true,
+    googleLinkedAt: serverTimestamp()
   });
   mostrarWarn("Cuenta independiente creada con Google. Completa tu perfil y suscripción para activar todos los beneficios.", "ok");
 }
@@ -10361,7 +10366,10 @@ async function guardarDatosGoogleIniciales(user) {
     classId: existente.classId || claseActiva || "",
     className: existente.className || claseActualInfo?.name || "",
     classCode: existente.classCode || claseActualInfo?.code || "",
-    authProvider: "google.com"
+    authProvider: "google.com",
+    googleLinked: true,
+    googleLoginEnabled: true,
+    googleLinkedAt: existente.googleLinkedAt || serverTimestamp()
   };
   await guardarPerfilUsuario(inicial);
 }
@@ -10988,11 +10996,11 @@ function continuarLoginType() {
   }
   setStatus("loginTypeStatus", "");
   if (authIntent === "register") {
-    if (INSTITUTIONAL_FLOW_FROZEN && !["independentStudent", "teacher"].includes(type)) {
-      setStatusTemporal("loginTypeStatus", "Ese registro está congelado temporalmente. Por ahora solo están disponibles Estudiante y Profesor dueño.", "error", 5000);
+    if (type !== "independentStudent") {
+      setStatusTemporal("loginTypeStatus", "El registro de profesor está congelado. Si eres estudiante, selecciona Estudiante.", "error", 5000);
       return;
     }
-    sincronizarRegistroConTipoLogin(type);
+    sincronizarRegistroConTipoLogin();
     cambiarAuthMode("register");
     actualizarLoginAccountType();
     return;
@@ -11003,7 +11011,7 @@ function continuarLoginType() {
   actualizarLoginAccountType();
 }
 
-function sincronizarRegistroConTipoLogin(type) {
+function sincronizarRegistroConTipoLogin() {
   const registerType = document.getElementById("registerAccountType");
   const dane = document.getElementById("registerInstitutionDane");
   const hint = document.getElementById("registerInstitutionHint");
@@ -11011,22 +11019,13 @@ function sincronizarRegistroConTipoLogin(type) {
   const role = document.getElementById("registerRole");
   const mode = document.getElementById("registerAccountMode");
   const label = document.getElementById("registerSelectedTypeLabel");
-  const ownerTeacher = type === "teacher";
-  const institutional = type === "institutionalStudent";
-  const registerValue = ownerTeacher ? "ownerTeacher" : (institutional ? "institutional" : "independent");
-  if (registerType) registerType.value = registerValue;
-  if (role) role.value = ownerTeacher ? "teacher" : "student";
-  if (mode) mode.value = institutional ? "institutional" : "independent";
-  dane?.classList.toggle("hidden", !institutional);
-  hint?.classList.toggle("hidden", !institutional);
-  if (email) email.placeholder = ownerTeacher ? "Correo del dueño de la app" : (institutional ? "Correo autorizado por la institución" : "Correo @gmail.com");
-  if (label) {
-    label.textContent = ownerTeacher
-      ? "Registro de profesor reservado para el dueño de la app."
-      : institutional
-        ? "Registro institucional congelado temporalmente."
-        : "Registro de estudiante. Puedes usar el plan gratis o activar Premium individual.";
-  }
+  if (registerType) registerType.value = "independent";
+  if (role) role.value = "student";
+  if (mode) mode.value = "independent";
+  dane?.classList.add("hidden");
+  hint?.classList.add("hidden");
+  if (email) email.placeholder = "Correo @gmail.com";
+  if (label) label.textContent = "Registro de estudiante. Puedes usar el plan gratis o activar Premium individual.";
 }
 
 function volverSelectorAuth(intent = authIntent) {
@@ -11893,18 +11892,17 @@ document.getElementById("registerRole")?.addEventListener("change", event => {
   if (event.target.value === "student" && !mode.value) mode.value = "independent";
 });
 document.getElementById("registerAccountType")?.addEventListener("change", event => {
-  const ownerTeacher = event.target.value === "ownerTeacher";
-  const institutional = event.target.value === "institutional" || event.target.value === "institutionalTeacher";
+  event.target.value = "independent";
   const mode = document.getElementById("registerAccountMode");
   const role = document.getElementById("registerRole");
   const dane = document.getElementById("registerInstitutionDane");
   const hint = document.getElementById("registerInstitutionHint");
   const email = document.getElementById("registerEmail");
-  if (mode) mode.value = institutional ? "institutional" : "independent";
-  if (role) role.value = ownerTeacher || event.target.value === "institutionalTeacher" ? "teacher" : "student";
-  dane?.classList.toggle("hidden", !institutional);
-  hint?.classList.toggle("hidden", !institutional);
-  if (email) email.placeholder = ownerTeacher ? "Correo del dueño de la app" : (institutional ? "Correo autorizado por la institución" : "Correo @gmail.com");
+  if (mode) mode.value = "independent";
+  if (role) role.value = "student";
+  dane?.classList.add("hidden");
+  hint?.classList.add("hidden");
+  if (email) email.placeholder = "Correo @gmail.com";
 });
 document.getElementById("btnAuthClose")?.addEventListener("click", cerrarAuthCard);
 ["loginCard", "institutionInfoCard", "faqCard", "forgotPasswordCard", "forgotUserCard"].forEach(id => {
@@ -12750,7 +12748,7 @@ onAuthStateChanged(auth, async user => {
   const rolLogin = rolUsuario(perfilLogin);
   const expectedLoginType = getPendingLoginType();
   if (expectedLoginType && !loginCoincideConTipo(perfilLogin, expectedLoginType, user.email)) {
-    loginRejectMessagePending = "Tipo de cuenta equivocado. Selecciona el tipo de cuenta correcto e intenta nuevamente.";
+    loginRejectMessagePending = expectedLoginType === "teacher" ? mensajeTipoCuentaNoAutorizado(expectedLoginType) : "Tipo de cuenta equivocado. Selecciona el tipo de cuenta correcto e intenta nuevamente.";
     await signOut(auth);
     clearPendingLoginType();
     ocultarReloadSesion();
@@ -12765,7 +12763,7 @@ onAuthStateChanged(auth, async user => {
     setStatusTemporal("loginStatus", "Usuario no encontrado. Debe primero crear una cuenta.", "error", 5000);
     return;
   }
-  if (user.providerData?.some(provider => provider.providerId === "google.com")) {
+  if (user.providerData?.some(provider => provider.providerId === "google.com") && perfilPermiteLoginGoogle(perfilLogin, user)) {
     await guardarDatosGoogleIniciales(user);
   }
   escucharHistorialFacturacion();
