@@ -9919,10 +9919,10 @@ function loginCoincideConTipo(profile, expectedType, email = "") {
   const role = profile.role || profile.tipoCuenta || "";
   const institutional = profile.accountMode === "institutional" || !!profile.institutionDane;
   if (normalizedEmail === ADMIN_EMAIL) {
-    return expectedType === "teacher" || (expectedType === "institution" && role === "institution");
+    return expectedType === "teacher";
   }
-  if (expectedType === "institution") return role === "institution";
-  if (expectedType === "teacher") return role === "teacher";
+  if (expectedType === "institution") return false;
+  if (expectedType === "teacher") return false;
   if (expectedType === "institutionalStudent") return role === "student" && institutional;
   return role === "student" && !institutional;
 }
@@ -10056,8 +10056,8 @@ async function registrarEmail() {
   const email = document.getElementById("registerEmail").value.trim().toLowerCase();
   const password = document.getElementById("registerPassword").value;
   const accountType = document.getElementById("registerAccountType")?.value || "independent";
-  const role = accountType === "institutionalTeacher" ? "teacher" : "student";
-  const accountMode = accountType === "independent" ? "independent" : "institutional";
+  const role = accountType === "ownerTeacher" ? "teacher" : "student";
+  const accountMode = accountType === "institutional" || accountType === "institutionalTeacher" ? "institutional" : "independent";
   const institutionDane = normalizarDane(document.getElementById("registerInstitutionDane")?.value || "");
   const perfilRegistro = perfilBasicoDesdeFormulario("register");
   if (nombre.length < 3) {
@@ -10070,6 +10070,10 @@ async function registrarEmail() {
   }
   if (email === ADMIN_EMAIL && role !== "teacher") {
     mostrarWarn("Este correo pertenece al dueño de la app. Debe registrarse o ingresar como profesor.");
+    return;
+  }
+  if (role === "teacher" && email !== ADMIN_EMAIL) {
+    mostrarWarn("El registro de profesor está reservado por ahora para el dueño de la app.");
     return;
   }
   if (accountMode === "independent" && !email.endsWith("@gmail.com")) {
@@ -10984,8 +10988,8 @@ function continuarLoginType() {
   }
   setStatus("loginTypeStatus", "");
   if (authIntent === "register") {
-    if (INSTITUTIONAL_FLOW_FROZEN && type !== "independentStudent") {
-      setStatusTemporal("loginTypeStatus", "El registro institucional está congelado temporalmente. Por ahora solo está disponible el registro de estudiante independiente.", "error", 5000);
+    if (INSTITUTIONAL_FLOW_FROZEN && !["independentStudent", "teacher"].includes(type)) {
+      setStatusTemporal("loginTypeStatus", "Ese registro está congelado temporalmente. Por ahora solo están disponibles Estudiante y Profesor dueño.", "error", 5000);
       return;
     }
     sincronizarRegistroConTipoLogin(type);
@@ -11007,20 +11011,21 @@ function sincronizarRegistroConTipoLogin(type) {
   const role = document.getElementById("registerRole");
   const mode = document.getElementById("registerAccountMode");
   const label = document.getElementById("registerSelectedTypeLabel");
-  const institutional = type === "institutionalStudent" || type === "teacher";
-  const registerValue = type === "teacher" ? "institutionalTeacher" : (institutional ? "institutional" : "independent");
+  const ownerTeacher = type === "teacher";
+  const institutional = type === "institutionalStudent";
+  const registerValue = ownerTeacher ? "ownerTeacher" : (institutional ? "institutional" : "independent");
   if (registerType) registerType.value = registerValue;
-  if (role) role.value = type === "teacher" ? "teacher" : "student";
+  if (role) role.value = ownerTeacher ? "teacher" : "student";
   if (mode) mode.value = institutional ? "institutional" : "independent";
   dane?.classList.toggle("hidden", !institutional);
   hint?.classList.toggle("hidden", !institutional);
-  if (email) email.placeholder = institutional ? "Correo autorizado por la institución" : "Correo @gmail.com";
+  if (email) email.placeholder = ownerTeacher ? "Correo del dueño de la app" : (institutional ? "Correo autorizado por la institución" : "Correo @gmail.com");
   if (label) {
-    label.textContent = type === "teacher"
-      ? "Registro de profesor autorizado por una institución. Usa el correo registrado por el colegio."
+    label.textContent = ownerTeacher
+      ? "Registro de profesor reservado para el dueño de la app."
       : institutional
-        ? "Registro de estudiante asociado a una institución. Usa el correo y el código DANE autorizados por el colegio."
-        : "Registro de estudiante independiente. Este acceso requiere suscripción individual.";
+        ? "Registro institucional congelado temporalmente."
+        : "Registro de estudiante. Puedes usar el plan gratis o activar Premium individual.";
   }
 }
 
@@ -11885,10 +11890,10 @@ document.getElementById("btnFaqClose")?.addEventListener("click", cerrarFaqCard)
 document.getElementById("registerRole")?.addEventListener("change", event => {
   const mode = document.getElementById("registerAccountMode");
   if (!mode) return;
-  if (event.target.value === "teacher") mode.value = "institutional";
   if (event.target.value === "student" && !mode.value) mode.value = "independent";
 });
 document.getElementById("registerAccountType")?.addEventListener("change", event => {
+  const ownerTeacher = event.target.value === "ownerTeacher";
   const institutional = event.target.value === "institutional" || event.target.value === "institutionalTeacher";
   const mode = document.getElementById("registerAccountMode");
   const role = document.getElementById("registerRole");
@@ -11896,10 +11901,10 @@ document.getElementById("registerAccountType")?.addEventListener("change", event
   const hint = document.getElementById("registerInstitutionHint");
   const email = document.getElementById("registerEmail");
   if (mode) mode.value = institutional ? "institutional" : "independent";
-  if (role) role.value = event.target.value === "institutionalTeacher" ? "teacher" : "student";
+  if (role) role.value = ownerTeacher || event.target.value === "institutionalTeacher" ? "teacher" : "student";
   dane?.classList.toggle("hidden", !institutional);
   hint?.classList.toggle("hidden", !institutional);
-  if (email) email.placeholder = institutional ? "Correo autorizado por la institución" : "Correo @gmail.com";
+  if (email) email.placeholder = ownerTeacher ? "Correo del dueño de la app" : (institutional ? "Correo autorizado por la institución" : "Correo @gmail.com");
 });
 document.getElementById("btnAuthClose")?.addEventListener("click", cerrarAuthCard);
 ["loginCard", "institutionInfoCard", "faqCard", "forgotPasswordCard", "forgotUserCard"].forEach(id => {

@@ -33,7 +33,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="style.css?v=20260901-08" />
+  <link rel="stylesheet" href="style.css?v=20260903-10" />
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -205,13 +205,13 @@
       <p class="section-lead">El flujo comercial está enfocado en estudiantes independientes. La modalidad institucional permanece congelada temporalmente y no se ofrece como plan de venta.</p>
       <div class="pricing-grid single">
         <article class="pricing-card featured">
-          <span>Estudiante independiente</span>
+          <span>Estudiante</span>
           <h3>$20.000 COP <small>/ año</small></h3>
-          <p>Ideal para estudiantes de 9.º a 11.º que se preparan por cuenta propia para ICFES, admisión UNAL u otros exámenes.</p>
+          <p>Para estudiantes de colegio y quienes están empezando la educación superior: practica bases, fortalece temas clave y prepárate para ICFES, admisión UNAL, parciales universitarios y otros retos académicos.</p>
           <ul class="pricing-list">
-            <li>Gratis: acceso únicamente a Aritmética y exámenes relacionados del Banco principal.</li>
-            <li>Premium anual: todos los temas, bancos, estadísticas, mensajes internos y Asesor IA.</li>
-            <li>Pago manual por Wompi, sin cobros automáticos ni métodos de pago guardados.</li>
+            <li><strong>Plan gratis:</strong> acceso a Aritmética y a los exámenes relacionados del Banco principal.</li>
+            <li><strong>Plan Premium anual:</strong> acceso completo a temas, bancos, estadísticas, mensajes internos y Asesor IA.</li>
+            <li><strong>Pago único anual:</strong> $20.000 COP por Wompi, sin cobros automáticos ni datos de pago guardados.</li>
           </ul>
           <button class="btn btn-primary" id="btnStudentPlanLanding" type="button">Crear cuenta</button>
         </article>
@@ -279,16 +279,14 @@
         <button class="auth-close" id="btnAuthClose" type="button" aria-label="Cerrar">×</button>
         <img class="auth-logo" src="assets/logo.png" alt="Matemáticas En Tu Bolsillo" />
         <h2 id="authTitle">Ingreso Matemáticas En Tu Bolsillo</h2>
-        <p>Los estudiantes independientes pueden entrar con Google o con correo Gmail y contraseña. Las cuentas institucionales existentes conservan ingreso manual mientras la modalidad está congelada.</p>
+        <p>Los estudiantes pueden entrar con Google o con correo Gmail y contraseña. El acceso de profesor está reservado por ahora para el dueño de la app.</p>
 
         <div class="auth-type-step" id="loginTypeStep">
           <label class="mini-help" for="loginAccountType">Primero escoge el tipo de cuenta con el que vas a ingresar.</label>
           <select id="loginAccountType" class="admin-input" aria-label="Tipo de cuenta para iniciar sesión">
             <option value="">Selecciona el tipo de cuenta</option>
-            <option value="independentStudent">Estudiante independiente</option>
-            <option value="institutionalStudent">Estudiante institucional existente</option>
-            <option value="teacher">Profesor institucional existente</option>
-            <option value="institution">Institución existente</option>
+            <option value="independentStudent">Estudiante</option>
+            <option value="teacher">Profesor</option>
           </select>
           <button class="btn btn-primary" id="btnContinueLoginType" type="button">Continuar</button>
           <p class="bank-status" id="loginTypeStatus"></p>
@@ -302,7 +300,7 @@
 
         <div class="auth-tabs hidden" role="tablist" aria-label="Acceso">
           <button class="auth-tab active" id="tabLogin" type="button">Iniciar sesión</button>
-          <button class="auth-tab" id="tabRegister" type="button">Registro estudiante independiente</button>
+          <button class="auth-tab" id="tabRegister" type="button">Crear cuenta</button>
 
         </div>
 
@@ -322,11 +320,12 @@
         </div>
 
         <div class="auth-form hidden" id="registerPanel">
-        <p class="mini-help" id="registerSelectedTypeLabel">Completa tu registro como estudiante independiente. El registro institucional nuevo está congelado temporalmente.</p>
+        <p class="mini-help" id="registerSelectedTypeLabel">Completa tu registro como estudiante. El registro de profesor está reservado por ahora para el dueño de la app.</p>
         <input type="text" id="registerName" class="admin-input" placeholder="Nombre de usuario" autocomplete="name" />
         <input type="email" id="registerEmail" class="admin-input" placeholder="Correo electrónico" autocomplete="email" />
         <select id="registerAccountType" class="admin-input hidden" aria-label="Tipo de registro">
-          <option value="independent">Estudiante independiente</option>
+          <option value="independent">Estudiante</option>
+          <option value="ownerTeacher">Profesor</option>
         </select>
         <input type="text" id="registerInstitutionDane" class="admin-input hidden" placeholder="Código DANE de la institución" autocomplete="off" inputmode="numeric" />
         <p class="mini-help hidden" id="registerInstitutionHint">El código DANE debe coincidir con la institución que autorizó tu correo.</p>
@@ -542,6 +541,7 @@
           <strong>Atención y soporte</strong>
           <a href="https://wa.me/573112454282?text=Hola%2C%20necesito%20soporte%20con%20Matem%C3%A1ticas%20En%20Tu%20Bolsillo.%20" target="_blank" rel="noopener">WhatsApp</a>
           <a href="mailto:soporte@matematicasentubolsillo.com">📧 soporte@matematicasentubolsillo.com</a>
+          <a href="mailto:info@matematicasentubolsillo.com?subject=Plan%20Premium%20independiente&body=Hola%2C%20quiero%20informaci%C3%B3n%20sobre%20el%20Plan%20Premium%20independiente%20de%20Matem%C3%A1ticas%20En%20Tu%20Bolsillo.%20">📧 info@matematicasentubolsillo.com</a>
           <span>Lunes a viernes · 8:00 a.m. a 6:00 p.m.</span>
           <span>Jornada continua</span>
           <span>Sábados · 8:00 a.m. a 1:00 p.m.</span>
@@ -1861,7 +1861,7 @@
     <div class="start-screen support-panel">
       <span class="cs-icon">💬</span>
       <h2>Soporte</h2>
-      <p>Comunícate por WhatsApp para reportar dudas, errores o solicitar ayuda con la app.</p>
+      <p>Comunícate por WhatsApp o correo para resolver dudas de la app y del Plan Premium independiente.</p>
       <a class="btn btn-primary support-link" id="whatsappSupport"
          href="https://wa.me/573112454282?text=Hola%2C%20necesito%20soporte%20con%20Matem%C3%A1ticas%20En%20Tu%20Bolsillo.%20"
          target="_blank" rel="noopener">
@@ -1872,6 +1872,11 @@
           <span class="gmail-icon">M</span>
           <strong>Soporte técnico</strong>
           <small>soporte@matematicasentubolsillo.com</small>
+        </a>
+        <a class="support-email-card" href="mailto:info@matematicasentubolsillo.com?subject=Plan%20Premium%20independiente&body=Hola%2C%20quiero%20informaci%C3%B3n%20sobre%20el%20Plan%20Premium%20independiente%20de%20Matem%C3%A1ticas%20En%20Tu%20Bolsillo.%20">
+          <span class="gmail-icon">M</span>
+          <strong>Plan Premium independiente</strong>
+          <small>info@matematicasentubolsillo.com</small>
         </a>
       </div>
     </div>
@@ -2136,6 +2141,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260903-08"></script>
+  <script type="module" src="script.js?v=20260903-09"></script>
 </body>
 </html>
