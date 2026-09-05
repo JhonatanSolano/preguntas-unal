@@ -41,6 +41,13 @@
 html { scroll-behavior: auto; }
 [hidden] { display: none !important; }
 .hidden { display: none !important; }
+/* Auth boot: avoid flashing the public landing while Firebase restores a session. */
+body.auth-booting > :not(#reloadSplash) {
+  display: none !important;
+}
+body.auth-booting #reloadSplash {
+  display: grid !important;
+}
 img, svg, video, canvas { max-width: 100%; }
 input, select, textarea, button { max-width: 100%; }
 body {

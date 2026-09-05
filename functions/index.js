@@ -11,6 +11,7 @@ const {
   updateAiUsageState,
   aiLimitMessage
 } = require("./aiUsagePolicy");
+const { normalizeAiSessionData, buildAiSessionInstruction } = require("./aiSessionPolicy");
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -227,6 +228,13 @@ async function hasServerAiAccess(decoded = {}) {
   return institutionSubscriptionActive(data);
 }
 
+async function serverAdvisorRole(decoded = {}) {
+  if (normalizeEmail(decoded.email) === "solanojhonatan2000@gmail.com") return "teacher";
+  if (!decoded.uid) return "student";
+  const snap = await db.collection("users").doc(decoded.uid).get();
+  const role = snap.exists ? roleForAiAccess(snap.data() || {}) : "";
+  return role === "teacher" ? "teacher" : "student";
+}
 async function assertAiRateLimit(uid, context = {}) {
   const nowMs = Date.now();
   const estimatedInputTokens = estimateAiInputTokens(context);
@@ -504,13 +512,17 @@ exports.generateAiResponse = onRequest({ region: "us-central1", secrets: [gemini
     if (!hasAccess) {
       return res.status(403).json({ error: "Activa tu suscripción para usar el Asesor IA." });
     }
-    const rateLimit = await assertAiRateLimit(decoded.uid, { input, history, currentData });
+    const advisorRole = await serverAdvisorRole(decoded);
+    const safeCurrentData = normalizeAiSessionData({ ...currentData, role: advisorRole });
+    const rateLimit = await assertAiRateLimit(decoded.uid, { input, history, currentData: safeCurrentData });
     if (!rateLimit.allowed) {
       res.set("Retry-After", String(rateLimit.retryAfterSeconds || 60));
       return res.status(429).json({ error: aiLimitMessage(rateLimit.reason) });
     }
+    const sessionInstruction = buildAiSessionInstruction(safeCurrentData);
     const prompt = [
-      `Datos actuales del usuario: ${JSON.stringify(currentData)}`,
+      sessionInstruction,
+      `Datos visibles de la sesion: ${JSON.stringify(safeCurrentData)}`,
       `Mensaje actual del usuario: ${input}`,
       "Responde directamente al usuario en Markdown claro y con LaTeX cuando corresponda."
     ].join("\n\n");

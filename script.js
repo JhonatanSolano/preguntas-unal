@@ -11057,7 +11057,7 @@ async function enviarMensajeAsesor(text) {
   try {
     const history = advisorMessages
       .filter(msg => msg.sender === "bot" || msg.sender === "user")
-      .slice(-12)
+      .slice(-6)
       .map(msg => ({ role: msg.sender === "bot" ? "model" : "user", parts: [{ text: msg.text }] }));
     const response = await authedFetch(APP_CONFIG.asesorEndpoint, {
       method: "POST",
@@ -12974,6 +12974,7 @@ onAuthStateChanged(auth, async user => {
   }
   if (!user) {
     ocultarReloadSesion();
+    document.body.classList.remove("auth-booting");
     if (suppressAuthResetOnce) {
       suppressAuthResetOnce = false;
       return;
@@ -13053,6 +13054,7 @@ onAuthStateChanged(auth, async user => {
     await prepararSesionAutenticada();
   } finally {
     ocultarReloadSesion();
+    document.body.classList.remove("auth-booting");
   }
 });
 
