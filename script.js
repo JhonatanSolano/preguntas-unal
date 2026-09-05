@@ -3905,11 +3905,81 @@ function canEditLearningResource(resource) {
   return !!resource && esPropietarioPlataforma() && resource.ownerUid === usuarioActual?.uid;
 }
 
+function normalizarLearningImages(resource = {}) {
+  const images = Array.isArray(resource.images) ? resource.images : [];
+  const normalized = images
+    .map(item => {
+      if (typeof item === "string") return { url: item, path: "", name: "Imagen del tema" };
+      return {
+        url: item?.url || item?.imageUrl || "",
+        path: item?.path || item?.imagePath || "",
+        name: item?.name || "Imagen del tema"
+      };
+    })
+    .filter(item => item.url);
+  if (!normalized.length && resource.imageUrl) {
+    normalized.push({ url: resource.imageUrl, path: resource.imagePath || "", name: "Imagen del tema" });
+  }
+  return normalized;
+}
+
+function normalizarLearningStudyLinks(links = []) {
+  if (!Array.isArray(links)) return [];
+  return links
+    .map(item => ({ title: String(item?.title || "").trim(), url: String(item?.url || "").trim() }))
+    .filter(item => item.url)
+    .slice(0, 12);
+}
+
+function learningStudyLinksFromResource(resource = {}) {
+  return normalizarLearningStudyLinks(resource.studyLinks || resource.resourceLinks || resource.links || []);
+}
+
+function parseCloudflareStreamVideo(value = "") {
+  const raw = String(value || "").trim();
+  if (!raw) return { videoUrl: "", videoId: "", videoProvider: "" };
+  const idPattern = /^[a-zA-Z0-9_-]{16,}$/;
+  if (idPattern.test(raw) && !raw.includes(".")) {
+    return { videoUrl: `https://iframe.videodelivery.net/${raw}`, videoId: raw, videoProvider: "cloudflare-stream" };
+  }
+  try {
+    const url = new URL(raw);
+    const allowedHosts = ["iframe.videodelivery.net", "customer-", "cloudflarestream.com"];
+    const validHost = url.hostname === "iframe.videodelivery.net" || url.hostname.endsWith(".videodelivery.net") || url.hostname.endsWith(".cloudflarestream.com");
+    if (!validHost && !allowedHosts.some(host => url.hostname.includes(host))) {
+      throw new Error("Usa un enlace o ID de Cloudflare Stream.");
+    }
+    const parts = url.pathname.split("/").filter(Boolean);
+    const videoId = parts.find(part => idPattern.test(part)) || "";
+    const embedUrl = url.hostname === "iframe.videodelivery.net" && videoId
+      ? `https://iframe.videodelivery.net/${videoId}`
+      : raw;
+    return { videoUrl: embedUrl, videoId, videoProvider: "cloudflare-stream" };
+  } catch (error) {
+    throw new Error(error.message || "Usa un enlace o ID válido de Cloudflare Stream.");
+  }
+}
+
+function renderLearningStudyLinks(links = [], canEdit = false) {
+  const normalized = normalizarLearningStudyLinks(links);
+  if (!normalized.length) return "";
+  return `
+    <article class="learning-wide learning-links-card">
+      <h4>Enlaces de estudio</h4>
+      <div class="learning-study-links">
+        ${normalized.map(link => `<a class="learning-study-link" href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer"><span>${escapeHtml(link.title || "Recurso de estudio")}</span><small>${escapeHtml(link.url)}</small></a>`).join("")}
+      </div>
+      ${canEdit ? `<div class="learning-file-actions"><button class="btn btn-outline" type="button" data-learning-remove-file="links">Quitar enlaces</button></div>` : ""}
+    </article>
+  `;
+}
+
 function renderLearningResourceSlots(resource) {
   const unit = document.getElementById("learningUnit");
   const pdfSlot = document.getElementById("learningPdfSlot");
   const videoSlot = document.getElementById("learningVideoSlot");
   const imageSlot = document.getElementById("learningContentImageSlot");
+  const linksSlot = document.getElementById("learningLinksSlot");
   const theoryText = document.getElementById("learningTheoryText");
   const conceptList = document.getElementById("learningConceptList");
   const stepList = document.getElementById("learningStepList");
@@ -3917,8 +3987,9 @@ function renderLearningResourceSlots(resource) {
   const canEdit = canEditLearningResource(resource);
 
   if (imageSlot) {
-    imageSlot.innerHTML = resource?.imageUrl
-      ? `<figure class="learning-content-figure"><img class="learning-content-image" src="${escapeHtml(resource.imageUrl)}" alt="Imagen del tema" loading="lazy" />${canEdit ? `<figcaption><button class="btn btn-outline" type="button" data-learning-remove-file="image">Quitar imagen</button></figcaption>` : ""}</figure>`
+    const images = normalizarLearningImages(resource);
+    imageSlot.innerHTML = images.length
+      ? `<figure class="learning-content-figure"><div class="learning-content-images">${images.map((image, idx) => `<img class="learning-content-image" src="${escapeHtml(image.url)}" alt="${escapeHtml(image.name || `Imagen ${idx + 1} del tema`)}" loading="lazy" />`).join("")}</div>${canEdit ? `<figcaption><button class="btn btn-outline" type="button" data-learning-remove-file="image">Quitar imágenes</button></figcaption>` : ""}</figure>`
       : "";
   }
   if (theoryText && resource?.theoryText) {
@@ -3947,13 +4018,62 @@ function renderLearningResourceSlots(resource) {
       : `<p>Guía descargable del tema. El profesor podrá agregarla cuando esté disponible.</p><button class="btn btn-outline" type="button" disabled>PDF próximamente</button>`;
   }
   if (videoSlot) {
-    const url = resource?.videoUrl || resource?.externalVideoUrl || "";
-    const isUploadedVideo = !!resource?.videoUrl;
-    videoSlot.innerHTML = url
-      ? `<p>${escapeHtml(resource.title || "Video del profesor")}</p>${isUploadedVideo ? `<video class="learning-video-player" src="${escapeHtml(url)}" controls controlsList="nodownload noplaybackrate" playsinline preload="metadata"></video>` : `<div class="learning-video-embed"><iframe src="${escapeHtml(videoEmbedUrl(url))}" title="Video del tema" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>`}<div class="learning-file-actions">${canEdit ? `<button class="btn btn-outline" type="button" data-learning-remove-file="video">Quitar video</button>` : ""}</div>`
+    const rawUrl = resource?.videoUrl || resource?.externalVideoUrl || "";
+    const isCloudflare = resource?.videoProvider === "cloudflare-stream" || String(rawUrl).includes("videodelivery.net") || String(rawUrl).includes("cloudflarestream.com");
+    const isUploadedVideo = !!resource?.videoUrl && !isCloudflare && !resource?.externalVideoUrl;
+    const embedUrl = isCloudflare ? rawUrl : videoEmbedUrl(rawUrl);
+    videoSlot.innerHTML = rawUrl
+      ? `<p>${escapeHtml(resource.title || "Video del profesor")}</p>${isUploadedVideo ? `<video class="learning-video-player" src="${escapeHtml(rawUrl)}" controls controlsList="nodownload noplaybackrate" playsinline preload="metadata"></video>` : `<div class="learning-video-embed"><iframe src="${escapeHtml(embedUrl)}" title="Video del tema" loading="lazy" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>`}<div class="learning-file-actions">${canEdit ? `<button class="btn btn-outline" type="button" data-learning-remove-file="video">Quitar video</button>` : ""}</div>`
       : `<p>Espacio listo para insertar videos propios por tema y nivel.</p><button class="btn btn-outline" type="button" disabled>Video próximamente</button>`;
   }
+  if (linksSlot) {
+    linksSlot.innerHTML = renderLearningStudyLinks(learningStudyLinksFromResource(resource), canEdit);
+  }
   if (unit && window.renderMathInElement) renderMathInElement(unit, { delimiters: MATH_DELIMITERS, throwOnError: false });
+}
+function renderLearningResourceLinksEditor(links = []) {
+  const list = document.getElementById("learningResourceLinksList");
+  if (!list) return;
+  const normalized = normalizarLearningStudyLinks(links);
+  const rows = normalized.length ? normalized : [{ title: "", url: "" }];
+  list.innerHTML = rows.map((link, idx) => `
+    <div class="learning-link-editor-row" data-learning-link-row>
+      <input type="text" value="${escapeHtml(link.title)}" placeholder="Nombre visible del enlace" data-learning-link-title aria-label="Nombre del enlace ${idx + 1}" />
+      <input type="url" value="${escapeHtml(link.url)}" placeholder="https://..." data-learning-link-url aria-label="URL del enlace ${idx + 1}" />
+      <button class="btn btn-outline" type="button" data-learning-remove-link-row aria-label="Quitar enlace">Quitar</button>
+    </div>
+  `).join("");
+}
+
+function addLearningResourceLinkRow(link = { title: "", url: "" }) {
+  const list = document.getElementById("learningResourceLinksList");
+  if (!list) return;
+  const row = document.createElement("div");
+  row.className = "learning-link-editor-row";
+  row.dataset.learningLinkRow = "";
+  row.innerHTML = `
+    <input type="text" value="${escapeHtml(link.title || "")}" placeholder="Nombre visible del enlace" data-learning-link-title />
+    <input type="url" value="${escapeHtml(link.url || "")}" placeholder="https://..." data-learning-link-url />
+    <button class="btn btn-outline" type="button" data-learning-remove-link-row aria-label="Quitar enlace">Quitar</button>
+  `;
+  list.appendChild(row);
+}
+
+function readLearningResourceLinksEditor() {
+  const rows = Array.from(document.querySelectorAll("#learningResourceLinksList [data-learning-link-row]"));
+  return rows.map(row => {
+    const title = row.querySelector("[data-learning-link-title]")?.value.trim() || "";
+    const url = row.querySelector("[data-learning-link-url]")?.value.trim() || "";
+    if (!title && !url) return null;
+    if (!title || !url) throw new Error("Cada enlace de estudio debe tener nombre y URL.");
+    try {
+      const parsed = new URL(url);
+      if (!["http:", "https:"].includes(parsed.protocol)) throw new Error();
+    } catch {
+      throw new Error("Los enlaces de estudio deben ser URL válidas que empiecen por http o https.");
+    }
+    return { title, url };
+  }).filter(Boolean).slice(0, 12);
 }
 
 function populateLearningManagerResource(resource) {
@@ -3964,7 +4084,7 @@ function populateLearningManagerResource(resource) {
     if (input) input.value = value || "";
   };
   setValue("learningManagerTitle", resource?.title || "");
-  setValue("learningManagerVideoUrl", resource?.externalVideoUrl || "");
+  setValue("learningManagerVideoUrl", resource?.videoProvider === "cloudflare-stream" ? (resource?.videoId || resource?.videoUrl || "") : (resource?.externalVideoUrl || ""));
   setValue("learningManagerTheory", resource?.theoryText || "");
   setValue("learningManagerConcepts", Array.isArray(resource?.keyConcepts) ? resource.keyConcepts.join("\n") : "");
   setValue("learningManagerSteps", resource?.stepsText || "");
@@ -3975,9 +4095,9 @@ function populateLearningManagerResource(resource) {
   setValue("learningManagerOption2", options[2] || "");
   const answer = document.getElementById("learningManagerPracticeAnswer");
   if (answer) answer.value = Number.isFinite(Number(resource?.practiceAnswer)) ? String(resource.practiceAnswer) : "0";
+  renderLearningResourceLinksEditor(learningStudyLinksFromResource(resource));
   learningManagerSavedSnapshot = snapshotLearningManagerEditor();
 }
-
 async function renderLearningResourceForSelection(selection) {
   try {
     const resource = await cargarLearningResource(selection);
@@ -4197,6 +4317,7 @@ function renderLearningUnit(branch, topic, subtopic, level) {
           <button class="btn btn-outline" type="button" disabled>PDF próximamente</button>
         </div>
       </article>
+      <div id="learningLinksSlot" class="learning-wide"></div>
     </div>
 
     <div class="learning-practice" data-learning-practice>
@@ -4305,17 +4426,22 @@ function cargarContenidoBaseEnEditor() {
   if (option0) option0.value = normalizeLatexText(data.practice?.options?.[0] || "");
   if (option1) option1.value = normalizeLatexText(data.practice?.options?.[1] || "");
   if (option2) option2.value = normalizeLatexText(data.practice?.options?.[2] || "");
+  renderLearningResourceLinksEditor([]);
   learningManagerSavedSnapshot = snapshotLearningManagerEditor();
   document.getElementById("learningTeacherManager")?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function snapshotLearningManagerEditor() {
   const valueIds = ["learningManagerTitle", "learningManagerVideoUrl", "learningManagerTheory", "learningManagerConcepts", "learningManagerSteps", "learningManagerPracticeQuestion", "learningManagerOption0", "learningManagerOption1", "learningManagerOption2", "learningManagerPracticeAnswer"];
-  return JSON.stringify(valueIds.map(id => document.getElementById(id)?.value || ""));
+  const linkRows = Array.from(document.querySelectorAll("#learningResourceLinksList [data-learning-link-row]")).map(row => [
+    row.querySelector("[data-learning-link-title]")?.value || "",
+    row.querySelector("[data-learning-link-url]")?.value || ""
+  ]);
+  return JSON.stringify({ values: valueIds.map(id => document.getElementById(id)?.value || ""), linkRows });
 }
 function learningManagerTieneCambiosSinGuardar() {
   if (!puedeGestionarContenidoAprendizaje()) return false;
-  const hasFiles = ["learningManagerImage", "learningManagerPdf", "learningManagerVideo"].some(id => (document.getElementById(id)?.files?.length || 0) > 0);
+  const hasFiles = ["learningManagerImage", "learningManagerPdf"].some(id => (document.getElementById(id)?.files?.length || 0) > 0);
   return hasFiles || snapshotLearningManagerEditor() !== learningManagerSavedSnapshot;
 }
 
@@ -4348,6 +4474,7 @@ function resetLearningManagerEditor() {
   const answer = document.getElementById("learningManagerPracticeAnswer");
   if (answer) answer.value = "0";
   resetLearningManagerFiles();
+  renderLearningResourceLinksEditor([]);
   learningManagerSavedSnapshot = snapshotLearningManagerEditor();
   const status = document.getElementById("learningManagerStatus");
   if (status) {
@@ -4356,7 +4483,7 @@ function resetLearningManagerEditor() {
   }
 }
 function resetLearningManagerFiles() {
-  ["learningManagerImage", "learningManagerPdf", "learningManagerVideo"].forEach(id => {
+  ["learningManagerImage", "learningManagerPdf"].forEach(id => {
     const input = document.getElementById(id);
     if (input) input.value = "";
   });
@@ -4364,36 +4491,59 @@ function resetLearningManagerFiles() {
 
 async function subirLearningFile(file, selection, kind, resourceId) {
   if (!file) return {};
-  const maxMb = kind === "pdf" ? LEARNING_RESOURCE_MAX_PDF_MB : kind === "image" ? LEARNING_RESOURCE_MAX_IMAGE_MB : LEARNING_RESOURCE_MAX_VIDEO_MB;
+  const maxMb = kind === "pdf" ? LEARNING_RESOURCE_MAX_PDF_MB : LEARNING_RESOURCE_MAX_IMAGE_MB;
   if (file.size > maxMb * 1024 * 1024) throw new Error(`El archivo supera ${maxMb} MB.`);
   if (kind === "image" && !file.type.startsWith("image/")) throw new Error("La imagen debe ser JPG, PNG, WEBP o GIF.");
   if (kind === "pdf" && file.type !== "application/pdf") throw new Error("El material descargable debe ser un archivo PDF.");
-  if (kind === "video" && !["video/mp4", "video/webm", "video/quicktime"].includes(file.type)) throw new Error("El video debe estar en formato MP4, WebM o MOV.");
   const path = `learningResources/${usuarioActual.uid}/${resourceId}/${kind}-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
   const ref = storageRef(storage, path);
   await uploadBytes(ref, file, { contentType: file.type || "application/octet-stream" });
   const url = await getDownloadURL(ref);
   if (kind === "pdf") return { pdfUrl: url, pdfPath: path };
-  if (kind === "image") return { imageUrl: url, imagePath: path };
-  return { videoUrl: url, videoPath: path };
+  return { url, path, name: file.name || "Imagen del tema" };
 }
 
+async function subirLearningImages(files, selection, resourceId, previousImages = []) {
+  const selectedFiles = Array.from(files || []);
+  if (!selectedFiles.length) return {};
+  const uploaded = [];
+  for (const file of selectedFiles.slice(0, 8)) {
+    uploaded.push(await subirLearningFile(file, selection, "image", resourceId));
+  }
+  const images = [...previousImages, ...uploaded].slice(0, 12);
+  return {
+    images,
+    imageUrl: images[0]?.url || "",
+    imagePath: images[0]?.path || ""
+  };
+}
 async function guardarLearningResource() {
   if (!puedeGestionarContenidoAprendizaje()) return;
   const status = document.getElementById("learningManagerStatus");
   const title = document.getElementById("learningManagerTitle")?.value.trim() || "";
-  const externalVideoUrl = document.getElementById("learningManagerVideoUrl")?.value.trim() || "";
+  const cloudflareVideoInput = document.getElementById("learningManagerVideoUrl")?.value.trim() || "";
   const theoryText = document.getElementById("learningManagerTheory")?.value.trim() || "";
   const stepsText = document.getElementById("learningManagerSteps")?.value.trim() || "";
   const keyConcepts = (document.getElementById("learningManagerConcepts")?.value || "").split(/\r?\n/).map(item => item.trim()).filter(Boolean);
   const practiceQuestion = document.getElementById("learningManagerPracticeQuestion")?.value.trim() || "";
   const practiceOptions = [0, 1, 2].map(idx => document.getElementById(`learningManagerOption${idx}`)?.value.trim() || "");
   const practiceAnswer = Number(document.getElementById("learningManagerPracticeAnswer")?.value || 0);
-  const image = document.getElementById("learningManagerImage")?.files?.[0] || null;
+  const imageFiles = document.getElementById("learningManagerImage")?.files || [];
   const pdf = document.getElementById("learningManagerPdf")?.files?.[0] || null;
-  const video = document.getElementById("learningManagerVideo")?.files?.[0] || null;
   const selection = getLearningManagerSelection();
   const resourceId = currentLearningResourceId(selection);
+  let studyLinks = [];
+  let videoData = { videoUrl: "", videoId: "", videoProvider: "" };
+  try {
+    studyLinks = readLearningResourceLinksEditor();
+    videoData = parseCloudflareStreamVideo(cloudflareVideoInput);
+  } catch (error) {
+    if (status) {
+      status.textContent = error.message || "Revisa los enlaces del contenido.";
+      status.className = "bank-status error";
+    }
+    return;
+  }
   if (selection.scope === "class" && !selection.classId) {
     if (status) {
       status.textContent = "Selecciona el aula donde se verá este contenido.";
@@ -4401,22 +4551,23 @@ async function guardarLearningResource() {
     }
     return;
   }
-  if (!title && !theoryText && !stepsText && !keyConcepts.length && !practiceQuestion && !image && !pdf && !video && !externalVideoUrl) {
+  if (!title && !theoryText && !stepsText && !keyConcepts.length && !practiceQuestion && !imageFiles.length && !pdf && !videoData.videoUrl && !studyLinks.length) {
     if (status) {
-      status.textContent = "Agrega al menos un título, explicación, archivo, video o práctica.";
+      status.textContent = "Agrega al menos un título, explicación, archivo, video, enlace o práctica.";
       status.className = "bank-status error";
     }
     return;
   }
   if (status) {
     status.textContent = "Guardando contenido...";
-    status.className = "bank-status error";
+    status.className = "bank-status";
   }
   try {
+    const previous = await cargarLearningResource(selection, true);
+    const previousImages = canEditLearningResource(previous) ? normalizarLearningImages(previous) : [];
     const uploads = {
-      ...(await subirLearningFile(image, selection, "image", resourceId)),
-      ...(await subirLearningFile(pdf, selection, "pdf", resourceId)),
-      ...(await subirLearningFile(video, selection, "video", resourceId))
+      ...(await subirLearningImages(imageFiles, selection, resourceId, previousImages)),
+      ...(await subirLearningFile(pdf, selection, "pdf", resourceId))
     };
     const scope = selection.scope;
     await setDoc(doc(db, LEARNING_RESOURCE_COLLECTION, resourceId), {
@@ -4425,15 +4576,19 @@ async function guardarLearningResource() {
       branchId: selection.branchId,
       topicId: selection.topicId,
       subtopicId: selection.subtopicId || selection.topicId,
-    level: selection.level,
+      level: selection.level,
       scope,
       classId: scope === "class" ? selection.classId : "",
       className: scope === "class" ? nombreAulaPorId(selection.classId) : "",
       title,
-      externalVideoUrl,
+      externalVideoUrl: videoData.videoUrl ? "" : (previous?.externalVideoUrl || ""),
+      videoUrl: videoData.videoUrl || previous?.videoUrl || "",
+      videoId: videoData.videoId || previous?.videoId || "",
+      videoProvider: videoData.videoProvider || previous?.videoProvider || "",
       theoryText,
       keyConcepts,
       stepsText,
+      studyLinks,
       practiceQuestion,
       practiceOptions,
       practiceAnswer: Number.isFinite(practiceAnswer) ? practiceAnswer : 0,
@@ -4460,16 +4615,20 @@ async function quitarLearningResourceFile(kind) {
     alert("Solo una cuenta administradora puede editar este contenido.");
     return;
   }
-  const labels = { pdf: "PDF", video: "video", image: "imagen" };
-  const paths = { pdf: resource.pdfPath, video: resource.videoPath, image: resource.imagePath };
+  const labels = { pdf: "PDF", video: "video", image: "imágenes", links: "enlaces" };
+  if (!labels[kind]) return;
+  if (!confirm(`¿Deseas quitar este ${labels[kind]} del contenido?`)) return;
+  if (kind === "pdf" && resource.pdfPath) await deleteObject(storageRef(storage, resource.pdfPath)).catch(() => {});
+  if (kind === "image") {
+    const imagePaths = normalizarLearningImages(resource).map(image => image.path).filter(Boolean);
+    await Promise.all(imagePaths.map(path => deleteObject(storageRef(storage, path)).catch(() => {})));
+  }
   const updatesByKind = {
     pdf: { pdfUrl: "", pdfPath: "", updatedAt: serverTimestamp() },
-    video: { videoUrl: "", videoPath: "", updatedAt: serverTimestamp() },
-    image: { imageUrl: "", imagePath: "", updatedAt: serverTimestamp() }
+    video: { videoUrl: "", videoId: "", videoProvider: "", videoPath: "", externalVideoUrl: "", updatedAt: serverTimestamp() },
+    image: { images: [], imageUrl: "", imagePath: "", updatedAt: serverTimestamp() },
+    links: { studyLinks: [], updatedAt: serverTimestamp() }
   };
-  if (!updatesByKind[kind]) return;
-  if (!confirm(`¿Deseas quitar este ${labels[kind]} del contenido?`)) return;
-  if (paths[kind]) await deleteObject(storageRef(storage, paths[kind])).catch(() => {});
   await updateDoc(doc(db, LEARNING_RESOURCE_COLLECTION, resource.id), updatesByKind[kind]);
   learningResourcesCache.delete(learningResourceCacheKey(selection));
   await renderLearningResourceForSelection(selection);
@@ -4553,6 +4712,17 @@ document.getElementById("sectionAprendizaje")?.addEventListener("click", async e
       resetLearningManagerEditor();
       mostrarLearningManagerEditor();
     }
+  }
+  if (event.target.closest("#btnAddLearningResourceLink")) {
+    addLearningResourceLinkRow();
+    return;
+  }
+  const removeLinkRowButton = event.target.closest("[data-learning-remove-link-row]");
+  if (removeLinkRowButton) {
+    const row = removeLinkRowButton.closest("[data-learning-link-row]");
+    row?.remove();
+    if (!document.querySelector("#learningResourceLinksList [data-learning-link-row]")) addLearningResourceLinkRow();
+    return;
   }
   const removeFileButton = event.target.closest("[data-learning-remove-file]");
   if (removeFileButton) {

@@ -14208,3 +14208,98 @@ body:not(.app-active) .pricing-grid.single .pricing-card {
     margin: .15rem 0 !important;
   }
 }
+.learning-content-images {
+  display: grid;
+  gap: 14px;
+  justify-items: center;
+}
+
+.learning-links-card,
+.learning-links-editor {
+  min-width: 0;
+}
+
+.learning-study-links,
+.learning-links-editor-list {
+  display: grid;
+  gap: 10px;
+}
+
+.learning-study-link {
+  display: grid;
+  gap: 3px;
+  padding: .85rem 1rem;
+  border: 1px solid rgba(19, 103, 123, .16);
+  border-radius: 14px;
+  background: #fff;
+  color: var(--c-navy);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.learning-study-link span {
+  font-weight: 900;
+}
+
+.learning-study-link small {
+  color: var(--c-muted);
+}
+
+.learning-links-editor-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .8rem;
+}
+
+.learning-link-editor-row {
+  display: grid;
+  grid-template-columns: minmax(180px, .75fr) minmax(240px, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.learning-link-editor-row input {
+  width: 100%;
+  border: 1px solid rgba(19, 103, 123, .2);
+  border-radius: 14px;
+  background: #fff;
+  color: var(--ink);
+  padding: 12px 14px;
+  font: inherit;
+}
+
+@media (max-width: 760px) {
+  .learning-links-editor-head,
+  .learning-link-editor-row {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .learning-links-editor-head {
+    display: grid;
+  }
+}
+
+@media (min-width: 761px) {
+  body.app-active,
+  body.admin-mode,
+  body.exam-active {
+    padding-bottom: 0 !important;
+  }
+
+  body:not(.group-locked):not(.landing-menu-open) .main-content:not(.hidden),
+  body.app-active .main-content:not(.hidden),
+  body.admin-mode .main-content:not(.hidden),
+  body.exam-active .main-content:not(.hidden) {
+    flex: 0 1 auto !important;
+    margin-bottom: .35rem !important;
+    padding-bottom: .35rem !important;
+    scroll-padding-bottom: .5rem !important;
+  }
+
+  body:not(.group-locked):not(.landing-menu-open) .site-footer {
+    margin-top: .25rem !important;
+    margin-bottom: 0 !important;
+  }
+}
