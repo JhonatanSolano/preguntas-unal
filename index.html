@@ -279,7 +279,7 @@
         <button class="auth-close" id="btnAuthClose" type="button" aria-label="Cerrar">×</button>
         <img class="auth-logo" src="assets/logo.png" alt="Matemáticas En Tu Bolsillo" />
         <h2 id="authTitle">Ingreso Matemáticas En Tu Bolsillo</h2>
-        <p>Los estudiantes pueden entrar con Google o con correo Gmail y contraseña. El acceso de profesor está reservado por ahora para el dueño de la app.</p>
+        <p>Los estudiantes pueden entrar con correo Gmail y contraseña. Google queda disponible cuando se vincula desde Perfil; el acceso de profesor está reservado para la administración.</p>
 
         <div class="auth-type-step" id="loginTypeStep">
           <label class="mini-help" for="loginAccountType">Primero escoge el tipo de cuenta con el que vas a ingresar.</label>
@@ -320,7 +320,7 @@
         </div>
 
         <div class="auth-form hidden" id="registerPanel">
-        <p class="mini-help" id="registerSelectedTypeLabel">Completa tu registro como estudiante. El registro de profesor queda congelado porque el dueño ya tiene su cuenta creada.</p>
+        <p class="mini-help" id="registerSelectedTypeLabel">Completa tu registro como estudiante. El registro de profesor permanece congelado y no está disponible para nuevos usuarios.</p>
         <input type="text" id="registerName" class="admin-input" placeholder="Nombre de usuario" autocomplete="name" />
         <input type="email" id="registerEmail" class="admin-input" placeholder="Correo electrónico" autocomplete="email" />
         <select id="registerAccountType" class="admin-input hidden" aria-label="Tipo de registro">
@@ -1759,7 +1759,7 @@
       </section>
 
       <section class="profile-panel owner-settings hidden" id="ownerSettingsPanel">
-        <h2>Panel del dueño</h2>
+        <h2>Panel de administración</h2>
         <details class="accordion-card" open>
           <summary>Métricas de la app</summary>
           <p class="mini-help">Resumen privado de usuarios registrados y suscripciones activas en la plataforma.</p>
@@ -1770,7 +1770,7 @@
         </details>
         <details class="accordion-card">
           <summary>Instituciones registradas</summary>
-          <p class="danger-text">Solo el dueño de la app puede eliminar una institución completa desde aquí.</p>
+          <p class="danger-text">Solo una cuenta administradora puede eliminar una institución completa desde aquí.</p>
           <div id="ownerInstitutionsList" class="class-students-list"></div>
         </details>
       </section>
@@ -2140,6 +2140,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260904-02"></script>
+  <script type="module" src="script.js?v=20260904-03"></script>
 </body>
 </html>

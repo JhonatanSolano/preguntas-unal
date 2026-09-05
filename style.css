@@ -13198,6 +13198,33 @@ body.group-locked.public-modal-open #btnBackToTop.back-to-top,
   margin-top: .2rem;
 }
 
+
+@media (max-width: 760px) {
+  .danger-zone > input.admin-input,
+  .danger-zone > .confirm-row,
+  .danger-zone > .btn {
+    width: min(calc(100% - 2rem), 25rem) !important;
+    max-width: min(calc(100% - 2rem), 25rem) !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+
+  .danger-zone .confirm-row {
+    align-items: flex-start;
+    gap: .65rem;
+    font-size: clamp(1rem, 4vw, 1.1rem);
+    line-height: 1.35;
+  }
+
+  .danger-zone .confirm-row input {
+    width: 1.35rem;
+    height: 1.35rem;
+    min-width: 1.35rem;
+    margin-top: .12rem;
+    transform: none;
+  }
+}
+
 /* Strong administrative field alignment: keep controls inside card rhythm */
 #sectionAdmin .accordion-card > label,
 #sectionConfiguracion .accordion-card > label,

@@ -4238,8 +4238,8 @@ function renderLearningManager(selection = resolveLearningSelection()) {
   const scopeHelp = document.getElementById("learningManagerScopeHelp");
   if (scopeHelp) {
     scopeHelp.textContent = owner
-      ? "Como dueño puedes editar contenido estructural de toda la plataforma o preparar recursos para un aula específica."
-      : "El contenido estructural de Aprendizaje solo puede ser editado por el dueño de la app.";
+      ? "Como administrador puedes editar contenido estructural de toda la plataforma o preparar recursos para un aula específica."
+      : "El contenido estructural de Aprendizaje solo puede ser editado por una cuenta administradora.";
   }
   if (scopeLabel) scopeLabel.classList.toggle("hidden", !owner);
   if (scopeSel) {
@@ -4457,7 +4457,7 @@ async function quitarLearningResourceFile(kind) {
   const selection = getLearningManagerSelection();
   const resource = await cargarLearningResource(selection, true);
   if (!canEditLearningResource(resource)) {
-    alert("Solo el dueño de la app puede editar este contenido.");
+    alert("Solo una cuenta administradora puede editar este contenido.");
     return;
   }
   const labels = { pdf: "PDF", video: "video", image: "imagen" };
@@ -5236,7 +5236,7 @@ async function renderOwnerAppMetrics(options = {}) {
     }).join("");
     if (status && showStatus) setStatusTemporal("ownerAppMetricsStatus", "Métricas actualizadas.", "ok", 5000);
   } catch (error) {
-    console.warn("No fue posible cargar métricas del dueño", error);
+    console.warn("No fue posible cargar métricas administrativas", error);
     if (status && showStatus) {
       status.textContent = "No fue posible cargar las métricas.";
       status.className = "bank-status error";
@@ -10040,7 +10040,7 @@ function actualizarLoginAccountType() {
 }
 
 function mensajeTipoCuentaNoAutorizado(expectedType) {
-  if (expectedType === "teacher") return "Solo el dueño de la app puede ingresar como profesor. Si eres estudiante, vuelve y selecciona Estudiante.";
+  if (expectedType === "teacher") return "Solo la cuenta administradora puede ingresar como profesor. Si eres estudiante, vuelve y selecciona Estudiante.";
   if (expectedType === "institution") return "Este correo no corresponde a una institución educativa registrada.";
   if (expectedType === "institutionalStudent") return "Este correo no está autorizado como estudiante asociado a una institución.";
   return "Este correo no corresponde a un estudiante independiente registrado.";
@@ -10082,7 +10082,7 @@ async function registrarEmail() {
     return;
   }
   if (email === ADMIN_EMAIL) {
-    mostrarWarn("Este correo pertenece al dueño de la app. Ya debe ingresar como profesor.");
+    mostrarWarn("Este correo pertenece a la cuenta administradora. Debe ingresar como profesor.");
     return;
   }
   if (accountMode === "independent" && !email.endsWith("@gmail.com")) {
@@ -10310,7 +10310,7 @@ async function registrarIndependienteGoogle(user) {
   const email = (user.email || "").toLowerCase();
   if (email === ADMIN_EMAIL) {
     await signOut(auth);
-    mostrarErrorAuth("Este correo pertenece al dueño de la app. Debe ingresar como profesor.");
+    mostrarErrorAuth("Este correo pertenece a la cuenta administradora. Debe ingresar como profesor.");
     return;
   }
   if (!email.endsWith("@gmail.com")) {
@@ -11424,6 +11424,17 @@ async function estudianteCambiarClase() {
   renderProfile();
 }
 
+function resetCrearPasswordSection() {
+  ["createPasswordNew", "createPasswordConfirm"].forEach(id => {
+    const input = document.getElementById(id);
+    if (!input) return;
+    input.value = "";
+    input.type = "password";
+  });
+  actualizarReglasPasswordEn("createPasswordRules", "");
+  setStatus("createPasswordStatus", "", "");
+}
+
 async function crearPasswordEstudiante() {
   const status = document.getElementById("createPasswordStatus");
   const password = document.getElementById("createPasswordNew")?.value || "";
@@ -11764,26 +11775,29 @@ async function eliminarDatosCuentaActual() {
 }
 
 async function eliminarCuentaActual() {
-  const status = document.getElementById("deleteAccountStatus");
-  const password = document.getElementById("deleteAccountPassword").value;
-  const confirmed = document.getElementById("deleteAccountConfirm").checked;
+  const statusId = "deleteAccountStatus";
+  const password = document.getElementById("deleteAccountPassword")?.value || "";
+  const confirmed = document.getElementById("deleteAccountConfirm")?.checked === true;
+  setStatus(statusId, "", "");
   if (!confirmed) {
-    status.textContent = "Debes confirmar que entiendes que la acción es irreversible.";
+    setStatusTemporal(statusId, "Debes marcar la casilla para confirmar que entiendes que la acción es irreversible.", "error", 5000);
     return;
   }
   if (!password || !usuarioActual?.email) {
-    status.textContent = "Escribe tu contraseña para confirmar.";
+    setStatusTemporal(statusId, "Escribe tu contraseña para confirmar.", "error", 5000);
     return;
   }
   try {
     const credential = EmailAuthProvider.credential(usuarioActual.email, password);
     await reauthenticateWithCredential(usuarioActual, credential);
+    const ok = confirm("Vas a eliminar definitivamente tu cuenta de Matemáticas En Tu Bolsillo.\n\nSi aceptas, se borrarán tus datos de perfil, configuración, aula, avances y registros asociados. Esta acción no se puede deshacer.\n\nAceptar significa eliminar ahora. Cancelar conserva tu cuenta sin cambios.");
+    if (!ok) return;
     await eliminarDatosCuentaActual();
     await deleteUser(usuarioActual);
     localStorage.clear();
     window.location.reload();
   } catch {
-    status.textContent = "No se pudo eliminar la cuenta. Revisa la contraseña o vuelve a iniciar sesión.";
+    setStatusTemporal(statusId, "No se pudo eliminar la cuenta. Revisa la contraseña o vuelve a iniciar sesión.", "error", 5000);
   }
 }
 
@@ -12609,7 +12623,11 @@ function limitarAcordeonesExamenesMovil(details) {
 }
 document.addEventListener("toggle", e => {
   const details = e.target;
-  if (!(details instanceof HTMLDetailsElement) || !details.open) return;
+  if (!(details instanceof HTMLDetailsElement)) return;
+  if (!details.open) {
+    if (details.querySelector("#createPasswordSection")) resetCrearPasswordSection();
+    return;
+  }
   details.parentElement?.querySelectorAll(":scope > details.accordion-card, :scope > details.profile-panel, :scope > details.phone-panel").forEach(other => {
     if (other !== details) other.open = false;
   });
