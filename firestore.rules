@@ -191,6 +191,10 @@ service cloud.firestore {
       allow read: if isPlatformOwner() || (signedIn() && request.auth.uid == uid);
       allow create, update, delete: if false;
     }
+    match /aiRateLimits/{uid} {
+      allow read: if isPlatformOwner() || (signedIn() && request.auth.uid == uid);
+      allow create, update, delete: if false;
+    }
     match /examAttempts/{attemptId} {
       allow read: if hasActiveSubscription() && (
         isPlatformOwner() ||

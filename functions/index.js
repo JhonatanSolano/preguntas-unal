@@ -5,6 +5,12 @@ const { onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { defineSecret } = require("firebase-functions/params");
 const { updateVideoPlaybackState, safeVideoPlaybackId } = require("./videoPlaybackPolicy");
+const {
+  AI_USAGE_POLICY,
+  estimateAiInputTokens,
+  updateAiUsageState,
+  aiLimitMessage
+} = require("./aiUsagePolicy");
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -103,12 +109,7 @@ Reglas estrictas de formato matemático:
 - Si una expresión mezcla dinero, unidades y texto, sepárala en lenguaje natural: "3 pesos por cm^2" o "\(3\ \text{pesos}/\text{cm}^2\)".
 `;
 
-const AI_RATE_LIMIT = {
-  perMinute: 6,
-  perDay: 120,
-  maxInputChars: 4000,
-  maxHistoryItems: 12
-};
+const AI_RATE_LIMIT = AI_USAGE_POLICY;
 
 const EMAIL_RATE_LIMIT = {
   perEmailPerHour: 3,
@@ -226,33 +227,39 @@ async function hasServerAiAccess(decoded = {}) {
   return institutionSubscriptionActive(data);
 }
 
-async function assertAiRateLimit(uid) {
-  const now = new Date();
-  const minuteKey = Math.floor(now.getTime() / 60000);
-  const dayKey = now.toISOString().slice(0, 10);
+async function assertAiRateLimit(uid, context = {}) {
+  const nowMs = Date.now();
+  const estimatedInputTokens = estimateAiInputTokens(context);
+  const estimatedOutputTokens = AI_RATE_LIMIT.maxOutputTokens;
   const ref = db.collection("aiRateLimits").doc(uid);
   return db.runTransaction(async tx => {
     const snap = await tx.get(ref);
     const data = snap.exists ? snap.data() || {} : {};
-    const currentMinuteCount = data.minuteKey === minuteKey ? Number(data.minuteCount || 0) : 0;
-    const currentDayCount = data.dayKey === dayKey ? Number(data.dayCount || 0) : 0;
-    if (currentMinuteCount >= AI_RATE_LIMIT.perMinute) {
-      return { allowed: false, retryAfterSeconds: 60 };
-    }
-    if (currentDayCount >= AI_RATE_LIMIT.perDay) {
-      return { allowed: false, retryAfterSeconds: 60 * 60 };
-    }
+    const decision = updateAiUsageState({
+      usage: data,
+      nowMs,
+      estimatedInputTokens,
+      estimatedOutputTokens
+    });
+    if (!decision.allowed) return decision;
     tx.set(ref, {
-      minuteKey,
-      minuteCount: currentMinuteCount + 1,
-      dayKey,
-      dayCount: currentDayCount + 1,
+      minuteKey: decision.minuteKey,
+      minuteCount: decision.minuteCount,
+      dayKey: decision.dayKey,
+      dayCount: decision.dayCount,
+      monthKey: decision.monthKey,
+      monthCount: decision.monthCount,
+      dayInputTokens: decision.dayInputTokens,
+      monthInputTokens: decision.monthInputTokens,
+      dayOutputTokens: decision.dayOutputTokens,
+      monthOutputTokens: decision.monthOutputTokens,
+      lastEstimatedInputTokens: estimatedInputTokens,
+      lastEstimatedOutputTokens: estimatedOutputTokens,
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     }, { merge: true });
-    return { allowed: true };
+    return decision;
   });
 }
-
 function clientRateLimitIp(req) {
   return String(req.get("x-forwarded-for") || req.ip || "unknown").split(",")[0].trim() || "unknown";
 }
@@ -374,7 +381,12 @@ async function generateWithGemini(apiKey, modelName, contents) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-      contents
+      contents,
+      generationConfig: {
+        maxOutputTokens: AI_RATE_LIMIT.maxOutputTokens,
+        temperature: 0.35,
+        topP: 0.9
+      }
     })
   });
   const raw = await response.text();
@@ -382,7 +394,11 @@ async function generateWithGemini(apiKey, modelName, contents) {
   const data = JSON.parse(raw);
   const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!text) throw new Error("Gemini response did not include text.");
-  return normalizeLatex(text.trim());
+  return {
+    text: normalizeLatex(text.trim()),
+    modelName,
+    usageMetadata: data.usageMetadata || null
+  };
 }
 
 exports.trackVideoPlayback = onRequest({ region: "us-central1" }, async (req, res) => {
@@ -488,10 +504,10 @@ exports.generateAiResponse = onRequest({ region: "us-central1", secrets: [gemini
     if (!hasAccess) {
       return res.status(403).json({ error: "Activa tu suscripción para usar el Asesor IA." });
     }
-    const rateLimit = await assertAiRateLimit(decoded.uid);
+    const rateLimit = await assertAiRateLimit(decoded.uid, { input, history, currentData });
     if (!rateLimit.allowed) {
       res.set("Retry-After", String(rateLimit.retryAfterSeconds || 60));
-      return res.status(429).json({ error: "Has alcanzado el límite temporal del Asesor IA. Intenta nuevamente en unos minutos." });
+      return res.status(429).json({ error: aiLimitMessage(rateLimit.reason) });
     }
     const prompt = [
       `Datos actuales del usuario: ${JSON.stringify(currentData)}`,
@@ -502,12 +518,12 @@ exports.generateAiResponse = onRequest({ region: "us-central1", secrets: [gemini
       ...history.slice(-AI_RATE_LIMIT.maxHistoryItems),
       { role: "user", parts: [{ text: prompt }] }
     ];
-    const models = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-lite-latest"];
+    const models = ["gemini-2.5-flash-lite", "gemini-flash-lite-latest", "gemini-2.5-flash"];
     let lastError;
     for (const model of models) {
       try {
-        const responseText = await generateWithGemini(apiKey, model, contents);
-        return res.status(200).json({ responseText, action: "RESPOND" });
+        const aiResult = await generateWithGemini(apiKey, model, contents);
+        return res.status(200).json({ responseText: aiResult.text, action: "RESPOND" });
       } catch (err) {
         lastError = err;
         if (!/429|503|quota|Service Unavailable|Too Many Requests|high demand/i.test(String(err.message))) {
