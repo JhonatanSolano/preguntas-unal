@@ -14303,3 +14303,19 @@ body:not(.app-active) .pricing-grid.single .pricing-card {
     margin-bottom: 0 !important;
   }
 }
+
+.learning-video-access-state {
+  padding: 1rem;
+  border: 1px solid rgba(19, 103, 123, .16);
+  border-radius: 14px;
+  background: #eefafa;
+  color: var(--c-teal-deep);
+  font-weight: 900;
+  text-align: center;
+}
+
+.learning-video-access-state.error {
+  border-color: rgba(190, 24, 43, .22);
+  background: #fff1f2;
+  color: #be123c;
+}

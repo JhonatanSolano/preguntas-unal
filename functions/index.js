@@ -4,6 +4,7 @@ const { onRequest } = require("firebase-functions/v2/https");
 const { onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { defineSecret } = require("firebase-functions/params");
+const { updateVideoPlaybackState, safeVideoPlaybackId } = require("./videoPlaybackPolicy");
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -384,6 +385,88 @@ async function generateWithGemini(apiKey, modelName, contents) {
   return normalizeLatex(text.trim());
 }
 
+exports.trackVideoPlayback = onRequest({ region: "us-central1" }, async (req, res) => {
+  setCors(res);
+  if (req.method === "OPTIONS") return res.status(204).send("");
+  if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
+
+  if (!(await enforceAppCheck(req, res))) return;
+  let decoded;
+  try {
+    decoded = await requireAuth(req);
+  } catch {
+    return res.status(401).json({ error: "Debes iniciar sesión para ver videos." });
+  }
+
+  const body = req.body || {};
+  const event = String(body.event || "heartbeat").trim();
+  const sessionId = String(body.sessionId || "").trim();
+  const videoId = safeVideoPlaybackId(body.videoId || body.videoUrl || "");
+  const resourceId = safeVideoPlaybackId(body.resourceId || videoId);
+  const reportedSeconds = Math.max(0, Math.min(120, Number(body.seconds || 0)));
+  if (!sessionId || !videoId) {
+    return res.status(400).json({ error: "Faltan datos de reproducción del video." });
+  }
+
+  try {
+    const isPremium = await hasServerActiveSubscription(decoded);
+    const sessionKey = sha256(`${decoded.uid}:${sessionId}`).slice(0, 32);
+    const usageRef = db.collection("videoPlaybackUsage").doc(decoded.uid);
+    const nowMs = Date.now();
+    const result = await db.runTransaction(async tx => {
+      const snap = await tx.get(usageRef);
+      const usage = snap.exists ? (snap.data() || {}) : {};
+      const decision = updateVideoPlaybackState({
+        usage,
+        isPremium,
+        event,
+        sessionKey,
+        videoId,
+        resourceId,
+        nowMs,
+        reportedSeconds
+      });
+      tx.set(usageRef, {
+        uid: decoded.uid,
+        email: normalizeEmail(decoded.email),
+        isPremium,
+        dailySeconds: decision.dailySeconds,
+        monthlySeconds: decision.monthlySeconds,
+        sessions: decision.sessions,
+        blockedUntilMs: decision.blockedUntilMs || 0,
+        blockReason: decision.shouldBlock ? decision.reason : (decision.reason === "temporary-block" ? (usage.blockReason || decision.reason) : ""),
+        lastVideoId: videoId,
+        lastResourceId: resourceId,
+        lastEvent: event,
+        lastSeenAtMs: nowMs,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+      return decision;
+    });
+
+    if (!result.allowed) {
+      return res.status(429).json({
+        ok: false,
+        allowed: false,
+        reason: result.reason,
+        retryAfterSeconds: result.retryAfterSeconds || 3600,
+        blockedUntilMs: result.blockedUntilMs || 0,
+        message: "Detectamos un uso de video muy inusual. Por seguridad, la reproducción se pausó temporalmente. Si crees que es un error, comunícate con soporte."
+      });
+    }
+
+    return res.status(200).json({
+      ok: true,
+      allowed: true,
+      creditedSeconds: result.creditedSeconds || 0,
+      totals: result.totals || null,
+      limits: result.limits || null
+    });
+  } catch (error) {
+    console.error("Video playback tracking error", error);
+    return res.status(500).json({ error: "No se pudo validar la reproducción del video." });
+  }
+});
 exports.generateAiResponse = onRequest({ region: "us-central1", secrets: [geminiApiKey] }, async (req, res) => {
   setCors(res);
   if (req.method === "OPTIONS") return res.status(204).send("");

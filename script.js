@@ -77,6 +77,7 @@ const APP_CONFIG = {
   examAttemptSubmitEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/submitExamAttempt",
   examAttemptFeedbackEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/getExamAttemptFeedback",
   academicReportEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/getAcademicReport",
+  videoPlaybackEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/trackVideoPlayback",
   payments: {
     provider: "Wompi",
     checkoutReady: true,
@@ -251,6 +252,8 @@ let learningProgressRemote = {};
 let learningProgressRemoteLoadedFor = "";
 let learningResourcesCache = new Map();
 let learningManagerSavedSnapshot = "";
+let activeLearningVideoPlayback = null;
+const LEARNING_VIDEO_HEARTBEAT_MS = 30000;
 const EXAM_DURATIONS_BY_LEVEL = {
   diagnostico: 15 * 60,
   nivel1: 25 * 60,
@@ -3960,6 +3963,89 @@ function parseCloudflareStreamVideo(value = "") {
   }
 }
 
+function learningVideoPlaybackSessionId() {
+  const key = "matematicasBolsilloVideoSessionId";
+  let value = sessionStorage.getItem(key);
+  if (!value) {
+    value = crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    sessionStorage.setItem(key, value);
+  }
+  return value;
+}
+
+function learningVideoIdFromUrl(resource = {}, rawUrl = "") {
+  if (resource.videoId) return String(resource.videoId);
+  try {
+    const url = new URL(rawUrl);
+    const part = url.pathname.split("/").filter(Boolean).find(item => /^[A-Za-z0-9_-]{16,}$/.test(item));
+    if (part) return part;
+  } catch {}
+  try {
+    return btoa(unescape(encodeURIComponent(rawUrl))).replace(/[^A-Za-z0-9_-]/g, "").slice(0, 80) || "video";
+  } catch {
+    return "video";
+  }
+}
+
+async function trackLearningVideoPlayback(event, payload = {}) {
+  const response = await authedFetch(APP_CONFIG.videoPlaybackEndpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      event,
+      sessionId: learningVideoPlaybackSessionId(),
+      ...payload
+    })
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || data.allowed === false) {
+    const error = new Error(data.message || data.error || "No se pudo validar la reproducción del video.");
+    error.data = data;
+    throw error;
+  }
+  return data;
+}
+
+function stopLearningVideoPlayback(reason = "stop") {
+  if (!activeLearningVideoPlayback) return;
+  const current = activeLearningVideoPlayback;
+  activeLearningVideoPlayback = null;
+  clearInterval(current.intervalId);
+  if (current.videoId) {
+    trackLearningVideoPlayback(reason, {
+      videoId: current.videoId,
+      resourceId: current.resourceId,
+      seconds: current.lastHeartbeatSeconds || Math.round(LEARNING_VIDEO_HEARTBEAT_MS / 1000)
+    }).catch(() => {});
+  }
+}
+
+function learningVideoMarkup({ rawUrl, embedUrl, isUploadedVideo, canEdit, title }) {
+  return `<p>${escapeHtml(title || "Video del profesor")}</p>${isUploadedVideo ? `<video class="learning-video-player" src="${escapeHtml(rawUrl)}" controls controlsList="nodownload noplaybackrate" playsinline preload="metadata"></video>` : `<div class="learning-video-embed"><iframe src="${escapeHtml(embedUrl)}" title="Video del tema" loading="lazy" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>`}<div class="learning-file-actions">${canEdit ? `<button class="btn btn-outline" type="button" data-learning-remove-file="video">Quitar video</button>` : ""}</div>`;
+}
+
+async function prepareLearningVideoPlayback({ slot, resource, rawUrl, embedUrl, isUploadedVideo, canEdit }) {
+  stopLearningVideoPlayback("stop");
+  const videoId = learningVideoIdFromUrl(resource, rawUrl);
+  const resourceId = resource?.id || currentLearningResourceId(resolveLearningSelection());
+  slot.innerHTML = `<p>${escapeHtml(resource?.title || "Video del profesor")}</p><div class="learning-video-access-state">Validando reproducción segura...</div>`;
+  try {
+    await trackLearningVideoPlayback("start", { videoId, resourceId, seconds: 0 });
+    slot.innerHTML = learningVideoMarkup({ rawUrl, embedUrl, isUploadedVideo, canEdit, title: resource?.title });
+    const heartbeatSeconds = Math.round(LEARNING_VIDEO_HEARTBEAT_MS / 1000);
+    const intervalId = setInterval(() => {
+      if (document.hidden || !document.body.contains(slot)) return;
+      trackLearningVideoPlayback("heartbeat", { videoId, resourceId, seconds: heartbeatSeconds }).catch(error => {
+        clearInterval(intervalId);
+        activeLearningVideoPlayback = null;
+        slot.innerHTML = `<div class="learning-video-access-state error">${escapeHtml(error.message || "La reproducción se pausó temporalmente por seguridad.")}</div>`;
+      });
+    }, LEARNING_VIDEO_HEARTBEAT_MS);
+    activeLearningVideoPlayback = { intervalId, videoId, resourceId, lastHeartbeatSeconds: heartbeatSeconds };
+  } catch (error) {
+    slot.innerHTML = `<div class="learning-video-access-state error">${escapeHtml(error.message || "La reproducción se pausó temporalmente por seguridad.")}</div>`;
+  }
+}
 function renderLearningStudyLinks(links = [], canEdit = false) {
   const normalized = normalizarLearningStudyLinks(links);
   if (!normalized.length) return "";
@@ -4022,9 +4108,12 @@ function renderLearningResourceSlots(resource) {
     const isCloudflare = resource?.videoProvider === "cloudflare-stream" || String(rawUrl).includes("videodelivery.net") || String(rawUrl).includes("cloudflarestream.com");
     const isUploadedVideo = !!resource?.videoUrl && !isCloudflare && !resource?.externalVideoUrl;
     const embedUrl = isCloudflare ? rawUrl : videoEmbedUrl(rawUrl);
-    videoSlot.innerHTML = rawUrl
-      ? `<p>${escapeHtml(resource.title || "Video del profesor")}</p>${isUploadedVideo ? `<video class="learning-video-player" src="${escapeHtml(rawUrl)}" controls controlsList="nodownload noplaybackrate" playsinline preload="metadata"></video>` : `<div class="learning-video-embed"><iframe src="${escapeHtml(embedUrl)}" title="Video del tema" loading="lazy" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>`}<div class="learning-file-actions">${canEdit ? `<button class="btn btn-outline" type="button" data-learning-remove-file="video">Quitar video</button>` : ""}</div>`
-      : `<p>Espacio listo para insertar videos propios por tema y nivel.</p><button class="btn btn-outline" type="button" disabled>Video próximamente</button>`;
+    if (rawUrl) {
+      prepareLearningVideoPlayback({ slot: videoSlot, resource, rawUrl, embedUrl, isUploadedVideo, canEdit });
+    } else {
+      stopLearningVideoPlayback("stop");
+      videoSlot.innerHTML = `<p>Espacio listo para insertar videos propios por tema y nivel.</p><button class="btn btn-outline" type="button" disabled>Video próximamente</button>`;
+    }
   }
   if (linksSlot) {
     linksSlot.innerHTML = renderLearningStudyLinks(learningStudyLinksFromResource(resource), canEdit);
@@ -13977,3 +14066,4 @@ async function restaurarIntentoActivo() {
     else iniciarTimerExamen(true);
   }
 }
+window.addEventListener("beforeunload", () => stopLearningVideoPlayback("stop"));
