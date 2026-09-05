@@ -14184,3 +14184,27 @@ body:not(.app-active) .pricing-grid.single .pricing-card {
     line-height: 1.28 !important;
   }
 }
+@media (min-width: 761px) {
+  body.app-active .main-content:not(.hidden),
+  body.admin-mode .main-content:not(.hidden),
+  body.exam-active .main-content:not(.hidden),
+  body:not(.group-locked):not(.landing-menu-open) .main-content:not(.hidden) {
+    flex: 0 0 auto !important;
+    min-height: auto !important;
+    padding-bottom: 1rem !important;
+    scroll-padding-bottom: 1.25rem !important;
+  }
+
+  body:not(.group-locked):not(.landing-menu-open) .site-footer {
+    margin-top: .5rem !important;
+  }
+
+  .site-footer {
+    padding-top: .7rem !important;
+    padding-bottom: .7rem !important;
+  }
+
+  .site-footer p {
+    margin: .15rem 0 !important;
+  }
+}

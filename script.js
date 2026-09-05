@@ -11621,22 +11621,28 @@ async function eliminarDatosAula(classId) {
 }
 
 async function eliminarCuentaProfesor() {
-  const status = document.getElementById("teacherDeleteStatus");
+  const statusId = "teacherDeleteStatus";
   const password = document.getElementById("teacherDeletePassword")?.value || "";
+  const confirmed = document.getElementById("teacherDeleteConfirm")?.checked === true;
+  setStatus(statusId, "", "");
   if (!modoAdmin || !usuarioActual?.email) {
-    status.textContent = "Esta opción solo está disponible para cuentas de profesor.";
+    setStatusTemporal(statusId, "Esta opción solo está disponible para cuentas de profesor.", "error", 5000);
+    return;
+  }
+  if (!confirmed) {
+    setStatusTemporal(statusId, "Debes marcar la casilla para confirmar que entiendes que la acción es irreversible.", "error", 5000);
     return;
   }
   if (!password) {
-    status.textContent = "Escribe tu contraseña para confirmar la eliminación.";
+    setStatusTemporal(statusId, "Escribe tu contraseña para confirmar la eliminación.", "error", 5000);
     return;
   }
-  const mensaje = "Eliminar cuenta de profesor\n\nEsta acción es permanente. Si continúas, no podrás recuperar la cuenta y se eliminarán todas tus aulas, estudiantes inscritos, avances, métricas, resultados, permisos y bancos de preguntas asociados.\n\n¿Deseas continuar?";
-  if (!confirm(mensaje)) return;
   try {
-    status.textContent = "Eliminando cuenta y datos asociados...";
     const credential = EmailAuthProvider.credential(usuarioActual.email, password);
     await reauthenticateWithCredential(usuarioActual, credential);
+    const mensaje = "Vas a eliminar definitivamente tu cuenta de profesor.\n\nSi aceptas, no podrás recuperar la cuenta y se eliminarán tus aulas, estudiantes inscritos, avances, métricas, resultados, permisos y bancos de preguntas asociados. Esta acción no se puede deshacer.\n\nAceptar significa eliminar ahora. Cancelar conserva tu cuenta sin cambios.";
+    if (!confirm(mensaje)) return;
+    setStatusTemporal(statusId, "Eliminando cuenta y datos asociados...", "ok", 5000);
     await cargarClasesAdmin();
     const aulasProfesor = [...adminClases];
     await Promise.all(aulasProfesor.map(aula => eliminarDatosAula(aula.id)));
@@ -11650,10 +11656,9 @@ async function eliminarCuentaProfesor() {
     window.location.reload();
   } catch (err) {
     console.error(err);
-    status.textContent = "No se pudo eliminar la cuenta. Revisa la contraseña o vuelve a iniciar sesión.";
+    setStatusTemporal(statusId, "No se pudo eliminar la cuenta. Revisa la contraseña o vuelve a iniciar sesión.", "error", 5000);
   }
 }
-
 async function cambiarGrupoEstudianteRegistrado(id, grupo) {
   const aula = aulaPorId(grupo);
   if (!aula) return;

@@ -33,7 +33,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="style.css?v=20260903-10" />
+  <link rel="stylesheet" href="style.css?v=20260905-01" />
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -1502,6 +1502,7 @@
         <h3>Eliminar cuenta permanentemente</h3>
         <p>Esta acción elimina de forma permanente tu cuenta de profesor y toda la información académica asociada.</p>
         <input type="password" id="teacherDeletePassword" class="admin-input" placeholder="Contraseña" />
+        <label class="confirm-row"><input type="checkbox" id="teacherDeleteConfirm" /> Entiendo que esta acción es irreversible.</label>
         <button class="btn btn-secondary" id="btnDeleteTeacherAccount" type="button">Eliminar mi cuenta de profesor</button>
         <p class="bank-status" id="teacherDeleteStatus"></p>
       </details>
@@ -2140,6 +2141,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260904-03"></script>
+  <script type="module" src="script.js?v=20260905-01"></script>
 </body>
 </html>
