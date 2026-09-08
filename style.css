@@ -14526,3 +14526,49 @@ body:not(.app-active) .pricing-grid.single .pricing-card {
     margin-bottom: 0 !important;
   }
 }
+
+/* Mobile/tablet profile accordions: keep every option header visible. */
+@media (max-width: 1024px) {
+  #sectionPerfil .profile-shell {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: clamp(.75rem, 3vw, 1rem) !important;
+    align-items: stretch !important;
+    overflow: visible !important;
+  }
+
+  #sectionPerfil details.profile-panel,
+  #sectionPerfil details.phone-panel {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 74px !important;
+    margin: 0 !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    transform: none !important;
+    overflow: hidden !important;
+  }
+
+  #sectionPerfil details.profile-panel > summary,
+  #sectionPerfil details.phone-panel > summary {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: .75rem !important;
+    min-height: 74px !important;
+    margin: 0 !important;
+    padding: 1rem !important;
+    cursor: pointer;
+  }
+
+  #sectionPerfil details.profile-panel:not([open]) > :not(summary),
+  #sectionPerfil details.phone-panel:not([open]) > :not(summary) {
+    display: none !important;
+  }
+
+  #sectionPerfil details.phone-panel > summary::after {
+    float: none !important;
+    flex: 0 0 auto;
+  }
+}
