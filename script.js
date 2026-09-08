@@ -2900,7 +2900,10 @@ function asegurarEnlaceReporteExamen(sec) {
 
 function mostrarSeccion(sec) {
   cerrarAccordions();
-  if (sec !== "perfil") limpiarVerificacionTelefonoTemporal();
+  if (sec !== "perfil") {
+    limpiarVerificacionTelefonoTemporal();
+    resetEliminarCuentaSection();
+  }
   if (sec !== "mensajes") limpiarBorradorMensajeProfesor();
   if (sec !== "examenes") limpiarBorradorPreguntaProfesor();
   if (sec !== "suscripcion") planChangeInProgress = false;
@@ -8856,6 +8859,22 @@ function clearStatusElement(el) {
   el.textContent = "";
   el.classList.remove("error", "ok", "success");
 }
+
+function resetEliminarCuentaSection() {
+  ["deleteAccountPassword", "teacherDeletePassword"].forEach(id => {
+    const input = document.getElementById(id);
+    if (input) input.value = "";
+  });
+  ["deleteAccountConfirm", "teacherDeleteConfirm"].forEach(id => {
+    const input = document.getElementById(id);
+    if (input) input.checked = false;
+  });
+  ["deleteAccountStatus", "teacherDeleteStatus"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) clearStatusElement(el);
+  });
+}
+
 function programarLimpiezaAvisoColor(el, ms = 5000) {
   if (!el?.classList || !el.textContent.trim()) return;
   const esAviso = el.classList.contains("bank-status") || el.classList.contains("warn-msg");
@@ -9335,7 +9354,7 @@ function renderProfile() {
   poblarUbicacion("profile", profile);
   document.getElementById("profileBirth")?.closest("label")?.classList.toggle("hidden", institucion);
   document.getElementById("profileGender")?.closest("label")?.classList.toggle("hidden", institucion);
-  document.getElementById("teacherDeletePanel")?.classList.toggle("hidden", !modoAdmin || institucion);
+  document.getElementById("teacherDeletePanel")?.classList.toggle("hidden", !(modoAdmin || esPropietarioPlataforma()) || institucion);
   actualizarPanelGooglePerfil();
 }
 
@@ -12890,10 +12909,14 @@ document.addEventListener("toggle", e => {
   if (!(details instanceof HTMLDetailsElement)) return;
   if (!details.open) {
     if (details.querySelector("#createPasswordSection")) resetCrearPasswordSection();
+    if (details.querySelector("#deleteAccountPassword, #teacherDeletePassword")) resetEliminarCuentaSection();
     return;
   }
+  const isMobileProfilePanel = !!details.closest("#sectionPerfil") && window.matchMedia("(max-width: 760px)").matches;
   details.parentElement?.querySelectorAll(":scope > details.accordion-card, :scope > details.profile-panel, :scope > details.phone-panel").forEach(other => {
-    if (other !== details) other.open = false;
+    if (other === details) return;
+    if (other.querySelector("#deleteAccountPassword, #teacherDeletePassword")) resetEliminarCuentaSection();
+    if (!isMobileProfilePanel) other.open = false;
   });
   limitarAcordeonesExamenesMovil(details);
 }, true);
