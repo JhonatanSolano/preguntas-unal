@@ -10328,9 +10328,9 @@ function perfilPermiteLoginGoogle(profile, user) {
   const email = String(user?.email || profile?.email || "").toLowerCase();
   const providerLinked = user?.providerData?.some(provider => provider.providerId === "google.com");
   const googleEnabledInProfile = profile?.googleLoginEnabled === true || profile?.googleLinked === true || !!profile?.googleUid;
-  if (!providerLinked && !googleEnabledInProfile) return false;
-  if (providerLinked && googleEnabledInProfile) return true;
-  if (googleEnabledInProfile && email && email === String(profile?.email || "").toLowerCase()) return true;
+  const profileEmail = String(profile?.email || "").toLowerCase();
+  if (!email || !profileEmail || email !== profileEmail) return false;
+  if (providerLinked || googleEnabledInProfile) return true;
   return profile?.authProvider === "google.com" && email !== ADMIN_EMAIL;
 }
 
