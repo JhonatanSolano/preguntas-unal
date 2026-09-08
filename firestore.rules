@@ -221,14 +221,15 @@ service cloud.firestore {
 
     match /classes/{classId} {
       allow read: if signedIn();
-      allow create: if hasActiveSubscription() && (
-        (isAdmin() && request.resource.data.ownerUid == request.auth.uid) ||
-        (ownsInstitution(request.resource.data.institutionDane) && request.resource.data.ownerUid == request.auth.uid)
-      );
+      allow create: if false;
       allow update, delete: if hasActiveSubscription() && (
         (isAdmin() && resource.data.ownerUid == request.auth.uid) ||
         ownsInstitution(resource.data.institutionDane)
       );
+    }
+
+    match /classCodes/{code} {
+      allow read, write: if false;
     }
 
     match /countries/{document=**} {

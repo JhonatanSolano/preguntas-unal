@@ -71,6 +71,7 @@ const APP_CONFIG = {
   blockInstitutionEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/blockInstitutionPremium",
   institutionMemberEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/manageInstitutionMembers",
   removeInstitutionStudentEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/removeInstitutionClassStudent",
+  createClassEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/createClassSecure",
   examAccessEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/getExamAccessState",
   examAccessUpdateEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/updateExamAccessConfig",
   teacherExamQuestionsEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/getTeacherExamQuestions",
@@ -9409,51 +9410,22 @@ async function crearClaseAdmin(options = {}) {
   }
   if (btn) btn.disabled = true;
   try {
-    let code = "";
-    for (let i = 0; i < 30; i++) {
-      const candidate = codigoClaseAleatorio();
-      const exists = await buscarClasePorCodigo(candidate);
-      if (!exists) {
-        code = candidate;
-        break;
-      }
-    }
-    if (!code) {
-      if (status) {
-        status.textContent = "No se pudo generar un código único. Intenta de nuevo.";
-        status.className = "bank-status error";
-      }
-      return;
-    }
-    const ref = doc(collection(db, "classes"));
-    const institutionalOwner = esInstitucion() || cuentaInstitucional();
-    const payload = {
-      name,
-      code,
-      codeKey: normalizarCodigoClase(code),
-      ownerEmail: usuarioActual.email,
-      ownerUid: usuarioActual.uid,
-      institutionDane: institutionalOwner ? (perfilActual?.institutionDane || "") : "",
-      institutionName: institutionalOwner ? (perfilActual?.institutionName || "") : "",
-      grade: institutionalOwner ? grade : "",
-      course: institutionalOwner ? grade : "",
-      status: "activa",
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    };
-    await setDoc(ref, payload);
-    adminClaseActiva = ref.id;
+    if (!APP_CONFIG.createClassEndpoint) throw new Error("No hay endpoint seguro de creación de aulas configurado.");
+    const result = await postBackendAutenticado(APP_CONFIG.createClassEndpoint, { name, grade });
+    const classData = result.class || {};
+    if (!classData.id || !classData.code) throw new Error("El servidor no devolvió los datos del aula creada.");
+    adminClaseActiva = classData.id;
     localStorage.setItem(STORAGE_ADMIN_CLASE, adminClaseActiva);
-    adminClases = [{ id: ref.id, ...payload }, ...adminClases.filter(c => c.id !== ref.id)];
+    adminClases = [classData, ...adminClases.filter(c => c.id !== classData.id)];
     renderClassSelectors();
     await cargarClasesAdmin();
     if (esInstitucion()) await renderInstitutionPanel().catch(error => console.warn("No se pudo refrescar el panel institucional.", error));
     if (nameInput) nameInput.value = "";
-    if (status) setStatusTemporal(options.statusId || "adminClassStatus", `Aula creada. Código generado: ${code}`, "success", 5000);
+    if (status) setStatusTemporal(options.statusId || "adminClassStatus", `Aula creada. Código generado: ${classData.code}`, "success", 5000);
   } catch (err) {
     console.error(err);
     if (status) {
-      status.textContent = "No se pudo crear el aula. Revisa reglas de Firestore y conexión.";
+      status.textContent = err.message || "No se pudo crear el aula. Revisa conexión e intenta de nuevo.";
       status.className = "bank-status error";
     }
   } finally {

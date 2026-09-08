@@ -6,6 +6,12 @@ const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { defineSecret } = require("firebase-functions/params");
 const { updateVideoPlaybackState, safeVideoPlaybackId } = require("./videoPlaybackPolicy");
 const {
+  generateClassCode,
+  normalizeClassCode,
+  sanitizeClassGrade,
+  sanitizeClassName
+} = require("./classCodePolicy");
+const {
   AI_USAGE_POLICY,
   estimateAiInputTokens,
   updateAiUsageState,
@@ -126,6 +132,7 @@ const QUESTION_CACHE = {
   ttlMs: 2 * 60 * 1000,
   maxEntries: 200
 };
+const CLASS_CODE_RESERVATION_ATTEMPTS = 30;
 const baseQuestionCache = new Map();
 const teacherQuestionCache = new Map();
 
@@ -235,6 +242,16 @@ async function serverAdvisorRole(decoded = {}) {
   const role = snap.exists ? roleForAiAccess(snap.data() || {}) : "";
   return role === "teacher" ? "teacher" : "student";
 }
+
+function canCreateClassOnServer(decoded = {}, profile = {}) {
+  const email = normalizeEmail(decoded.email || profile.email);
+  const role = String(profile.role || profile.tipoCuenta || "").trim().toLowerCase();
+  if (email === "solanojhonatan2000@gmail.com") return true;
+  if (role === "teacher" && profile.isAdmin === true) return true;
+  if (role === "institution") return true;
+  return false;
+}
+
 async function assertAiRateLimit(uid, context = {}) {
   const nowMs = Date.now();
   const estimatedInputTokens = estimateAiInputTokens(context);
@@ -491,6 +508,122 @@ exports.trackVideoPlayback = onRequest({ region: "us-central1" }, async (req, re
     return res.status(500).json({ error: "No se pudo validar la reproducción del video." });
   }
 });
+
+exports.createClassSecure = onRequest({ region: "us-central1" }, async (req, res) => {
+  setCors(res);
+  if (req.method === "OPTIONS") return res.status(204).send("");
+  if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
+
+  if (!(await enforceAppCheck(req, res))) return;
+
+  let decoded;
+  try {
+    decoded = await requireAuth(req);
+  } catch {
+    return res.status(401).json({ error: "Debes iniciar sesión para crear aulas." });
+  }
+
+  if (!(await hasServerActiveSubscription(decoded))) {
+    return res.status(403).json({ error: "Activa tu suscripción para crear aulas." });
+  }
+
+  const userSnap = await db.collection("users").doc(decoded.uid).get();
+  const profile = userSnap.exists ? userSnap.data() || {} : {};
+  if (!canCreateClassOnServer(decoded, profile)) {
+    return res.status(403).json({ error: "No tienes permisos para crear aulas." });
+  }
+
+  const name = sanitizeClassName(req.body?.name);
+  const grade = sanitizeClassGrade(req.body?.grade);
+  if (!name) return res.status(400).json({ error: "Escribe el nombre del aula." });
+
+  const ownerEmail = normalizeEmail(decoded.email || profile.email);
+  const role = String(profile.role || profile.tipoCuenta || "").toLowerCase();
+  const accountMode = String(profile.accountMode || profile.billingMode || "").toLowerCase();
+  const institutionalOwner = role === "institution" || accountMode === "institutional";
+  const institutionDane = institutionalOwner ? normalizeDane(profile.institutionDane || "") : "";
+  const institutionName = institutionalOwner ? String(profile.institutionName || "") : "";
+  const candidates = Array.from({ length: CLASS_CODE_RESERVATION_ATTEMPTS }, () => generateClassCode());
+
+  try {
+    const created = await db.runTransaction(async tx => {
+      let code = "";
+      let codeRef = null;
+      for (const candidate of candidates) {
+        const normalized = normalizeClassCode(candidate);
+        const candidateRef = db.collection("classCodes").doc(normalized);
+        const candidateSnap = await tx.get(candidateRef);
+        if (candidateSnap.exists) continue;
+        const currentCodeSnap = await tx.get(db.collection("classes").where("codeKey", "==", normalized).limit(1));
+        if (!currentCodeSnap.empty) continue;
+        const legacyCodeSnap = await tx.get(db.collection("classes").where("code", "==", normalized).limit(1));
+        if (!legacyCodeSnap.empty) continue;
+        code = normalized;
+        codeRef = candidateRef;
+        break;
+      }
+      if (!code || !codeRef) throw new Error("CLASS_CODE_EXHAUSTED");
+
+      const classRef = db.collection("classes").doc();
+      const timestamp = admin.firestore.FieldValue.serverTimestamp();
+      const payload = {
+        name,
+        code,
+        codeKey: code,
+        ownerEmail,
+        ownerUid: decoded.uid,
+        institutionDane,
+        institutionName,
+        grade: institutionalOwner ? grade : "",
+        course: institutionalOwner ? grade : "",
+        status: "activa",
+        createdAt: timestamp,
+        updatedAt: timestamp
+      };
+
+      tx.create(codeRef, {
+        code,
+        classId: classRef.id,
+        ownerUid: decoded.uid,
+        ownerEmail,
+        status: "reserved",
+        createdAt: timestamp
+      });
+      tx.create(classRef, payload);
+      return {
+        id: classRef.id,
+        name,
+        code,
+        codeKey: code,
+        ownerEmail,
+        ownerUid: decoded.uid,
+        institutionDane,
+        institutionName,
+        grade: institutionalOwner ? grade : "",
+        course: institutionalOwner ? grade : "",
+        status: "activa"
+      };
+    });
+
+    await db.collection("securityEvents").add({
+      type: "class-created",
+      classId: created.id,
+      code: created.code,
+      ownerUid: decoded.uid,
+      ownerEmail,
+      createdAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    return res.status(200).json({ class: created });
+  } catch (err) {
+    console.error("No se pudo crear aula con código reservado.", err);
+    const message = err.message === "CLASS_CODE_EXHAUSTED"
+      ? "No se pudo generar un código único. Intenta de nuevo."
+      : "No se pudo crear el aula. Intenta de nuevo.";
+    return res.status(500).json({ error: message });
+  }
+});
+
 exports.generateAiResponse = onRequest({ region: "us-central1", secrets: [geminiApiKey] }, async (req, res) => {
   setCors(res);
   if (req.method === "OPTIONS") return res.status(204).send("");
