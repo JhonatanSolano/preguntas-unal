@@ -12912,11 +12912,10 @@ document.addEventListener("toggle", e => {
     if (details.querySelector("#deleteAccountPassword, #teacherDeletePassword")) resetEliminarCuentaSection();
     return;
   }
-  const isMobileProfilePanel = !!details.closest("#sectionPerfil") && window.matchMedia("(max-width: 760px)").matches;
   details.parentElement?.querySelectorAll(":scope > details.accordion-card, :scope > details.profile-panel, :scope > details.phone-panel").forEach(other => {
     if (other === details) return;
     if (other.querySelector("#deleteAccountPassword, #teacherDeletePassword")) resetEliminarCuentaSection();
-    if (!isMobileProfilePanel) other.open = false;
+    other.open = false;
   });
   limitarAcordeonesExamenesMovil(details);
 }, true);
