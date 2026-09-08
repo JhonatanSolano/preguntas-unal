@@ -10325,10 +10325,12 @@ function mensajeTipoCuentaNoAutorizado(expectedType) {
 }
 
 function perfilPermiteLoginGoogle(profile, user) {
-  const providerLinked = user?.providerData?.some(provider => provider.providerId === "google.com");
-  if (!providerLinked) return false;
   const email = String(user?.email || profile?.email || "").toLowerCase();
-  if (profile?.googleLoginEnabled === true || profile?.googleLinked === true || !!profile?.googleUid) return true;
+  const providerLinked = user?.providerData?.some(provider => provider.providerId === "google.com");
+  const googleEnabledInProfile = profile?.googleLoginEnabled === true || profile?.googleLinked === true || !!profile?.googleUid;
+  if (!providerLinked && !googleEnabledInProfile) return false;
+  if (providerLinked && googleEnabledInProfile) return true;
+  if (googleEnabledInProfile && email && email === String(profile?.email || "").toLowerCase()) return true;
   return profile?.authProvider === "google.com" && email !== ADMIN_EMAIL;
 }
 
