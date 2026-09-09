@@ -13015,6 +13015,13 @@ function limitarAcordeonesExamenesMovil(details) {
     other.open = false;
   });
 }
+function limitarPreguntasFrecuentes(details) {
+  const faqList = details.closest("#faqCard .faq-list");
+  if (!details.open || !faqList) return;
+  faqList.querySelectorAll(":scope > details[open]").forEach(other => {
+    if (other !== details) other.open = false;
+  });
+}
 document.addEventListener("toggle", e => {
   const details = e.target;
   if (!(details instanceof HTMLDetailsElement)) return;
@@ -13028,6 +13035,7 @@ document.addEventListener("toggle", e => {
     if (other.querySelector("#deleteAccountPassword, #teacherDeletePassword")) resetEliminarCuentaSection();
     other.open = false;
   });
+  limitarPreguntasFrecuentes(details);
   limitarAcordeonesExamenesMovil(details);
 }, true);
 document.querySelectorAll("[data-toggle-password]").forEach(btn => {
