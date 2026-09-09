@@ -14105,9 +14105,10 @@ body.app-active #btnBackToTop.back-to-top {
   body.group-locked:not(.public-modal-open) #whatsappWidget.whatsapp-widget.open.landing-only-visible .whatsapp-card,
   body.group-locked:not(.public-modal-open) #whatsappWidget.whatsapp-widget.open.side-right.landing-only-visible .whatsapp-card {
     position: fixed !important;
-    left: auto !important;
-    right: max(1rem, env(safe-area-inset-right)) !important;
-    bottom: calc(max(1rem, env(safe-area-inset-bottom)) + 4.6rem) !important;
+    left: var(--whatsapp-card-left, auto) !important;
+    top: var(--whatsapp-card-top, auto) !important;
+    right: auto !important;
+    bottom: auto !important;
     width: min(320px, calc(100vw - 2rem)) !important;
     max-width: calc(100vw - 2rem) !important;
     max-height: calc(100dvh - 7rem) !important;
@@ -14128,8 +14129,6 @@ body.app-active #btnBackToTop.back-to-top {
 @media (max-width: 760px) {
   body.group-locked:not(.public-modal-open) #whatsappWidget.whatsapp-widget.open.landing-only-visible .whatsapp-card,
   body.group-locked:not(.public-modal-open) #whatsappWidget.whatsapp-widget.open.side-right.landing-only-visible .whatsapp-card {
-    right: max(.9rem, env(safe-area-inset-right)) !important;
-    bottom: calc(max(.9rem, env(safe-area-inset-bottom)) + 4.25rem) !important;
     width: min(300px, calc(100vw - 2.25rem)) !important;
     border-radius: 16px !important;
   }

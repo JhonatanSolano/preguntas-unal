@@ -10905,12 +10905,35 @@ function fijarWhatsappFlotante(widget, left, top) {
   widget.style.bottom = "auto";
 }
 
+function posicionarTarjetaWhatsappMovil(widget, card) {
+  if (!window.matchMedia("(max-width: 1024px)").matches) return false;
+  const margen = window.matchMedia("(max-width: 760px)").matches ? 14 : 16;
+  const separacion = 10;
+  const widgetRect = widget.getBoundingClientRect();
+  const cardRect = card.getBoundingClientRect();
+  const cardWidth = Math.min(cardRect.width || 320, window.innerWidth - margen * 2);
+  const cardHeight = Math.min(cardRect.height || 260, window.innerHeight - margen * 2);
+  const espacioArriba = widgetRect.top - margen - separacion;
+  const espacioAbajo = window.innerHeight - widgetRect.bottom - margen - separacion;
+  const abrirArriba = espacioArriba >= Math.min(cardHeight, 180) || espacioArriba > espacioAbajo;
+  let left = widgetRect.left + (widgetRect.width / 2) - (cardWidth / 2);
+  let top = abrirArriba ? widgetRect.top - cardHeight - separacion : widgetRect.bottom + separacion;
+  left = Math.min(Math.max(left, margen), Math.max(margen, window.innerWidth - cardWidth - margen));
+  top = Math.min(Math.max(top, margen), Math.max(margen, window.innerHeight - cardHeight - margen));
+  card.style.setProperty("--whatsapp-card-left", `${Math.round(left)}px`);
+  card.style.setProperty("--whatsapp-card-top", `${Math.round(top)}px`);
+  return true;
+}
+
 function asegurarTarjetaWhatsappVisible() {
   const widget = document.getElementById("whatsappWidget");
   if (!widget?.classList.contains("open")) return;
   requestAnimationFrame(() => {
     const card = document.getElementById("whatsappCard");
     if (!card) return;
+    if (posicionarTarjetaWhatsappMovil(widget, card)) return;
+    card.style.removeProperty("--whatsapp-card-left");
+    card.style.removeProperty("--whatsapp-card-top");
     const widgetRect = widget.getBoundingClientRect();
     const cardRect = card.getBoundingClientRect();
     const margen = 12;
