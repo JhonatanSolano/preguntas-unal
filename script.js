@@ -190,6 +190,9 @@ let loginRejectMessagePending = "";
 let suppressAuthResetOnce = false;
 let googleAuthFlowInProgress = false;
 let autoClassEnrollmentInProgress = false;
+let badgeCelebrationTimer = null;
+let badgeCelebrationStopAudio = null;
+let badgeCelebrationQueue = [];
 let phoneVerificationId = "";
 let phoneVerificationExpiresAt = 0;
 let recaptchaVerifier = null;
@@ -4242,6 +4245,8 @@ function learningProgressSummary() {
 async function setLearningCompleted(selection) {
   const progress = learningProgressAll();
   const key = learningProgressId(selection.branchId, selection.topicId, selection.subtopicId, selection.level);
+  const alreadyCompleted = !!progress[key]?.completed;
+  const unlockedBefore = new Set(unlockedLearningBadgesFromProgress(progress).map(badge => badge.id));
   progress[key] = { completed: true, completedAt: new Date().toISOString() };
   learningProgressRemote[key] = progress[key];
   saveLearningProgressAll(progress);
@@ -4249,6 +4254,11 @@ async function setLearningCompleted(selection) {
     await guardarLearningProgressRemoto(key, selection, progress[key]);
   } catch (error) {
     console.warn("No fue posible guardar el progreso de aprendizaje", error);
+  }
+  if (!alreadyCompleted) {
+    unlockedLearningBadgesFromProgress(progress)
+      .filter(badge => !unlockedBefore.has(badge.id))
+      .forEach(mostrarCelebracionInsignia);
   }
 }
 
@@ -4888,8 +4898,12 @@ document.getElementById("sectionAprendizaje")?.addEventListener("change", event 
 });
 
 
+function learningCompletedEntriesFromProgress(progress = learningProgressAll()) {
+  return Object.values(progress || {}).filter(item => item?.completed && item?.completedAt);
+}
+
 function learningCompletedEntries() {
-  return Object.values(learningProgressAll()).filter(item => item?.completed && item?.completedAt);
+  return learningCompletedEntriesFromProgress(learningProgressAll());
 }
 
 function dateKeyBogota(date) {
@@ -4900,12 +4914,16 @@ function dateKeyBogota(date) {
   }
 }
 
-function learningActivityDays() {
-  return [...new Set(learningCompletedEntries().map(item => dateKeyBogota(new Date(item.completedAt))))].sort();
+function learningActivityDaysFromEntries(entries = learningCompletedEntries()) {
+  return [...new Set(entries.map(item => dateKeyBogota(new Date(item.completedAt))))].sort();
 }
 
-function learningCurrentStreak() {
-  const days = new Set(learningActivityDays());
+function learningActivityDays() {
+  return learningActivityDaysFromEntries(learningCompletedEntries());
+}
+
+function learningCurrentStreakFromEntries(entries = learningCompletedEntries()) {
+  const days = new Set(learningActivityDaysFromEntries(entries));
   let cursor = new Date();
   let streak = 0;
   for (let i = 0; i < 180; i += 1) {
@@ -4923,6 +4941,10 @@ function learningCurrentStreak() {
   return streak;
 }
 
+function learningCurrentStreak() {
+  return learningCurrentStreakFromEntries(learningCompletedEntries());
+}
+
 function learningWeekStart(date = new Date()) {
   const copy = new Date(date);
   const day = copy.getDay() || 7;
@@ -4931,11 +4953,11 @@ function learningWeekStart(date = new Date()) {
   return copy;
 }
 
-function learningWeeklyProgress() {
+function learningWeeklyProgressFromEntries(entries = learningCompletedEntries()) {
   const start = learningWeekStart();
   const end = new Date(start);
   end.setDate(end.getDate() + 7);
-  const sessions = learningCompletedEntries().filter(item => {
+  const sessions = entries.filter(item => {
     const when = new Date(item.completedAt);
     return when >= start && when < end;
   }).length;
@@ -4943,12 +4965,119 @@ function learningWeeklyProgress() {
   return { sessions, target, pct: Math.min(100, Math.round((sessions / target) * 100)) };
 }
 
-function learningBadgeProgress(badge) {
-  const completed = learningCompletedEntries().length;
-  const weekly = learningWeeklyProgress().sessions;
-  const streak = learningCurrentStreak();
+function learningWeeklyProgress() {
+  return learningWeeklyProgressFromEntries(learningCompletedEntries());
+}
+
+function learningBadgeProgressFromProgress(badge, progress = learningProgressAll()) {
+  const entries = learningCompletedEntriesFromProgress(progress);
+  const completed = entries.length;
+  const weekly = learningWeeklyProgressFromEntries(entries).sessions;
+  const streak = learningCurrentStreakFromEntries(entries);
   const value = badge.type === "streak" ? streak : badge.type === "weekly" ? weekly : completed;
   return { value, pct: Math.min(100, Math.round((value / badge.target) * 100)), unlocked: value >= badge.target };
+}
+
+function learningBadgeProgress(badge) {
+  return learningBadgeProgressFromProgress(badge, learningProgressAll());
+}
+
+function unlockedLearningBadgesFromProgress(progress = learningProgressAll()) {
+  return BADGE_CATALOG
+    .map(badge => ({ ...badge, ...learningBadgeProgressFromProgress(badge, progress) }))
+    .filter(badge => badge.unlocked);
+}
+
+function renderBadgeConfetti(container) {
+  if (!container) return;
+  const colors = ["#1f7bff", "#20c997", "#ffd166", "#8b5cf6", "#ef476f", "#06b6d4", "#f59e0b"];
+  container.innerHTML = Array.from({ length: 56 }, (_, index) => {
+    const left = 4 + Math.random() * 92;
+    const delay = Math.random() * 1.8;
+    const duration = 2.3 + Math.random() * 2.3;
+    const x = Math.round((Math.random() - .5) * 180);
+    const color = colors[index % colors.length];
+    return `<i style="left:${left}%;background:${color};--fall-delay:${delay}s;--fall-duration:${duration}s;--fall-x:${x}px"></i>`;
+  }).join("");
+}
+
+function tocarTonoCelebracion(ms = 10000) {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return () => {};
+  let ctx;
+  try {
+    ctx = new AudioContextClass();
+  } catch {
+    return () => {};
+  }
+  if (ctx.state === "suspended") ctx.resume().catch(() => {});
+  const master = ctx.createGain();
+  master.gain.setValueAtTime(0.0001, ctx.currentTime);
+  master.gain.exponentialRampToValueAtTime(0.18, ctx.currentTime + 0.04);
+  master.connect(ctx.destination);
+  const notes = [523.25, 659.25, 783.99, 1046.5, 783.99, 987.77];
+  let stopped = false;
+  const playNote = (frequency, start, duration) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "triangle";
+    osc.frequency.setValueAtTime(frequency, start);
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(0.16, start + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+    osc.connect(gain);
+    gain.connect(master);
+    osc.start(start);
+    osc.stop(start + duration + 0.04);
+  };
+  for (let t = 0; t < ms / 1000 && !stopped; t += 1.55) {
+    notes.forEach((note, idx) => playNote(note, ctx.currentTime + t + idx * .16, .14));
+  }
+  const stop = () => {
+    if (stopped) return;
+    stopped = true;
+    try {
+      master.gain.cancelScheduledValues(ctx.currentTime);
+      master.gain.setValueAtTime(Math.max(master.gain.value, 0.0001), ctx.currentTime);
+      master.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + .08);
+      setTimeout(() => ctx.close().catch(() => {}), 140);
+    } catch {}
+  };
+  setTimeout(stop, ms);
+  return stop;
+}
+
+function cerrarCelebracionInsignia() {
+  const overlay = document.getElementById("badgeCelebrationOverlay");
+  overlay?.classList.add("hidden");
+  if (badgeCelebrationTimer) clearTimeout(badgeCelebrationTimer);
+  badgeCelebrationTimer = null;
+  if (badgeCelebrationStopAudio) badgeCelebrationStopAudio();
+  badgeCelebrationStopAudio = null;
+  const confetti = document.getElementById("badgeCelebrationConfetti");
+  if (confetti) confetti.innerHTML = "";
+  if (badgeCelebrationQueue.length) {
+    const next = badgeCelebrationQueue.shift();
+    setTimeout(() => mostrarCelebracionInsignia(next), 180);
+  }
+}
+
+function mostrarCelebracionInsignia(badge) {
+  if (!badge || !esEstudianteCuenta()) return;
+  const overlay = document.getElementById("badgeCelebrationOverlay");
+  if (!overlay) return;
+  if (!overlay.classList.contains("hidden")) {
+    badgeCelebrationQueue.push(badge);
+    return;
+  }
+  document.getElementById("badgeCelebrationIcon").textContent = badge.icon || "🏅";
+  document.getElementById("badgeCelebrationEarnedIcon").textContent = badge.icon || "🏅";
+  document.getElementById("badgeCelebrationName").textContent = badge.title || "Insignia desbloqueada";
+  document.getElementById("badgeCelebrationDescription").textContent = badge.description || "Has logrado una nueva insignia.";
+  renderBadgeConfetti(document.getElementById("badgeCelebrationConfetti"));
+  overlay.classList.remove("hidden");
+  badgeCelebrationStopAudio = tocarTonoCelebracion(10000);
+  badgeCelebrationTimer = setTimeout(cerrarCelebracionInsignia, 10000);
 }
 
 function renderBadgesPanel() {
@@ -12322,6 +12451,8 @@ document.getElementById("btnAdvisorFloat")?.addEventListener("click", () => {
 });
 document.getElementById("btnAdvisorClose")?.addEventListener("click", cerrarAsesorIA);
 document.getElementById("btnOpenAdvisorSection")?.addEventListener("click", abrirAsesorIA);
+document.getElementById("btnCloseBadgeCelebration")?.addEventListener("click", cerrarCelebracionInsignia);
+document.getElementById("btnContinueBadgeCelebration")?.addEventListener("click", cerrarCelebracionInsignia);
 document.getElementById("advisorForm")?.addEventListener("submit", e => {
   e.preventDefault();
   const input = document.getElementById("advisorInput");

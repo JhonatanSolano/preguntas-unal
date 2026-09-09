@@ -2106,6 +2106,25 @@
     </section>
   </div>
 
+  <div class="badge-celebration-overlay hidden" id="badgeCelebrationOverlay" role="dialog" aria-modal="true" aria-labelledby="badgeCelebrationTitle">
+    <section class="badge-celebration-card">
+      <button class="badge-celebration-close" id="btnCloseBadgeCelebration" type="button" aria-label="Cerrar celebración">×</button>
+      <div class="badge-confetti" id="badgeCelebrationConfetti" aria-hidden="true"></div>
+      <div class="badge-celebration-icon" id="badgeCelebrationIcon" aria-hidden="true">🏅</div>
+      <h2 id="badgeCelebrationTitle">¡Felicitaciones!</h2>
+      <p>Has logrado una nueva insignia.</p>
+      <article class="badge-celebration-earned">
+        <span id="badgeCelebrationEarnedIcon" aria-hidden="true">🏅</span>
+        <div>
+          <strong id="badgeCelebrationName">Insignia desbloqueada</strong>
+          <small id="badgeCelebrationDescription">Tu esfuerzo está dando frutos.</small>
+        </div>
+      </article>
+      <p class="badge-celebration-note">Sigue así: cada avance cuenta.</p>
+      <button class="btn btn-primary" id="btnContinueBadgeCelebration" type="button">Continuar</button>
+    </section>
+  </div>
+
   <!-- ══════════════════ MODALES TIEMPO AGOTADO ══════════════════ -->
   <div id="timeoutOverlay" class="overlay hidden">
     <div class="overlay-card">
@@ -2157,6 +2176,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260908-05"></script>
+  <script type="module" src="script.js?v=20260908-06"></script>
 </body>
 </html>
