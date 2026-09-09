@@ -13095,6 +13095,7 @@ if (sessionStorage.getItem(STORAGE_RELOAD_SESION) === "1") {
 
 onAuthStateChanged(auth, async user => {
   usuarioActual = user;
+  sincronizarControlesLanding();
   if (user && googleAuthFlowInProgress) {
     mostrarReloadSesion();
     return;
