@@ -14100,6 +14100,30 @@ body.app-active #btnBackToTop.back-to-top {
   pointer-events: none !important;
   opacity: 0 !important;
 }
+
+@media (max-width: 1024px) {
+  body.group-locked:not(.public-modal-open) #whatsappWidget.whatsapp-widget.open.landing-only-visible .whatsapp-card,
+  body.group-locked:not(.public-modal-open) #whatsappWidget.whatsapp-widget.open.side-right.landing-only-visible .whatsapp-card {
+    position: fixed !important;
+    left: auto !important;
+    right: max(1rem, env(safe-area-inset-right)) !important;
+    bottom: calc(max(1rem, env(safe-area-inset-bottom)) + 4.6rem) !important;
+    width: min(340px, calc(100vw - 2rem)) !important;
+    max-width: calc(100vw - 2rem) !important;
+    max-height: calc(100dvh - 7rem) !important;
+    transform: none !important;
+    overflow: auto !important;
+  }
+
+  body.group-locked:not(.public-modal-open) #whatsappWidget.whatsapp-widget.open.landing-only-visible .whatsapp-card-head,
+  body.group-locked:not(.public-modal-open) #whatsappWidget.whatsapp-widget.open.landing-only-visible .whatsapp-card-body {
+    min-width: 0 !important;
+  }
+
+  body.group-locked:not(.public-modal-open) #whatsappWidget.whatsapp-widget.open.landing-only-visible .whatsapp-message p {
+    overflow-wrap: anywhere;
+  }
+}
 /* Mobile stability: native vertical scroll, anchored footer and readable exam feedback */
 body:not(.group-locked):not(.landing-menu-open) {
   min-height: 100dvh !important;
