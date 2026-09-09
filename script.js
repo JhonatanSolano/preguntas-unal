@@ -12349,7 +12349,15 @@ const btnBackToTop = document.getElementById("btnBackToTop");
 prepararBotonSubirFlotante();
 
 function landingPublicaActiva() {
-  return document.body.classList.contains("group-locked") && !usuarioActual && !modalPublicoAbierto();
+  return document.body.classList.contains("group-locked") && !document.body.classList.contains("auth-transitioning") && !usuarioActual && !modalPublicoAbierto();
+}
+
+function ocultarControlesPublicosSesion() {
+  const whatsapp = document.getElementById("whatsappWidget");
+  const topButton = document.getElementById("btnBackToTop");
+  cerrarWhatsappWidget();
+  whatsapp?.classList.remove("landing-only-visible", "dragging");
+  topButton?.classList.remove("landing-only-visible", "visible");
 }
 
 function sincronizarControlesLanding() {
@@ -12359,9 +12367,7 @@ function sincronizarControlesLanding() {
   whatsapp?.classList.toggle("landing-only-visible", enLanding);
   topButton?.classList.toggle("landing-only-visible", enLanding);
   if (!enLanding) {
-    cerrarWhatsappWidget();
-    whatsapp?.classList.remove("dragging");
-    topButton?.classList.remove("visible");
+    ocultarControlesPublicosSesion();
     return;
   }
   prepararWhatsappFlotante();
@@ -13095,6 +13101,7 @@ if (sessionStorage.getItem(STORAGE_RELOAD_SESION) === "1") {
 
 onAuthStateChanged(auth, async user => {
   usuarioActual = user;
+  document.body.classList.toggle("auth-transitioning", !!user);
   sincronizarControlesLanding();
   if (user && googleAuthFlowInProgress) {
     mostrarReloadSesion();
@@ -13102,6 +13109,7 @@ onAuthStateChanged(auth, async user => {
   }
   if (!user) {
     ocultarReloadSesion();
+    document.body.classList.remove("auth-transitioning");
     document.body.classList.remove("auth-booting");
     if (suppressAuthResetOnce) {
       suppressAuthResetOnce = false;
@@ -13182,6 +13190,7 @@ onAuthStateChanged(auth, async user => {
     await prepararSesionAutenticada();
   } finally {
     ocultarReloadSesion();
+    document.body.classList.remove("auth-transitioning");
     document.body.classList.remove("auth-booting");
   }
 });

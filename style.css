@@ -14088,6 +14088,18 @@ body.exam-active:not(.landing-menu-open) {
 body:not(.landing-menu-open):not(.public-modal-open) {
   position: static !important;
 }
+
+body.auth-booting #whatsappWidget.whatsapp-widget,
+body.auth-booting #btnBackToTop.back-to-top,
+body.auth-transitioning #whatsappWidget.whatsapp-widget,
+body.auth-transitioning #btnBackToTop.back-to-top,
+body.app-active #whatsappWidget.whatsapp-widget,
+body.app-active #btnBackToTop.back-to-top {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+}
 /* Mobile stability: native vertical scroll, anchored footer and readable exam feedback */
 body:not(.group-locked):not(.landing-menu-open) {
   min-height: 100dvh !important;
