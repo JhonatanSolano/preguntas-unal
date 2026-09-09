@@ -1632,6 +1632,15 @@ body.admin-mode #sectionExamenes .exams-hub {
   opacity: 1;
   pointer-events: auto;
 }
+body.group-locked:not(.public-modal-open) #whatsappWidget.whatsapp-widget.open.landing-only-visible .whatsapp-card,
+body.group-locked:not(.public-modal-open) #whatsappWidget.whatsapp-widget.open.side-right.landing-only-visible .whatsapp-card {
+  position: fixed !important;
+  left: var(--whatsapp-card-left, auto) !important;
+  top: var(--whatsapp-card-top, auto) !important;
+  right: auto !important;
+  bottom: auto !important;
+  transform: none !important;
+}
 .whatsapp-card-head {
   display: flex;
   align-items: center;
@@ -1713,6 +1722,16 @@ body.admin-mode #sectionExamenes .exams-hub {
 .whatsapp-chat-link span {
   font-size: 1.55rem;
   line-height: .8;
+}
+.install-app-button {
+  align-items: center;
+  gap: .45rem;
+  white-space: nowrap;
+}
+.install-app-button::before {
+  content: "▣";
+  font-size: .95rem;
+  line-height: 1;
 }
 @keyframes whatsappPulse {
   0%, 100% { box-shadow: 0 16px 34px rgba(37, 211, 102, .32); }
@@ -12281,6 +12300,12 @@ body.group-locked.public-modal-open #btnBackToTop.back-to-top,
   visibility: visible !important;
   opacity: 1 !important;
   pointer-events: auto !important;
+  position: fixed !important;
+  left: var(--whatsapp-card-left, auto) !important;
+  top: var(--whatsapp-card-top, auto) !important;
+  right: auto !important;
+  bottom: auto !important;
+  transform: none !important;
   max-height: calc(100dvh - 24px);
   max-width: min(340px, calc(100vw - 82px));
   overflow: auto;

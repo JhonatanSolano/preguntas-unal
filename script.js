@@ -126,6 +126,61 @@ const storage = getStorage(app);
 setPersistence(auth, browserLocalPersistence);
 document.title = APP_CONFIG.name;
 
+function appInstaladaComoPwa() {
+  return window.matchMedia?.("(display-mode: standalone)")?.matches || window.navigator.standalone === true;
+}
+
+function navegadorIos() {
+  return /iphone|ipad|ipod/i.test(navigator.userAgent || "");
+}
+
+function actualizarInstaladorApp() {
+  const mostrar = !appInstaladaComoPwa() && (deferredInstallPrompt || navegadorIos());
+  document.querySelectorAll(".install-app-button").forEach(btn => {
+    btn.classList.toggle("hidden", !mostrar);
+  });
+}
+
+async function instalarAppWeb() {
+  cerrarLandingMenu();
+  if (appInstaladaComoPwa()) {
+    alert("La app ya está instalada en este dispositivo.");
+    actualizarInstaladorApp();
+    return;
+  }
+  if (deferredInstallPrompt) {
+    const promptEvent = deferredInstallPrompt;
+    deferredInstallPrompt = null;
+    promptEvent.prompt();
+    await promptEvent.userChoice.catch(() => null);
+    actualizarInstaladorApp();
+    return;
+  }
+  alert(navegadorIos()
+    ? "Para instalar la app, abre el botón Compartir del navegador y elige Agregar a pantalla de inicio."
+    : "Si tu navegador lo permite, usa la opción Instalar app desde la barra de direcciones o el menú del navegador.");
+}
+
+function registrarServiceWorkerApp() {
+  if (!("serviceWorker" in navigator) || location.protocol === "file:") return;
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js").catch(err => {
+      console.warn("No se pudo registrar el instalador de la app.", err);
+    });
+  });
+}
+
+registrarServiceWorkerApp();
+window.addEventListener("beforeinstallprompt", event => {
+  event.preventDefault();
+  deferredInstallPrompt = event;
+  actualizarInstaladorApp();
+});
+window.addEventListener("appinstalled", () => {
+  deferredInstallPrompt = null;
+  actualizarInstaladorApp();
+});
+
 async function obtenerHeadersAppCheck() {
   if (!appCheck) throw new Error("No se pudo verificar la seguridad de la app. Recarga e intenta nuevamente.");
   const token = await getAppCheckToken(appCheck, false);
@@ -211,6 +266,7 @@ let internalReplies = [];
 const avatarProfileCache = new Map();
 let activeMessageId = "";
 let equationInsertTarget = "message";
+let deferredInstallPrompt = null;
 let teacherQuestions = [];
 let teacherQuestionImageFile = null;
 let paymentStep = 0;
@@ -10905,8 +10961,7 @@ function fijarWhatsappFlotante(widget, left, top) {
   widget.style.bottom = "auto";
 }
 
-function posicionarTarjetaWhatsappMovil(widget, card) {
-  if (!window.matchMedia("(max-width: 1024px)").matches) return false;
+function posicionarTarjetaWhatsappCerca(widget, card) {
   const margen = window.matchMedia("(max-width: 760px)").matches ? 14 : 16;
   const separacion = 10;
   const widgetRect = widget.getBoundingClientRect();
@@ -10915,14 +10970,17 @@ function posicionarTarjetaWhatsappMovil(widget, card) {
   const cardHeight = Math.min(cardRect.height || 260, window.innerHeight - margen * 2);
   const espacioArriba = widgetRect.top - margen - separacion;
   const espacioAbajo = window.innerHeight - widgetRect.bottom - margen - separacion;
+  const espacioIzquierda = widgetRect.left - margen - separacion;
+  const espacioDerecha = window.innerWidth - widgetRect.right - margen - separacion;
   const abrirArriba = espacioArriba >= Math.min(cardHeight, 180) || espacioArriba > espacioAbajo;
   let left = widgetRect.left + (widgetRect.width / 2) - (cardWidth / 2);
+  if (espacioIzquierda >= cardWidth) left = widgetRect.left - cardWidth - separacion;
+  else if (espacioDerecha >= cardWidth) left = widgetRect.right + separacion;
   let top = abrirArriba ? widgetRect.top - cardHeight - separacion : widgetRect.bottom + separacion;
   left = Math.min(Math.max(left, margen), Math.max(margen, window.innerWidth - cardWidth - margen));
   top = Math.min(Math.max(top, margen), Math.max(margen, window.innerHeight - cardHeight - margen));
   card.style.setProperty("--whatsapp-card-left", `${Math.round(left)}px`);
   card.style.setProperty("--whatsapp-card-top", `${Math.round(top)}px`);
-  return true;
 }
 
 function asegurarTarjetaWhatsappVisible() {
@@ -10931,18 +10989,7 @@ function asegurarTarjetaWhatsappVisible() {
   requestAnimationFrame(() => {
     const card = document.getElementById("whatsappCard");
     if (!card) return;
-    if (posicionarTarjetaWhatsappMovil(widget, card)) return;
-    card.style.removeProperty("--whatsapp-card-left");
-    card.style.removeProperty("--whatsapp-card-top");
-    const widgetRect = widget.getBoundingClientRect();
-    const cardRect = card.getBoundingClientRect();
-    const margen = 12;
-    let nextTop = widgetRect.top;
-    if (cardRect.top < margen) nextTop += margen - cardRect.top;
-    if (cardRect.bottom > window.innerHeight - margen) nextTop -= cardRect.bottom - (window.innerHeight - margen);
-    const maxTop = Math.max(margen, window.innerHeight - widgetRect.height - margen);
-    nextTop = Math.min(Math.max(nextTop, margen), maxTop);
-    if (Math.abs(nextTop - widgetRect.top) > 1) fijarWhatsappFlotante(widget, widgetRect.left, nextTop);
+    posicionarTarjetaWhatsappCerca(widget, card);
     ajustarLadoWhatsapp();
   });
 }
@@ -12282,6 +12329,8 @@ document.getElementById("btnShowRegisterNav")?.addEventListener("click", () => {
 });
 document.getElementById("btnShowRegisterBottom")?.addEventListener("click", mostrarRegisterCard);
 document.getElementById("btnStudentPlanLanding")?.addEventListener("click", mostrarRegisterCard);
+document.getElementById("btnInstallAppNav")?.addEventListener("click", instalarAppWeb);
+document.getElementById("btnInstallAppMenu")?.addEventListener("click", instalarAppWeb);
 document.getElementById("tabInstitutionRegister")?.addEventListener("click", mostrarInstitutionInfo);
 document.getElementById("btnInstitutionInfoHero")?.addEventListener("click", mostrarInstitutionInfo);
 document.getElementById("btnInstitutionPlanLanding")?.addEventListener("click", mostrarInstitutionInfo);
@@ -12348,6 +12397,7 @@ document.getElementById("btnAndroidPromoClose")?.addEventListener("click", () =>
 if (sessionStorage.getItem("androidPromoDismissed") === "1") {
   document.getElementById("androidPromo")?.classList.add("hidden");
 }
+actualizarInstaladorApp();
 if (new URLSearchParams(window.location.search).get("verifyExpired") === "1") {
   abrirAuth("register");
   mostrarErrorAuth("El enlace de verificación caducó. Regístrate nuevamente para recibir un link nuevo.");
