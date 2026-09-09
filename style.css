@@ -14108,7 +14108,7 @@ body.app-active #btnBackToTop.back-to-top {
     left: auto !important;
     right: max(1rem, env(safe-area-inset-right)) !important;
     bottom: calc(max(1rem, env(safe-area-inset-bottom)) + 4.6rem) !important;
-    width: min(340px, calc(100vw - 2rem)) !important;
+    width: min(320px, calc(100vw - 2rem)) !important;
     max-width: calc(100vw - 2rem) !important;
     max-height: calc(100dvh - 7rem) !important;
     transform: none !important;
@@ -14122,6 +14122,55 @@ body.app-active #btnBackToTop.back-to-top {
 
   body.group-locked:not(.public-modal-open) #whatsappWidget.whatsapp-widget.open.landing-only-visible .whatsapp-message p {
     overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 760px) {
+  body.group-locked:not(.public-modal-open) #whatsappWidget.whatsapp-widget.open.landing-only-visible .whatsapp-card,
+  body.group-locked:not(.public-modal-open) #whatsappWidget.whatsapp-widget.open.side-right.landing-only-visible .whatsapp-card {
+    right: max(.9rem, env(safe-area-inset-right)) !important;
+    bottom: calc(max(.9rem, env(safe-area-inset-bottom)) + 4.25rem) !important;
+    width: min(300px, calc(100vw - 2.25rem)) !important;
+    border-radius: 16px !important;
+  }
+
+  body.group-locked:not(.public-modal-open) #whatsappWidget.whatsapp-widget.open.landing-only-visible .whatsapp-card-head {
+    gap: .55rem !important;
+    padding: .65rem .75rem !important;
+  }
+
+  body.group-locked:not(.public-modal-open) #whatsappWidget.whatsapp-widget.open.landing-only-visible .whatsapp-card-brand svg {
+    width: 22px !important;
+    height: 22px !important;
+  }
+
+  body.group-locked:not(.public-modal-open) #whatsappWidget.whatsapp-widget.open.landing-only-visible .whatsapp-card-head strong {
+    font-size: .95rem !important;
+  }
+
+  body.group-locked:not(.public-modal-open) #whatsappWidget.whatsapp-widget.open.landing-only-visible .whatsapp-card-head button {
+    width: 30px !important;
+    height: 30px !important;
+    font-size: 1.2rem !important;
+  }
+
+  body.group-locked:not(.public-modal-open) #whatsappWidget.whatsapp-widget.open.landing-only-visible .whatsapp-card-body {
+    gap: .75rem !important;
+    padding: .85rem !important;
+  }
+
+  body.group-locked:not(.public-modal-open) #whatsappWidget.whatsapp-widget.open.landing-only-visible .whatsapp-message {
+    padding: .7rem .8rem !important;
+  }
+
+  body.group-locked:not(.public-modal-open) #whatsappWidget.whatsapp-widget.open.landing-only-visible .whatsapp-message p {
+    font-size: .86rem !important;
+    line-height: 1.45 !important;
+  }
+
+  body.group-locked:not(.public-modal-open) #whatsappWidget.whatsapp-widget.open.landing-only-visible .whatsapp-chat-link {
+    padding: .58rem .85rem !important;
+    font-size: .9rem !important;
   }
 }
 /* Mobile stability: native vertical scroll, anchored footer and readable exam feedback */
