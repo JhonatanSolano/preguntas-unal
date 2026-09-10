@@ -33,7 +33,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="style.css?v=20260910-03" />
+  <link rel="stylesheet" href="style.css?v=20260910-04" />
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -1153,7 +1153,7 @@
       <div class="start-rules">
         <ul>
           <li>15 preguntas de selección múltiple</li>
-          <li>Tiempo límite: 15 minutos</li>
+          <li>Tiempo límite: 25 minutos</li>
           <li>Tienes 2 intentos en total</li>
           <li>El primer intento solo muestra métricas generales</li>
           <li>El segundo intento muestra la retroalimentación completa</li>
@@ -1273,7 +1273,7 @@
       <div class="start-rules">
         <ul>
           <li>10 preguntas de selección múltiple</li>
-          <li>Tiempo límite: 15 minutos</li>
+          <li>Tiempo límite: 35 minutos</li>
           <li>Tienes 2 intentos en total</li>
           <li>El primer intento solo muestra métricas generales</li>
           <li>El segundo intento muestra la retroalimentación completa</li>
@@ -1570,14 +1570,6 @@
     <div class="settings-shell">
       <section class="profile-panel student-settings">
         <h2>Configuración</h2>
-        <details class="accordion-card" id="settingsBankPanel">
-          <summary>Banco de preguntas</summary>
-          <p>Consulta tu avance en los tres niveles de examen disponibles.</p>
-          <div class="result-actions">
-            <button class="btn btn-outline" id="btnSettingsBancoAnterior" type="button">← Nivel anterior</button>
-            <button class="btn btn-primary" id="btnSettingsBancoSiguiente" type="button">Nivel siguiente</button>
-          </div>
-        </details>
         <details class="accordion-card" id="settingsClassPanel">
           <summary>Aula</summary>
           <p>Escribe un código de aula válido. No podrás cambiarte si estás presentando un examen.</p>
@@ -1686,25 +1678,12 @@
           <p class="bank-status" id="adminStudentStatus"></p>
         </details>
         <details class="accordion-card">
-          <summary>Permisos por aula</summary>
-          <p>Activa permisos para el aula seleccionada. Un permiso permite presentar ese examen aunque no se haya completado el requisito anterior.</p>
-          <div class="admin-list" id="adminList"></div>
-        </details>
-        <details class="accordion-card">
-          <summary>Banco de preguntas</summary>
-          <p>Escoge el banco que trabajará el aula seleccionada en cada nivel.</p>
-          <div class="bank-grid">
-            <label>Nivel<select id="bankNivelSelect" class="admin-input"><option value="diagnostico">Fácil</option><option value="nivel1">Medio</option><option value="examen">Difícil</option></select></label>
-            <label>Banco<select id="bankBancoSelect" class="admin-input"></select></label>
-          </div>
-          <button class="btn btn-secondary" id="btnGuardarBanco" type="button">Guardar banco</button>
-          <p class="bank-status" id="bankStatus"></p>
-        </details>
-        <details class="accordion-card">
           <summary>Disponibilidad y retroalimentación</summary>
-          <p>Programa cuándo se abre cada examen y decide cuándo publicar la retroalimentación para el aula seleccionada.</p>
+          <p>Programa cuándo se abre cada examen por aula, tema, subtema y nivel.</p>
           <div class="bank-grid">
             <label>Aula<select id="examAccessClassSelect" class="admin-input"></select></label>
+            <label>Tema<select id="examAccessTopicSelect" class="admin-input"></select></label>
+            <label>Subtema<select id="examAccessSubtopicSelect" class="admin-input"></select></label>
             <label>Examen<select id="examAccessLevelSelect" class="admin-input"><option value="diagnostico">Fácil</option><option value="nivel1">Medio</option><option value="examen">Difícil</option></select></label>
           </div>
           <div class="bank-grid schedule-grid">
@@ -2207,7 +2186,7 @@
     <div class="overlay-card">
       <div class="overlay-icon">⏰</div>
       <h2>¡Tiempo agotado!</h2>
-      <p>Se acabaron los 15 minutos del nivel. Las preguntas sin responder cuentan como incorrectas.</p>
+      <p>Se acabó el tiempo del nivel Medio. Las preguntas sin responder cuentan como incorrectas.</p>
       <button class="btn btn-primary" id="btnVerResultadoNivel">Ver mi resultado</button>
     </div>
   </div>
@@ -2237,6 +2216,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260910-03"></script>
+  <script type="module" src="script.js?v=20260910-04"></script>
 </body>
 </html>

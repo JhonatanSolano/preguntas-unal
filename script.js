@@ -1042,12 +1042,25 @@ function preguntasPorClave(clave) {
 }
 
 function claveBaseResultado(clave) {
-  return String(clave).includes("::") ? String(clave).split("::").pop() : clave;
+  const parts = String(clave || "").split("::");
+  return parts.find(part => ["diagnostico", "nivel1", "examen"].includes(part)) || clave;
 }
 
-function claveResultado(clave, banco = bancoActivo) {
+function claveResultado(clave, banco = bancoActivo, route = null) {
   if (String(clave).includes("::")) return clave;
-  return `${banco}::${clave}`;
+  const base = claveBaseResultado(clave);
+  const activeRoute = intentoActivo && claveBaseResultado(intentoActivo.clave) === base
+    ? {
+        branchId: intentoActivo.branchId,
+        topicId: intentoActivo.topicId,
+        subtopicId: intentoActivo.subtopicId
+      }
+    : null;
+  const routeData = route || activeRoute || (!modoAdmin && ["diagnostico", "nivel1", "examen"].includes(base) ? rutaPreguntasExamen(base) : null);
+  if (routeData?.branchId && routeData?.topicId && routeData?.subtopicId) {
+    return `${banco}::${base}::${routeData.branchId}::${routeData.topicId}::${routeData.subtopicId}`;
+  }
+  return `${banco}::${base}`;
 }
 
 function metricasIntento(clave, intento) {
@@ -2214,10 +2227,14 @@ async function registrarIntentoOficial(clave, intento, attemptNumber = 1) {
   if (!usuarioActual || modoAdmin) return null;
   const classId = claseActiva || grupoActivo || perfilActual?.classId || perfilActual?.aulaId || "";
   if (!classId || !APP_CONFIG.examAttemptSubmitEndpoint) return null;
+  const route = rutaPreguntasExamen(clave);
   const payload = {
     classId,
     level: claveBaseResultado(clave),
     bank: bancoActivo || "principal",
+    branchId: route.branchId || "",
+    topicId: route.topicId || "",
+    subtopicId: route.subtopicId || "",
     respuestas: intento.respuestas || [],
     restante: intento.restante || 0,
     attemptNumber,
@@ -2426,10 +2443,14 @@ function feedbackVideoHtml(question = {}) {
 
 function iniciarIntentoActivo(tipo, clave, total) {
   const duracionSeg = duracionIntentoActivo(tipo, clave);
+  const route = rutaPreguntasExamen(clave);
   intentoActivo = {
     tipo,
     clave,
     banco: bancoActivo,
+    branchId: route.branchId || "",
+    topicId: route.topicId || "",
+    subtopicId: route.subtopicId || "",
     total,
     respuestas: {},
     inicio: Date.now(),
@@ -4487,6 +4508,88 @@ function contextoExamenSeleccionado(examKey = "diagnostico", selection = null) {
   return { ...baseSelection, branch, topic, subtopic, examKey: LEVEL_TO_EXAM[level] || examKey, levelLabel: LEVEL_LABELS[level] };
 }
 
+function aprendizajeExamenCompletado(selection = resolveLearningSelection()) {
+  if (modoAdmin) return true;
+  const normalized = resolveLearningSelection(selection);
+  const progress = learningProgressAll();
+  return !!progress[learningProgressId(normalized.branchId, normalized.topicId, normalized.subtopicId, normalized.level)]?.completed;
+}
+
+function crearAvisoAprendizajePendiente() {
+  let overlay = document.getElementById("learningRequiredNotice");
+  if (overlay) return overlay;
+  overlay = document.createElement("div");
+  overlay.id = "learningRequiredNotice";
+  overlay.className = "learning-required-overlay hidden";
+  overlay.innerHTML = `
+    <div class="learning-required-card" role="dialog" aria-modal="true" aria-labelledby="learningRequiredTitle">
+      <button class="learning-required-close" type="button" data-learning-required-close aria-label="Cerrar aviso">×</button>
+      <span class="learning-required-kicker">Ruta de aprendizaje</span>
+      <h3 id="learningRequiredTitle">Completa primero el aprendizaje</h3>
+      <p id="learningRequiredText"></p>
+      <div class="learning-required-summary" id="learningRequiredSummary"></div>
+      <div class="learning-required-actions">
+        <button class="btn btn-outline" type="button" data-learning-required-close>Cerrar</button>
+        <button class="btn btn-primary" type="button" id="btnLearningRequiredGo">Ir</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  overlay.addEventListener("click", event => {
+    if (event.target === overlay || event.target.closest("[data-learning-required-close]")) {
+      overlay.classList.add("hidden");
+      return;
+    }
+    if (event.target.closest("#btnLearningRequiredGo")) {
+      const selection = JSON.parse(overlay.dataset.selection || "null");
+      if (selection) {
+        setLearningLast(selection);
+        renderLearningPanel();
+        activarNav("aprendizaje");
+        setTimeout(() => document.getElementById("learningUnit")?.scrollIntoView({ behavior: "smooth", block: "start" }), 120);
+      }
+      overlay.classList.add("hidden");
+    }
+  });
+  return overlay;
+}
+
+function mostrarAvisoAprendizajePendiente(selection = resolveLearningSelection(), options = {}) {
+  const normalized = resolveLearningSelection(selection);
+  const ctx = contextoExamenSeleccionado(LEVEL_TO_EXAM[normalized.level] || "diagnostico", normalized);
+  const overlay = crearAvisoAprendizajePendiente();
+  overlay.dataset.selection = JSON.stringify({
+    branchId: ctx.branchId,
+    topicId: ctx.topicId,
+    subtopicId: ctx.subtopicId,
+    level: ctx.level
+  });
+  const text = document.getElementById("learningRequiredText");
+  const summary = document.getElementById("learningRequiredSummary");
+  const go = document.getElementById("btnLearningRequiredGo");
+  if (text) {
+    text.textContent = options.fromLearning
+      ? "Estás en el contenido correcto. Para abrir el examen, primero marca como completado este aprendizaje."
+      : "Para presentar este examen primero debes completar el aprendizaje ligado a este tema, subtema y nivel.";
+  }
+  if (summary) {
+    summary.innerHTML = `
+      <strong>${escapeHtml(ctx.levelLabel)} · ${escapeHtml(ctx.topic.title)}</strong>
+      <span>${escapeHtml(ctx.subtopic.title)}</span>
+    `;
+  }
+  if (go) go.hidden = options.fromLearning === true;
+  overlay.classList.remove("hidden");
+}
+
+function validarAprendizajeAntesExamen(examKey = "diagnostico", options = {}) {
+  if (modoAdmin) return true;
+  const selection = options.selection || contextoExamenSeleccionado(examKey);
+  if (aprendizajeExamenCompletado(selection)) return true;
+  mostrarAvisoAprendizajePendiente(selection, options);
+  return false;
+}
+
 function actualizarTitulosExamenActivo(examKey = "diagnostico", selection = null) {
   const ctx = contextoExamenSeleccionado(examKey, selection);
   const titleText = `Examen ${ctx.levelLabel}: ${ctx.topic.title}`;
@@ -5080,6 +5183,7 @@ document.getElementById("sectionAprendizaje")?.addEventListener("click", async e
   if (event.target.closest("#btnLearningExam")) {
     const selection = resolveLearningSelection();
     const examKey = LEVEL_TO_EXAM[selection.level] || "diagnostico";
+    if (!validarAprendizajeAntesExamen(examKey, { selection, fromLearning: true })) return;
     if (esProfesor()) {
       enfocarExamenProfesorDesdeAprendizaje(examKey);
     } else {
@@ -5245,7 +5349,9 @@ document.getElementById("sectionExamenes")?.addEventListener("change", event => 
 });
 
 document.getElementById("btnStartSelectedExam")?.addEventListener("click", event => {
-  const examKey = event.currentTarget.dataset.examKey || LEVEL_TO_EXAM[resolveExamSelectorSelection().level] || "diagnostico";
+  const selection = resolveExamSelectorSelection();
+  const examKey = event.currentTarget.dataset.examKey || LEVEL_TO_EXAM[selection.level] || "diagnostico";
+  if (!validarAprendizajeAntesExamen(examKey, { selection })) return;
   navegarAExamen(examKey);
 });
 
@@ -7261,6 +7367,7 @@ document.getElementById("btnIniciarDiag").addEventListener("click", async () => 
     alert("Ya usaste los 2 intentos permitidos para el nivel Fácil.");
     return;
   }
+  if (!validarAprendizajeAntesExamen("diagnostico")) return;
   if (!(await validarDisponibilidadExamen("diagnostico"))) return;
   await prepararPreguntasActivas("diagnostico");
   iniciarIntentoActivo("diag", "diagnostico", PREGUNTAS.length);
@@ -8268,11 +8375,29 @@ function guardarBancosGrupo() {
 }
 
 function normalizarExamSettings(settings = {}) {
-  const normalizados = {};
+  const normalizados = { ...(settings || {}) };
   Object.keys(DEFAULT_EXAM_SETTINGS).forEach(clave => {
     normalizados[clave] = { ...DEFAULT_EXAM_SETTINGS[clave], ...(settings?.[clave] || {}) };
   });
   return normalizados;
+}
+
+function examAccessConfigKey(level = "diagnostico", route = {}) {
+  const base = claveBaseResultado(level) || "diagnostico";
+  const branchId = String(route.branchId || "").trim();
+  const topicId = String(route.topicId || "").trim();
+  const subtopicId = String(route.subtopicId || "").trim();
+  return branchId && topicId && subtopicId ? `${base}::${branchId}::${topicId}::${subtopicId}` : base;
+}
+
+function examAccessCacheKey(classId = "", level = "diagnostico", route = {}) {
+  return `${classId}::${examAccessConfigKey(level, route)}`;
+}
+
+function examAccessConfigLocal(classId = "", level = "diagnostico", route = {}) {
+  const settings = normalizarExamSettings(examSettingsGrupo[classId] || {});
+  const key = examAccessConfigKey(level, route);
+  return settings[key] || settings[level] || DEFAULT_EXAM_SETTINGS[level] || {};
 }
 
 async function postBackendAutenticado(endpoint, payload = {}) {
@@ -8436,20 +8561,27 @@ async function guardarBancoGrupoRemoto(grupo, nivel, banco) {
   }, { merge: true });
 }
 
-async function consultarEstadoExamenServidor(classId, level) {
+async function consultarEstadoExamenServidor(classId, level, route = {}) {
   if (!classId || !level) return null;
   const data = await postBackendAutenticado(APP_CONFIG.examAccessEndpoint, {
     classId,
     level,
+    branchId: route.branchId || "",
+    topicId: route.topicId || "",
+    subtopicId: route.subtopicId || "",
     ...timezoneUsuarioPayload()
   });
-  examAccessStateCache[`${classId}::${level}`] = data;
+  const configKey = data.configKey || examAccessConfigKey(level, route);
+  examAccessStateCache[`${classId}::${configKey}`] = data;
   examSettingsGrupo[classId] = {
     ...normalizarExamSettings(examSettingsGrupo[classId] || {}),
-    [level]: {
+    [configKey]: {
       startAt: data.startAt || "",
       endAt: data.endAt || "",
-      feedbackPublished: data.feedbackPublished === true
+      feedbackPublished: data.feedbackPublished === true,
+      branchId: data.branchId || route.branchId || "",
+      topicId: data.topicId || route.topicId || "",
+      subtopicId: data.subtopicId || route.subtopicId || ""
     }
   };
   return data;
@@ -8461,13 +8593,17 @@ async function guardarConfiguracionExamenServidor(payload) {
     ...timezoneUsuarioPayload()
   });
   const { classId, level } = payload;
-  examAccessStateCache[`${classId}::${level}`] = data;
+  const configKey = data.configKey || examAccessConfigKey(level, payload);
+  examAccessStateCache[`${classId}::${configKey}`] = data;
   examSettingsGrupo[classId] = {
     ...normalizarExamSettings(examSettingsGrupo[classId] || {}),
-    [level]: {
+    [configKey]: {
       startAt: data.startAt || payload.startAt || "",
       endAt: data.endAt || payload.endAt || "",
-      feedbackPublished: data.feedbackPublished === true
+      feedbackPublished: data.feedbackPublished === true,
+      branchId: data.branchId || payload.branchId || "",
+      topicId: data.topicId || payload.topicId || "",
+      subtopicId: data.subtopicId || payload.subtopicId || ""
     }
   };
   return data;
@@ -8483,9 +8619,11 @@ async function cargarPermisosRemotos(aulas = []) {
       permisos[grupo] = { ...DEFAULT_HABILITADOS };
       bancos[grupo] = { ...DEFAULT_BANCOS };
       examSettings[grupo] = normalizarExamSettings();
+      const selection = resolveExamSelectorSelection();
       await Promise.all(Object.keys(DEFAULT_EXAM_SETTINGS).map(async level => {
         try {
-          const state = await consultarEstadoExamenServidor(grupo, level);
+          const route = { ...selection, level: EXAM_TO_LEVEL[level] || "facil" };
+          const state = await consultarEstadoExamenServidor(grupo, level, route);
           permisos[grupo][level] = !!state?.available || level === "diagnostico";
           bancos[grupo][level] = state?.bank || DEFAULT_BANCOS[level] || "principal";
         } catch (err) {
@@ -8551,8 +8689,9 @@ async function validarDisponibilidadExamen(clave) {
     alert("Debes pertenecer a un aula para presentar este examen.");
     return false;
   }
+  const route = rutaPreguntasExamen(clave);
   try {
-    const state = await consultarEstadoExamenServidor(grupoActivo, clave);
+    const state = await consultarEstadoExamenServidor(grupoActivo, clave, route);
     if (state.available) return true;
     const zona = state.timeZoneLabel || etiquetaZonaUsuario();
     const apertura = fechaHoraUsuarioLabel(state.startAt, perfilActual, state);
@@ -8571,24 +8710,14 @@ async function validarDisponibilidadExamen(clave) {
 
 function requisitoCumplido(clave) {
   if (modoAdmin) return true;
-  if (clave === "diagnostico") return false;
-  const req = NIVELES_META[clave].requisito;
-  if (req === "diagnostico") return diagnosticoCompletado;
-  return !!nivelesCompletados[req];
+  return aprendizajeExamenCompletado(contextoExamenSeleccionado(clave));
 }
 
 function examenHabilitado(clave) {
   if (modoAdmin) return true;
   if (!aulaActualValida()) return false;
   if (!examenGratisIndependienteHabilitado(clave)) return false;
-  if (tienePlanGratisIndependiente()) {
-    if (clave === "diagnostico") return true;
-    if (clave === "examen") return nivelesCompletados.nivel1;
-    return requisitoCumplido(clave);
-  }
-  if (clave === "diagnostico") return permisoDirecto("diagnostico");
-  if (clave === "examen") return permisoDirecto("examen") || nivelesCompletados.nivel1;
-  return permisoDirecto(clave) || requisitoCumplido(clave);
+  return true;
 }
 
 function puedeAbrirNivel(clave) {
@@ -8876,6 +9005,7 @@ document.getElementById("btnIniciarNivel").addEventListener("click", async () =>
     alert("Ya usaste los 2 intentos permitidos para este nivel.");
     return;
   }
+  if (!validarAprendizajeAntesExamen(nivelActual)) return;
   if (!(await validarDisponibilidadExamen(nivelActual))) return;
   await prepararPreguntasActivas("nivel1");
   iniciarIntentoActivo("nivel", nivelActual, PREGUNTAS_NIVELES[nivelActual].length);
@@ -11314,19 +11444,22 @@ function renderStudentExamSelector(sinAula = !aulaActualValida()) {
   levelSelect.value = selection.level;
 
   const examKey = LEVEL_TO_EXAM[selection.level] || "diagnostico";
-  const config = normalizarExamSettings(examSettingsGrupo[grupoActivo] || {})[examKey] || {};
+  const config = examAccessConfigLocal(grupoActivo, examKey, selection);
   const estado = estadoExamenDesdeConfig(config);
   const bloqueadoGratis = !examenGratisIndependienteHabilitado(examKey);
+  const learningDone = aprendizajeExamenCompletado(selection);
   const noDisponible = !bloqueadoGratis && !sinAula && estado !== "available";
   const disabled = sinAula || bloqueadoGratis || noDisponible;
   if (title) title.textContent = `${LEVEL_LABELS[selection.level]} · ${topic.title}`;
   if (meta) {
     meta.textContent = disabled
       ? (sinAula ? "Tu aula debe estar activa para presentar exámenes." : bloqueadoGratis ? "Este examen requiere Plan Premium." : estadoExamenTexto(estado))
-      : `${subtopic.title} · ${etiquetaDuracionNivel(selection.level)}`;
+      : learningDone
+        ? `${subtopic.title} · ${etiquetaDuracionNivel(selection.level)}`
+        : `${subtopic.title} · completa primero el aprendizaje`;
   }
   startBtn.disabled = disabled;
-  startBtn.textContent = disabled ? "No disponible" : `Hacer examen ${LEVEL_LABELS[selection.level]}`;
+  startBtn.textContent = disabled ? "No disponible" : learningDone ? `Hacer examen ${LEVEL_LABELS[selection.level]}` : "Completar aprendizaje";
   startBtn.dataset.examKey = examKey;
 }
 
@@ -13643,7 +13776,6 @@ onAuthStateChanged(auth, async user => {
 function renderAdminPanel() {
   if (!modoAdmin) return;
   const list = document.getElementById("adminList");
-  if (!list) return;
   renderClassSelectors();
 
   adminGrupoActual = adminClaseActiva || idsAulasAdmin()[0] || "";
@@ -13657,32 +13789,28 @@ function renderAdminPanel() {
     ["examen", "Difícil"]
   ];
 
-  list.innerHTML = "";
-  const info = document.createElement("p");
-  info.className = "admin-current-group";
-  info.textContent = aula ? `${aula.name} · Código: ${aula.code}` : "Selecciona o crea un aula para configurar permisos.";
-  list.appendChild(info);
-
-  if (!aula) {
-    renderBankPanel();
-    return;
+  if (list) {
+    list.innerHTML = "";
+    const info = document.createElement("p");
+    info.className = "admin-current-group";
+    info.textContent = aula ? `${aula.name} · Código: ${aula.code}` : "Selecciona o crea un aula para configurar permisos.";
+    list.appendChild(info);
+    nombres.forEach(([clave, nombre]) => {
+      const row = document.createElement("div");
+      row.className = "admin-row";
+      row.innerHTML = `
+        <div>
+          <strong>${nombre}</strong>
+          <span>${clave === "diagnostico" ? "Permitir entrada al nivel Fácil" : "Permiso directo sin completar el requisito anterior"}</span>
+        </div>
+        <label class="switch" aria-label="Habilitar ${nombre}">
+          <input type="checkbox" data-admin-exam="${clave}" ${permisosGrupo[adminGrupoActual]?.[clave] ? "checked" : ""}>
+          <span class="slider"></span>
+        </label>
+      `;
+      list.appendChild(row);
+    });
   }
-
-  nombres.forEach(([clave, nombre]) => {
-    const row = document.createElement("div");
-    row.className = "admin-row";
-    row.innerHTML = `
-      <div>
-        <strong>${nombre}</strong>
-        <span>${clave === "diagnostico" ? "Permitir entrada al nivel Fácil" : "Permiso directo sin completar el requisito anterior"}</span>
-      </div>
-      <label class="switch" aria-label="Habilitar ${nombre}">
-        <input type="checkbox" data-admin-exam="${clave}" ${permisosGrupo[adminGrupoActual]?.[clave] ? "checked" : ""}>
-        <span class="slider"></span>
-      </label>
-    `;
-    list.appendChild(row);
-  });
   renderBankPanel();
   renderExamAccessPanel();
   if (!document.getElementById("adminMetricsPanel")?.hidden) renderAdminStats();
@@ -13738,6 +13866,38 @@ function limpiarFormularioDisponibilidadExamen() {
   limpiarMensajeDisponibilidadExamen();
 }
 
+function examAccessRouteFromControls() {
+  const topicValue = document.getElementById("examAccessTopicSelect")?.value || "";
+  const option = parseExamTopicValue(topicValue, LEARNING_CATALOG);
+  const branch = option.branch;
+  const topic = option.topic;
+  const subtopicSelect = document.getElementById("examAccessSubtopicSelect");
+  const subtopicId = subtopicSelect?.value || topic.subtopics?.[0]?.id || topic.id;
+  return {
+    branchId: branch.id,
+    topicId: topic.id,
+    subtopicId,
+    level: EXAM_TO_LEVEL[document.getElementById("examAccessLevelSelect")?.value || "diagnostico"] || "facil"
+  };
+}
+
+function renderExamAccessRouteSelectors(route = null) {
+  const topicSelect = document.getElementById("examAccessTopicSelect");
+  const subtopicSelect = document.getElementById("examAccessSubtopicSelect");
+  const levelSelect = document.getElementById("examAccessLevelSelect");
+  if (!topicSelect || !subtopicSelect) return;
+  const selection = resolveTeacherExamRoute(route || getTeacherExamRoute());
+  const option = selectedExamTopicOption(selection, LEARNING_CATALOG);
+  const branch = option.branch;
+  const topic = option.topic;
+  const subtopic = (topic.subtopics || []).find(item => item.id === selection.subtopicId) || topic.subtopics?.[0] || makeLearningSubtopic(branch.title, topic.title, topic.title, topic.summary);
+  topicSelect.innerHTML = examTopicOptions(LEARNING_CATALOG).map(item => `<option value="${escapeHtml(item.value)}">${escapeHtml(item.label)}</option>`).join("");
+  topicSelect.value = examTopicValue(branch.id, topic.id);
+  subtopicSelect.innerHTML = (topic.subtopics || []).map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.title)}</option>`).join("");
+  subtopicSelect.value = subtopic.id;
+  if (levelSelect) levelSelect.value = LEVEL_TO_EXAM[selection.level] || levelSelect.value || "diagnostico";
+}
+
 function programarLimpiezaDisponibilidadExamen() {
   cancelarLimpiezaDisponibilidadExamen();
   examAccessCleanupTimer = setTimeout(() => {
@@ -13753,16 +13913,18 @@ async function renderExamAccessPanel({ fetchServer = false, showSummary = false,
   const statusEl = document.getElementById("examAccessStatus");
   if (!classSelect || !levelSelect || !summary) return;
   renderClassSelectors();
+  if (!document.getElementById("examAccessTopicSelect")?.options.length) renderExamAccessRouteSelectors();
   const classId = classSelect.value || adminClaseActiva || idsAulasAdmin()[0] || "";
   const level = levelSelect.value || "diagnostico";
+  const route = examAccessRouteFromControls();
   if (!classId) {
     summary.innerHTML = `<p class="muted">Crea o selecciona un aula para programar exámenes.</p>`;
     return;
   }
-  let config = normalizarExamSettings(examSettingsGrupo[classId] || {})[level];
+  let config = examAccessConfigLocal(classId, level, route);
   if (fetchServer) {
     try {
-      const remote = await consultarEstadoExamenServidor(classId, level);
+      const remote = await consultarEstadoExamenServidor(classId, level, route);
       config = {
         startAt: remote.startAt || "",
         endAt: remote.endAt || "",
@@ -13782,7 +13944,7 @@ async function renderExamAccessPanel({ fetchServer = false, showSummary = false,
     const feedback = document.getElementById("examFeedbackPublished");
     if (feedback) feedback.checked = config.feedbackPublished === true;
   }
-  const cached = examAccessStateCache[`${classId}::${level}`];
+  const cached = examAccessStateCache[examAccessCacheKey(classId, level, route)];
   const state = cached || {
     status: estadoExamenDesdeConfig(config),
     serverNowLabel: "Hora oficial pendiente de sincronizar"
@@ -13791,9 +13953,12 @@ async function renderExamAccessPanel({ fetchServer = false, showSummary = false,
     summary.innerHTML = "";
     return;
   }
+  const routeOption = selectedExamTopicOption(route, LEARNING_CATALOG);
+  const routeSubtopic = (routeOption.topic.subtopics || []).find(item => item.id === route.subtopicId) || routeOption.topic.subtopics?.[0];
   summary.innerHTML = `
     <article class="exam-access-card ${escapeHtml(state.status || "pending")}">
       <strong>${escapeHtml(nombreExamen(level))}</strong>
+      <span>${escapeHtml(routeOption.branch.title)} · ${escapeHtml(routeOption.topic.title)} · ${escapeHtml(routeSubtopic?.title || routeOption.topic.title)}</span>
       <span>Estado: ${escapeHtml(estadoExamenTexto(state.status))}</span>
       <span>Apertura: ${escapeHtml(fechaHoraUsuarioLabel(config.startAt, perfilActual, state))}</span>
       <span>Cierre: ${escapeHtml(fechaHoraUsuarioLabel(config.endAt, perfilActual, state))}</span>
@@ -14216,10 +14381,11 @@ document.querySelectorAll("[data-report-sort]").forEach(th => {
 
 document.getElementById("bankNivelSelect")?.addEventListener("change", renderBankPanel);
 
-["examAccessClassSelect", "examAccessLevelSelect"].forEach(id => {
+["examAccessClassSelect", "examAccessLevelSelect", "examAccessTopicSelect", "examAccessSubtopicSelect"].forEach(id => {
   document.getElementById(id)?.addEventListener("change", () => {
     cancelarLimpiezaDisponibilidadExamen();
     limpiarFormularioDisponibilidadExamen();
+    if (id === "examAccessTopicSelect") renderExamAccessRouteSelectors(examAccessRouteFromControls());
     renderExamAccessPanel();
   });
 });
@@ -14227,6 +14393,7 @@ document.getElementById("bankNivelSelect")?.addEventListener("change", renderBan
 document.getElementById("btnSaveExamAccess")?.addEventListener("click", async () => {
   const classId = document.getElementById("examAccessClassSelect")?.value || adminClaseActiva || adminGrupoActual;
   const level = document.getElementById("examAccessLevelSelect")?.value || "diagnostico";
+  const route = examAccessRouteFromControls();
   const status = document.getElementById("examAccessStatus");
   const startAt = isoDesdeFechaHoraUsuario(
     document.getElementById("examStartDate")?.value,
@@ -14253,7 +14420,7 @@ document.getElementById("btnSaveExamAccess")?.addEventListener("click", async ()
     }
     return;
   }
-  const confirmado = confirm("¿Está seguro de guardar estos cambios? Si ya existía una programación para esta misma aula y este mismo examen, será reemplazada por esta última configuración.");
+  const confirmado = confirm("¿Está seguro de guardar estos cambios? Si ya existía una programación para esta misma aula, tema, subtema y nivel, será reemplazada por esta última configuración.");
   if (!confirmado) return;
   cancelarLimpiezaDisponibilidadExamen();
   if (status) {
@@ -14261,7 +14428,7 @@ document.getElementById("btnSaveExamAccess")?.addEventListener("click", async ()
     status.className = "bank-status";
   }
   try {
-    const result = await guardarConfiguracionExamenServidor({ classId, level, startAt, endAt, feedbackPublished });
+    const result = await guardarConfiguracionExamenServidor({ classId, ...route, level, startAt, endAt, feedbackPublished });
     if (status) {
       status.textContent = `Configuración guardada. Estado: ${estadoExamenTexto(result.status)}. Retroalimentación: ${result.feedbackPublished ? "publicada" : "oculta"}.`;
       status.className = "bank-status success";
@@ -14400,6 +14567,7 @@ document.getElementById("btnIniciarExamen").addEventListener("click", async () =
     alert("Ya usaste los 2 intentos permitidos para el nivel Difícil.");
     return;
   }
+  if (!validarAprendizajeAntesExamen("examen")) return;
   if (!(await validarDisponibilidadExamen("examen"))) return;
   await prepararPreguntasActivas("examen");
   iniciarIntentoActivo("examen", "examen", PREGUNTAS_EXAMEN.length);
@@ -14596,6 +14764,14 @@ async function restaurarIntentoActivo() {
   if (!intentoActivo) return;
 
   const restante = Math.max(0, Math.ceil((intentoActivo.vence - Date.now()) / 1000));
+  if (intentoActivo.branchId && intentoActivo.topicId && intentoActivo.subtopicId) {
+    guardarExamSelector({
+      branchId: intentoActivo.branchId,
+      topicId: intentoActivo.topicId,
+      subtopicId: intentoActivo.subtopicId,
+      level: EXAM_TO_LEVEL[intentoActivo.clave] || "facil"
+    });
+  }
 
   if (intentoActivo.tipo === "diag") {
     await prepararPreguntasActivas("diagnostico");

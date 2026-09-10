@@ -2360,6 +2360,24 @@ function normalizeExamLevel(level) {
   return ["diagnostico", "nivel1", "examen"].includes(value) ? value : "";
 }
 
+function normalizeRoutePart(value = "") {
+  return String(value || "")
+    .trim()
+    .replace(/[^A-Za-z0-9_-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+}
+
+function examAccessKey(level = "", source = {}) {
+  const normalizedLevel = normalizeExamLevel(level);
+  const branchId = normalizeRoutePart(source.branchId);
+  const topicId = normalizeRoutePart(source.topicId);
+  const subtopicId = normalizeRoutePart(source.subtopicId);
+  return branchId && topicId && subtopicId
+    ? `${normalizedLevel}::${branchId}::${topicId}::${subtopicId}`
+    : normalizedLevel;
+}
+
 function toMillisDate(value) {
   if (!value) return null;
   if (typeof value.toMillis === "function") return value.toMillis();
@@ -2409,6 +2427,7 @@ exports.getExamAccessState = onRequest({ region: "us-central1" }, async (req, re
   const classId = String(req.body?.classId || "").trim();
   const level = normalizeExamLevel(req.body?.level);
   if (!classId || !level) return res.status(400).json({ error: "Faltan aula o examen." });
+  const configKey = examAccessKey(level, req.body || {});
 
   const db = admin.firestore();
   const [permissionSnap, classSnap, userSnap] = await Promise.all([
@@ -2428,13 +2447,17 @@ exports.getExamAccessState = onRequest({ region: "us-central1" }, async (req, re
   }
 
   const permissions = permissionSnap.exists ? permissionSnap.data() : {};
-  const config = permissions.examSettings?.[level] || {};
+  const config = permissions.examSettings?.[configKey] || permissions.examSettings?.[level] || {};
   const timezoneConfig = timezoneConfigFromProfile(userData, req.body || {});
   const nowInfo = zonedNow(timezoneConfig);
   return res.status(200).json({
     ok: true,
     classId,
     level,
+    configKey,
+    branchId: normalizeRoutePart(req.body?.branchId),
+    topicId: normalizeRoutePart(req.body?.topicId),
+    subtopicId: normalizeRoutePart(req.body?.subtopicId),
     ...publicExamState(config, nowInfo, timezoneConfig)
   });
 });
@@ -2550,9 +2573,12 @@ exports.getExamAttemptFeedback = onRequest({ region: "us-central1" }, async (req
   }
 
   const permissionSnap = await db.collection("classPermissions").doc(attempt.classId || "").get();
+  const configKey = attempt.configKey || examAccessKey(attempt.level, attempt);
   const feedbackPublished = permissionSnap.exists &&
-    permissionSnap.data()?.examSettings?.[attempt.level]?.feedbackPublished === true;
-  if (!feedbackPublished && !isPlatformOwner && !ownsClassAttempt) {
+    ((permissionSnap.data()?.examSettings?.[configKey]?.feedbackPublished === true) ||
+      (permissionSnap.data()?.examSettings?.[attempt.level]?.feedbackPublished === true));
+  const finalAttemptReached = Number(attempt.attemptNumber || 0) >= 2;
+  if (!feedbackPublished && !finalAttemptReached && !isPlatformOwner && !ownsClassAttempt) {
     return res.status(403).json({ error: "La retroalimentación aún no ha sido publicada." });
   }
 
@@ -2580,6 +2606,7 @@ exports.updateExamAccessConfig = onRequest({ region: "us-central1" }, async (req
   const classId = String(req.body?.classId || "").trim();
   const level = normalizeExamLevel(req.body?.level);
   if (!classId || !level) return res.status(400).json({ error: "Faltan aula o examen." });
+  const configKey = examAccessKey(level, req.body || {});
 
   const startAt = String(req.body?.startAt || "").trim();
   const endAt = String(req.body?.endAt || "").trim();
@@ -2611,6 +2638,10 @@ exports.updateExamAccessConfig = onRequest({ region: "us-central1" }, async (req
     startAt: startAt || "",
     endAt: endAt || "",
     feedbackPublished,
+    branchId: normalizeRoutePart(req.body?.branchId),
+    topicId: normalizeRoutePart(req.body?.topicId),
+    subtopicId: normalizeRoutePart(req.body?.subtopicId),
+    configKey,
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     updatedByUid: decoded.uid,
     updatedByEmail: callerEmail
@@ -2621,19 +2652,23 @@ exports.updateExamAccessConfig = onRequest({ region: "us-central1" }, async (req
     className: classData.name || "",
     institutionDane: classData.institutionDane || "",
     examSettings: {
-      [level]: nextConfig
+      [configKey]: nextConfig
     },
     updatedAt: admin.firestore.FieldValue.serverTimestamp()
   }, { merge: true });
 
   const savedSnap = await permissionRef.get();
-  const saved = savedSnap.data()?.examSettings?.[level] || nextConfig;
+  const saved = savedSnap.data()?.examSettings?.[configKey] || nextConfig;
   const timezoneConfig = timezoneConfigFromProfile(userData, req.body || {});
   const nowInfo = zonedNow(timezoneConfig);
   return res.status(200).json({
     ok: true,
     classId,
     level,
+    configKey,
+    branchId: nextConfig.branchId,
+    topicId: nextConfig.topicId,
+    subtopicId: nextConfig.subtopicId,
     ...publicExamState(saved, nowInfo, timezoneConfig)
   });
 });
@@ -2643,6 +2678,26 @@ function examLevelName(level = "") {
   if (level === "nivel1") return "Medio";
   if (level === "examen") return "Difícil";
   return String(level || "Examen");
+}
+
+function examDurationSeconds(level = "") {
+  if (level === "nivel1") return 25 * 60;
+  if (level === "examen") return 35 * 60;
+  return 15 * 60;
+}
+
+function learningLevelFromExamLevel(level = "") {
+  if (level === "nivel1") return "medio";
+  if (level === "examen") return "dificil";
+  return "facil";
+}
+
+function learningProgressIdForExam(level = "", source = {}) {
+  const branchId = normalizeRoutePart(source.branchId);
+  const topicId = normalizeRoutePart(source.topicId);
+  const subtopicId = normalizeRoutePart(source.subtopicId) || topicId;
+  if (!branchId || !topicId || !subtopicId) return "";
+  return `${branchId}__${topicId}__${subtopicId}__${learningLevelFromExamLevel(level)}`;
 }
 
 function normalizeExamBank(bank = "") {
@@ -2779,7 +2834,7 @@ function attemptMetrics(level = "", attempt = {}) {
     : 0;
   const incorrectas = Math.max(0, total - correctas);
   const tiempoRestante = Math.max(0, Number(attempt.restante || 0));
-  const tiempoTotalSegundos = Math.max(0, 15 * 60 - tiempoRestante);
+  const tiempoTotalSegundos = Math.max(0, examDurationSeconds(level) - tiempoRestante);
   const pct = total ? Math.round((correctas / total) * 100) : 0;
   const nota = Math.round((pct / 100 * 5) * 10) / 10;
   return {
@@ -2853,6 +2908,10 @@ exports.submitExamAttempt = onRequest({ region: "us-central1" }, async (req, res
   const classId = String(req.body?.classId || "").trim();
   const level = normalizeExamLevel(req.body?.level);
   const bank = normalizeExamBank(req.body?.bank);
+  const branchId = normalizeRoutePart(req.body?.branchId);
+  const topicId = normalizeRoutePart(req.body?.topicId);
+  const subtopicId = normalizeRoutePart(req.body?.subtopicId);
+  const configKey = examAccessKey(level, { branchId, topicId, subtopicId });
   const respuestas = Array.isArray(req.body?.respuestas) ? req.body.respuestas.map(value => Number(value)) : [];
   const questionSnapshot = Array.isArray(req.body?.questionSnapshot) ? req.body.questionSnapshot : [];
   const restante = Math.max(0, Number(req.body?.restante || 0));
@@ -2876,14 +2935,25 @@ exports.submitExamAttempt = onRequest({ region: "us-central1" }, async (req, res
   if (!isPlatformOwner && !isStudentInClass) {
     return res.status(403).json({ error: "No tienes acceso a esta aula." });
   }
+  const learningProgressId = learningProgressIdForExam(level, { branchId, topicId, subtopicId });
+  if (!isPlatformOwner) {
+    if (!learningProgressId) {
+      return res.status(400).json({ error: "Falta el tema y subtema del examen." });
+    }
+    const progressSnap = await db.collection("users").doc(decoded.uid).collection("learningProgress").doc(learningProgressId).get();
+    if (!progressSnap.exists || progressSnap.data()?.completed !== true) {
+      return res.status(403).json({ error: "Primero debes completar el aprendizaje de este tema, subtema y nivel." });
+    }
+  }
 
-  const config = permissionSnap.exists ? (permissionSnap.data()?.examSettings?.[level] || {}) : {};
+  const settings = permissionSnap.exists ? (permissionSnap.data()?.examSettings || {}) : {};
+  const config = settings[configKey] || settings[level] || {};
   const nowMs = Date.now();
   if (examAccessStatus(config, nowMs) !== "available") {
     return res.status(403).json({ error: "El examen no está disponible en este momento." });
   }
 
-  const attemptBaseParts = [decoded.uid, classId, bank, level].map(safeDocPart);
+  const attemptBaseParts = [decoded.uid, classId, bank, level, branchId || "general", topicId || "general", subtopicId || "general"].map(safeDocPart);
 
   const teacherSnap = await getTeacherQuestionsFor(classData.ownerUid || "", level, bank);
   const teacherQuestionsById = new Map();
@@ -2960,7 +3030,7 @@ exports.submitExamAttempt = onRequest({ region: "us-central1" }, async (req, res
   const incorrectas = Math.max(0, total - correctas);
   const porcentaje = total ? Math.round((correctas / total) * 100) : 0;
   const nota = calcNotaFromPercent(porcentaje);
-  const tiempoTotalSegundos = Math.max(0, 15 * 60 - restante);
+  const tiempoTotalSegundos = Math.max(0, examDurationSeconds(level) - restante);
 
   const payload = {
     studentUid: decoded.uid,
@@ -2974,6 +3044,10 @@ exports.submitExamAttempt = onRequest({ region: "us-central1" }, async (req, res
     institutionDane: classData.institutionDane || userData.institutionDane || "",
     level,
     bank,
+    configKey,
+    branchId,
+    topicId,
+    subtopicId,
     examName: examLevelName(level),
     respuestas,
     gradedSnapshot,
