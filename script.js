@@ -64,7 +64,7 @@ const firebaseConfig = {
 const APP_CONFIG = {
   name: "Matemáticas En Tu Bolsillo",
   recaptchaSiteKey: "6LcmOT0tAAAAAPfwCOhqA1nzfz3YOx8McE_mpFEZ",
-  notebookLmEnterpriseUrl: "https://notebooklm.cloud.google.com/global/?project=235600414785",
+  notebookLmEnterpriseUrl: "https://notebook.cloud.google.com/global/?project=235600414785",
   asesorEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/generateAiResponse",
   passwordResetEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/sendPasswordResetEmailCustom",
   emailVerificationEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/sendEmailVerificationCustom",
@@ -3375,7 +3375,7 @@ function renderAsesorInfo() {
   notebookCard?.classList.toggle("hidden", !showNotebook);
   if (notebookStatus && showNotebook) {
     notebookStatus.textContent = APP_CONFIG.notebookLmEnterpriseUrl
-      ? "Licencia y acceso dependen de Google Cloud IAM."
+      ? "Abre NotebookLM con una cuenta docente licenciada en Google Cloud."
       : "Pendiente configurar URL de NotebookLM Enterprise.";
   }
   if (modoAdmin) {
@@ -11636,7 +11636,7 @@ function abrirAsesorIA() {
   cargarEstadoAsesor();
   renderAsesorQuickReplies();
   renderAsesorMessages();
-  setAdvisorToolsOpen(advisorMessages.length <= 1);
+  setAdvisorToolsOpen(false);
   document.getElementById("advisorChatPanel")?.classList.remove("hidden");
   document.getElementById("btnAdvisorFloat")?.setAttribute("aria-expanded", "true");
 }
@@ -12897,7 +12897,12 @@ document.getElementById("btnOpenNotebookLm")?.addEventListener("click", () => {
     if (status) status.textContent = "Activa la licencia y configura la URL de NotebookLM Enterprise para abrirlo desde aquí.";
     return;
   }
-  window.open(url, "_blank", "noopener,noreferrer");
+  const opened = window.open(url, "_blank", "noopener,noreferrer");
+  if (status) {
+    status.textContent = opened
+      ? "Se abrió NotebookLM en una pestaña segura de Google Cloud."
+      : "El navegador bloqueó la ventana. Permite ventanas emergentes para abrir NotebookLM.";
+  }
 });
 document.getElementById("btnCloseBadgeCelebration")?.addEventListener("click", cerrarCelebracionInsignia);
 document.getElementById("btnContinueBadgeCelebration")?.addEventListener("click", cerrarCelebracionInsignia);
@@ -12912,6 +12917,7 @@ document.getElementById("advisorQuickReplies")?.addEventListener("click", e => {
   const btn = e.target.closest("[data-advisor-quick]");
   if (btn) enviarMensajeAsesor(btn.dataset.advisorQuick || "");
 });
+document.getElementById("advisorInput")?.addEventListener("focus", () => setAdvisorToolsOpen(false));
 document.getElementById("btnNotificationBell")?.addEventListener("click", () => toggleNotificationsPopover());
 document.getElementById("btnCloseNotifications")?.addEventListener("click", () => toggleNotificationsPopover(false));
 document.getElementById("notificationsList")?.addEventListener("click", e => {

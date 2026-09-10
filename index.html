@@ -33,7 +33,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="style.css?v=20260909-05" />
+  <link rel="stylesheet" href="style.css?v=20260910-01" />
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -2140,10 +2140,18 @@
         <div>
           <span class="notebooklm-kicker">Solo docentes</span>
           <h3>NotebookLM Enterprise</h3>
-          <p>Cuaderno de fuentes para profesores y administración académica. Requiere licencia activa de Gemini Notebook Enterprise en Google Cloud.</p>
+          <p>Cuaderno de fuentes para profesores y administración académica conectado a Google Cloud. Requiere licencia activa e inicio de sesión con una cuenta autorizada.</p>
+          <ul class="notebooklm-list">
+            <li>Organiza PDFs, guías y fuentes docentes.</li>
+            <li>Consulta material académico desde NotebookLM.</li>
+            <li>Acceso protegido por Google Cloud IAM.</li>
+          </ul>
         </div>
-        <button class="btn btn-secondary" id="btnOpenNotebookLm" type="button">Abrir NotebookLM</button>
-        <small id="notebookLmStatus">Pendiente configurar URL de NotebookLM Enterprise.</small>
+        <div class="notebooklm-actions">
+          <button class="btn btn-secondary" id="btnOpenNotebookLm" type="button">Abrir cuaderno</button>
+          <small>Se abre en Google Cloud para conservar permisos y licencia.</small>
+        </div>
+        <small id="notebookLmStatus">NotebookLM Enterprise está conectado para docentes con licencia.</small>
       </article>
       <button class="btn btn-primary" id="btnOpenAdvisorSection" type="button">Abrir Asesor IA</button>
     </div>
@@ -2245,6 +2253,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260909-05"></script>
+  <script type="module" src="script.js?v=20260910-01"></script>
 </body>
 </html>

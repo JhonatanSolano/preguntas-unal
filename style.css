@@ -2120,14 +2120,16 @@ body.group-locked:not(.public-modal-open) #whatsappWidget.whatsapp-widget.open.s
 }
 .notebooklm-card {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) minmax(190px, auto);
   align-items: center;
   gap: .9rem 1rem;
   margin: .25rem 0 1rem;
-  padding: 1rem;
+  padding: 1rem 1.1rem;
   border: 1px solid rgba(13, 148, 136, .2);
   border-radius: var(--radius-md);
-  background: linear-gradient(135deg, rgba(240, 253, 250, .95), rgba(248, 251, 255, .98));
+  background:
+    radial-gradient(circle at 12% 18%, rgba(20, 184, 166, .18), transparent 30%),
+    linear-gradient(135deg, rgba(240, 253, 250, .96), rgba(248, 251, 255, .98));
   text-align: left;
 }
 .notebooklm-card h3 {
@@ -2139,6 +2141,28 @@ body.group-locked:not(.public-modal-open) #whatsappWidget.whatsapp-widget.open.s
   margin: 0;
   color: var(--c-muted);
   font-size: .95rem;
+}
+.notebooklm-list {
+  display: grid;
+  gap: .3rem;
+  margin: .65rem 0 0;
+  padding-left: 1.1rem;
+  color: var(--c-navy);
+  font-size: .9rem;
+  font-weight: 800;
+}
+.notebooklm-actions {
+  display: grid;
+  gap: .45rem;
+  justify-items: stretch;
+}
+.notebooklm-actions .btn {
+  width: 100%;
+}
+.notebooklm-actions small {
+  color: var(--c-muted);
+  font-weight: 800;
+  text-align: center;
 }
 .notebooklm-card small {
   grid-column: 1 / -1;
