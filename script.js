@@ -1046,17 +1046,12 @@ function claveBaseResultado(clave) {
   return parts.find(part => ["diagnostico", "nivel1", "examen"].includes(part)) || clave;
 }
 
+let examResultRouteResolver = null;
+
 function claveResultado(clave, banco = bancoActivo, route = null) {
   if (String(clave).includes("::")) return clave;
   const base = claveBaseResultado(clave);
-  const activeRoute = intentoActivo && claveBaseResultado(intentoActivo.clave) === base
-    ? {
-        branchId: intentoActivo.branchId,
-        topicId: intentoActivo.topicId,
-        subtopicId: intentoActivo.subtopicId
-      }
-    : null;
-  const routeData = route || activeRoute || (!modoAdmin && ["diagnostico", "nivel1", "examen"].includes(base) ? rutaPreguntasExamen(base) : null);
+  const routeData = route || (typeof examResultRouteResolver === "function" ? examResultRouteResolver(base) : null);
   if (routeData?.branchId && routeData?.topicId && routeData?.subtopicId) {
     return `${banco}::${base}::${routeData.branchId}::${routeData.topicId}::${routeData.subtopicId}`;
   }
@@ -3522,6 +3517,19 @@ function rutaPreguntasExamen(level = "diagnostico") {
     subtopicId: selection.subtopicId
   };
 }
+
+examResultRouteResolver = function resolveExamResultRoute(base) {
+  const activeRoute = intentoActivo && claveBaseResultado(intentoActivo.clave) === base
+    ? {
+        branchId: intentoActivo.branchId,
+        topicId: intentoActivo.topicId,
+        subtopicId: intentoActivo.subtopicId
+      }
+    : null;
+  if (activeRoute?.branchId && activeRoute?.topicId && activeRoute?.subtopicId) return activeRoute;
+  if (modoAdmin || !["diagnostico", "nivel1", "examen"].includes(base)) return null;
+  return rutaPreguntasExamen(base);
+};
 
 function ownerUidPreguntasActual() {
   if (modoAdmin) return usuarioActual?.uid || "";
