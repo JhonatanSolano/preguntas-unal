@@ -64,6 +64,7 @@ const firebaseConfig = {
 const APP_CONFIG = {
   name: "Matemáticas En Tu Bolsillo",
   recaptchaSiteKey: "6LcmOT0tAAAAAPfwCOhqA1nzfz3YOx8McE_mpFEZ",
+  notebookLmEnterpriseUrl: "",
   asesorEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/generateAiResponse",
   passwordResetEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/sendPasswordResetEmailCustom",
   emailVerificationEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/sendEmailVerificationCustom",
@@ -3353,12 +3354,22 @@ function renderAsesorInfo() {
   if (!section) return;
   const intro = section.querySelector(".asesor-info-panel > p");
   const grid = section.querySelector(".advisor-feature-grid");
+  const notebookCard = document.getElementById("notebookLmTeacherCard");
+  const notebookStatus = document.getElementById("notebookLmStatus");
+  const showNotebook = modoAdmin || esPropietarioPlataforma();
+  notebookCard?.classList.toggle("hidden", !showNotebook);
+  if (notebookStatus && showNotebook) {
+    notebookStatus.textContent = APP_CONFIG.notebookLmEnterpriseUrl
+      ? "Licencia y acceso dependen de Google Cloud IAM."
+      : "Pendiente configurar URL de NotebookLM Enterprise.";
+  }
   if (modoAdmin) {
     if (intro) intro.textContent = "Tu asistente docente te ayuda a planear clases, crear evaluaciones, preparar comunicaciones y diseñar actividades matemáticas.";
     if (grid) {
       grid.innerHTML = [
         ["Planear clases", "Estructura objetivos, tiempos, explicación, práctica guiada y cierre."],
         ["Crear exámenes", "Diseña evaluaciones con opciones, soluciones y niveles de dificultad."],
+        ["NotebookLM Enterprise", "Centraliza fuentes y cuadernos docentes cuando la licencia esté activa."],
         ["Redactar correos", "Prepara mensajes claros para estudiantes según tus indicaciones."],
         ["Diseñar actividades", "Crea talleres, guías, rúbricas y ejercicios por tema."],
         ["Retroalimentar grupos", "Convierte métricas o resultados en recomendaciones pedagógicas."]
@@ -12547,6 +12558,19 @@ document.getElementById("btnAdvisorFloat")?.addEventListener("click", () => {
 });
 document.getElementById("btnAdvisorClose")?.addEventListener("click", cerrarAsesorIA);
 document.getElementById("btnOpenAdvisorSection")?.addEventListener("click", abrirAsesorIA);
+document.getElementById("btnOpenNotebookLm")?.addEventListener("click", () => {
+  const status = document.getElementById("notebookLmStatus");
+  if (!(modoAdmin || esPropietarioPlataforma())) {
+    if (status) status.textContent = "NotebookLM Enterprise está reservado para profesores.";
+    return;
+  }
+  const url = APP_CONFIG.notebookLmEnterpriseUrl;
+  if (!url) {
+    if (status) status.textContent = "Activa la licencia y configura la URL de NotebookLM Enterprise para abrirlo desde aquí.";
+    return;
+  }
+  window.open(url, "_blank", "noopener,noreferrer");
+});
 document.getElementById("btnCloseBadgeCelebration")?.addEventListener("click", cerrarCelebracionInsignia);
 document.getElementById("btnContinueBadgeCelebration")?.addEventListener("click", cerrarCelebracionInsignia);
 document.getElementById("advisorForm")?.addEventListener("submit", e => {

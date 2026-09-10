@@ -6,5 +6,6 @@ functions/node_modules/
 functions/baseQuestions.js
 tools/seed-base-questions.js
 .codex/
+.firebase/
 *.local.toml
 .claude/settings.local.json
