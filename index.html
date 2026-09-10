@@ -33,7 +33,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="style.css?v=20260909-02" />
+  <link rel="stylesheet" href="style.css?v=20260909-04" />
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -978,7 +978,35 @@
       <h2>Exámenes</h2>
       <p id="examsHubIntro">Elige el examen que vas a presentar o revisar.</p>
       <p class="warn-msg" id="examsLockedMsg" hidden>Primero debes pertenecer a una clase o aula.</p>
-      <div class="exam-hub-grid" id="studentExamHub">
+      <section class="student-exam-selector" id="studentExamSelector">
+        <div class="student-exam-selector-head">
+          <span class="section-kicker">Ruta por contenido</span>
+          <h3>Escoge el tema de tu examen</h3>
+          <p>Selecciona tema, subtema y nivel. Luego entrarás al flujo oficial de exámenes con intentos, tiempo y retroalimentación.</p>
+        </div>
+        <div class="student-exam-selector-grid">
+          <label>Rama
+            <select id="examBranchSelect"></select>
+          </label>
+          <label>Tema
+            <select id="examTopicSelect"></select>
+          </label>
+          <label>Subtema
+            <select id="examSubtopicSelect"></select>
+          </label>
+          <label>Nivel
+            <select id="examLevelSelect"></select>
+          </label>
+        </div>
+        <article class="student-exam-choice" id="studentExamChoice">
+          <div>
+            <strong id="studentExamChoiceTitle">Examen seleccionado</strong>
+            <span id="studentExamChoiceMeta">Elige una ruta para continuar.</span>
+          </div>
+          <button class="btn btn-primary" id="btnStartSelectedExam" type="button">Hacer examen</button>
+        </article>
+      </section>
+      <div class="exam-hub-grid hidden" id="studentExamHub">
         <button class="exam-hub-card" data-go-exam="diagnostico" type="button">
           <strong>Diagnóstico</strong>
           <span>15 preguntas · 15 minutos</span>
@@ -2094,7 +2122,7 @@
       <header>
         <div>
           <strong>Asesor IA</strong>
-          <span>Cuaderno académico · LaTeX · UNAL · ICFES</span>
+          <span>Matemáticas En Tu Bolsillo</span>
         </div>
         <button class="advisor-close" id="btnAdvisorClose" type="button" aria-label="Cerrar asesor">×</button>
       </header>
@@ -2184,6 +2212,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260909-03"></script>
+  <script type="module" src="script.js?v=20260909-04"></script>
 </body>
 </html>

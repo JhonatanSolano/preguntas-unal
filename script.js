@@ -136,7 +136,7 @@ function navegadorIos() {
 }
 
 function actualizarInstaladorApp() {
-  const mostrar = !appInstaladaComoPwa() && (deferredInstallPrompt || navegadorIos());
+  const mostrar = !appInstaladaComoPwa();
   document.querySelectorAll(".install-app-button").forEach(btn => {
     btn.classList.toggle("hidden", !mostrar);
   });
@@ -181,6 +181,7 @@ window.addEventListener("appinstalled", () => {
   deferredInstallPrompt = null;
   actualizarInstaladorApp();
 });
+actualizarInstaladorApp();
 
 async function obtenerHeadersAppCheck() {
   if (!appCheck) throw new Error("No se pudo verificar la seguridad de la app. Recarga e intenta nuevamente.");
@@ -305,6 +306,7 @@ const PROFILE_PHOTO_FULL_QUALITY = 0.92;
 const REPORT_PAGE_SIZE = 10;
 const LEARNING_STORAGE_KEY = "matematicasBolsilloLearningProgress";
 const LEARNING_LAST_KEY = "matematicasBolsilloLearningLast";
+const EXAM_SELECTOR_KEY = "matematicasBolsilloExamSelection";
 const LEARNING_RESOURCE_COLLECTION = "learningResources";
 const LEARNING_RESOURCE_MAX_PDF_MB = 25;
 const LEARNING_RESOURCE_MAX_VIDEO_MB = 180;
@@ -3280,19 +3282,22 @@ function renderExamenesHub() {
   const locked = document.getElementById("examsLockedMsg");
   const intro = document.getElementById("examsHubIntro");
   const studentHub = document.getElementById("studentExamHub");
+  const studentSelector = document.getElementById("studentExamSelector");
   const adminPanel = document.getElementById("adminExamBankPanel");
   const teacherBuilder = document.getElementById("teacherQuestionBuilder");
   if (modoAdmin) {
     if (locked) locked.hidden = true;
     if (intro) intro.textContent = "Consulta los bancos de preguntas organizados por banco y nivel.";
     studentHub?.classList.add("hidden");
+    studentSelector?.classList.add("hidden");
     adminPanel?.classList.remove("hidden");
     teacherBuilder?.classList.remove("hidden");
     renderAdminExamBanks();
     initializeTeacherQuestionBuilder();
     return;
   }
-  studentHub?.classList.remove("hidden");
+  studentHub?.classList.add("hidden");
+  studentSelector?.classList.remove("hidden");
   adminPanel?.classList.add("hidden");
   teacherBuilder?.classList.add("hidden");
   const sinAula = !aulaActualValida();
@@ -3307,6 +3312,7 @@ function renderExamenesHub() {
       ? "Tu versión gratuita incluye únicamente exámenes relacionados con Aritmética en el Banco principal. Para otros temas, bancos, mensajes y Asesor IA debes activar Premium."
       : "Elige el examen que vas a presentar o revisar.";
   }
+  renderStudentExamSelector(sinAula);
   document.querySelectorAll("[data-go-exam]").forEach(btn => {
     const clave = btn.dataset.goExam;
     const bloqueadoGratis = !examenGratisIndependienteHabilitado(clave);
@@ -4288,6 +4294,10 @@ function setLearningLast(selection) {
   localStorage.setItem(LEARNING_LAST_KEY, JSON.stringify(selection));
 }
 
+function visibleLearningCatalog() {
+  return tienePlanGratisIndependiente() ? LEARNING_CATALOG.filter(item => item.id === "aritmetica") : LEARNING_CATALOG;
+}
+
 function resolveLearningSelection(selection = getLearningLast()) {
   const requestedBranchId = tienePlanGratisIndependiente() ? "aritmetica" : selection?.branchId;
   const branch = LEARNING_CATALOG.find(item => item.id === requestedBranchId) || LEARNING_CATALOG[0];
@@ -4296,6 +4306,54 @@ function resolveLearningSelection(selection = getLearningLast()) {
   const subtopic = subtopics.find(item => item.id === selection?.subtopicId) || subtopics[0];
   const level = LEVEL_LABELS[selection?.level] ? selection.level : "facil";
   return { branchId: branch.id, topicId: topic.id, subtopicId: subtopic.id, level };
+}
+
+function nextLearningSelection(selection = resolveLearningSelection()) {
+  const catalog = visibleLearningCatalog();
+  const branchIndex = Math.max(0, catalog.findIndex(item => item.id === selection.branchId));
+  const branch = catalog[branchIndex] || catalog[0];
+  const topicIndex = Math.max(0, branch.topics.findIndex(item => item.id === selection.topicId));
+  const topic = branch.topics[topicIndex] || branch.topics[0];
+  const subtopics = topic.subtopics?.length ? topic.subtopics : [makeLearningSubtopic(branch.title, topic.title, topic.title, topic.summary)];
+  const subtopicIndex = Math.max(0, subtopics.findIndex(item => item.id === selection.subtopicId));
+  if (subtopicIndex < subtopics.length - 1) {
+    return { ...selection, branchId: branch.id, topicId: topic.id, subtopicId: subtopics[subtopicIndex + 1].id };
+  }
+  if (topicIndex < branch.topics.length - 1) {
+    const nextTopic = branch.topics[topicIndex + 1];
+    return { ...selection, branchId: branch.id, topicId: nextTopic.id, subtopicId: nextTopic.subtopics?.[0]?.id || nextTopic.id };
+  }
+  if (branchIndex < catalog.length - 1) {
+    const nextBranch = catalog[branchIndex + 1];
+    const nextTopic = nextBranch.topics[0];
+    return { ...selection, branchId: nextBranch.id, topicId: nextTopic.id, subtopicId: nextTopic.subtopics?.[0]?.id || nextTopic.id };
+  }
+  return selection;
+}
+
+function guardarExamSelector(selection) {
+  localStorage.setItem(EXAM_SELECTOR_KEY, JSON.stringify(selection));
+}
+
+function getExamSelectorSelection() {
+  try {
+    return JSON.parse(localStorage.getItem(EXAM_SELECTOR_KEY) || "null");
+  } catch {
+    return null;
+  }
+}
+
+function resolveExamSelectorSelection(selection = getExamSelectorSelection()) {
+  return resolveLearningSelection(selection || getLearningLast());
+}
+
+function navegarAExamen(examKey = "diagnostico") {
+  if (!aulaActualValida()) {
+    renderExamenesHub();
+    return;
+  }
+  activarNav(examKey);
+  if (examKey?.startsWith("nivel")) abrirNivel(examKey);
 }
 
 function learningProgressSummary() {
@@ -4363,8 +4421,8 @@ function renderLearningPanel() {
   if (progressBarEl) progressBarEl.style.width = `${summary.pct}%`;
   document.getElementById("learningBranchTitle").textContent = branch.title;
 
-  const visibleLearningCatalog = tienePlanGratisIndependiente() ? LEARNING_CATALOG.filter(item => item.id === "aritmetica") : LEARNING_CATALOG;
-  branchList.innerHTML = visibleLearningCatalog.map(item => `
+  const visibleCatalog = visibleLearningCatalog();
+  branchList.innerHTML = visibleCatalog.map(item => `
     <button class="learning-branch ${item.id === branch.id ? "active" : ""}" type="button" data-learning-branch="${escapeHtml(item.id)}">
       <span>${item.icon}</span>
       <strong>${escapeHtml(item.title)}</strong>
@@ -4413,8 +4471,8 @@ function renderLearningMobilePicker(branch, topic, subtopic, level) {
   const subtopicSelect = document.getElementById("learningSubtopicSelect");
   const levelSelect = document.getElementById("learningLevelSelect");
   if (!branchSelect || !topicSelect || !subtopicSelect || !levelSelect) return;
-  const visibleLearningCatalog = tienePlanGratisIndependiente() ? LEARNING_CATALOG.filter(item => item.id === "aritmetica") : LEARNING_CATALOG;
-  branchSelect.innerHTML = visibleLearningCatalog.map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.title)}</option>`).join("");
+  const visibleCatalog = visibleLearningCatalog();
+  branchSelect.innerHTML = visibleCatalog.map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.title)}</option>`).join("");
   branchSelect.value = branch.id;
   topicSelect.innerHTML = branch.topics.map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.title)}</option>`).join("");
   topicSelect.value = topic.id;
@@ -4507,6 +4565,7 @@ function renderLearningUnit(branch, topic, subtopic, level) {
     <div class="learning-actions">
       ${canTrackLearning ? `<button class="btn btn-outline ${completed ? "learning-complete-done" : ""}" type="button" id="btnLearningComplete" ${completed ? "disabled" : ""}>${completed ? "Completado" : "Marcar como estudiado"}</button>` : ""}
       <button class="btn btn-primary" type="button" id="btnLearningExam">${examActionText} ${escapeHtml(LEVEL_LABELS[level])} · ${etiquetaDuracionNivel(level)}</button>
+      ${canTrackLearning ? `<button class="btn btn-outline learning-next-btn" type="button" id="btnLearningNext">Siguiente subtema</button>` : ""}
       ${puedeGestionarContenidoAprendizaje() ? `<button class="btn btn-outline" type="button" data-learning-edit-resource>Editar contenido</button>` : ""}
       <a class="learning-report-link" href="${learningReportMailto("contenido de aprendizaje")}">Reportar un problema</a>
     </div>
@@ -4871,9 +4930,15 @@ document.getElementById("sectionAprendizaje")?.addEventListener("click", async e
     if (esProfesor()) {
       enfocarExamenProfesorDesdeAprendizaje(examKey);
     } else {
-      activarNav(examKey);
-      if (examKey === "nivel1") abrirNivel("nivel1");
+      navegarAExamen(examKey);
     }
+  }
+  if (event.target.closest("#btnLearningNext")) {
+    if (!esEstudianteCuenta()) return;
+    const next = nextLearningSelection(resolveLearningSelection());
+    setLearningLast(next);
+    renderLearningPanel();
+    document.getElementById("learningUnit")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
   if (event.target.closest("[data-learning-edit-resource]")) {
     const selection = getLearningManagerSelection();
@@ -4968,6 +5033,41 @@ document.getElementById("sectionAprendizaje")?.addEventListener("change", event 
   if (event.target.matches("#learningManagerSubtopic, #learningManagerLevel, #learningManagerClass")) {
     renderLearningResourceForSelection(getLearningManagerSelection());
   }
+});
+
+document.getElementById("sectionExamenes")?.addEventListener("change", event => {
+  if (event.target.matches("#examBranchSelect")) {
+    const catalog = visibleLearningCatalog();
+    const branch = catalog.find(item => item.id === event.target.value) || catalog[0];
+    const topic = branch.topics[0];
+    const selection = resolveExamSelectorSelection();
+    guardarExamSelector({ branchId: branch.id, topicId: topic.id, subtopicId: topic.subtopics?.[0]?.id || topic.id, level: selection.level });
+    renderStudentExamSelector();
+    return;
+  }
+  if (event.target.matches("#examTopicSelect")) {
+    const selection = resolveExamSelectorSelection();
+    const catalog = visibleLearningCatalog();
+    const branch = catalog.find(item => item.id === selection.branchId) || catalog[0];
+    const topic = branch.topics.find(item => item.id === event.target.value) || branch.topics[0];
+    guardarExamSelector({ ...selection, topicId: topic.id, subtopicId: topic.subtopics?.[0]?.id || topic.id });
+    renderStudentExamSelector();
+    return;
+  }
+  if (event.target.matches("#examSubtopicSelect")) {
+    guardarExamSelector({ ...resolveExamSelectorSelection(), subtopicId: event.target.value });
+    renderStudentExamSelector();
+    return;
+  }
+  if (event.target.matches("#examLevelSelect")) {
+    guardarExamSelector({ ...resolveExamSelectorSelection(), level: event.target.value });
+    renderStudentExamSelector();
+  }
+});
+
+document.getElementById("btnStartSelectedExam")?.addEventListener("click", event => {
+  const examKey = event.currentTarget.dataset.examKey || LEVEL_TO_EXAM[resolveExamSelectorSelection().level] || "diagnostico";
+  navegarAExamen(examKey);
 });
 
 
@@ -11011,6 +11111,49 @@ function asegurarTarjetaWhatsappVisible() {
   });
 }
 
+function renderStudentExamSelector(sinAula = !aulaActualValida()) {
+  const wrapper = document.getElementById("studentExamSelector");
+  const branchSelect = document.getElementById("examBranchSelect");
+  const topicSelect = document.getElementById("examTopicSelect");
+  const subtopicSelect = document.getElementById("examSubtopicSelect");
+  const levelSelect = document.getElementById("examLevelSelect");
+  const title = document.getElementById("studentExamChoiceTitle");
+  const meta = document.getElementById("studentExamChoiceMeta");
+  const startBtn = document.getElementById("btnStartSelectedExam");
+  if (!wrapper || !branchSelect || !topicSelect || !subtopicSelect || !levelSelect || !startBtn) return;
+
+  const selection = resolveExamSelectorSelection();
+  guardarExamSelector(selection);
+  const catalog = visibleLearningCatalog();
+  const branch = catalog.find(item => item.id === selection.branchId) || catalog[0];
+  const topic = branch.topics.find(item => item.id === selection.topicId) || branch.topics[0];
+  const subtopic = (topic.subtopics || []).find(item => item.id === selection.subtopicId) || topic.subtopics?.[0] || makeLearningSubtopic(branch.title, topic.title, topic.title, topic.summary);
+  branchSelect.innerHTML = catalog.map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.title)}</option>`).join("");
+  branchSelect.value = branch.id;
+  topicSelect.innerHTML = branch.topics.map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.title)}</option>`).join("");
+  topicSelect.value = topic.id;
+  subtopicSelect.innerHTML = (topic.subtopics || []).map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.title)}</option>`).join("");
+  subtopicSelect.value = subtopic.id;
+  levelSelect.innerHTML = Object.entries(LEVEL_LABELS).map(([key, label]) => `<option value="${escapeHtml(key)}">${escapeHtml(label)}</option>`).join("");
+  levelSelect.value = selection.level;
+
+  const examKey = LEVEL_TO_EXAM[selection.level] || "diagnostico";
+  const config = normalizarExamSettings(examSettingsGrupo[grupoActivo] || {})[examKey] || {};
+  const estado = estadoExamenDesdeConfig(config);
+  const bloqueadoGratis = !examenGratisIndependienteHabilitado(examKey);
+  const noDisponible = !bloqueadoGratis && !sinAula && estado !== "available";
+  const disabled = sinAula || bloqueadoGratis || noDisponible;
+  if (title) title.textContent = `${LEVEL_LABELS[selection.level]} · ${topic.title}`;
+  if (meta) {
+    meta.textContent = disabled
+      ? (sinAula ? "Tu aula debe estar activa para presentar exámenes." : bloqueadoGratis ? "Este examen requiere Plan Premium." : estadoExamenTexto(estado))
+      : `${branch.title} · ${subtopic.title} · ${etiquetaDuracionNivel(selection.level)}`;
+  }
+  startBtn.disabled = disabled;
+  startBtn.textContent = disabled ? "No disponible" : `Hacer examen ${LEVEL_LABELS[selection.level]}`;
+  startBtn.dataset.examKey = examKey;
+}
+
 function prepararWhatsappFlotante() {
   const widget = document.getElementById("whatsappWidget");
   if (!widget) return;
@@ -12930,12 +13073,7 @@ document.addEventListener("pointerdown", e => {
 document.getElementById("btnClassLater")?.addEventListener("click", continuarSinAula);
 document.querySelectorAll("[data-go-exam]").forEach(btn => {
   btn.addEventListener("click", () => {
-    if (!aulaActualValida()) {
-      renderExamenesHub();
-      return;
-    }
-    activarNav(btn.dataset.goExam);
-    if (btn.dataset.goExam?.startsWith("nivel")) abrirNivel(btn.dataset.goExam);
+    navegarAExamen(btn.dataset.goExam);
   });
 });
 document.querySelectorAll("[data-role-choice]").forEach(btn => {

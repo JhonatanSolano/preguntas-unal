@@ -971,6 +971,69 @@ body.admin-mode #sectionExamenes .exams-hub {
   opacity: .55;
   cursor: not-allowed;
 }
+.student-exam-selector {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.35rem;
+  padding: 1rem;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, #fff, #f7fcff);
+  text-align: left;
+  box-shadow: var(--shadow-sm);
+}
+.student-exam-selector-head h3 {
+  margin: .2rem 0 .25rem;
+  color: var(--c-navy);
+  font-size: clamp(1.25rem, 2.7vw, 1.65rem);
+}
+.student-exam-selector-head p {
+  margin: 0;
+  color: var(--c-muted);
+}
+.student-exam-selector-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: .75rem;
+}
+.student-exam-selector-grid label {
+  display: grid;
+  gap: .35rem;
+  color: var(--c-navy);
+  font-weight: 900;
+}
+.student-exam-selector-grid select {
+  min-width: 0;
+  width: 100%;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--c-text);
+  padding: .8rem .85rem;
+  font: inherit;
+  font-weight: 800;
+}
+.student-exam-choice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .9rem;
+  border: 1px solid rgba(13, 148, 136, .2);
+  border-radius: var(--radius-sm);
+  background: #eefbfb;
+}
+.student-exam-choice strong,
+.student-exam-choice span {
+  display: block;
+}
+.student-exam-choice strong {
+  color: var(--c-navy);
+}
+.student-exam-choice span {
+  color: var(--c-muted);
+  font-size: .92rem;
+}
 .admin-exam-bank-panel {
   display: grid;
   width: 100%;
@@ -14840,6 +14903,23 @@ body:not(.app-active) .pricing-grid.single .pricing-card {
   }
 
   .notebooklm-card .btn {
+    width: 100%;
+  }
+
+  .student-exam-selector {
+    padding: .9rem !important;
+  }
+
+  .student-exam-selector-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .student-exam-choice {
+    align-items: stretch !important;
+    flex-direction: column !important;
+  }
+
+  .student-exam-choice .btn {
     width: 100%;
   }
 
