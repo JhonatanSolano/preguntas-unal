@@ -1082,10 +1082,10 @@ const STORAGE_ASESOR_CHAT = "matematicasBolsilloAsesorIA";
 const STORAGE_INVITE_TOKEN = "matematicasBolsilloInviteToken";
 const INACTIVIDAD_MS = 10 * 60 * 1000;
 const ASESOR_INACTIVIDAD_MS = 10 * 60 * 1000;
-const BANCOS_DISPONIBLES = ["principal", ...Array.from({ length: 10 }, (_, i) => `reserva${i + 1}`)];
+const BANCOS_DISPONIBLES = ["principal"];
 const NOMBRES_BANCOS = Object.fromEntries(BANCOS_DISPONIBLES.map((banco, idx) => [
   banco,
-  idx === 0 ? "Banco principal" : `Reserva ${idx}`
+  "Examen principal"
 ]));
 
 /* ════════════════════════════════════════════════════════
@@ -1571,12 +1571,12 @@ function beneficiosPlan() {
   return esProfesor()
     ? [
         "Creación y administración de aulas",
-        "Bancos, exámenes y preguntas personalizadas",
+        "Exámenes y preguntas personalizadas",
         "Mensajería y seguimiento académico",
         "Métricas por aula y Asesor IA"
       ]
     : [
-        "Exámenes y bancos habilitados por el profesor",
+        "Exámenes habilitados por el profesor",
         "Dos intentos y resultados persistentes",
         "Estadísticas de aprendizaje",
         "Mensajería académica y Asesor IA"
@@ -2316,7 +2316,7 @@ function cambiarBanco(delta) {
   const nuevoIdx = idx + delta;
   if (nuevoIdx < 0 || nuevoIdx >= BANCOS_DISPONIBLES.length) return;
   if (tienePlanGratisIndependiente() && BANCOS_DISPONIBLES[nuevoIdx] !== "principal") {
-    alert("El plan gratis solo habilita el Banco principal. Activa Premium para acceder a los bancos de reserva.");
+    alert("El plan gratis solo habilita Aritmética. Activa Premium para acceder a todos los temas.");
     activarNav("suscripcion");
     return;
   }
@@ -3279,7 +3279,7 @@ function actualizarBienvenida() {
   }
   if (texto) {
     texto.textContent = tienePruebaDiagnosticoGratis()
-      ? "Tienes activa la versión gratuita: en Aprendizaje solo puedes estudiar Aritmética y presentar los exámenes asociados al Banco principal. Para los demás temas, bancos, mensajes, Asesor IA y beneficios debes activar Premium."
+      ? "Tienes activa la versión gratuita: en Aprendizaje solo puedes estudiar Aritmética y presentar sus exámenes por nivel. Para los demás temas, mensajes, Asesor IA y beneficios debes activar Premium."
       : !suscripcionActiva()
       ? "Tu cuenta está activa, pero las herramientas académicas están limitadas hasta que actives una suscripción o ingreses mediante una institución con plan vigente. Puedes completar tu perfil, revisar Suscripción y Facturación, y contactar soporte si necesitas ayuda."
       : aulaActualValida()
@@ -3303,7 +3303,7 @@ function renderExamenesHub() {
   const teacherBuilder = document.getElementById("teacherQuestionBuilder");
   if (modoAdmin) {
     if (locked) locked.hidden = true;
-    if (intro) intro.textContent = "Consulta los bancos de preguntas organizados por banco y nivel.";
+    if (intro) intro.textContent = "Consulta los exámenes organizados por tema, subtema y nivel.";
     studentHub?.classList.add("hidden");
     studentSelector?.classList.add("hidden");
     teacherRouteSelector?.classList.remove("hidden");
@@ -3328,7 +3328,7 @@ function renderExamenesHub() {
     intro.textContent = sinAula
       ? "Cuando ingreses el código de aula, podrás presentar los exámenes habilitados por tu profesor."
       : tienePruebaDiagnosticoGratis()
-      ? "Tu versión gratuita incluye únicamente exámenes relacionados con Aritmética en el Banco principal. Para otros temas, bancos, mensajes y Asesor IA debes activar Premium."
+      ? "Tu versión gratuita incluye únicamente exámenes relacionados con Aritmética. Para otros temas, mensajes y Asesor IA debes activar Premium."
       : "Elige el examen que vas a presentar o revisar.";
   }
   renderStudentExamSelector(sinAula);
@@ -3551,22 +3551,21 @@ function renderAdminExamBanks() {
     ["nivel1", "Nivel Medio", banco => preguntasNivelMedioParaBanco(banco)],
     ["examen", "Examen Final", () => PREGUNTAS_EXAMEN]
   ];
-  const banksToRender = modoAdmin ? [route.bank] : BANCOS_DISPONIBLES;
+  const bank = "principal";
   const levelsToRender = modoAdmin ? niveles.filter(([clave]) => clave === routeLevel) : niveles;
   cont.innerHTML = `
     ${modoAdmin ? `
       <article class="teacher-exam-route-summary">
         <strong>${escapeHtml(routeBranch.title)} · ${escapeHtml(routeTopic.title)} · ${escapeHtml(routeSubtopic?.title || routeTopic.title)}</strong>
-        <span>${escapeHtml(NOMBRES_BANCOS[route.bank] || route.bank)} · ${escapeHtml(LEVEL_LABELS[route.level])}</span>
+        <span>${escapeHtml(LEVEL_LABELS[route.level])}</span>
       </article>
     ` : ""}
-    ${banksToRender.map(banco => `
-    <details class="accordion-card admin-bank-card" data-admin-bank-card="${escapeHtml(banco)}">
-      <summary>${NOMBRES_BANCOS[banco]}</summary>
+    <details class="accordion-card admin-bank-card" data-admin-bank-card="principal" open>
+      <summary>Examen por nivel</summary>
       <div class="admin-bank-levels">
         ${levelsToRender.map(([clave, nombre, resolver]) => {
           const preguntas = modoAdmin
-            ? combinarPreguntasNivel(clave, banco, adminClaseActiva || "", {
+            ? combinarPreguntasNivel(clave, bank, adminClaseActiva || "", {
                 branchId: route.branchId,
                 topicId: route.topicId,
                 subtopicId: route.subtopicId
@@ -3576,11 +3575,11 @@ function renderAdminExamBanks() {
                   ? [question.branchTitle, question.topicTitle, question.subtopicTitle].filter(Boolean).join(" · ")
                   : "Pregunta base sin tema asignado"
               }))
-            : resolver(banco);
+            : resolver(bank);
           return `
             <details class="accordion-card admin-level-card" data-admin-level-card="${escapeHtml(clave)}">
               <summary>${nombre} · ${preguntas.length} preguntas</summary>
-              <div class="question-preview-list" data-admin-bank="${banco}" data-admin-level="${clave}">
+              <div class="question-preview-list" data-admin-bank="principal" data-admin-level="${clave}">
                 ${renderQuestionPreviewList(preguntas)}
               </div>
             </details>
@@ -3588,7 +3587,7 @@ function renderAdminExamBanks() {
         }).join("")}
       </div>
     </details>
-  `).join("")}`;
+  `;
   reRenderKatex(cont);
 }
 
@@ -3643,17 +3642,16 @@ function teacherQuestionDraft() {
   const correctRaw = document.getElementById("teacherCorrectOption")?.value ?? "";
   const classId = document.getElementById("teacherQuestionClass")?.value || "";
   const selectedClass = aulaPorId(classId);
-  const branchId = document.getElementById("teacherQuestionBranch")?.value || LEARNING_CATALOG[0]?.id || "";
-  const branch = LEARNING_CATALOG.find(item => item.id === branchId) || LEARNING_CATALOG[0];
-  const topicId = document.getElementById("teacherQuestionTopic")?.value || branch?.topics?.[0]?.id || "";
-  const topic = branch?.topics?.find(item => item.id === topicId) || branch?.topics?.[0];
-  const subtopicId = document.getElementById("teacherQuestionSubtopic")?.value || topic?.subtopics?.[0]?.id || topicId;
+  const option = parseExamTopicValue(document.getElementById("teacherQuestionTopic")?.value || "", LEARNING_CATALOG);
+  const branch = option?.branch || LEARNING_CATALOG[0];
+  const topic = option?.topic || branch?.topics?.[0];
+  const subtopicId = document.getElementById("teacherQuestionSubtopic")?.value || topic?.subtopics?.[0]?.id || topic?.id || "";
   const subtopic = (topic?.subtopics || []).find(item => item.id === subtopicId) || topic?.subtopics?.[0];
   return {
     classId,
     className: selectedClass?.name || "",
     level: document.getElementById("teacherQuestionLevel")?.value || "diagnostico",
-    bank: document.getElementById("teacherQuestionBank")?.value || "principal",
+    bank: "principal",
     branchId: branch?.id || "",
     branchTitle: branch?.title || "",
     topicId: topic?.id || "",
@@ -3759,18 +3757,16 @@ function resetTeacherQuestionBuilder() {
 }
 
 function renderTeacherQuestionRouteSelector(selection = resolveTeacherExamRoute()) {
-  const branchSelect = document.getElementById("teacherQuestionBranch");
   const topicSelect = document.getElementById("teacherQuestionTopic");
   const subtopicSelect = document.getElementById("teacherQuestionSubtopic");
   const levelSelect = document.getElementById("teacherQuestionLevel");
-  if (!branchSelect || !topicSelect || !subtopicSelect) return;
-  const branch = LEARNING_CATALOG.find(item => item.id === selection.branchId) || LEARNING_CATALOG[0];
-  const topic = branch.topics.find(item => item.id === selection.topicId) || branch.topics[0];
+  if (!topicSelect || !subtopicSelect) return;
+  const option = selectedExamTopicOption(selection, LEARNING_CATALOG);
+  const branch = option.branch;
+  const topic = option.topic;
   const subtopic = (topic.subtopics || []).find(item => item.id === selection.subtopicId) || topic.subtopics?.[0];
-  branchSelect.innerHTML = LEARNING_CATALOG.map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.title)}</option>`).join("");
-  branchSelect.value = branch.id;
-  topicSelect.innerHTML = branch.topics.map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.title)}</option>`).join("");
-  topicSelect.value = topic.id;
+  topicSelect.innerHTML = examTopicOptions(LEARNING_CATALOG).map(item => `<option value="${escapeHtml(item.value)}">${escapeHtml(item.label)}</option>`).join("");
+  topicSelect.value = examTopicValue(branch.id, topic.id);
   subtopicSelect.innerHTML = (topic.subtopics || []).map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.title)}</option>`).join("");
   subtopicSelect.value = subtopic?.id || topic.id;
   if (levelSelect && LEVEL_TO_EXAM[selection.level]) levelSelect.value = LEVEL_TO_EXAM[selection.level];
@@ -3881,13 +3877,7 @@ async function initializeTeacherQuestionBuilder() {
   const builder = document.getElementById("teacherQuestionBuilder");
   if (!builder || !modoAdmin || !usuarioActual) return;
   builder.classList.remove("hidden");
-  const bankSelect = document.getElementById("teacherQuestionBank");
   const classSelect = document.getElementById("teacherQuestionClass");
-  if (bankSelect && !bankSelect.options.length) {
-    bankSelect.innerHTML = BANCOS_DISPONIBLES
-      .map(bank => `<option value="${bank}">${NOMBRES_BANCOS[bank]}</option>`)
-      .join("");
-  }
   if (classSelect) {
     classSelect.innerHTML = adminClases.length
       ? adminClases.map(classroom => `<option value="${classroom.id}">${escapeHtml(classroom.name)} (${escapeHtml(classroom.code || "")})</option>`).join("")
@@ -3932,12 +3922,12 @@ function actualizarBancoEstudiante() {
   }
   const idx = indiceBancoActivo();
   const completado = bancoCompletado();
-  title.textContent = `${NOMBRES_BANCOS[bancoActivo]} (${idx + 1} de ${BANCOS_DISPONIBLES.length})`;
+  title.textContent = "Exámenes por nivel";
   text.textContent = tienePlanGratisIndependiente()
-    ? "Plan gratis: usa únicamente Aritmética y sus exámenes del Banco principal. Activa Premium para desbloquear todo."
+    ? "Plan gratis: usa únicamente Aritmética y sus exámenes por nivel. Activa Premium para desbloquear todo."
     : completado
-    ? "Este banco ya está completo. Puedes revisar sus resultados o avanzar al siguiente banco."
-    : "Completa diagnóstico, nivel medio y examen final para avanzar al siguiente banco.";
+    ? "Ya completaste los tres niveles. Puedes revisar tus resultados cuando quieras."
+    : "Completa diagnóstico, nivel medio y examen final para cerrar esta ruta.";
   const items = [
     ["diagnostico", "Diagnóstico"],
     ["nivel1", "Nivel Medio"],
@@ -4351,6 +4341,31 @@ function visibleLearningCatalog() {
   return tienePlanGratisIndependiente() ? LEARNING_CATALOG.filter(item => item.id === "aritmetica") : LEARNING_CATALOG;
 }
 
+function examTopicOptions(catalog = visibleLearningCatalog()) {
+  return catalog.flatMap(branch =>
+    branch.topics.map(topic => ({
+      value: `${branch.id}::${topic.id}`,
+      branch,
+      topic,
+      label: `${branch.title} · ${topic.title}`
+    }))
+  );
+}
+
+function selectedExamTopicOption(selection = resolveLearningSelection(), catalog = visibleLearningCatalog()) {
+  const options = examTopicOptions(catalog);
+  return options.find(option => option.branch.id === selection.branchId && option.topic.id === selection.topicId) || options[0];
+}
+
+function examTopicValue(branchId, topicId) {
+  return `${branchId}::${topicId}`;
+}
+
+function parseExamTopicValue(value = "", catalog = visibleLearningCatalog()) {
+  const [branchId, topicId] = String(value).split("::");
+  return selectedExamTopicOption({ branchId, topicId }, catalog);
+}
+
 function resolveLearningSelection(selection = getLearningLast()) {
   const requestedBranchId = tienePlanGratisIndependiente() ? "aritmetica" : selection?.branchId;
   const branch = LEARNING_CATALOG.find(item => item.id === requestedBranchId) || LEARNING_CATALOG[0];
@@ -4424,7 +4439,7 @@ function resolveTeacherExamRoute(selection = getTeacherExamRoute()) {
   const base = resolveLearningSelection(selection || getLearningLast());
   return {
     ...base,
-    bank: BANCOS_DISPONIBLES.includes(selection?.bank) ? selection.bank : (bancoActivo || "principal"),
+    bank: "principal",
     level: LEVEL_LABELS[selection?.level] ? selection.level : (base.level || "facil")
   };
 }
@@ -5118,25 +5133,11 @@ document.getElementById("sectionAprendizaje")?.addEventListener("change", event 
 });
 
 document.getElementById("sectionExamenes")?.addEventListener("change", event => {
-  if (event.target.matches("#teacherExamBankSelect")) {
-    guardarTeacherExamRoute({ ...resolveTeacherExamRoute(), bank: event.target.value });
-    renderTeacherExamRouteSelector();
-    renderAdminExamBanks();
-    return;
-  }
-  if (event.target.matches("#teacherExamBranchSelect")) {
-    const branch = LEARNING_CATALOG.find(item => item.id === event.target.value) || LEARNING_CATALOG[0];
-    const topic = branch.topics[0];
-    guardarTeacherExamRoute({ ...resolveTeacherExamRoute(), branchId: branch.id, topicId: topic.id, subtopicId: topic.subtopics?.[0]?.id || topic.id });
-    renderTeacherExamRouteSelector();
-    renderAdminExamBanks();
-    return;
-  }
   if (event.target.matches("#teacherExamTopicSelect")) {
-    const selection = resolveTeacherExamRoute();
-    const branch = LEARNING_CATALOG.find(item => item.id === selection.branchId) || LEARNING_CATALOG[0];
-    const topic = branch.topics.find(item => item.id === event.target.value) || branch.topics[0];
-    guardarTeacherExamRoute({ ...selection, topicId: topic.id, subtopicId: topic.subtopics?.[0]?.id || topic.id });
+    const option = parseExamTopicValue(event.target.value, LEARNING_CATALOG);
+    const branch = option.branch;
+    const topic = option.topic;
+    guardarTeacherExamRoute({ ...resolveTeacherExamRoute(), branchId: branch.id, topicId: topic.id, subtopicId: topic.subtopics?.[0]?.id || topic.id });
     renderTeacherExamRouteSelector();
     renderAdminExamBanks();
     return;
@@ -5153,41 +5154,25 @@ document.getElementById("sectionExamenes")?.addEventListener("change", event => 
     renderAdminExamBanks();
     return;
   }
-  if (event.target.matches("#teacherQuestionBranch")) {
-    const branch = LEARNING_CATALOG.find(item => item.id === event.target.value) || LEARNING_CATALOG[0];
-    const topic = branch.topics[0];
-    const level = EXAM_TO_LEVEL[document.getElementById("teacherQuestionLevel")?.value || "diagnostico"] || "facil";
-    renderTeacherQuestionRouteSelector({ branchId: branch.id, topicId: topic.id, subtopicId: topic.subtopics?.[0]?.id || topic.id, level });
-    renderTeacherQuestionPreview();
-    return;
-  }
   if (event.target.matches("#teacherQuestionTopic")) {
-    const branchId = document.getElementById("teacherQuestionBranch")?.value || LEARNING_CATALOG[0].id;
-    const branch = LEARNING_CATALOG.find(item => item.id === branchId) || LEARNING_CATALOG[0];
-    const topic = branch.topics.find(item => item.id === event.target.value) || branch.topics[0];
+    const option = parseExamTopicValue(event.target.value, LEARNING_CATALOG);
+    const branch = option.branch;
+    const topic = option.topic;
     const level = EXAM_TO_LEVEL[document.getElementById("teacherQuestionLevel")?.value || "diagnostico"] || "facil";
     renderTeacherQuestionRouteSelector({ branchId: branch.id, topicId: topic.id, subtopicId: topic.subtopics?.[0]?.id || topic.id, level });
     renderTeacherQuestionPreview();
     return;
   }
-  if (event.target.matches("#teacherQuestionSubtopic, #teacherQuestionLevel, #teacherQuestionBank, #teacherQuestionClass")) {
+  if (event.target.matches("#teacherQuestionSubtopic, #teacherQuestionLevel, #teacherQuestionClass")) {
     renderTeacherQuestionPreview();
-  }
-  if (event.target.matches("#examBranchSelect")) {
-    const catalog = visibleLearningCatalog();
-    const branch = catalog.find(item => item.id === event.target.value) || catalog[0];
-    const topic = branch.topics[0];
-    const selection = resolveExamSelectorSelection();
-    guardarExamSelector({ branchId: branch.id, topicId: topic.id, subtopicId: topic.subtopics?.[0]?.id || topic.id, level: selection.level });
-    renderStudentExamSelector();
-    return;
   }
   if (event.target.matches("#examTopicSelect")) {
     const selection = resolveExamSelectorSelection();
     const catalog = visibleLearningCatalog();
-    const branch = catalog.find(item => item.id === selection.branchId) || catalog[0];
-    const topic = branch.topics.find(item => item.id === event.target.value) || branch.topics[0];
-    guardarExamSelector({ ...selection, topicId: topic.id, subtopicId: topic.subtopics?.[0]?.id || topic.id });
+    const option = parseExamTopicValue(event.target.value, catalog);
+    const branch = option.branch;
+    const topic = option.topic;
+    guardarExamSelector({ ...selection, branchId: branch.id, topicId: topic.id, subtopicId: topic.subtopics?.[0]?.id || topic.id });
     renderStudentExamSelector();
     return;
   }
@@ -11250,25 +11235,23 @@ function asegurarTarjetaWhatsappVisible() {
 
 function renderStudentExamSelector(sinAula = !aulaActualValida()) {
   const wrapper = document.getElementById("studentExamSelector");
-  const branchSelect = document.getElementById("examBranchSelect");
   const topicSelect = document.getElementById("examTopicSelect");
   const subtopicSelect = document.getElementById("examSubtopicSelect");
   const levelSelect = document.getElementById("examLevelSelect");
   const title = document.getElementById("studentExamChoiceTitle");
   const meta = document.getElementById("studentExamChoiceMeta");
   const startBtn = document.getElementById("btnStartSelectedExam");
-  if (!wrapper || !branchSelect || !topicSelect || !subtopicSelect || !levelSelect || !startBtn) return;
+  if (!wrapper || !topicSelect || !subtopicSelect || !levelSelect || !startBtn) return;
 
   const selection = resolveExamSelectorSelection();
   guardarExamSelector(selection);
   const catalog = visibleLearningCatalog();
-  const branch = catalog.find(item => item.id === selection.branchId) || catalog[0];
-  const topic = branch.topics.find(item => item.id === selection.topicId) || branch.topics[0];
+  const option = selectedExamTopicOption(selection, catalog);
+  const branch = option.branch;
+  const topic = option.topic;
   const subtopic = (topic.subtopics || []).find(item => item.id === selection.subtopicId) || topic.subtopics?.[0] || makeLearningSubtopic(branch.title, topic.title, topic.title, topic.summary);
-  branchSelect.innerHTML = catalog.map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.title)}</option>`).join("");
-  branchSelect.value = branch.id;
-  topicSelect.innerHTML = branch.topics.map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.title)}</option>`).join("");
-  topicSelect.value = topic.id;
+  topicSelect.innerHTML = examTopicOptions(catalog).map(item => `<option value="${escapeHtml(item.value)}">${escapeHtml(item.label)}</option>`).join("");
+  topicSelect.value = examTopicValue(branch.id, topic.id);
   subtopicSelect.innerHTML = (topic.subtopics || []).map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.title)}</option>`).join("");
   subtopicSelect.value = subtopic.id;
   levelSelect.innerHTML = Object.entries(LEVEL_LABELS).map(([key, label]) => `<option value="${escapeHtml(key)}">${escapeHtml(label)}</option>`).join("");
@@ -11284,7 +11267,7 @@ function renderStudentExamSelector(sinAula = !aulaActualValida()) {
   if (meta) {
     meta.textContent = disabled
       ? (sinAula ? "Tu aula debe estar activa para presentar exámenes." : bloqueadoGratis ? "Este examen requiere Plan Premium." : estadoExamenTexto(estado))
-      : `${branch.title} · ${subtopic.title} · ${etiquetaDuracionNivel(selection.level)}`;
+      : `${subtopic.title} · ${etiquetaDuracionNivel(selection.level)}`;
   }
   startBtn.disabled = disabled;
   startBtn.textContent = disabled ? "No disponible" : `Hacer examen ${LEVEL_LABELS[selection.level]}`;
@@ -11293,24 +11276,19 @@ function renderStudentExamSelector(sinAula = !aulaActualValida()) {
 
 function renderTeacherExamRouteSelector() {
   const wrapper = document.getElementById("teacherExamRouteSelector");
-  const bankSelect = document.getElementById("teacherExamBankSelect");
-  const branchSelect = document.getElementById("teacherExamBranchSelect");
   const topicSelect = document.getElementById("teacherExamTopicSelect");
   const subtopicSelect = document.getElementById("teacherExamSubtopicSelect");
   const levelSelect = document.getElementById("teacherExamLevelSelect");
-  if (!wrapper || !bankSelect || !branchSelect || !topicSelect || !subtopicSelect || !levelSelect) return;
+  if (!wrapper || !topicSelect || !subtopicSelect || !levelSelect) return;
   const selection = resolveTeacherExamRoute();
   guardarTeacherExamRoute(selection);
   const catalog = LEARNING_CATALOG;
-  const branch = catalog.find(item => item.id === selection.branchId) || catalog[0];
-  const topic = branch.topics.find(item => item.id === selection.topicId) || branch.topics[0];
+  const option = selectedExamTopicOption(selection, catalog);
+  const branch = option.branch;
+  const topic = option.topic;
   const subtopic = (topic.subtopics || []).find(item => item.id === selection.subtopicId) || topic.subtopics?.[0] || makeLearningSubtopic(branch.title, topic.title, topic.title, topic.summary);
-  bankSelect.innerHTML = BANCOS_DISPONIBLES.map(bank => `<option value="${escapeHtml(bank)}">${escapeHtml(NOMBRES_BANCOS[bank])}</option>`).join("");
-  bankSelect.value = selection.bank;
-  branchSelect.innerHTML = catalog.map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.title)}</option>`).join("");
-  branchSelect.value = branch.id;
-  topicSelect.innerHTML = branch.topics.map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.title)}</option>`).join("");
-  topicSelect.value = topic.id;
+  topicSelect.innerHTML = examTopicOptions(catalog).map(item => `<option value="${escapeHtml(item.value)}">${escapeHtml(item.label)}</option>`).join("");
+  topicSelect.value = examTopicValue(branch.id, topic.id);
   subtopicSelect.innerHTML = (topic.subtopics || []).map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.title)}</option>`).join("");
   subtopicSelect.value = subtopic.id;
   levelSelect.innerHTML = Object.entries(LEVEL_LABELS).map(([level, label]) => `<option value="${escapeHtml(level)}">${escapeHtml(label)}</option>`).join("");
