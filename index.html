@@ -33,7 +33,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="style.css?v=20260910-04" />
+  <link rel="stylesheet" href="style.css?v=20260910-06" />
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -1530,6 +1530,52 @@
         <p class="bank-status" id="googleLinkStatus"></p>
       </details>
 
+      <details class="profile-panel accordion-card hidden" id="profileAccountPanel">
+        <summary>Cuenta</summary>
+        <div class="password-settings-grid password-settings-grid-single">
+          <section id="updatePasswordSection">
+            <h3>Cambiar contraseña</h3>
+            <p>Escribe tu contraseña actual y confirma la nueva contraseña.</p>
+            <div class="password-wrap">
+              <input type="password" id="updatePasswordCurrent" class="admin-input" placeholder="Contraseña actual" autocomplete="current-password" />
+              <button class="password-toggle" type="button" data-toggle-password="updatePasswordCurrent" aria-label="Ver contraseña"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M2.25 12s3.5-6.25 9.75-6.25S21.75 12 21.75 12s-3.5 6.25-9.75 6.25S2.25 12 2.25 12Z"/><circle cx="12" cy="12" r="2.75"/></svg></button>
+            </div>
+            <div class="password-wrap">
+              <input type="password" id="updatePasswordNew" class="admin-input" placeholder="Nueva contraseña" autocomplete="new-password" />
+              <button class="password-toggle" type="button" data-toggle-password="updatePasswordNew" aria-label="Ver contraseña"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M2.25 12s3.5-6.25 9.75-6.25S21.75 12 21.75 12s-3.5 6.25-9.75 6.25S2.25 12 2.25 12Z"/><circle cx="12" cy="12" r="2.75"/></svg></button>
+            </div>
+            <div class="password-wrap">
+              <input type="password" id="updatePasswordConfirm" class="admin-input" placeholder="Repetir nueva contraseña" autocomplete="new-password" />
+              <button class="password-toggle" type="button" data-toggle-password="updatePasswordConfirm" aria-label="Ver contraseña"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M2.25 12s3.5-6.25 9.75-6.25S21.75 12 21.75 12s-3.5 6.25-9.75 6.25S2.25 12 2.25 12Z"/><circle cx="12" cy="12" r="2.75"/></svg></button>
+            </div>
+            <div class="password-rules compact" id="updatePasswordRules">
+              <p data-rule="length">Mínimo 8 caracteres</p>
+              <p data-rule="upper">Mínimo una mayúscula</p>
+              <p data-rule="numbers">Mínimo dos números</p>
+              <p data-rule="symbol">Mínimo un símbolo permitido: ! @ # $ % ^ & * ( ) _ + - = [ ] { } ; : , . ?</p>
+            </div>
+            <button class="btn btn-secondary" id="btnUpdatePassword" type="button">Cambiar contraseña</button>
+            <p class="bank-status" id="updatePasswordStatus"></p>
+          </section>
+        </div>
+        <div class="danger-zone profile-account-danger" id="profileStudentDeleteBlock">
+          <h3>Eliminar cuenta permanentemente</h3>
+          <p>Eliminar la cuenta es irreversible. Se solicitará contraseña y confirmación antes de borrar datos.</p>
+          <input type="password" id="deleteAccountPassword" class="admin-input" placeholder="Contraseña" />
+          <label class="confirm-row"><input type="checkbox" id="deleteAccountConfirm" /> Entiendo que esta acción es irreversible.</label>
+          <button class="btn btn-secondary" id="btnDeleteAccount" type="button">Eliminar cuenta permanentemente</button>
+          <p class="bank-status" id="deleteAccountStatus"></p>
+        </div>
+        <div class="danger-zone profile-account-danger hidden" id="profileTeacherDeleteBlock">
+          <h3>Eliminar cuenta permanentemente</h3>
+          <p>Esta acción elimina de forma permanente tu cuenta de profesor y toda la información académica asociada.</p>
+          <input type="password" id="teacherDeletePassword" class="admin-input" placeholder="Contraseña" />
+          <label class="confirm-row"><input type="checkbox" id="teacherDeleteConfirm" /> Entiendo que esta acción es irreversible.</label>
+          <button class="btn btn-secondary" id="btnDeleteTeacherAccount" type="button">Eliminar mi cuenta de profesor</button>
+          <p class="bank-status" id="teacherDeleteStatus"></p>
+        </div>
+      </details>
+
       <details class="profile-panel phone-panel" id="phoneVerifyPanel">
         <summary>Verificar número de teléfono</summary>
         <img class="panel-logo" src="assets/icon-180.png" alt="Logo de Matemáticas En Tu Bolsillo" />
@@ -1552,16 +1598,6 @@
         <p class="bank-status" id="phoneStatus"></p>
       </details>
 
-      <details class="profile-panel accordion-card danger-zone hidden" id="teacherDeletePanel">
-        <summary>Cuenta</summary>
-        <h3>Eliminar cuenta permanentemente</h3>
-        <p>Esta acción elimina de forma permanente tu cuenta de profesor y toda la información académica asociada.</p>
-        <input type="password" id="teacherDeletePassword" class="admin-input" placeholder="Contraseña" />
-        <label class="confirm-row"><input type="checkbox" id="teacherDeleteConfirm" /> Entiendo que esta acción es irreversible.</label>
-        <button class="btn btn-secondary" id="btnDeleteTeacherAccount" type="button">Eliminar mi cuenta de profesor</button>
-        <p class="bank-status" id="teacherDeleteStatus"></p>
-      </details>
-
     </div>
   </main>
 
@@ -1580,55 +1616,6 @@
           <p class="bank-status" id="settingsClassStatus"></p>
         </details>
         <details class="accordion-card">
-          <summary>Contraseña</summary>
-          <div class="password-settings-grid">
-            <section id="createPasswordSection">
-              <h3>Crear contraseña</h3>
-              <p>Usa esta opción si tu cuenta aún no tiene contraseña.</p>
-              <div class="password-wrap">
-                <input type="password" id="createPasswordNew" class="admin-input" placeholder="Nueva contraseña" autocomplete="new-password" />
-                <button class="password-toggle" type="button" data-toggle-password="createPasswordNew" aria-label="Ver contraseña"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M2.25 12s3.5-6.25 9.75-6.25S21.75 12 21.75 12s-3.5 6.25-9.75 6.25S2.25 12 2.25 12Z"/><circle cx="12" cy="12" r="2.75"/></svg></button>
-              </div>
-              <div class="password-wrap">
-                <input type="password" id="createPasswordConfirm" class="admin-input" placeholder="Repetir contraseña" autocomplete="new-password" />
-                <button class="password-toggle" type="button" data-toggle-password="createPasswordConfirm" aria-label="Ver contraseña"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M2.25 12s3.5-6.25 9.75-6.25S21.75 12 21.75 12s-3.5 6.25-9.75 6.25S2.25 12 2.25 12Z"/><circle cx="12" cy="12" r="2.75"/></svg></button>
-              </div>
-              <div class="password-rules compact" id="createPasswordRules">
-                <p data-rule="length">Mínimo 8 caracteres</p>
-                <p data-rule="upper">Mínimo una mayúscula</p>
-                <p data-rule="numbers">Mínimo dos números</p>
-                <p data-rule="symbol">Mínimo un símbolo permitido: ! @ # $ % ^ & * ( ) _ + - = [ ] { } ; : , . ?</p>
-              </div>
-              <button class="btn btn-secondary" id="btnCreatePassword" type="button">Crear contraseña</button>
-              <p class="bank-status" id="createPasswordStatus"></p>
-            </section>
-            <section id="updatePasswordSection">
-              <h3>Actualizar contraseña</h3>
-              <p>Escribe tu contraseña actual y confirma la nueva contraseña.</p>
-              <div class="password-wrap">
-                <input type="password" id="updatePasswordCurrent" class="admin-input" placeholder="Contraseña actual" autocomplete="current-password" />
-                <button class="password-toggle" type="button" data-toggle-password="updatePasswordCurrent" aria-label="Ver contraseña"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M2.25 12s3.5-6.25 9.75-6.25S21.75 12 21.75 12s-3.5 6.25-9.75 6.25S2.25 12 2.25 12Z"/><circle cx="12" cy="12" r="2.75"/></svg></button>
-              </div>
-              <div class="password-wrap">
-                <input type="password" id="updatePasswordNew" class="admin-input" placeholder="Nueva contraseña" autocomplete="new-password" />
-                <button class="password-toggle" type="button" data-toggle-password="updatePasswordNew" aria-label="Ver contraseña"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M2.25 12s3.5-6.25 9.75-6.25S21.75 12 21.75 12s-3.5 6.25-9.75 6.25S2.25 12 2.25 12Z"/><circle cx="12" cy="12" r="2.75"/></svg></button>
-              </div>
-              <div class="password-wrap">
-                <input type="password" id="updatePasswordConfirm" class="admin-input" placeholder="Repetir nueva contraseña" autocomplete="new-password" />
-                <button class="password-toggle" type="button" data-toggle-password="updatePasswordConfirm" aria-label="Ver contraseña"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M2.25 12s3.5-6.25 9.75-6.25S21.75 12 21.75 12s-3.5 6.25-9.75 6.25S2.25 12 2.25 12Z"/><circle cx="12" cy="12" r="2.75"/></svg></button>
-              </div>
-              <div class="password-rules compact" id="updatePasswordRules">
-                <p data-rule="length">Mínimo 8 caracteres</p>
-                <p data-rule="upper">Mínimo una mayúscula</p>
-                <p data-rule="numbers">Mínimo dos números</p>
-                <p data-rule="symbol">Mínimo un símbolo permitido: ! @ # $ % ^ & * ( ) _ + - = [ ] { } ; : , . ?</p>
-              </div>
-              <button class="btn btn-secondary" id="btnUpdatePassword" type="button">Actualizar contraseña</button>
-              <p class="bank-status" id="updatePasswordStatus"></p>
-            </section>
-          </div>
-        </details>
-        <details class="accordion-card">
           <summary>Notificaciones</summary>
           <div class="notification-setting">
             <div>
@@ -1641,14 +1628,6 @@
             </label>
           </div>
           <p class="bank-status" id="studentNotificationStatus"></p>
-        </details>
-        <details class="accordion-card danger-zone">
-          <summary>Cuenta</summary>
-          <p>Eliminar la cuenta es irreversible. Se solicitará contraseña y confirmación antes de borrar datos.</p>
-          <input type="password" id="deleteAccountPassword" class="admin-input" placeholder="Contraseña" />
-          <label class="confirm-row"><input type="checkbox" id="deleteAccountConfirm" /> Entiendo que esta acción es irreversible.</label>
-          <button class="btn btn-secondary" id="btnDeleteAccount" type="button">Eliminar cuenta permanentemente</button>
-          <p class="bank-status" id="deleteAccountStatus"></p>
         </details>
       </section>
 
@@ -2216,6 +2195,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260910-05"></script>
+  <script type="module" src="script.js?v=20260910-06"></script>
 </body>
 </html>

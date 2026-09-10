@@ -14,7 +14,6 @@ import {
   deleteUser,
   EmailAuthProvider,
   fetchSignInMethodsForEmail,
-  linkWithCredential,
   linkWithPopup,
   onAuthStateChanged,
   reauthenticateWithCredential,
@@ -6159,8 +6158,6 @@ function renderConfiguracion() {
       status.textContent = "Activa tu suscripción para ingresar o cambiar de aula.";
       status.className = "bank-status error";
     }
-    document.getElementById("createPasswordSection")?.classList.toggle("hidden", tienePasswordActual());
-    document.getElementById("updatePasswordSection")?.classList.toggle("hidden", !tienePasswordActual());
     if (active) actualizarBancoEstudiante();
   }
   if (esPropietarioPlataforma()) {
@@ -9973,7 +9970,10 @@ function renderProfile() {
   poblarUbicacion("profile", profile);
   document.getElementById("profileBirth")?.closest("label")?.classList.toggle("hidden", institucion);
   document.getElementById("profileGender")?.closest("label")?.classList.toggle("hidden", institucion);
-  document.getElementById("teacherDeletePanel")?.classList.toggle("hidden", !(modoAdmin || esPropietarioPlataforma()) || institucion);
+  const teacherAccount = (modoAdmin || esPropietarioPlataforma()) && !institucion;
+  document.getElementById("profileAccountPanel")?.classList.toggle("hidden", institucion);
+  document.getElementById("profileStudentDeleteBlock")?.classList.toggle("hidden", teacherAccount || institucion);
+  document.getElementById("profileTeacherDeleteBlock")?.classList.toggle("hidden", !teacherAccount || institucion);
   actualizarPanelGooglePerfil();
 }
 
@@ -12384,47 +12384,15 @@ async function estudianteCambiarClase() {
   renderProfile();
 }
 
-function resetCrearPasswordSection() {
-  ["createPasswordNew", "createPasswordConfirm"].forEach(id => {
+function resetActualizarPasswordSection() {
+  ["updatePasswordCurrent", "updatePasswordNew", "updatePasswordConfirm"].forEach(id => {
     const input = document.getElementById(id);
     if (!input) return;
     input.value = "";
     input.type = "password";
   });
-  actualizarReglasPasswordEn("createPasswordRules", "");
-  setStatus("createPasswordStatus", "", "");
-}
-
-async function crearPasswordEstudiante() {
-  const status = document.getElementById("createPasswordStatus");
-  const password = document.getElementById("createPasswordNew")?.value || "";
-  const confirm = document.getElementById("createPasswordConfirm")?.value || "";
-  setStatus("createPasswordStatus", "");
-  if (tienePasswordActual()) {
-    setStatus("createPasswordStatus", "Ya tiene contraseña.", "error");
-    return;
-  }
-  if (!actualizarReglasPasswordEn("createPasswordRules", password)) {
-    setStatus("createPasswordStatus", "La contraseña no cumple todos los requisitos.", "error");
-    return;
-  }
-  if (password !== confirm) {
-    setStatus("createPasswordStatus", "Las contraseñas no coinciden.", "error");
-    return;
-  }
-  try {
-    const credential = EmailAuthProvider.credential(usuarioActual.email, password);
-    await linkWithCredential(usuarioActual, credential);
-    await usuarioActual.reload();
-    usuarioActual = auth.currentUser;
-    document.getElementById("createPasswordNew").value = "";
-    document.getElementById("createPasswordConfirm").value = "";
-    actualizarReglasPasswordEn("createPasswordRules", "");
-    renderConfiguracion();
-    setStatus("createPasswordStatus", "Contraseña creada correctamente.");
-  } catch (err) {
-    setStatus("createPasswordStatus", mensajePasswordFirebase(err), "error");
-  }
+  actualizarReglasPasswordEn("updatePasswordRules", "");
+  setStatus("updatePasswordStatus", "", "");
 }
 
 async function actualizarPasswordEstudiante() {
@@ -12433,19 +12401,23 @@ async function actualizarPasswordEstudiante() {
   const confirm = document.getElementById("updatePasswordConfirm")?.value || "";
   setStatus("updatePasswordStatus", "");
   if (!tienePasswordActual()) {
-    setStatus("updatePasswordStatus", "Aún no tienes contraseña. Usa la opción Crear contraseña.", "error");
+    setStatusTemporal("updatePasswordStatus", "Esta cuenta no tiene contraseña activa para actualizar.", "error", 5000);
     return;
   }
   if (!actual) {
-    setStatus("updatePasswordStatus", "Escribe tu contraseña actual.", "error");
+    setStatusTemporal("updatePasswordStatus", "Escribe tu contraseña actual.", "error", 5000);
     return;
   }
   if (!actualizarReglasPasswordEn("updatePasswordRules", nueva)) {
-    setStatus("updatePasswordStatus", "La nueva contraseña no cumple todos los requisitos.", "error");
+    setStatusTemporal("updatePasswordStatus", "La contraseña no cumple las características.", "error", 5000);
+    return;
+  }
+  if (actual === nueva) {
+    setStatusTemporal("updatePasswordStatus", "La contraseña no puede ser la misma.", "error", 5000);
     return;
   }
   if (nueva !== confirm) {
-    setStatus("updatePasswordStatus", "Las contraseñas nuevas no coinciden.", "error");
+    setStatusTemporal("updatePasswordStatus", "Las contraseñas nuevas no coinciden.", "error", 5000);
     return;
   }
   try {
@@ -12457,9 +12429,9 @@ async function actualizarPasswordEstudiante() {
       if (input) input.value = "";
     });
     actualizarReglasPasswordEn("updatePasswordRules", "");
-    setStatus("updatePasswordStatus", "Contraseña actualizada correctamente.");
+    setStatusTemporal("updatePasswordStatus", "Contraseña actualizada.", "ok", 5000);
   } catch (err) {
-    setStatus("updatePasswordStatus", mensajePasswordFirebase(err), "error");
+    setStatusTemporal("updatePasswordStatus", mensajePasswordFirebase(err), "error", 5000);
   }
 }
 
@@ -13440,9 +13412,7 @@ document.getElementById("btnSettingsChangeGroup")?.addEventListener("click", est
 document.getElementById("btnSettingsBancoAnterior")?.addEventListener("click", () => cambiarBanco(-1));
 document.getElementById("btnSettingsBancoSiguiente")?.addEventListener("click", () => cambiarBanco(1));
 document.getElementById("btnSettingsChangeClass")?.addEventListener("click", estudianteCambiarClase);
-document.getElementById("btnCreatePassword")?.addEventListener("click", crearPasswordEstudiante);
 document.getElementById("btnUpdatePassword")?.addEventListener("click", actualizarPasswordEstudiante);
-document.getElementById("createPasswordNew")?.addEventListener("input", e => actualizarReglasPasswordEn("createPasswordRules", e.target.value));
 document.getElementById("updatePasswordNew")?.addEventListener("input", e => actualizarReglasPasswordEn("updatePasswordRules", e.target.value));
 document.getElementById("btnCreateClass")?.addEventListener("click", crearClaseAdmin);
 document.getElementById("btnCreateInstitutionClass")?.addEventListener("click", () => crearClaseAdmin({ nameId: "institutionClassName", gradeId: "institutionClassGrade", statusId: "institutionClassStatus", buttonId: "btnCreateInstitutionClass" }));
@@ -13604,7 +13574,7 @@ document.addEventListener("toggle", e => {
   const details = e.target;
   if (!(details instanceof HTMLDetailsElement)) return;
   if (!details.open) {
-    if (details.querySelector("#createPasswordSection")) resetCrearPasswordSection();
+    if (details.querySelector("#updatePasswordSection")) resetActualizarPasswordSection();
     if (details.querySelector("#deleteAccountPassword, #teacherDeletePassword")) resetEliminarCuentaSection();
     return;
   }
@@ -13654,8 +13624,6 @@ document.addEventListener("keydown", e => {
     profilePhone: "btnSendPhoneCode",
     profilePhoneCodeInput: "btnVerifyPhoneCode",
     settingsClassCode: "btnSettingsChangeClass",
-    createPasswordNew: "btnCreatePassword",
-    createPasswordConfirm: "btnCreatePassword",
     updatePasswordCurrent: "btnUpdatePassword",
     updatePasswordNew: "btnUpdatePassword",
     updatePasswordConfirm: "btnUpdatePassword",

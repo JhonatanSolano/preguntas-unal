@@ -3120,6 +3120,9 @@ button.message-avatar {
   gap: 1rem;
   margin-top: .8rem;
 }
+.password-settings-grid-single {
+  grid-template-columns: minmax(0, 1fr);
+}
 .password-settings-grid section {
   display: grid;
   align-content: start;
@@ -3138,6 +3141,13 @@ button.message-avatar {
   margin: 0;
   color: var(--c-muted);
   font-size: .86rem;
+}
+.profile-account-danger {
+  display: grid;
+  gap: .75rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(198, 40, 57, .18);
 }
 .auth-actions {
   display: flex;
