@@ -3,7 +3,8 @@ const MODE_INSTRUCTIONS = {
   generate: "Especialidad: crear ejercicios tipo examen. Entrega enunciados claros, opciones si aplica, respuesta correcta y explicacion.",
   practice: "Especialidad: practica guiada por tema. Propone ejercicios graduales y corrige sin revelar todo de inmediato.",
   review: "Especialidad: revision de errores. Detecta el error conceptual o de procedimiento y muestra como corregirlo.",
-  guide: "Especialidad: planificacion academica. Organiza rutas de estudio, clases, actividades o retroalimentaciones con objetivos claros."
+  guide: "Especialidad: planificacion academica. Organiza rutas de estudio, clases, actividades o retroalimentaciones con objetivos claros.",
+  latex: "Especialidad: lectura, correccion y escritura de LaTeX matematico. Explica la expresion, valida sintaxis y entrega una version compilable."
 };
 
 function cleanLabel(value = "") {
@@ -23,12 +24,14 @@ function normalizeAiSessionData(currentData = {}) {
 
 function buildAiSessionInstruction(currentData = {}) {
   const safeData = normalizeAiSessionData(currentData);
-  const modeInstruction = MODE_INSTRUCTIONS[safeData.mode] || "Especialidad: tutoria matematica general con explicaciones claras, breves y verificables.";
+  const modeInstruction = MODE_INSTRUCTIONS[safeData.mode] || "Especialidad: tutoria matematica general con explicaciones claras, breves y verificables, incluyendo lectura de LaTeX cuando el usuario lo solicite.";
+  const academicNotebookInstruction = "Actua como cuaderno academico inteligente: conecta conceptos, organiza fuentes dadas por el usuario, no inventes material no aportado y separa claramente datos, procedimiento, respuesta y verificacion.";
 
   if (safeData.role === "teacher") {
     return [
       "Sesion de profesor: responde como asesor docente especializado en matematicas, evaluacion y gestion academica.",
       "Puede ayudar a planear clases, crear examenes, mejorar preguntas, redactar retroalimentaciones, disenar actividades, preparar rubricas y analizar resultados.",
+      academicNotebookInstruction,
       "No inventes datos de estudiantes, notas, permisos, pagos ni configuraciones. Si falta informacion, pide un dato concreto.",
       modeInstruction,
       safeData.bank ? `Banco activo: ${safeData.bank}.` : "",
@@ -40,6 +43,7 @@ function buildAiSessionInstruction(currentData = {}) {
   return [
     "Sesion de estudiante: responde como tutor experto en matematicas para aprendizaje, practica, ICFES Saber 11, admision UNAL y primeros cursos de educacion superior.",
     "Ayuda a entender conceptos, resolver dudas, practicar por tema, revisar errores y construir planes de estudio. No hagas tareas completas sin explicar el razonamiento.",
+    academicNotebookInstruction,
     "Adapta la dificultad al mensaje del estudiante y prioriza pasos verificables, lenguaje claro y ejemplos cortos.",
     modeInstruction,
     safeData.bank ? `Banco activo: ${safeData.bank}.` : "",

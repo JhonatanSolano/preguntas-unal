@@ -33,7 +33,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="style.css?v=20260908-09" />
+  <link rel="stylesheet" href="style.css?v=20260909-01" />
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -2052,27 +2052,27 @@
     <div class="start-screen asesor-info-panel">
       <span class="cs-icon">∑</span>
       <h2>Asesor IA</h2>
-      <p>Tu tutor de matemáticas está listo para ayudarte a estudiar, resolver dudas y practicar con intención.</p>
+      <p>Tu cuaderno académico inteligente para estudiar matemáticas, organizar fuentes, trabajar con LaTeX y practicar con intención.</p>
       <div class="advisor-feature-grid">
+        <article>
+          <strong>Cuaderno académico</strong>
+          <span>Organiza dudas, fuentes y procedimientos con respuestas claras y verificables.</span>
+        </article>
         <article>
           <strong>Resolver preguntas</strong>
           <span>Pega un enunciado y recibe explicación paso a paso.</span>
+        </article>
+        <article>
+          <strong>LaTeX académico</strong>
+          <span>Lee, corrige y escribe fórmulas matemáticas listas para compilar.</span>
         </article>
         <article>
           <strong>Ejercicios tipo examen</strong>
           <span>Pide preguntas por tema, cantidad y dificultad.</span>
         </article>
         <article>
-          <strong>Practicar por tema</strong>
-          <span>Entrena álgebra, funciones, geometría, probabilidad y más.</span>
-        </article>
-        <article>
-          <strong>Revisar errores</strong>
-          <span>Entiende por qué fallaste y cómo evitarlo en el examen.</span>
-        </article>
-        <article>
           <strong>Plan de estudio</strong>
-          <span>Organiza una ruta corta según tus temas flojos.</span>
+          <span>Organiza una ruta corta según tus temas flojos y el tiempo disponible.</span>
         </article>
       </div>
       <button class="btn btn-primary" id="btnOpenAdvisorSection" type="button">Abrir Asesor IA</button>
@@ -2085,11 +2085,17 @@
       <header>
         <div>
           <strong>Asesor IA</strong>
-          <span>Matemáticas · UNAL · ICFES</span>
+          <span>Cuaderno académico · LaTeX · UNAL · ICFES</span>
         </div>
         <button class="advisor-close" id="btnAdvisorClose" type="button" aria-label="Cerrar asesor">×</button>
       </header>
-      <div class="advisor-quick" id="advisorQuickReplies"></div>
+      <details class="advisor-tools" id="advisorToolsPanel">
+        <summary>
+          <span>Herramientas académicas</span>
+          <small>Resolver, practicar, LaTeX y planes</small>
+        </summary>
+        <div class="advisor-quick" id="advisorQuickReplies"></div>
+      </details>
       <div class="advisor-messages" id="advisorMessages"></div>
       <form class="advisor-input-row" id="advisorForm">
         <input type="text" id="advisorInput" placeholder="Escribe tu pregunta, tema o instrucción..." autocomplete="off" />
@@ -2169,6 +2175,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260908-11"></script>
+  <script type="module" src="script.js?v=20260909-01"></script>
 </body>
 </html>

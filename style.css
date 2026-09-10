@@ -1765,8 +1765,8 @@ body.group-locked:not(.public-modal-open) #whatsappWidget.whatsapp-widget.open.s
   position: fixed;
   right: .9rem;
   bottom: 5.3rem;
-  width: min(420px, calc(100vw - 1.5rem));
-  height: min(640px, calc(100dvh - 7.2rem));
+  width: min(460px, calc(100vw - 1.5rem));
+  height: min(700px, calc(100dvh - 6.4rem));
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1802,13 +1802,55 @@ body.group-locked:not(.public-modal-open) #whatsappWidget.whatsapp-widget.open.s
   font-size: 1.3rem;
   cursor: pointer;
 }
+.advisor-tools {
+  border-bottom: 1px solid var(--c-border);
+  background: #fff;
+}
+.advisor-tools summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  padding: .7rem .85rem;
+  color: var(--c-navy);
+  font-weight: 900;
+  cursor: pointer;
+  list-style: none;
+}
+.advisor-tools summary::-webkit-details-marker {
+  display: none;
+}
+.advisor-tools summary::after {
+  content: "+";
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #eef8f8;
+  color: var(--c-teal-deep);
+  font-size: 1.1rem;
+}
+.advisor-tools[open] summary::after {
+  content: "−";
+}
+.advisor-tools summary span,
+.advisor-tools summary small {
+  display: block;
+}
+.advisor-tools summary small {
+  color: var(--c-muted);
+  font-size: .75rem;
+  font-weight: 700;
+}
 .advisor-quick {
   display: flex;
   flex-wrap: wrap;
   gap: .45rem;
-  padding: .7rem;
+  padding: 0 .75rem .75rem;
   overflow: visible;
-  border-bottom: 1px solid var(--c-border);
 }
 .advisor-quick button {
   flex: 1 1 128px;
@@ -1829,7 +1871,7 @@ body.group-locked:not(.public-modal-open) #whatsappWidget.whatsapp-widget.open.s
   align-content: start;
   gap: .75rem;
   overflow-y: auto;
-  padding: .9rem;
+  padding: .85rem;
   background: #f5f8fb;
 }
 .advisor-message {
@@ -13224,7 +13266,6 @@ body.group-locked.public-modal-open #btnBackToTop.back-to-top,
   .billing-tabs,
   .report-pagination,
   .message-actions,
-  .advisor-quick,
   .advisor-input-row {
     display: flex !important;
     flex-wrap: wrap !important;
@@ -13234,8 +13275,7 @@ body.group-locked.public-modal-open #btnBackToTop.back-to-top,
   .learning-actions .btn,
   .learning-report-link,
   .billing-tabs button,
-  .report-pagination .btn,
-  .advisor-quick button {
+  .report-pagination .btn {
     flex: 1 1 100% !important;
     min-width: 0 !important;
     white-space: normal !important;
@@ -13339,10 +13379,12 @@ body.group-locked.public-modal-open #btnBackToTop.back-to-top,
   }
 
   .advisor-chat-panel {
-    left: .75rem !important;
-    right: .75rem !important;
-    bottom: 5.5rem !important;
-    max-height: min(78dvh, 680px) !important;
+    left: auto !important;
+    right: clamp(.45rem, 2.5vw, .9rem) !important;
+    bottom: clamp(4.15rem, 10vw, 5.1rem) !important;
+    width: min(480px, calc(100vw - .9rem)) !important;
+    height: min(680px, calc(100dvh - 5.5rem)) !important;
+    max-height: calc(100dvh - 5.5rem) !important;
   }
 
   .advisor-messages {
@@ -14717,6 +14759,52 @@ body:not(.app-active) .pricing-grid.single .pricing-card {
 
 /* Mobile and tablet session layout: full-width sections and tight footer ending. */
 @media (max-width: 1024px) {
+  .advisor-widget {
+    right: clamp(.55rem, 3vw, 1rem) !important;
+    bottom: clamp(4.4rem, 11vw, 5.4rem) !important;
+  }
+
+  .advisor-chat-panel {
+    right: clamp(.45rem, 2.5vw, .9rem) !important;
+    bottom: clamp(4.15rem, 10vw, 5.1rem) !important;
+    width: min(480px, calc(100vw - .9rem)) !important;
+    height: min(680px, calc(100dvh - 5.5rem)) !important;
+    border-radius: clamp(18px, 5vw, 28px) !important;
+  }
+
+  .advisor-tools summary {
+    padding: .65rem .75rem !important;
+  }
+
+  .advisor-quick {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: .5rem !important;
+    max-height: min(38dvh, 285px);
+    overflow-y: auto;
+    padding: 0 .7rem .7rem !important;
+  }
+
+  .advisor-quick button {
+    width: 100%;
+    min-height: 42px;
+    padding: .5rem .7rem !important;
+    white-space: normal !important;
+  }
+
+  .advisor-messages {
+    padding: .7rem !important;
+  }
+
+  .advisor-message div {
+    max-width: min(84%, 340px) !important;
+  }
+
+  .advisor-input-row {
+    flex-wrap: nowrap !important;
+    padding: .65rem !important;
+  }
+
   body.app-active:not(.landing-menu-open),
   body.admin-mode:not(.landing-menu-open),
   body.exam-active:not(.landing-menu-open),

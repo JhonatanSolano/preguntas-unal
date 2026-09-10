@@ -32,6 +32,18 @@ test("builds a teacher advisor instruction for academic management", () => {
   assert.match(instruction, /Aula activa: Aula del dueno/);
 });
 
+test("builds an academic notebook instruction for latex support", () => {
+  const instruction = buildAiSessionInstruction({
+    role: "student",
+    mode: "latex",
+    modeLabel: "LaTeX academico"
+  });
+
+  assert.match(instruction, /cuaderno academico inteligente/);
+  assert.match(instruction, /LaTeX matematico/);
+  assert.match(instruction, /version compilable/);
+});
+
 test("does not pass raw angle brackets from client context", () => {
   const instruction = buildAiSessionInstruction({
     role: "student<script>",

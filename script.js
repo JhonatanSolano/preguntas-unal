@@ -1115,38 +1115,44 @@ const ASESOR_QUICK_REPLIES = [
   ["Ejercicios tipo examen", "Generar ejercicios tipo examen"],
   ["Practicar por tema", "Practicar por tema"],
   ["Revisar error", "Revisar mi error"],
-  ["Plan de estudio", "Crear plan de estudio"]
+  ["Plan de estudio", "Crear plan de estudio"],
+  ["Leer LaTeX", "Ayúdame a leer y explicar esta expresión en LaTeX"],
+  ["Corregir LaTeX", "Revisa si este LaTeX está bien escrito y corrígelo si hace falta"]
 ];
 const ASESOR_TEACHER_QUICK_REPLIES = [
   ["Planear clase", "Ayúdame a planear una clase"],
   ["Crear examen", "Crear un examen de matemáticas"],
   ["Redactar correo", "Redactar un correo para mis estudiantes"],
   ["Diseñar actividad", "Diseñar una actividad de práctica"],
-  ["Retroalimentar grupo", "Crear retroalimentación para un grupo"]
+  ["Retroalimentar grupo", "Crear retroalimentación para un grupo"],
+  ["Guía con LaTeX", "Ayúdame a preparar una explicación académica con LaTeX claro"],
+  ["Revisar material", "Revisa este material matemático y mejora claridad, rigor y evaluación"]
 ];
 const ASESOR_MODE_LABELS = {
   solve: "Resolver pregunta",
   generate: "Ejercicios tipo examen",
   practice: "Practicar por tema",
   review: "Revisar error",
-  guide: "Plan de estudio"
+  guide: "Plan de estudio",
+  latex: "LaTeX académico"
 };
 const ASESOR_MODE_PROMPTS = {
   solve: "Listo. Pega el enunciado o escribe la pregunta y te explico el tema, la idea clave, los pasos y un consejo para examen.",
   generate: "Perfecto. Dime tema, cantidad y dificultad. Ej: 5 preguntas de funciones, nivel medio, con solución.",
   practice: "Vamos a practicar. Dime el tema: álgebra, funciones, geometría, trigonometría, probabilidad, estadística o lectura de gráficas.",
   review: "Pega el enunciado, tu respuesta y la respuesta correcta si la tienes. Te explico dónde estuvo el error y cómo evitarlo.",
-  guide: "Dime cuántos días tienes, qué examen preparas y tus temas flojos. Te armo una ruta corta de estudio."
+  guide: "Dime cuántos días tienes, qué examen preparas y tus temas flojos. Te armo una ruta corta de estudio.",
+  latex: "Pega tu expresión o explicación en LaTeX. Te ayudo a leerla, corregirla y dejarla compilable."
 };
 const ASESOR_INITIAL_MESSAGE = {
   id: "initial-advisor-message",
   sender: "bot",
-  text: "Hola. Soy tu Asesor IA de matemáticas. Puedo ayudarte a resolver preguntas, practicar por tema, revisar errores o crear un plan de estudio."
+  text: "Hola. Soy tu Asesor IA de matemáticas. Trabajo como cuaderno académico: puedo resolver preguntas, practicar por tema, revisar errores, crear planes de estudio y ayudarte a leer o corregir LaTeX."
 };
 const ASESOR_TEACHER_INITIAL_MESSAGE = {
   id: "initial-advisor-teacher-message",
   sender: "bot",
-  text: "Hola, profe. Soy tu Asesor IA. Puedo ayudarte a planear clases, crear exámenes, diseñar actividades, redactar correos para estudiantes y preparar retroalimentaciones."
+  text: "Hola, profe. Soy tu Asesor IA. Puedo ayudarte a planear clases, crear exámenes, diseñar actividades, redactar correos, preparar retroalimentaciones y revisar material matemático con LaTeX."
 };
 let intentoActivo = cargarIntentoActivo();
 setExamHeaderActivo(!!intentoActivo);
@@ -11112,6 +11118,7 @@ function normalizarTextoAsesor(input = "") {
 
 function detectarModoAsesor(input = "") {
   const normalized = normalizarTextoAsesor(input);
+  if (/latex|katex|formula|formula|compilar|compilable|ecuacion|expresion/.test(normalized)) return "latex";
   if (modoAdmin && /correo|mensaje|comunicado|email|padres|estudiantes/.test(normalized)) return "guide";
   if (modoAdmin && /clase|planea|planear|actividad|rubrica|retroalimentacion|evaluacion/.test(normalized)) return "guide";
   if (/generar|crear ejercicios|ejercicios tipo|preguntas tipo|banco|examen/.test(normalized)) return "generate";
@@ -11129,6 +11136,8 @@ function modoExplicitoAsesor(input = "") {
   if (normalized === "practicar por tema") return "practice";
   if (normalized === "revisar mi error" || normalized === "revisar error") return "review";
   if (normalized === "crear plan de estudio" || normalized === "plan de estudio") return "guide";
+  if (normalized === "ayudame a leer y explicar esta expresion en latex" || normalized === "leer latex") return "latex";
+  if (normalized === "revisa si este latex esta bien escrito y corrigelo si hace falta" || normalized === "corregir latex") return "latex";
   return null;
 }
 
@@ -11193,6 +11202,12 @@ function renderAsesorQuickReplies() {
   ).join("");
 }
 
+function setAdvisorToolsOpen(open = false) {
+  const panel = document.getElementById("advisorToolsPanel");
+  if (!panel) return;
+  panel.open = !!open;
+}
+
 function renderAsesorMessages() {
   const cont = document.getElementById("advisorMessages");
   if (!cont) return;
@@ -11226,6 +11241,7 @@ async function enviarMensajeAsesor(text) {
   if (!input || advisorLoading) return;
   if (!exigirAccesoAsesor("Activa Premium para conversar con el Asesor IA.")) return;
   abrirAsesorIA();
+  setAdvisorToolsOpen(false);
   advisorMessages.push({ id: `${Date.now()}-user`, sender: "user", text: input });
   renderAsesorMessages();
 
@@ -11281,6 +11297,7 @@ function abrirAsesorIA() {
   cargarEstadoAsesor();
   renderAsesorQuickReplies();
   renderAsesorMessages();
+  setAdvisorToolsOpen(advisorMessages.length <= 1);
   document.getElementById("advisorChatPanel")?.classList.remove("hidden");
   document.getElementById("btnAdvisorFloat")?.setAttribute("aria-expanded", "true");
 }
