@@ -33,7 +33,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="style.css?v=20260909-04" />
+  <link rel="stylesheet" href="style.css?v=20260909-05" />
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -1020,6 +1020,30 @@
           <span>10 preguntas · 15 minutos</span>
         </button>
       </div>
+      <section class="teacher-exam-route hidden" id="teacherExamRouteSelector">
+        <div class="teacher-exam-route-head">
+          <span class="section-kicker">Vista docente</span>
+          <h3>Ver examen por tema</h3>
+          <p>Filtra por banco, rama, tema, subtema y nivel para revisar el examen que corresponde a esa ruta.</p>
+        </div>
+        <div class="teacher-exam-route-grid">
+          <label>Banco
+            <select id="teacherExamBankSelect" class="admin-input"></select>
+          </label>
+          <label>Rama
+            <select id="teacherExamBranchSelect" class="admin-input"></select>
+          </label>
+          <label>Tema
+            <select id="teacherExamTopicSelect" class="admin-input"></select>
+          </label>
+          <label>Subtema
+            <select id="teacherExamSubtopicSelect" class="admin-input"></select>
+          </label>
+          <label>Nivel
+            <select id="teacherExamLevelSelect" class="admin-input"></select>
+          </label>
+        </div>
+      </section>
       <div class="admin-exam-bank-panel hidden" id="adminExamBankPanel"></div>
       <section class="teacher-question-builder hidden" id="teacherQuestionBuilder">
         <details class="accordion-card teacher-builder-card">
@@ -1042,6 +1066,15 @@
             </label>
             <label>Banco
               <select id="teacherQuestionBank" class="admin-input"></select>
+            </label>
+            <label>Rama
+              <select id="teacherQuestionBranch" class="admin-input"></select>
+            </label>
+            <label>Tema
+              <select id="teacherQuestionTopic" class="admin-input"></select>
+            </label>
+            <label>Subtema
+              <select id="teacherQuestionSubtopic" class="admin-input"></select>
             </label>
           </div>
 
@@ -2212,6 +2245,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260909-04"></script>
+  <script type="module" src="script.js?v=20260909-05"></script>
 </body>
 </html>

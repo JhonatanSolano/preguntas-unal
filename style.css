@@ -971,7 +971,8 @@ body.admin-mode #sectionExamenes .exams-hub {
   opacity: .55;
   cursor: not-allowed;
 }
-.student-exam-selector {
+.student-exam-selector,
+.teacher-exam-route {
   display: grid;
   gap: 1rem;
   margin-top: 1.35rem;
@@ -982,27 +983,32 @@ body.admin-mode #sectionExamenes .exams-hub {
   text-align: left;
   box-shadow: var(--shadow-sm);
 }
-.student-exam-selector-head h3 {
+.student-exam-selector-head h3,
+.teacher-exam-route-head h3 {
   margin: .2rem 0 .25rem;
   color: var(--c-navy);
   font-size: clamp(1.25rem, 2.7vw, 1.65rem);
 }
-.student-exam-selector-head p {
+.student-exam-selector-head p,
+.teacher-exam-route-head p {
   margin: 0;
   color: var(--c-muted);
 }
-.student-exam-selector-grid {
+.student-exam-selector-grid,
+.teacher-exam-route-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
   gap: .75rem;
 }
-.student-exam-selector-grid label {
+.student-exam-selector-grid label,
+.teacher-exam-route-grid label {
   display: grid;
   gap: .35rem;
   color: var(--c-navy);
   font-weight: 900;
 }
-.student-exam-selector-grid select {
+.student-exam-selector-grid select,
+.teacher-exam-route-grid select {
   min-width: 0;
   width: 100%;
   border: 1px solid var(--c-border);
@@ -1033,6 +1039,21 @@ body.admin-mode #sectionExamenes .exams-hub {
 .student-exam-choice span {
   color: var(--c-muted);
   font-size: .92rem;
+}
+.teacher-exam-route-summary {
+  display: grid;
+  gap: .2rem;
+  padding: .85rem 1rem;
+  border: 1px solid rgba(13, 148, 136, .2);
+  border-radius: var(--radius-sm);
+  background: #eefbfb;
+  color: var(--c-navy);
+}
+.teacher-exam-route-summary span,
+.question-preview-meta {
+  color: var(--c-muted);
+  font-size: .9rem;
+  font-weight: 800;
 }
 .admin-exam-bank-panel {
   display: grid;
@@ -14906,11 +14927,13 @@ body:not(.app-active) .pricing-grid.single .pricing-card {
     width: 100%;
   }
 
-  .student-exam-selector {
+  .student-exam-selector,
+  .teacher-exam-route {
     padding: .9rem !important;
   }
 
-  .student-exam-selector-grid {
+  .student-exam-selector-grid,
+  .teacher-exam-route-grid {
     grid-template-columns: 1fr !important;
   }
 
