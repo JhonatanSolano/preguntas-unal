@@ -64,7 +64,6 @@ const firebaseConfig = {
 const APP_CONFIG = {
   name: "Matemáticas En Tu Bolsillo",
   recaptchaSiteKey: "6LcmOT0tAAAAAPfwCOhqA1nzfz3YOx8McE_mpFEZ",
-  notebookLmEnterpriseUrl: "https://notebook.cloud.google.com/global/?project=235600414785",
   asesorEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/generateAiResponse",
   passwordResetEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/sendPasswordResetEmailCustom",
   emailVerificationEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/sendEmailVerificationCustom",
@@ -292,9 +291,9 @@ const EMOJIS_MENSAJE = [
   ["😀", "feliz sonrisa alegre"], ["😃", "sonrisa feliz"], ["😄", "risa feliz"], ["😁", "sonrisa grande"], ["😆", "risa"], ["😅", "risa sudor"], ["😂", "llorando risa fuerte"], ["🤣", "carcajada llorando fuerte"], ["😭", "cara llorando fuerte"], ["😉", "guiño"], ["😘", "beso"], ["😗", "beso"], ["😙", "beso feliz"], ["😚", "beso tierno"], ["🥰", "amor cariño"], ["😍", "enamorado corazones"], ["🤩", "estrella emoción"], ["🥳", "celebración fiesta"], ["🤔", "pensando duda"], ["🙄", "ojos arriba"], ["🙂", "sonrisa suave"], ["🥲", "sonrisa lágrima"], ["🥺", "tierno triste"], ["😊", "feliz amable"], ["😌", "tranquilo"], ["😔", "triste"], ["😇", "ángel"], ["😈", "diablo"], ["⭐", "estrella"], ["👍", "bien pulgar"], ["❤️", "corazón amor"]
 ];
 const SECCIONES_ESTUDIANTE = new Set(["inicio", "perfil", "aprendizaje", "insignias", "examenes", "diagnostico", "nivel1", "examen", "estadisticas", "mensajes", "asesorIA", "suscripcion", "configuracion", "facturacion", "soporte"]);
-const SECCIONES_PROFESOR = new Set(["admin", "perfil", "aprendizaje", "examenes", "adminMetricas", "reportes", "mensajes", "asesorIA", "suscripcion", "configuracion", "facturacion", "soporte"]);
+const SECCIONES_PROFESOR = new Set(["admin", "perfil", "aprendizaje", "examenes", "adminMetricas", "reportes", "mensajes", "suscripcion", "configuracion", "facturacion", "soporte"]);
 const SECCIONES_ESTUDIANTE_INSTITUCIONAL = new Set(["inicio", "perfil", "aprendizaje", "insignias", "examenes", "diagnostico", "nivel1", "examen", "estadisticas", "mensajes", "asesorIA", "configuracion", "soporte"]);
-const SECCIONES_PROFESOR_INSTITUCIONAL = new Set(["admin", "perfil", "aprendizaje", "examenes", "adminMetricas", "reportes", "mensajes", "asesorIA", "configuracion", "soporte"]);
+const SECCIONES_PROFESOR_INSTITUCIONAL = new Set(["admin", "perfil", "aprendizaje", "examenes", "adminMetricas", "reportes", "mensajes", "configuracion", "soporte"]);
 const SECCIONES_INSTITUCION = new Set(["inicio", "perfil", "adminMetricas", "suscripcion", "facturacion", "configuracion", "soporte"]);
 const PHONE_CODE_DURATION_MS = 2 * 60 * 1000;
 const MAX_PROFILE_PHOTO_INPUT_MB = 12;
@@ -1214,12 +1213,23 @@ function facturacionDisponible(perfil = perfilActual) {
   return true;
 }
 
+function seccionAsesorDisponible(perfil = perfilActual) {
+  return esEstudianteCuenta(perfil) && suscripcionActiva(perfil);
+}
+
 function seccionesPermitidasActuales() {
-  if (esInstitucion()) return SECCIONES_INSTITUCION;
-  if (esProfesorInstitucional()) return SECCIONES_PROFESOR_INSTITUCIONAL;
-  if (modoAdmin) return SECCIONES_PROFESOR;
-  if (esEstudianteInstitucional()) return SECCIONES_ESTUDIANTE_INSTITUCIONAL;
-  return SECCIONES_ESTUDIANTE;
+  const base = esInstitucion()
+    ? SECCIONES_INSTITUCION
+    : esProfesorInstitucional()
+      ? SECCIONES_PROFESOR_INSTITUCIONAL
+      : modoAdmin
+        ? SECCIONES_PROFESOR
+        : esEstudianteInstitucional()
+          ? SECCIONES_ESTUDIANTE_INSTITUCIONAL
+          : SECCIONES_ESTUDIANTE;
+  const permitidas = new Set(base);
+  if (!seccionAsesorDisponible()) permitidas.delete("asesorIA");
+  return permitidas;
 }
 
 function seccionInicioActual() {
@@ -1530,7 +1540,7 @@ function aplicarEstadoSuscripcion() {
     button.classList.toggle("subscription-disabled", locked);
     button.setAttribute("aria-disabled", String(locked));
   });
-  document.getElementById("advisorWidget")?.classList.toggle("hidden", !usuarioActual || !active || esInstitucion());
+  document.getElementById("advisorWidget")?.classList.toggle("hidden", !usuarioActual || !asesorIaDisponible());
   if (!active) {
     detenerListenersComunicacion();
     internalMessages = [];
@@ -3367,40 +3377,8 @@ function enfocarExamenProfesorDesdeAprendizaje(examKey = "diagnostico") {
 function renderAsesorInfo() {
   const section = document.getElementById("sectionAsesorIA");
   if (!section) return;
-  const intro = section.querySelector(".asesor-info-panel > p");
-  const grid = section.querySelector(".advisor-feature-grid");
-  const notebookCard = document.getElementById("notebookLmTeacherCard");
-  const notebookStatus = document.getElementById("notebookLmStatus");
-  const showNotebook = modoAdmin || esPropietarioPlataforma();
-  notebookCard?.classList.toggle("hidden", !showNotebook);
-  if (notebookStatus && showNotebook) {
-    notebookStatus.textContent = APP_CONFIG.notebookLmEnterpriseUrl
-      ? "Abre NotebookLM con una cuenta docente licenciada en Google Cloud."
-      : "Pendiente configurar URL de NotebookLM Enterprise.";
-  }
-  if (modoAdmin) {
-    if (intro) intro.textContent = "Tu asistente docente te ayuda a planear clases, crear evaluaciones, preparar comunicaciones y diseñar actividades matemáticas.";
-    if (grid) {
-      grid.innerHTML = [
-        ["Planear clases", "Estructura objetivos, tiempos, explicación, práctica guiada y cierre."],
-        ["Crear exámenes", "Diseña evaluaciones con opciones, soluciones y niveles de dificultad."],
-        ["NotebookLM Enterprise", "Centraliza fuentes y cuadernos docentes cuando la licencia esté activa."],
-        ["Redactar correos", "Prepara mensajes claros para estudiantes según tus indicaciones."],
-        ["Diseñar actividades", "Crea talleres, guías, rúbricas y ejercicios por tema."],
-        ["Retroalimentar grupos", "Convierte métricas o resultados en recomendaciones pedagógicas."]
-      ].map(([title, text]) => `<article><strong>${title}</strong><span>${text}</span></article>`).join("");
-    }
-    return;
-  }
-  if (intro) intro.textContent = "Tu tutor de matemáticas está listo para ayudarte a estudiar, resolver dudas y practicar con intención.";
-  if (grid) {
-    grid.innerHTML = [
-      ["Resolver preguntas", "Pega un enunciado y recibe explicación paso a paso."],
-      ["Ejercicios tipo examen", "Pide preguntas por tema, cantidad y dificultad."],
-      ["Practicar por tema", "Entrena álgebra, funciones, geometría, probabilidad y más."],
-      ["Revisar errores", "Entiende por qué fallaste y cómo evitarlo en el examen."],
-      ["Plan de estudio", "Organiza una ruta corta según tus temas flojos."]
-    ].map(([title, text]) => `<article><strong>${title}</strong><span>${text}</span></article>`).join("");
+  if (!seccionAsesorDisponible()) {
+    activarNav(seccionInicioActual());
   }
 }
 
@@ -12886,24 +12864,6 @@ document.getElementById("btnAdvisorFloat")?.addEventListener("click", () => {
 });
 document.getElementById("btnAdvisorClose")?.addEventListener("click", cerrarAsesorIA);
 document.getElementById("btnOpenAdvisorSection")?.addEventListener("click", abrirAsesorIA);
-document.getElementById("btnOpenNotebookLm")?.addEventListener("click", () => {
-  const status = document.getElementById("notebookLmStatus");
-  if (!(modoAdmin || esPropietarioPlataforma())) {
-    if (status) status.textContent = "NotebookLM Enterprise está reservado para profesores.";
-    return;
-  }
-  const url = APP_CONFIG.notebookLmEnterpriseUrl;
-  if (!url) {
-    if (status) status.textContent = "Activa la licencia y configura la URL de NotebookLM Enterprise para abrirlo desde aquí.";
-    return;
-  }
-  const opened = window.open(url, "_blank", "noopener,noreferrer");
-  if (status) {
-    status.textContent = opened
-      ? "Se abrió NotebookLM en una pestaña segura de Google Cloud."
-      : "El navegador bloqueó la ventana. Permite ventanas emergentes para abrir NotebookLM.";
-  }
-});
 document.getElementById("btnCloseBadgeCelebration")?.addEventListener("click", cerrarCelebracionInsignia);
 document.getElementById("btnContinueBadgeCelebration")?.addEventListener("click", cerrarCelebracionInsignia);
 document.getElementById("advisorForm")?.addEventListener("submit", e => {

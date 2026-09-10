@@ -33,7 +33,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="style.css?v=20260910-01" />
+  <link rel="stylesheet" href="style.css?v=20260910-02" />
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -2110,50 +2110,49 @@
 
   <!-- ══════════════════ ASESOR IA ══════════════════ -->
   <main class="main-content hidden" id="sectionAsesorIA">
-    <div class="start-screen asesor-info-panel">
-      <span class="cs-icon">∑</span>
-      <h2>Asesor IA</h2>
-      <p>Tu cuaderno académico inteligente para estudiar matemáticas, organizar fuentes, trabajar con LaTeX y practicar con intención.</p>
-      <div class="advisor-feature-grid">
-        <article>
-          <strong>Cuaderno académico</strong>
-          <span>Organiza dudas, fuentes y procedimientos con respuestas claras y verificables.</span>
+    <div class="advisor-showcase">
+      <section class="advisor-showcase-copy">
+        <span class="advisor-showcase-kicker">Premium · Matemáticas En Tu Bolsillo</span>
+        <h2>AsesorIA para estudiar con claridad</h2>
+        <p>Resuelve dudas, practica por tema, revisa errores y convierte tus apuntes en explicaciones paso a paso dentro de la plataforma.</p>
+        <div class="advisor-showcase-actions">
+          <button class="btn btn-primary" id="btnOpenAdvisorSection" type="button">Abrir AsesorIA</button>
+          <span>Disponible solo para estudiantes Premium.</span>
+        </div>
+        <div class="advisor-benefits">
+          <article><strong>Preguntar a IA</strong><span>Explicaciones claras con ejemplos y procedimientos.</span></article>
+          <article><strong>Practicar mejor</strong><span>Ejercicios por tema, subtema y nivel.</span></article>
+          <article><strong>Revisar errores</strong><span>Comprende por qué fallaste y cómo corregirlo.</span></article>
+        </div>
+      </section>
+      <div class="advisor-phone-stage" aria-hidden="true">
+        <article class="advisor-phone">
+          <div class="advisor-phone-top">
+            <span>MB</span><strong>AsesorIA</strong><i></i>
+          </div>
+          <div class="advisor-phone-chat">
+            <p class="bot">Hola. Estoy aquí para ayudarte a dominar matemáticas paso a paso.</p>
+            <p class="user">Tengo dudas sobre matrices.</p>
+            <p class="bot"><strong>Concepto clave</strong><br>Una matriz organiza datos en filas y columnas para resolver problemas de forma ordenada.</p>
+          </div>
+          <div class="advisor-phone-input">Escribe tu pregunta...</div>
         </article>
-        <article>
-          <strong>Resolver preguntas</strong>
-          <span>Pega un enunciado y recibe explicación paso a paso.</span>
-        </article>
-        <article>
-          <strong>LaTeX académico</strong>
-          <span>Lee, corrige y escribe fórmulas matemáticas listas para compilar.</span>
-        </article>
-        <article>
-          <strong>Ejercicios tipo examen</strong>
-          <span>Pide preguntas por tema, cantidad y dificultad.</span>
-        </article>
-        <article>
-          <strong>Plan de estudio</strong>
-          <span>Organiza una ruta corta según tus temas flojos y el tiempo disponible.</span>
+        <article class="advisor-phone secondary">
+          <div class="advisor-phone-top">
+            <span>∑</span><strong>Práctica guiada</strong><i></i>
+          </div>
+          <div class="advisor-phone-card">
+            <strong>Paso a paso</strong>
+            <small>Definición · ejemplo · verificación</small>
+            <div class="advisor-mini-formula">A = [ 1&nbsp;&nbsp;2 ]</div>
+          </div>
+          <div class="advisor-suggestions">
+            <span>Repasar ejemplo</span>
+            <span>Practicar este tema</span>
+            <span>Ver métricas</span>
+          </div>
         </article>
       </div>
-      <article class="notebooklm-card hidden" id="notebookLmTeacherCard">
-        <div>
-          <span class="notebooklm-kicker">Solo docentes</span>
-          <h3>NotebookLM Enterprise</h3>
-          <p>Cuaderno de fuentes para profesores y administración académica conectado a Google Cloud. Requiere licencia activa e inicio de sesión con una cuenta autorizada.</p>
-          <ul class="notebooklm-list">
-            <li>Organiza PDFs, guías y fuentes docentes.</li>
-            <li>Consulta material académico desde NotebookLM.</li>
-            <li>Acceso protegido por Google Cloud IAM.</li>
-          </ul>
-        </div>
-        <div class="notebooklm-actions">
-          <button class="btn btn-secondary" id="btnOpenNotebookLm" type="button">Abrir cuaderno</button>
-          <small>Se abre en Google Cloud para conservar permisos y licencia.</small>
-        </div>
-        <small id="notebookLmStatus">NotebookLM Enterprise está conectado para docentes con licencia.</small>
-      </article>
-      <button class="btn btn-primary" id="btnOpenAdvisorSection" type="button">Abrir Asesor IA</button>
     </div>
   </main>
 
@@ -2253,6 +2252,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260910-01"></script>
+  <script type="module" src="script.js?v=20260910-02"></script>
 </body>
 </html>

@@ -2093,6 +2093,208 @@ body.group-locked:not(.public-modal-open) #whatsappWidget.whatsapp-widget.open.s
 .stats-grid.compact {
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 }
+.advisor-showcase {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, .92fr) minmax(340px, 1.08fr);
+  gap: clamp(1.2rem, 3vw, 2.5rem);
+  align-items: center;
+  width: min(1180px, 100%);
+  margin: 0 auto;
+  padding: clamp(1.25rem, 3vw, 2.25rem);
+  overflow: hidden;
+  border: 1px solid rgba(123, 207, 212, .28);
+  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(90deg, rgba(6, 22, 62, .94), rgba(4, 72, 96, .9), rgba(14, 178, 168, .82)),
+    var(--c-navy);
+  color: #fff;
+  box-shadow: 0 24px 70px rgba(6, 52, 95, .22);
+}
+.advisor-showcase::before {
+  content: "y = mx + b   x² + y²   ∑   f(x)";
+  position: absolute;
+  left: -2rem;
+  bottom: 8%;
+  width: 45%;
+  color: rgba(255, 255, 255, .13);
+  font: 900 clamp(1.4rem, 3vw, 2.8rem)/1.9 var(--font-sans);
+  letter-spacing: .08em;
+  transform: rotate(-8deg);
+}
+.advisor-showcase-copy {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 1rem;
+  text-align: left;
+}
+.advisor-showcase-kicker {
+  width: fit-content;
+  padding: .45rem .8rem;
+  border: 1px solid rgba(255, 255, 255, .3);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .14);
+  color: #c9fbff;
+  font-size: .78rem;
+  font-weight: 900;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+.advisor-showcase h2 {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(2.2rem, 6vw, 4.8rem);
+  line-height: .98;
+}
+.advisor-showcase p {
+  max-width: 58ch;
+  margin: 0;
+  color: rgba(255, 255, 255, .86);
+  font-size: clamp(1rem, 2vw, 1.18rem);
+  line-height: 1.65;
+}
+.advisor-showcase-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .8rem 1rem;
+  margin-top: .25rem;
+}
+.advisor-showcase-actions .btn {
+  width: min(260px, 100%);
+}
+.advisor-showcase-actions span {
+  color: #c9fbff;
+  font-weight: 800;
+}
+.advisor-benefits {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .65rem;
+  margin-top: .3rem;
+}
+.advisor-benefits article {
+  padding: .85rem;
+  border: 1px solid rgba(255, 255, 255, .18);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, .1);
+  backdrop-filter: blur(8px);
+}
+.advisor-benefits strong,
+.advisor-benefits span {
+  display: block;
+}
+.advisor-benefits strong {
+  margin-bottom: .25rem;
+  color: #fff;
+}
+.advisor-benefits span {
+  color: rgba(255, 255, 255, .78);
+  font-size: .86rem;
+  line-height: 1.45;
+}
+.advisor-phone-stage {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 520px;
+}
+.advisor-phone {
+  width: min(265px, 42vw);
+  min-height: 500px;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  padding: .65rem;
+  border: 9px solid #050b18;
+  border-radius: 34px;
+  background: #071735;
+  box-shadow: 0 24px 42px rgba(0, 0, 0, .32);
+}
+.advisor-phone.secondary {
+  margin-left: -1.1rem;
+  transform: translateY(1rem) scale(.96);
+}
+.advisor-phone-top {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  padding: .55rem;
+  border-radius: 20px 20px 12px 12px;
+  background: linear-gradient(135deg, #284f9f, #0fb9ad);
+  color: #fff;
+}
+.advisor-phone-top span,
+.advisor-phone-top i {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .16);
+  font-size: .82rem;
+  font-weight: 900;
+}
+.advisor-phone-top i {
+  margin-left: auto;
+  border-radius: 50%;
+}
+.advisor-phone-chat {
+  display: grid;
+  align-content: start;
+  gap: .55rem;
+  padding: .75rem .45rem;
+}
+.advisor-phone-chat p,
+.advisor-phone-card,
+.advisor-suggestions span {
+  margin: 0;
+  border: 1px solid rgba(123, 207, 212, .22);
+  border-radius: 12px;
+  background: rgba(20, 44, 79, .95);
+  color: #fff;
+  padding: .62rem;
+  font-size: .78rem;
+  line-height: 1.35;
+}
+.advisor-phone-chat .user {
+  justify-self: end;
+  max-width: 82%;
+  background: linear-gradient(135deg, #159c96, #1ec7b7);
+}
+.advisor-phone-input {
+  margin-top: auto;
+  padding: .65rem .75rem;
+  border: 1px solid rgba(123, 207, 212, .24);
+  border-radius: 999px;
+  color: rgba(255, 255, 255, .62);
+  font-size: .78rem;
+}
+.advisor-phone-card {
+  display: grid;
+  gap: .45rem;
+  margin: .85rem .25rem;
+}
+.advisor-phone-card small {
+  color: rgba(255, 255, 255, .72);
+}
+.advisor-mini-formula {
+  padding: .55rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .08);
+  text-align: center;
+  font-weight: 900;
+}
+.advisor-suggestions {
+  display: grid;
+  gap: .5rem;
+  margin-top: .5rem;
+  padding: 0 .25rem;
+}
 .advisor-feature-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2117,64 +2319,6 @@ body.group-locked:not(.public-modal-open) #whatsappWidget.whatsapp-widget.open.s
 .advisor-feature-grid span {
   color: var(--c-muted);
   font-size: .9rem;
-}
-.notebooklm-card {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(190px, auto);
-  align-items: center;
-  gap: .9rem 1rem;
-  margin: .25rem 0 1rem;
-  padding: 1rem 1.1rem;
-  border: 1px solid rgba(13, 148, 136, .2);
-  border-radius: var(--radius-md);
-  background:
-    radial-gradient(circle at 12% 18%, rgba(20, 184, 166, .18), transparent 30%),
-    linear-gradient(135deg, rgba(240, 253, 250, .96), rgba(248, 251, 255, .98));
-  text-align: left;
-}
-.notebooklm-card h3 {
-  margin: .15rem 0 .25rem;
-  color: var(--c-navy);
-  font-size: clamp(1.15rem, 2.4vw, 1.45rem);
-}
-.notebooklm-card p {
-  margin: 0;
-  color: var(--c-muted);
-  font-size: .95rem;
-}
-.notebooklm-list {
-  display: grid;
-  gap: .3rem;
-  margin: .65rem 0 0;
-  padding-left: 1.1rem;
-  color: var(--c-navy);
-  font-size: .9rem;
-  font-weight: 800;
-}
-.notebooklm-actions {
-  display: grid;
-  gap: .45rem;
-  justify-items: stretch;
-}
-.notebooklm-actions .btn {
-  width: 100%;
-}
-.notebooklm-actions small {
-  color: var(--c-muted);
-  font-weight: 800;
-  text-align: center;
-}
-.notebooklm-card small {
-  grid-column: 1 / -1;
-  color: var(--c-teal-deep);
-  font-weight: 800;
-}
-.notebooklm-kicker {
-  color: var(--c-teal-deep);
-  font-size: .75rem;
-  font-weight: 900;
-  letter-spacing: .16em;
-  text-transform: uppercase;
 }
 .messages-panel {
   text-align: left;
@@ -13254,7 +13398,7 @@ body.group-locked.public-modal-open #btnBackToTop.back-to-top,
   .badges-next-card,
   .badge-card,
   .advisor-chat-panel,
-  .advisor-page-card,
+  .advisor-showcase,
   .message-detail-card {
     box-sizing: border-box;
     width: 100% !important;
@@ -14848,7 +14992,7 @@ body:not(.app-active) .pricing-grid.single .pricing-card {
   #sectionMensajes .messages-panel,
   #sectionMensajes .teacher-message-compose,
   #sectionSoporte .support-panel,
-  #sectionAsesorIA .advisor-page-card,
+  #sectionAsesorIA .advisor-showcase,
   #sectionEstadisticas .stats-panel,
   #sectionAdmin .admin-panel,
   #sectionAdminMetricas .stats-panel,
@@ -14918,6 +15062,30 @@ body:not(.app-active) .pricing-grid.single .pricing-card {
     padding: .65rem .75rem !important;
   }
 
+  .advisor-showcase {
+    grid-template-columns: 1fr !important;
+    padding: clamp(1rem, 4vw, 1.4rem) !important;
+  }
+
+  .advisor-showcase::before {
+    width: 80%;
+    opacity: .75;
+  }
+
+  .advisor-benefits {
+    grid-template-columns: 1fr !important;
+  }
+
+  .advisor-phone-stage {
+    min-height: auto;
+    align-items: stretch;
+  }
+
+  .advisor-phone {
+    width: min(245px, 48vw);
+    min-height: 440px;
+  }
+
   .advisor-quick {
     display: grid !important;
     grid-template-columns: 1fr !important;
@@ -14940,15 +15108,6 @@ body:not(.app-active) .pricing-grid.single .pricing-card {
 
   .advisor-message div {
     max-width: min(84%, 340px) !important;
-  }
-
-  .notebooklm-card {
-    grid-template-columns: 1fr !important;
-    padding: .9rem !important;
-  }
-
-  .notebooklm-card .btn {
-    width: 100%;
   }
 
   .student-exam-selector,
@@ -15008,7 +15167,7 @@ body:not(.app-active) .pricing-grid.single .pricing-card {
   #sectionMensajes .messages-panel,
   #sectionMensajes .teacher-message-compose,
   #sectionSoporte .support-panel,
-  #sectionAsesorIA .advisor-page-card,
+  #sectionAsesorIA .advisor-showcase,
   #sectionEstadisticas .stats-panel,
   #sectionAdmin .admin-panel,
   #sectionAdminMetricas .stats-panel,
