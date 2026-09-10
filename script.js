@@ -325,17 +325,17 @@ const EXAM_DURATIONS_BY_LEVEL = {
 const LEVEL_LABELS = {
   facil: "Fácil",
   medio: "Medio",
-  avanzado: "Avanzado"
+  dificil: "Difícil"
 };
 const LEVEL_TO_EXAM = {
   facil: "diagnostico",
   medio: "nivel1",
-  avanzado: "examen"
+  dificil: "examen"
 };
 const EXAM_TO_LEVEL = {
   diagnostico: "facil",
   nivel1: "medio",
-  examen: "avanzado"
+  examen: "dificil"
 };
 const MATH_DELIMITERS = [
   { left: "$$", right: "$$", display: true },
@@ -343,6 +343,11 @@ const MATH_DELIMITERS = [
   { left: "\\[", right: "\\]", display: true },
   { left: "\\(", right: "\\)", display: false }
 ];
+
+function normalizarNivelAprendizaje(level = "facil") {
+  const value = level === "avanzado" ? "dificil" : String(level || "facil");
+  return LEVEL_LABELS[value] ? value : "facil";
+}
 
 function slugifyLearningId(value = "") {
   return String(value)
@@ -366,10 +371,10 @@ function makeLearningLevels(branchTitle, topicTitle, subtopicTitle) {
       example: [`Lee el enunciado y separa la información relevante.`, `Selecciona una representación: tabla, gráfica, ecuación o diagrama.`, `Resuelve paso a paso y verifica la coherencia del resultado.`],
       practice: { question: `Para resolver un ejercicio medio de ${clean}, conviene`, options: ["Organizar datos antes de operar", "Responder por intuición", "Ignorar las unidades"], answer: 0 }
     },
-    avanzado: {
+    dificil: {
       theory: `En este nivel conectas ${clean} con otras ramas de matemáticas. Se trabajan argumentos, modelación y problemas tipo examen con mayor carga conceptual.`,
       example: [`Modela la situación usando herramientas de ${topicTitle}.`, `Compara métodos y escoge el más eficiente.`, `Interpreta el resultado dentro del contexto del problema.`],
-      practice: { question: `Un buen cierre avanzado en ${clean} debe incluir`, options: ["Resultado, interpretación y verificación", "Solo la respuesta final", "Un procedimiento incompleto"], answer: 0 }
+      practice: { question: `Un buen cierre difícil en ${clean} debe incluir`, options: ["Resultado, interpretación y verificación", "Solo la respuesta final", "Un procedimiento incompleto"], answer: 0 }
     }
   };
 }
@@ -1080,7 +1085,6 @@ const STORAGE_SECCION_ACTIVA = "matematicasBolsilloSeccionActiva";
 const STORAGE_RELOAD_SESION = "matematicasBolsilloReloadSesion";
 const STORAGE_ASESOR_CHAT = "matematicasBolsilloAsesorIA";
 const STORAGE_INVITE_TOKEN = "matematicasBolsilloInviteToken";
-const INACTIVIDAD_MS = 10 * 60 * 1000;
 const ASESOR_INACTIVIDAD_MS = 10 * 60 * 1000;
 const BANCOS_DISPONIBLES = ["principal"];
 const NOMBRES_BANCOS = Object.fromEntries(BANCOS_DISPONIBLES.map((banco, idx) => [
@@ -2123,7 +2127,7 @@ function preguntaDesdeFeedbackItem(item = {}, fallback = {}) {
 }
 
 async function cargarPreguntasRetroalimentacionOficial(clave, preguntas = []) {
-  if (modoAdmin || !APP_CONFIG.examAttemptFeedbackEndpoint || !retroalimentacionPublicada(clave)) return preguntas;
+  if (modoAdmin || !APP_CONFIG.examAttemptFeedbackEndpoint || !retroalimentacionDisponible(clave)) return preguntas;
   const intento = resultadoActual(clave);
   if (!intento?.serverAttemptId) return preguntas;
   try {
@@ -2238,9 +2242,9 @@ function aplicarSnapshotIntento(clave, intento) {
 }
 
 function nombreEvaluacion(clave) {
-  if (clave === "diagnostico") return "Diagnóstico";
-  if (clave === "nivel1") return "Nivel Medio";
-  if (clave === "examen") return "Examen Final";
+  if (clave === "diagnostico") return "Fácil";
+  if (clave === "nivel1") return "Medio";
+  if (clave === "examen") return "Difícil";
   return NIVELES_META[clave]?.titulo || clave;
 }
 
@@ -2321,7 +2325,7 @@ function cambiarBanco(delta) {
     return;
   }
   if (delta > 0 && !bancoCompletado()) {
-    alert("Para pasar al siguiente banco debes completar diagnóstico, nivel medio y examen final.");
+    alert("Para pasar al siguiente banco debes completar Fácil, Medio y Difícil.");
     return;
   }
   limpiarIntentoActivo();
@@ -2350,12 +2354,12 @@ function aplicarVisibilidadResultadoIntento(clave, sectionId, retryButtonId) {
   if (!section) return;
   const usados = intentosUsados(clave);
   if (!usados) return;
-  const feedbackPublicado = retroalimentacionPublicada(clave);
-  const esPrimerIntento = usados === 1 && !feedbackPublicado;
+  const feedbackDisponible = retroalimentacionDisponible(clave);
+  const esPrimerIntento = usados === 1;
   const intentosAgotados = usados >= 2;
   section.classList.toggle("first-attempt-result", esPrimerIntento);
-  section.classList.toggle("feedback-locked-result", !feedbackPublicado);
-  renderAvisoRetroalimentacion(section, clave, feedbackPublicado);
+  section.classList.toggle("feedback-locked-result", !feedbackDisponible);
+  renderAvisoRetroalimentacion(section, clave, feedbackDisponible);
 
   const retryButton = document.getElementById(retryButtonId);
   if (!retryButton) return;
@@ -2363,18 +2367,36 @@ function aplicarVisibilidadResultadoIntento(clave, sectionId, retryButtonId) {
   retryButton.textContent = esPrimerIntento ? "↺ Hacer último intento (2 de 2)" : "↺ Hacer intento";
 }
 
+function intentoFinalCompletado(clave) {
+  return intentosUsados(clave) >= 2;
+}
+
 function retroalimentacionPublicada(clave) {
   if (modoAdmin) return true;
-  if (esEstudianteIndependiente()) return intentosUsados(clave) >= 2;
   if (!grupoActivo) return false;
   const cached = examAccessStateCache[`${grupoActivo}::${clave}`];
   if (cached) return cached.feedbackPublished === true;
   return normalizarExamSettings(examSettingsGrupo[grupoActivo] || {})[clave]?.feedbackPublished === true;
 }
 
-function renderAvisoRetroalimentacion(section, clave, publicada) {
+function retroalimentacionDisponible(clave) {
+  if (modoAdmin) return true;
+  return intentoFinalCompletado(clave);
+}
+
+function mensajeRetroalimentacionBloqueada(clave) {
+  if (!intentoFinalCompletado(clave)) {
+    return `Primer intento guardado. Verás preguntas, respuestas y explicaciones cuando termines tu segundo intento de ${nombreExamen(clave)}.`;
+  }
+  if (!retroalimentacionPublicada(clave) && !esEstudianteIndependiente()) {
+    return `Terminaste tus dos intentos. La retroalimentación completa se mostrará apenas el profesor la publique para ${nombreExamen(clave)}.`;
+  }
+  return `La retroalimentación completa de ${nombreExamen(clave)} todavía no está disponible.`;
+}
+
+function renderAvisoRetroalimentacion(section, clave, disponible) {
   let aviso = section.querySelector("[data-feedback-pending]");
-  if (publicada) {
+  if (disponible) {
     aviso?.remove();
     return;
   }
@@ -2386,11 +2408,8 @@ function renderAvisoRetroalimentacion(section, clave, publicada) {
     section.insertBefore(aviso, target || null);
   }
   aviso.innerHTML = `
-    <strong>Retroalimentación pendiente de publicación</strong>
-    <p>${esEstudianteIndependiente()
-      ? `Tu resultado general ya está guardado. Las respuestas correctas, explicaciones y soluciones aparecerán cuando termines tu segundo intento de ${escapeHtml(nombreExamen(clave))}.`
-      : `Tu resultado general ya está guardado. Las respuestas correctas, explicaciones y soluciones aparecerán cuando el profesor publique la retroalimentación de ${escapeHtml(nombreExamen(clave))} para tu aula.`
-    }</p>
+    <strong>${intentoFinalCompletado(clave) ? "Retroalimentación pendiente" : "Primer intento guardado"}</strong>
+    <p>${escapeHtml(mensajeRetroalimentacionBloqueada(clave))}</p>
   `;
 }
 
@@ -2473,17 +2492,6 @@ function pruebaActivaActual() {
 ["click", "keydown", "mousemove", "touchstart", "scroll"].forEach(evt => {
   window.addEventListener(evt, tocarActividad, { passive: true });
 });
-
-setInterval(() => {
-  if (!intentoActivo) return;
-  if (Date.now() - intentoActivo.ultimaActividad <= INACTIVIDAD_MS) return;
-  detenerTimer();
-  detenerTimerNivel();
-  detenerTimerExamen();
-  limpiarIntentoActivo();
-  limpiarResultadosSesion();
-  window.location.reload();
-}, 30000);
 
 /* ────────────────────────────────────────────────────
    4. PRESENTACIÓN – Generación del formulario
@@ -2663,10 +2671,10 @@ async function evaluarYMostrar(respuestas, opciones = {}) {
   /* Calcular resultados */
   let correctas = 0;
   PREGUNTAS.forEach((q, i) => { if (respuestas[i] === q.correcta) correctas++; });
-  const incorrectas = PREGUNTAS.length - correctas;
-  const porcentaje  = Math.round((correctas / PREGUNTAS.length) * 100);
-  const nota        = calcNota(porcentaje);
-  const badge       = calcBadge(porcentaje);
+  let incorrectas = PREGUNTAS.length - correctas;
+  let porcentaje  = Math.round((correctas / PREGUNTAS.length) * 100);
+  let nota        = calcNota(porcentaje);
+  let badge       = calcBadge(porcentaje);
 
   const puedeMostrarClaves = tieneClavesRespuesta(PREGUNTAS);
   if (!opciones.restaurando) {
@@ -2699,7 +2707,7 @@ async function mostrarResultados(respuestas, correctas, incorrectas, pct, nota, 
   resultsSection.hidden = false;
   const tiempoEmpleado = duracionExamenSeg("diagnostico") - segundosRestantes;
   const preguntasResultado = await cargarPreguntasRetroalimentacionOficial("diagnostico", PREGUNTAS);
-  const puedeMostrarClaves = tieneClavesRespuesta(preguntasResultado);
+  const puedeMostrarClaves = retroalimentacionDisponible("diagnostico") && tieneClavesRespuesta(preguntasResultado);
 
   /* ── Score ring ── */
   const circumference = 2 * Math.PI * 50;
@@ -2735,7 +2743,7 @@ async function mostrarResultados(respuestas, correctas, incorrectas, pct, nota, 
   const tbody = document.getElementById("summaryBody");
   tbody.innerHTML = "";
   if (!puedeMostrarClaves) {
-    tbody.innerHTML = `<tr><td colspan="4">Resultado guardado oficialmente. La retroalimentación se mostrará cuando el profesor la publique.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="4">${escapeHtml(mensajeRetroalimentacionBloqueada("diagnostico"))}</td></tr>`;
   } else preguntasResultado.forEach((q, i) => {
     const sinResp = respuestas[i] === -1;
     const ok = !sinResp && respuestas[i] === q.correcta;
@@ -2753,7 +2761,7 @@ async function mostrarResultados(respuestas, correctas, incorrectas, pct, nota, 
   const feedbackEl = document.getElementById("feedbackItems");
   feedbackEl.innerHTML = "";
   if (!puedeMostrarClaves) {
-    feedbackEl.innerHTML = `<div class="feedback-pending-card"><strong>Retroalimentación protegida</strong><p>Las respuestas correctas y explicaciones permanecen ocultas hasta que el profesor las publique.</p></div>`;
+    feedbackEl.innerHTML = `<div class="feedback-pending-card"><strong>Retroalimentación protegida</strong><p>${escapeHtml(mensajeRetroalimentacionBloqueada("diagnostico"))}</p></div>`;
   } else preguntasResultado.forEach((q, i) => {
     const sinResp = respuestas[i] === -1;
     const ok = !sinResp && respuestas[i] === q.correcta;
@@ -2815,7 +2823,7 @@ function textoPlano(str) {
 /* Reiniciar diagnóstico */
 document.getElementById("btnRestart").addEventListener("click", () => {
   if (!puedeIniciarIntento("diagnostico")) {
-    alert("Ya usaste los 2 intentos permitidos para el diagnóstico.");
+    alert("Ya usaste los 2 intentos permitidos para el nivel Fácil.");
     return;
   }
   limpiarIntentoActivo();
@@ -2885,6 +2893,7 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
 
     // Al entrar al examen final, mostrar estado correcto
     if (sec === "examen") {
+      actualizarTitulosExamenActivo("examen");
       const resultadoExamen = resultadoActual("examen");
       if (resultadoExamen && !examenIniciado) examenCompletado = true;
       if (puedeAbrirExamenFinal()) {
@@ -2924,14 +2933,13 @@ function actualizarEstadoDiagnostico() {
     document.getElementById("diagFormWrap").hidden = true;
     document.getElementById("resultsSection").hidden = true;
     document.getElementById("startScreen").hidden = false;
-    titulo.textContent = "Diagnóstico bloqueado";
-    texto.textContent = "Este diagnóstico todavía no está habilitado para tu aula.";
+    titulo.textContent = "Nivel Fácil bloqueado";
+    texto.textContent = "El nivel Fácil todavía no está habilitado para tu aula.";
     btn.hidden = true;
     mostrarProgreso(0, PREGUNTAS.length);
     return;
   }
-  titulo.textContent = "Diagnóstico Matemático";
-  texto.textContent = "Evalúa tu nivel actual antes de comenzar la preparación. Responde con honestidad, no hay penalización por error.";
+  actualizarTitulosExamenActivo("diagnostico");
   btn.hidden = false;
   const resultadoDiag = resultadoActual("diagnostico");
   if (resultadoDiag && !intentoCoincide("diag", "diagnostico")) {
@@ -2954,9 +2962,9 @@ function asegurarEnlaceReporteExamen(sec) {
     examen: "sectionExamen"
   };
   const titleByKey = {
-    diagnostico: "Diagnóstico",
-    nivel1: "Nivel Medio",
-    examen: "Examen Final"
+    diagnostico: "Fácil",
+    nivel1: "Medio",
+    examen: "Difícil"
   };
   const section = document.getElementById(sectionByKey[sec]);
   if (!section || section.querySelector(".exam-report-link")) return;
@@ -3475,12 +3483,23 @@ function combinarPreguntasNivel(level, bank = bancoActivo, classId = claseActiva
   return priority.slice(0, limite).map((question, index) => ({ ...question, id: index + 1 }));
 }
 
-function aplicarPreguntasCombinadas(level, bank = bancoActivo) {
-  const combined = combinarPreguntasNivel(level, bank);
+function aplicarPreguntasCombinadas(level, bank = bancoActivo, route = null) {
+  const combined = combinarPreguntasNivel(level, bank, claseActiva || adminClaseActiva || "", route);
   if (level === "diagnostico") PREGUNTAS.splice(0, PREGUNTAS.length, ...combined);
   else if (level === "examen") PREGUNTAS_EXAMEN.splice(0, PREGUNTAS_EXAMEN.length, ...combined);
   else PREGUNTAS_NIVELES.nivel1 = combined;
   return combined;
+}
+
+function rutaPreguntasExamen(level = "diagnostico") {
+  const selection = modoAdmin
+    ? resolveTeacherExamRoute()
+    : resolveExamSelectorSelection({ ...getExamSelectorSelection(), level: EXAM_TO_LEVEL[level] || "facil" });
+  return {
+    branchId: selection.branchId,
+    topicId: selection.topicId,
+    subtopicId: selection.subtopicId
+  };
 }
 
 function ownerUidPreguntasActual() {
@@ -3519,7 +3538,7 @@ async function prepararPreguntasActivas(level) {
     console.warn("No se pudieron cargar las preguntas personalizadas.", error);
     teacherQuestions = [];
   }
-  return aplicarPreguntasCombinadas(level, bancoActivo);
+  return aplicarPreguntasCombinadas(level, bancoActivo, rutaPreguntasExamen(level));
 }
 
 function renderQuestionPreviewList(preguntas) {
@@ -3547,9 +3566,9 @@ function renderAdminExamBanks() {
   const routeSubtopic = (routeTopic.subtopics || []).find(item => item.id === route.subtopicId) || routeTopic.subtopics?.[0];
   const routeLevel = LEVEL_TO_EXAM[route.level] || "diagnostico";
   const niveles = [
-    ["diagnostico", "Diagnóstico", () => PREGUNTAS],
-    ["nivel1", "Nivel Medio", banco => preguntasNivelMedioParaBanco(banco)],
-    ["examen", "Examen Final", () => PREGUNTAS_EXAMEN]
+    ["diagnostico", "Fácil", () => PREGUNTAS],
+    ["nivel1", "Medio", banco => preguntasNivelMedioParaBanco(banco)],
+    ["examen", "Difícil", () => PREGUNTAS_EXAMEN]
   ];
   const bank = "principal";
   const levelsToRender = modoAdmin ? niveles.filter(([clave]) => clave === routeLevel) : niveles;
@@ -3847,7 +3866,7 @@ function renderTeacherCreatedQuestions() {
       return `
         <article class="teacher-created-question">
           <div>
-            <span>${escapeHtml(question.className || nombreAulaPorId(question.classId) || "Todas las aulas")} · ${escapeHtml(NOMBRES_BANCOS[question.bank] || question.bank)} · ${escapeHtml(NIVELES_META[question.level]?.titulo || (question.level === "diagnostico" ? "Diagnóstico" : "Examen Final"))}</span>
+            <span>${escapeHtml(question.className || nombreAulaPorId(question.classId) || "Todas las aulas")} · ${escapeHtml(NOMBRES_BANCOS[question.bank] || question.bank)} · ${escapeHtml(nombreExamen(question.level))}</span>
             ${routeLabel ? `<small>${escapeHtml(routeLabel)}</small>` : ""}
             <strong>${normalized.pregunta || "Pregunta con contenido visual"}</strong>
           </div>
@@ -3927,11 +3946,11 @@ function actualizarBancoEstudiante() {
     ? "Plan gratis: usa únicamente Aritmética y sus exámenes por nivel. Activa Premium para desbloquear todo."
     : completado
     ? "Ya completaste los tres niveles. Puedes revisar tus resultados cuando quieras."
-    : "Completa diagnóstico, nivel medio y examen final para cerrar esta ruta.";
+    : "Completa Fácil, Medio y Difícil para cerrar esta ruta.";
   const items = [
-    ["diagnostico", "Diagnóstico"],
-    ["nivel1", "Nivel Medio"],
-    ["examen", "Examen Final"]
+    ["diagnostico", "Fácil"],
+    ["nivel1", "Medio"],
+    ["examen", "Difícil"]
   ];
   progress.innerHTML = items.map(([clave, nombre]) => {
     const hecho = (resultadosSesion[claveResultado(clave)]?.intentos || []).length > 0;
@@ -4372,7 +4391,7 @@ function resolveLearningSelection(selection = getLearningLast()) {
   const topic = branch.topics.find(item => item.id === selection?.topicId) || branch.topics[0];
   const subtopics = topic.subtopics?.length ? topic.subtopics : [makeLearningSubtopic(branch.title, topic.title, topic.title, topic.summary)];
   const subtopic = subtopics.find(item => item.id === selection?.subtopicId) || subtopics[0];
-  const level = LEVEL_LABELS[selection?.level] ? selection.level : "facil";
+  const level = normalizarNivelAprendizaje(selection?.level);
   return { branchId: branch.id, topicId: topic.id, subtopicId: subtopic.id, level };
 }
 
@@ -4440,7 +4459,7 @@ function resolveTeacherExamRoute(selection = getTeacherExamRoute()) {
   return {
     ...base,
     bank: "principal",
-    level: LEVEL_LABELS[selection?.level] ? selection.level : (base.level || "facil")
+    level: normalizarNivelAprendizaje(selection?.level || base.level)
   };
 }
 
@@ -4449,8 +4468,45 @@ function navegarAExamen(examKey = "diagnostico") {
     renderExamenesHub();
     return;
   }
+  const level = EXAM_TO_LEVEL[examKey] || "facil";
+  const selection = resolveExamSelectorSelection({ ...getExamSelectorSelection(), level });
+  guardarExamSelector(selection);
+  actualizarTitulosExamenActivo(examKey, selection);
   activarNav(examKey);
   if (examKey?.startsWith("nivel")) abrirNivel(examKey);
+}
+
+function contextoExamenSeleccionado(examKey = "diagnostico", selection = null) {
+  const level = normalizarNivelAprendizaje(selection?.level || EXAM_TO_LEVEL[examKey] || "facil");
+  const baseSelection = resolveExamSelectorSelection({ ...(selection || getExamSelectorSelection()), level });
+  const catalog = visibleLearningCatalog();
+  const option = selectedExamTopicOption(baseSelection, catalog);
+  const branch = option.branch;
+  const topic = option.topic;
+  const subtopic = (topic.subtopics || []).find(item => item.id === baseSelection.subtopicId) || topic.subtopics?.[0] || makeLearningSubtopic(branch.title, topic.title, topic.title, topic.summary);
+  return { ...baseSelection, branch, topic, subtopic, examKey: LEVEL_TO_EXAM[level] || examKey, levelLabel: LEVEL_LABELS[level] };
+}
+
+function actualizarTitulosExamenActivo(examKey = "diagnostico", selection = null) {
+  const ctx = contextoExamenSeleccionado(examKey, selection);
+  const titleText = `Examen ${ctx.levelLabel}: ${ctx.topic.title}`;
+  const subtitleText = `${ctx.subtopic.title} · ${etiquetaDuracionNivel(ctx.level)}`;
+  if (examKey === "diagnostico") {
+    const title = document.querySelector("#startScreen h2");
+    const text = document.querySelector("#startScreen p");
+    if (title) title.textContent = titleText;
+    if (text) text.textContent = subtitleText;
+  } else if (examKey === "nivel1") {
+    const title = document.getElementById("nivelTitulo");
+    const text = document.getElementById("nivelDescripcion");
+    if (title) title.textContent = titleText;
+    if (text) text.textContent = subtitleText;
+  } else if (examKey === "examen") {
+    const title = document.querySelector("#startScreenExamen h2");
+    const text = document.querySelector("#startScreenExamen p");
+    if (title) title.textContent = titleText;
+    if (text) text.textContent = subtitleText;
+  }
 }
 
 function learningProgressSummary() {
@@ -5027,6 +5083,7 @@ document.getElementById("sectionAprendizaje")?.addEventListener("click", async e
     if (esProfesor()) {
       enfocarExamenProfesorDesdeAprendizaje(examKey);
     } else {
+      guardarExamSelector(selection);
       navegarAExamen(examKey);
     }
   }
@@ -7151,11 +7208,11 @@ function renderStudentStats() {
     return;
   }
   const nombres = tienePruebaDiagnosticoGratis()
-    ? { diagnostico: "Diagnóstico" }
-    : { diagnostico: "Diagnóstico", nivel1: "Nivel Medio", examen: "Examen Final" };
+    ? { diagnostico: "Fácil" }
+    : { diagnostico: "Fácil", nivel1: "Medio", examen: "Difícil" };
   cont.innerHTML = "";
   if (tienePruebaDiagnosticoGratis()) {
-    cont.innerHTML = `<div class="stats-card"><h3>Prueba gratuita</h3><p>En el plan gratis puedes consultar únicamente las métricas del examen diagnóstico. Activa Premium para comparar nivel medio, examen final, mensajes y todos los beneficios.</p></div>`;
+    cont.innerHTML = `<div class="stats-card"><h3>Prueba gratuita</h3><p>En el plan gratis puedes consultar únicamente las métricas del nivel Fácil de Aritmética. Activa Premium para comparar niveles Medio y Difícil, mensajes y todos los beneficios.</p></div>`;
   }
   Object.entries(nombres).forEach(([clave, nombre]) => {
     const intentos = resultadosSesion[claveResultado(clave)]?.intentos || [];
@@ -7201,7 +7258,7 @@ actualizarProgreso();
 ──────────────────────────────────────────────────── */
 document.getElementById("btnIniciarDiag").addEventListener("click", async () => {
   if (!puedeIniciarIntento("diagnostico")) {
-    alert("Ya usaste los 2 intentos permitidos para el diagnóstico.");
+    alert("Ya usaste los 2 intentos permitidos para el nivel Fácil.");
     return;
   }
   if (!(await validarDisponibilidadExamen("diagnostico"))) return;
@@ -7379,7 +7436,7 @@ const PREGUNTAS_EXAMEN = [
    12. NIVELES – DATOS (5 niveles, 10 preguntas cada uno)
 ════════════════════════════════════════════════════════ */
 const NIVELES_META = {
-  nivel1: { titulo: "Nivel Medio", descripcion: "Práctica intermedia con preguntas asignadas por aula.", requisito: "diagnostico", requisitoTexto: "Completa primero el diagnóstico." }
+  nivel1: { titulo: "Medio", descripcion: "Práctica intermedia con preguntas asignadas por tema, subtema y aula.", requisito: "diagnostico", requisitoTexto: "Completa primero el nivel Fácil." }
 };
 
 const PREGUNTAS_NIVELES = {
@@ -8231,9 +8288,9 @@ async function postBackendAutenticado(endpoint, payload = {}) {
 }
 
 function nombreExamen(clave) {
-  if (clave === "diagnostico") return "Diagnóstico";
-  if (clave === "nivel1") return "Nivel Medio";
-  if (clave === "examen") return "Examen Final";
+  if (clave === "diagnostico") return "Fácil";
+  if (clave === "nivel1") return "Medio";
+  if (clave === "examen") return "Difícil";
   return "Examen";
 }
 
@@ -8612,8 +8669,7 @@ function abrirNivel(clave) {
     nivelCompletadoVisible = true;
   }
   const meta = NIVELES_META[clave];
-  document.getElementById("nivelTitulo").textContent = meta.titulo;
-  document.getElementById("nivelDescripcion").textContent = meta.descripcion;
+  actualizarTitulosExamenActivo(clave);
   document.getElementById("btnIniciarNivel").textContent = `▶ Iniciar ${meta.titulo.toLowerCase()}`;
   document.getElementById("submitBtnNivel").textContent = `Enviar ${meta.titulo.toLowerCase()}`;
   document.getElementById("nivelBloqueadoTitulo").textContent = `${meta.titulo} bloqueado`;
@@ -8694,7 +8750,7 @@ async function evaluarYMostrarNivel(respuestas, opciones = {}) {
   document.getElementById("submitBtnNivel").style.display = "none";
 
   const preguntas = PREGUNTAS_NIVELES[nivelActual];
-  const tiempoEmpleado = duracionExamenSeg(clave) - segsNivel;
+  const tiempoEmpleado = duracionExamenSeg(nivelActual) - segsNivel;
   const puedeMostrarClaves = tieneClavesRespuesta(preguntas);
   let correctas = 0;
   preguntas.forEach((q, i) => { if (respuestas[i] === q.correcta) correctas++; });
@@ -8721,7 +8777,7 @@ async function evaluarYMostrarNivel(respuestas, opciones = {}) {
   const sec = document.getElementById("resultsSectionNivel");
   sec.hidden = false;
   const preguntasResultado = await cargarPreguntasRetroalimentacionOficial(nivelActual, preguntas);
-  const puedeMostrarFeedback = tieneClavesRespuesta(preguntasResultado);
+  const puedeMostrarFeedback = retroalimentacionDisponible(nivelActual) && tieneClavesRespuesta(preguntasResultado);
 
   const circ = 2 * Math.PI * 50;
   document.getElementById("ringFillNivel").style.strokeDashoffset = circ - (pct / 100) * circ;
@@ -8752,7 +8808,7 @@ async function evaluarYMostrarNivel(respuestas, opciones = {}) {
   const tbody = document.getElementById("summaryBodyNivel");
   tbody.innerHTML = "";
   if (!puedeMostrarFeedback) {
-    tbody.innerHTML = `<tr><td colspan="4">Resultado guardado oficialmente. La retroalimentación se mostrará cuando el profesor la publique.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="4">${escapeHtml(mensajeRetroalimentacionBloqueada(nivelActual))}</td></tr>`;
   } else preguntasResultado.forEach((q, i) => {
     const sinR = respuestas[i] === -1;
     const ok = !sinR && respuestas[i] === q.correcta;
@@ -8769,7 +8825,7 @@ async function evaluarYMostrarNivel(respuestas, opciones = {}) {
   const fbEl = document.getElementById("feedbackItemsNivel");
   fbEl.innerHTML = "";
   if (!puedeMostrarFeedback) {
-    fbEl.innerHTML = `<div class="feedback-pending-card"><strong>Retroalimentación protegida</strong><p>Las respuestas correctas y explicaciones permanecen ocultas hasta que el profesor las publique.</p></div>`;
+    fbEl.innerHTML = `<div class="feedback-pending-card"><strong>Retroalimentación protegida</strong><p>${escapeHtml(mensajeRetroalimentacionBloqueada(nivelActual))}</p></div>`;
   } else preguntasResultado.forEach((q, i) => {
     const sinR = respuestas[i] === -1;
     const ok = !sinR && respuestas[i] === q.correcta;
@@ -13596,9 +13652,9 @@ function renderAdminPanel() {
   }
   const aula = aulaPorId(adminGrupoActual);
   const nombres = [
-    ["diagnostico", "Diagnóstico"],
-    ["nivel1", "Nivel Medio"],
-    ["examen", "Examen Final"]
+    ["diagnostico", "Fácil"],
+    ["nivel1", "Medio"],
+    ["examen", "Difícil"]
   ];
 
   list.innerHTML = "";
@@ -13618,7 +13674,7 @@ function renderAdminPanel() {
     row.innerHTML = `
       <div>
         <strong>${nombre}</strong>
-        <span>${clave === "diagnostico" ? "Permitir entrada al diagnóstico" : "Permiso directo sin completar el requisito anterior"}</span>
+        <span>${clave === "diagnostico" ? "Permitir entrada al nivel Fácil" : "Permiso directo sin completar el requisito anterior"}</span>
       </div>
       <label class="switch" aria-label="Habilitar ${nombre}">
         <input type="checkbox" data-admin-exam="${clave}" ${permisosGrupo[adminGrupoActual]?.[clave] ? "checked" : ""}>
@@ -14341,7 +14397,7 @@ function reRenderKatex(el) {
 /** Botón iniciar examen final */
 document.getElementById("btnIniciarExamen").addEventListener("click", async () => {
   if (!puedeIniciarIntento("examen")) {
-    alert("Ya usaste los 2 intentos permitidos para el examen final.");
+    alert("Ya usaste los 2 intentos permitidos para el nivel Difícil.");
     return;
   }
   if (!(await validarDisponibilidadExamen("examen"))) return;
@@ -14423,7 +14479,7 @@ async function evaluarYMostrarExamen(respuestas, opciones = {}) {
   const sec = document.getElementById("resultsSectionExamen");
   sec.hidden = false;
   const preguntasResultado = await cargarPreguntasRetroalimentacionOficial("examen", PREGUNTAS_EXAMEN);
-  const puedeMostrarFeedback = tieneClavesRespuesta(preguntasResultado);
+  const puedeMostrarFeedback = retroalimentacionDisponible("examen") && tieneClavesRespuesta(preguntasResultado);
 
   // Score ring
   const circ = 2 * Math.PI * 50;
@@ -14458,7 +14514,7 @@ async function evaluarYMostrarExamen(respuestas, opciones = {}) {
   const tbody = document.getElementById("summaryBodyExamen");
   tbody.innerHTML = "";
   if (!puedeMostrarFeedback) {
-    tbody.innerHTML = `<tr><td colspan="4">Resultado guardado oficialmente. La retroalimentación se mostrará cuando el profesor la publique.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="4">${escapeHtml(mensajeRetroalimentacionBloqueada("examen"))}</td></tr>`;
   } else preguntasResultado.forEach((q, i) => {
     const sinR = respuestas[i] === -1;
     const ok   = !sinR && respuestas[i] === q.correcta;
@@ -14476,7 +14532,7 @@ async function evaluarYMostrarExamen(respuestas, opciones = {}) {
   const fbEl = document.getElementById("feedbackItemsExamen");
   fbEl.innerHTML = "";
   if (!puedeMostrarFeedback) {
-    fbEl.innerHTML = `<div class="feedback-pending-card"><strong>Retroalimentación protegida</strong><p>Las respuestas correctas y explicaciones permanecen ocultas hasta que el profesor las publique.</p></div>`;
+    fbEl.innerHTML = `<div class="feedback-pending-card"><strong>Retroalimentación protegida</strong><p>${escapeHtml(mensajeRetroalimentacionBloqueada("examen"))}</p></div>`;
   } else preguntasResultado.forEach((q, i) => {
     const sinR = respuestas[i] === -1;
     const ok   = !sinR && respuestas[i] === q.correcta;
@@ -14516,7 +14572,7 @@ async function evaluarYMostrarExamen(respuestas, opciones = {}) {
 /* Botones examen final */
 document.getElementById("btnRestartExamen").addEventListener("click", () => {
   if (!puedeIniciarIntento("examen")) {
-    alert("Ya usaste los 2 intentos permitidos para el examen final.");
+    alert("Ya usaste los 2 intentos permitidos para el nivel Difícil.");
     return;
   }
   limpiarIntentoActivo();
@@ -14538,10 +14594,6 @@ document.getElementById("btnAllExamen").addEventListener("click", () => {
 
 async function restaurarIntentoActivo() {
   if (!intentoActivo) return;
-  if (Date.now() - intentoActivo.ultimaActividad > INACTIVIDAD_MS) {
-    limpiarIntentoActivo();
-    return;
-  }
 
   const restante = Math.max(0, Math.ceil((intentoActivo.vence - Date.now()) / 1000));
 

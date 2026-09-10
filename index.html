@@ -33,7 +33,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="style.css?v=20260910-02" />
+  <link rel="stylesheet" href="style.css?v=20260910-03" />
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -653,7 +653,7 @@
     <section class="welcome-panel" id="welcomePanel">
       <img class="student-welcome-photo" id="studentWelcomePhoto" src="assets/icon-180.png" alt="Foto de perfil del estudiante" />
       <h2 id="welcomeTitle">Bienvenido</h2>
-      <p id="studentWelcomeText">Esta app te acompaña en una ruta de práctica matemática por niveles. Trabajarás diagnóstico, nivel medio y examen final con métricas de precisión, tiempo y temas por reforzar.</p>
+      <p id="studentWelcomeText">Esta app te acompaña en una ruta de práctica matemática por niveles. Trabajarás exámenes fáciles, medios y difíciles con métricas de precisión, tiempo y temas por reforzar.</p>
       <div class="welcome-grid">
         <span>Presenta los exámenes habilitados para tu aula.</span>
         <span>Cada examen tiene máximo dos intentos.</span>
@@ -662,7 +662,7 @@
       </div>
       <div class="bank-progress-panel">
         <h3 id="studentBankTitle">Exámenes por nivel</h3>
-        <p id="studentBankText">Completa diagnóstico, nivel medio y examen final para avanzar al siguiente banco.</p>
+        <p id="studentBankText">Completa Fácil, Medio y Difícil para avanzar al siguiente banco.</p>
         <div class="bank-progress-grid" id="studentBankProgress"></div>
         <div class="result-actions">
           <button class="btn btn-outline" id="btnBancoAnterior" type="button">← Ver banco anterior</button>
@@ -1005,16 +1005,16 @@
       </section>
       <div class="exam-hub-grid hidden" id="studentExamHub">
         <button class="exam-hub-card" data-go-exam="diagnostico" type="button">
-          <strong>Diagnóstico</strong>
+          <strong>Fácil</strong>
           <span>15 preguntas · 15 minutos</span>
         </button>
         <button class="exam-hub-card" data-go-exam="nivel1" type="button">
-          <strong>Nivel Medio</strong>
-          <span>10 preguntas · 15 minutos</span>
+          <strong>Medio</strong>
+          <span>10 preguntas · 25 minutos</span>
         </button>
         <button class="exam-hub-card" data-go-exam="examen" type="button">
-          <strong>Examen Final</strong>
-          <span>10 preguntas · 15 minutos</span>
+          <strong>Difícil</strong>
+          <span>10 preguntas · 35 minutos</span>
         </button>
       </div>
       <section class="teacher-exam-route hidden" id="teacherExamRouteSelector">
@@ -1041,7 +1041,7 @@
           <summary>Crear pregunta desde cero</summary>
           <p>
             La pregunta se agregará al tema, subtema y nivel seleccionados. Si el examen aún no completa su cupo,
-            se combinará con preguntas base para conservar 15 preguntas en diagnóstico y 10 en los demás niveles.
+            se combinará con preguntas base para conservar 15 preguntas en Fácil y 10 en los demás niveles.
           </p>
 
           <div class="teacher-question-grid">
@@ -1050,9 +1050,9 @@
             </label>
             <label>Nivel
               <select id="teacherQuestionLevel" class="admin-input">
-                <option value="diagnostico">Diagnóstico</option>
-                <option value="nivel1">Nivel Medio</option>
-                <option value="examen">Examen Final</option>
+                <option value="diagnostico">Fácil</option>
+                <option value="nivel1">Medio</option>
+                <option value="examen">Difícil</option>
               </select>
             </label>
             <label>Tema
@@ -1148,8 +1148,8 @@
     <!-- Pantalla de inicio -->
     <div class="start-screen" id="startScreen">
       <span class="cs-icon">📝</span>
-      <h2>Diagnóstico Matemático</h2>
-      <p>Evalúa tu nivel actual antes de comenzar la preparación. Responde con honestidad, no hay penalización por error.</p>
+      <h2>Examen Fácil</h2>
+      <p>Practica el nivel fácil antes de avanzar. Responde con honestidad, no hay penalización por error.</p>
       <div class="start-rules">
         <ul>
           <li>15 preguntas de selección múltiple</li>
@@ -1161,7 +1161,7 @@
           <li>Las preguntas sin responder cuentan como incorrectas</li>
         </ul>
       </div>
-      <button class="btn btn-primary" id="btnIniciarDiag">▶ Iniciar diagnóstico</button>
+      <button class="btn btn-primary" id="btnIniciarDiag">▶ Iniciar examen fácil</button>
     </div>
 
     <!-- Formulario de preguntas — oculto hasta iniciar -->
@@ -1172,7 +1172,7 @@
       <div class="form-footer">
         <p class="warn-msg" id="warnMsg" hidden>⚠ Responde todas las preguntas antes de enviar.</p>
         <button type="submit" class="btn btn-primary" id="submitBtn">
-          Enviar diagnóstico
+          Enviar examen fácil
         </button>
       </div>
     </form>
@@ -1362,23 +1362,23 @@
     <!-- Estado: diagnóstico no completado aún -->
     <div class="start-screen" id="examenBloqueado">
       <span class="cs-icon">🔒</span>
-      <h2>Examen Final bloqueado</h2>
-      <p>Debes completar el <strong>Nivel Medio</strong> antes de acceder al Examen Final, salvo que el administrador habilite permiso directo para tu aula.</p>
+      <h2>Examen Difícil bloqueado</h2>
+      <p>Debes completar el <strong>nivel Medio</strong> antes de acceder al nivel Difícil, salvo que el administrador habilite permiso directo para tu aula.</p>
       <div class="start-rules">
         <ul>
-          <li>Completa el Nivel Medio</li>
+          <li>Completa el nivel Medio</li>
           <li>O solicita permiso directo al administrador</li>
           <li>Luego podrás acceder aquí</li>
         </ul>
       </div>
-      <button class="btn btn-secondary" id="btnIrDiagnostico">← Ir al Nivel Medio</button>
+      <button class="btn btn-secondary" id="btnIrDiagnostico">← Ir al nivel Medio</button>
     </div>
 
     <!-- Estado: listo para iniciar (solo visible tras completar diagnóstico) -->
     <div class="start-screen" id="startScreenExamen" hidden>
       <span class="cs-icon">🎯</span>
-      <h2>Examen Final</h2>
-      <p>Nivel avanzado. Preguntas de alta complejidad sobre álgebra, funciones, ecuaciones, conteo, conjuntos y razonamiento matemático.</p>
+      <h2>Examen Difícil</h2>
+      <p>Nivel difícil. Preguntas de alta complejidad sobre álgebra, funciones, ecuaciones, conteo, conjuntos y razonamiento matemático.</p>
       <div class="start-rules">
         <ul>
           <li>10 preguntas de alta dificultad</li>
@@ -1390,7 +1390,7 @@
           <li>Las preguntas sin responder cuentan como incorrectas</li>
         </ul>
       </div>
-      <button class="btn btn-primary" id="btnIniciarExamen">▶ Iniciar examen final</button>
+      <button class="btn btn-primary" id="btnIniciarExamen">▶ Iniciar examen difícil</button>
     </div>
 
     <div id="examenFormWrap" hidden>
@@ -1398,7 +1398,7 @@
       <div id="examenContainer"></div>
       <div class="form-footer">
         <p class="warn-msg" id="warnMsgExamen" hidden>⚠ Responde todas las preguntas antes de enviar.</p>
-        <button type="submit" class="btn btn-primary" id="submitBtnExamen">Enviar examen final</button>
+        <button type="submit" class="btn btn-primary" id="submitBtnExamen">Enviar examen difícil</button>
       </div>
     </form>
     </div>
@@ -1694,7 +1694,7 @@
           <summary>Banco de preguntas</summary>
           <p>Escoge el banco que trabajará el aula seleccionada en cada nivel.</p>
           <div class="bank-grid">
-            <label>Nivel<select id="bankNivelSelect" class="admin-input"><option value="diagnostico">Diagnóstico</option><option value="nivel1">Nivel Medio</option><option value="examen">Examen Final</option></select></label>
+            <label>Nivel<select id="bankNivelSelect" class="admin-input"><option value="diagnostico">Fácil</option><option value="nivel1">Medio</option><option value="examen">Difícil</option></select></label>
             <label>Banco<select id="bankBancoSelect" class="admin-input"></select></label>
           </div>
           <button class="btn btn-secondary" id="btnGuardarBanco" type="button">Guardar banco</button>
@@ -1705,7 +1705,7 @@
           <p>Programa cuándo se abre cada examen y decide cuándo publicar la retroalimentación para el aula seleccionada.</p>
           <div class="bank-grid">
             <label>Aula<select id="examAccessClassSelect" class="admin-input"></select></label>
-            <label>Examen<select id="examAccessLevelSelect" class="admin-input"><option value="diagnostico">Diagnóstico</option><option value="nivel1">Nivel Medio</option><option value="examen">Examen Final</option></select></label>
+            <label>Examen<select id="examAccessLevelSelect" class="admin-input"><option value="diagnostico">Fácil</option><option value="nivel1">Medio</option><option value="examen">Difícil</option></select></label>
           </div>
           <div class="bank-grid schedule-grid">
             <label>Fecha de inicio<input type="date" id="examStartDate" class="admin-input" /></label>
@@ -1871,9 +1871,9 @@
           <label>Aula<select id="reportClassSelect" class="admin-input"></select></label>
           <label>Tipo de examen
             <select id="reportExamSelect" class="admin-input">
-              <option value="diagnostico">Diagnóstico</option>
-              <option value="nivel1">Nivel Medio</option>
-              <option value="examen">Examen Final</option>
+              <option value="diagnostico">Fácil</option>
+              <option value="nivel1">Medio</option>
+              <option value="examen">Difícil</option>
             </select>
           </label>
         </div>
@@ -2199,7 +2199,7 @@
     <div class="overlay-card">
       <div class="overlay-icon">⏰</div>
       <h2>¡Tiempo agotado!</h2>
-      <p>Se acabaron los 15 minutos del examen final. Las preguntas sin responder cuentan como incorrectas.</p>
+      <p>Se acabó el tiempo del examen difícil. Las preguntas sin responder cuentan como incorrectas.</p>
       <button class="btn btn-primary" id="btnVerResultadoExamen">Ver mi resultado</button>
     </div>
   </div>
@@ -2237,6 +2237,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260910-02"></script>
+  <script type="module" src="script.js?v=20260910-03"></script>
 </body>
 </html>

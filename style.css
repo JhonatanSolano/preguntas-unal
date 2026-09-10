@@ -5413,9 +5413,6 @@ body.public-modal-open {
   margin: 0 auto 1rem;
   display: block;
 }
-.first-attempt-result .score-ring-wrap,
-.first-attempt-result .score-title,
-.first-attempt-result .score-pills,
 .first-attempt-result .table-wrap,
 .first-attempt-result [id^="feedbackList"],
 .first-attempt-result [id^="btnWrong"],

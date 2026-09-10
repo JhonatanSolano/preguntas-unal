@@ -2639,9 +2639,9 @@ exports.updateExamAccessConfig = onRequest({ region: "us-central1" }, async (req
 });
 
 function examLevelName(level = "") {
-  if (level === "diagnostico") return "Diagnóstico";
-  if (level === "nivel1") return "Nivel Medio";
-  if (level === "examen") return "Examen Final";
+  if (level === "diagnostico") return "Fácil";
+  if (level === "nivel1") return "Medio";
+  if (level === "examen") return "Difícil";
   return String(level || "Examen");
 }
 
