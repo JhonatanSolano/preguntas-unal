@@ -40,6 +40,7 @@ import {
   query,
   serverTimestamp,
   setDoc,
+  startAfter,
   updateDoc,
   where
 } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
@@ -78,6 +79,7 @@ const APP_CONFIG = {
   examAttemptFeedbackEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/getExamAttemptFeedback",
   academicReportEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/getAcademicReport",
   videoPlaybackEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/trackVideoPlayback",
+  ownerAppMetricsEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/getOwnerAppMetrics",
   payments: {
     provider: "Wompi",
     checkoutReady: true,
@@ -1177,6 +1179,8 @@ let claseActualInfo = null;
 let clasePendienteIngreso = null;
 let adminClaseActiva = localStorage.getItem(STORAGE_ADMIN_CLASE) || "";
 let adminClases = [];
+const ADMIN_STUDENTS_PAGE_SIZE = 50;
+const adminStudentsPages = new Map();
 let authIntent = "login";
 let examAccessCleanupTimer = null;
 
@@ -6038,6 +6042,15 @@ function crearMetricasVaciasApp() {
   };
 }
 
+function normalizarMetricasApp(raw = {}) {
+  const defaults = crearMetricasVaciasApp();
+  const metrics = { ...defaults, ...raw };
+  ["total", "institutions", "teachers", "independentStudents", "institutionStudents", "other"].forEach(key => {
+    metrics[key] = { ...(defaults[key] || {}), ...(raw[key] || {}) };
+  });
+  return metrics;
+}
+
 async function renderOwnerAppMetrics(options = {}) {
   const summary = document.getElementById("ownerAppMetricsSummary");
   const breakdown = document.getElementById("ownerAppMetricsBreakdown");
@@ -6054,20 +6067,13 @@ async function renderOwnerAppMetrics(options = {}) {
     status.className = "bank-status";
   }
   try {
-    const snap = await getDocs(collection(db, "users"));
-    const metrics = crearMetricasVaciasApp();
-    snap.forEach(item => {
-      const data = item.data() || {};
-      const category = categoriaUsuarioMetricas(data);
-      if (category === "owner") return;
-      const target = metrics[category] || metrics.other;
-      target.registered += 1;
-      metrics.total.registered += 1;
-      if (perfilSuscritoParaMetricas(data)) {
-        target.subscribed += 1;
-        metrics.total.subscribed += 1;
-      }
+    const response = await authedFetch(APP_CONFIG.ownerAppMetricsEndpoint, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" }
     });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.ok) throw new Error(data.error || "No fue posible cargar las métricas.");
+    const metrics = normalizarMetricasApp(data.metrics || {});
     summary.innerHTML = `
       <article>
         <strong>${metrics.total.registered}</strong>
@@ -6091,7 +6097,7 @@ async function renderOwnerAppMetrics(options = {}) {
         </article>
       `;
     }).join("");
-    if (status && showStatus) setStatusTemporal("ownerAppMetricsStatus", "Métricas actualizadas.", "ok", 5000);
+    if (status && showStatus) setStatusTemporal("ownerAppMetricsStatus", data.rebuilt ? "Métricas reconstruidas y guardadas." : "Métricas actualizadas.", "ok", 5000);
   } catch (error) {
     console.warn("No fue posible cargar métricas administrativas", error);
     if (status && showStatus) {
@@ -10076,11 +10082,7 @@ async function cargarClasesAdmin() {
 function escucharEstudiantesAdmin() {
   if (!modoAdmin || !usuarioActual) return;
   if (unsubscribeAdminStudents) unsubscribeAdminStudents();
-  unsubscribeAdminStudents = onSnapshot(
-    query(collection(db, "classStudents"), where("ownerUid", "==", usuarioActual.uid)),
-    () => renderAdminStudentsByClass().catch(err => console.warn("No se pudieron actualizar estudiantes.", err)),
-    err => console.warn("No se pudo escuchar estudiantes en tiempo real.", err)
-  );
+  unsubscribeAdminStudents = null;
 }
 
 function renderClassSelectors() {
@@ -10158,8 +10160,31 @@ function parseStudentLines(raw) {
 }
 
 async function estudiantesDeClase(classId) {
-  const snap = await getDocs(query(collection(db, "classStudents"), where("classId", "==", classId)));
-  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const estudiantes = [];
+  let cursor = null;
+  while (true) {
+    const page = await cargarPaginaEstudiantesClase(classId, cursor);
+    estudiantes.push(...page.estudiantes);
+    cursor = page.cursor;
+    if (!page.hasMore) break;
+  }
+  return estudiantes;
+}
+
+async function cargarPaginaEstudiantesClase(classId, cursor = null) {
+  const constraints = [
+    where("classId", "==", classId),
+    orderBy(documentId()),
+    ...(cursor ? [startAfter(cursor)] : []),
+    limit(ADMIN_STUDENTS_PAGE_SIZE + 1)
+  ];
+  const snap = await getDocs(query(collection(db, "classStudents"), ...constraints));
+  const docs = snap.docs.slice(0, ADMIN_STUDENTS_PAGE_SIZE);
+  return {
+    estudiantes: docs.map(d => ({ id: d.id, ...d.data() })),
+    cursor: docs.length ? docs[docs.length - 1] : cursor,
+    hasMore: snap.docs.length > ADMIN_STUDENTS_PAGE_SIZE
+  };
 }
 
 async function renderAdminStudentsByClass() {
@@ -10176,11 +10201,22 @@ async function renderAdminStudentsByClass() {
   try {
     const groups = await Promise.all(adminClases.map(async clase => ({
       clase,
-      estudiantes: await estudiantesDeClase(clase.id)
+      page: await cargarPaginaEstudiantesClase(clase.id)
     })));
-    cont.innerHTML = groups.map(({ clase, estudiantes }) => `
+    groups.forEach(({ clase, page }) => {
+      adminStudentsPages.set(clase.id, {
+        cursor: page.cursor,
+        hasMore: page.hasMore,
+        loaded: page.estudiantes.length,
+        loading: false
+      });
+    });
+    cont.innerHTML = groups.map(({ clase, page }) => {
+      const estudiantes = page.estudiantes;
+      const countLabel = `${estudiantes.length}${page.hasMore ? "+" : ""}`;
+      return `
       <details class="accordion-card class-students-card">
-        <summary>${clase.name} · ${clase.code} · ${estudiantes.length} estudiante(s)</summary>
+        <summary>${clase.name} · ${clase.code} · ${countLabel} estudiante(s)</summary>
         <div class="class-toolbar">
           <div>
             <strong>${clase.name}</strong>
@@ -10199,10 +10235,55 @@ async function renderAdminStudentsByClass() {
         <div class="student-list" data-class-list="${clase.id}">
           ${estudiantes.length ? estudiantes.map(est => renderStudentRow(est)).join("") : `<p class="mini-help">Sin estudiantes registrados.</p>`}
         </div>
+        <div class="class-pagination ${page.hasMore ? "" : "hidden"}" data-class-pagination="${clase.id}">
+          <p class="mini-help">Mostrando ${estudiantes.length} estudiantes. La búsqueda filtra los cargados.</p>
+          <button class="btn btn-outline" data-load-more-students="${clase.id}" type="button">Cargar más estudiantes</button>
+        </div>
       </details>
-    `).join("");
+    `;
+    }).join("");
   } finally {
     renderizandoAdminStudents = false;
+  }
+}
+
+async function cargarMasEstudiantesClase(classId) {
+  const state = adminStudentsPages.get(classId);
+  const list = document.querySelector(`[data-class-list="${classId}"]`);
+  const pagination = document.querySelector(`[data-class-pagination="${classId}"]`);
+  const btn = document.querySelector(`[data-load-more-students="${classId}"]`);
+  if (!state || !list || state.loading || !state.hasMore) return;
+  state.loading = true;
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Cargando...";
+  }
+  try {
+    const page = await cargarPaginaEstudiantesClase(classId, state.cursor);
+    state.cursor = page.cursor;
+    state.hasMore = page.hasMore;
+    state.loaded += page.estudiantes.length;
+    adminStudentsPages.set(classId, state);
+    if (page.estudiantes.length) {
+      list.insertAdjacentHTML("beforeend", page.estudiantes.map(est => renderStudentRow(est)).join(""));
+    }
+    if (pagination) {
+      pagination.classList.toggle("hidden", !state.hasMore);
+      const help = pagination.querySelector(".mini-help");
+      if (help) help.textContent = `Mostrando ${state.loaded}${state.hasMore ? "+" : ""} estudiantes. La búsqueda filtra los cargados.`;
+    }
+  } catch (err) {
+    console.warn("No se pudieron cargar más estudiantes.", err);
+    if (pagination) {
+      const help = pagination.querySelector(".mini-help");
+      if (help) help.textContent = "No se pudieron cargar más estudiantes. Intenta de nuevo.";
+    }
+  } finally {
+    state.loading = false;
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "Cargar más estudiantes";
+    }
   }
 }
 
@@ -13512,6 +13593,11 @@ document.getElementById("adminStudentsByClass")?.addEventListener("click", e => 
     registrarEstudiantesEnClase(classId, input?.value || "", status).then(() => {
       if (input) input.value = "";
     });
+    return;
+  }
+  const loadMoreBtn = e.target.closest("[data-load-more-students]");
+  if (loadMoreBtn) {
+    cargarMasEstudiantesClase(loadMoreBtn.dataset.loadMoreStudents);
     return;
   }
   const deleteClassBtn = e.target.closest("[data-delete-class]");

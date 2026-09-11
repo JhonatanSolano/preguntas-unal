@@ -1,7 +1,7 @@
 const { initializeApp } = require("firebase-admin/app");
 const { getAppCheck } = require("firebase-admin/app-check");
 const { getAuth } = require("firebase-admin/auth");
-const { FieldValue, Timestamp, getFirestore } = require("firebase-admin/firestore");
+const { FieldPath, FieldValue, Timestamp, getFirestore } = require("firebase-admin/firestore");
 const crypto = require("crypto");
 const { onRequest } = require("firebase-functions/v2/https");
 const { onDocumentWritten } = require("firebase-functions/v2/firestore");
@@ -21,12 +21,18 @@ const {
   aiLimitMessage
 } = require("./aiUsagePolicy");
 const { normalizeAiSessionData, buildAiSessionInstruction } = require("./aiSessionPolicy");
+const {
+  OWNER_EMAIL,
+  buildAppMetricsFromUsers,
+  emptyAppMetrics,
+  metricDelta
+} = require("./appMetricsPolicy");
 
 initializeApp();
 const admin = {
   appCheck: getAppCheck,
   auth: getAuth,
-  firestore: Object.assign(getFirestore, { FieldValue, Timestamp })
+  firestore: Object.assign(getFirestore, { FieldPath, FieldValue, Timestamp })
 };
 const db = admin.firestore();
 
@@ -41,6 +47,7 @@ const WOMPI_CHECKOUT_URL = "https://checkout.wompi.co/p/";
 const APP_URL = "https://matematicasentubolsillo.com/";
 const APP_ORIGIN = "https://matematicasentubolsillo.com";
 const INSTITUTIONAL_COMMERCE_FROZEN = true;
+const APP_METRICS_DOC = "current";
 
 const BILLING_PLANS = {
   "student-annual": {
@@ -1077,6 +1084,114 @@ async function syncAuthClaimsForUser(uid, data = null) {
     console.warn("No se pudieron sincronizar custom claims", uid, err);
   }
 }
+
+function usersMetricsQuery(startAfterDoc = null) {
+  let queryRef = db.collection("users")
+    .select(
+      "email",
+      "correo",
+      "role",
+      "tipoCuenta",
+      "accountMode",
+      "institutionDane",
+      "subscriptionStatus",
+      "subscriptionInherited",
+      "institutionSubscriptionStatus",
+      "institutionAccessRevoked",
+      "institutionAccessBlocked",
+      "institutionPremiumBlocked",
+      "subscriptionPremiumBlocked",
+      "institutionMemberStatus"
+    )
+    .orderBy(admin.firestore.FieldPath.documentId())
+    .limit(500);
+  if (startAfterDoc) queryRef = queryRef.startAfter(startAfterDoc);
+  return queryRef;
+}
+
+async function rebuildAppMetrics() {
+  const metrics = emptyAppMetrics();
+  let totalScanned = 0;
+  let cursor = null;
+  while (true) {
+    const snap = await usersMetricsQuery(cursor).get();
+    if (snap.empty) break;
+    const pageMetrics = buildAppMetricsFromUsers(snap.docs.map(docSnap => docSnap.data() || {}));
+    Object.keys(pageMetrics).forEach(key => {
+      if (key === "total") return;
+      metrics[key].registered += pageMetrics[key].registered;
+      metrics[key].subscribed += pageMetrics[key].subscribed;
+    });
+    metrics.total.registered += pageMetrics.total.registered;
+    metrics.total.subscribed += pageMetrics.total.subscribed;
+    totalScanned += snap.size;
+    cursor = snap.docs[snap.docs.length - 1];
+    if (snap.size < 500) break;
+  }
+  await db.collection("appMetrics").doc(APP_METRICS_DOC).set({
+    ...metrics,
+    source: "rebuild",
+    scannedUsers: totalScanned,
+    rebuiltAt: admin.firestore.FieldValue.serverTimestamp(),
+    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+  }, { merge: false });
+  return { ...metrics, scannedUsers: totalScanned };
+}
+
+exports.syncAppMetrics = onDocumentWritten({
+  region: "us-central1",
+  document: "users/{uid}",
+  maxInstances: 20
+}, async event => {
+  const before = event.data.before.exists ? event.data.before.data() : null;
+  const after = event.data.after.exists ? event.data.after.data() : null;
+  const changes = metricDelta(before, after);
+  if (!Object.keys(changes).length) return;
+  const payload = {
+    source: "incremental",
+    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+  };
+  Object.entries(changes).forEach(([path, amount]) => {
+    payload[path] = admin.firestore.FieldValue.increment(amount);
+  });
+  await db.collection("appMetrics").doc(APP_METRICS_DOC).set(payload, { merge: true });
+});
+
+exports.rebuildAppMetricsDaily = onSchedule({
+  region: "us-central1",
+  schedule: "every day 03:20",
+  timeZone: "America/Bogota",
+  timeoutSeconds: 540,
+  maxInstances: 1,
+  retryCount: 1
+}, async () => {
+  await rebuildAppMetrics();
+});
+
+exports.getOwnerAppMetrics = onRequest({ region: "us-central1", timeoutSeconds: 120, maxInstances: 5 }, async (req, res) => {
+  setCors(res);
+  if (req.method === "OPTIONS") return res.status(204).send("");
+  if (req.method !== "GET" && req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
+  if (!(await enforceAppCheck(req, res))) return;
+  let decoded;
+  try {
+    decoded = await requireAuth(req);
+  } catch {
+    return res.status(401).json({ error: "Debes iniciar sesión." });
+  }
+  if (normalizeEmail(decoded.email) !== OWNER_EMAIL) {
+    return res.status(403).json({ error: "Solo el dueño de la app puede ver estas métricas." });
+  }
+  const forceRebuild = req.method === "POST" && req.body?.forceRebuild === true;
+  if (forceRebuild) {
+    const metrics = await rebuildAppMetrics();
+    return res.status(200).json({ ok: true, metrics, rebuilt: true });
+  }
+  const metricsSnap = await db.collection("appMetrics").doc(APP_METRICS_DOC).get();
+  if (metricsSnap.exists) return res.status(200).json({ ok: true, metrics: metricsSnap.data(), rebuilt: false });
+  const metrics = await rebuildAppMetrics();
+  return res.status(200).json({ ok: true, metrics, rebuilt: true });
+});
 
 exports.syncUserCustomClaims = onDocumentWritten({
   region: "us-central1",

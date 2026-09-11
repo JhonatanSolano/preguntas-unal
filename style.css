@@ -5219,6 +5219,16 @@ body.public-modal-open {
   gap: .7rem;
   margin-top: .85rem;
 }
+.class-pagination {
+  display: flex;
+  gap: .8rem;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: .85rem;
+}
+.class-pagination .mini-help {
+  margin: 0;
+}
 .student-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 170px auto auto;
