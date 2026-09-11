@@ -1138,6 +1138,51 @@ async function rebuildAppMetrics() {
   return { ...metrics, scannedUsers: totalScanned };
 }
 
+function fieldPageQuery(collectionName, field, value, cursor = null, pageSize = 450) {
+  let queryRef = db.collection(collectionName)
+    .where(field, "==", value)
+    .orderBy(admin.firestore.FieldPath.documentId())
+    .limit(pageSize);
+  if (cursor) queryRef = queryRef.startAfter(cursor);
+  return queryRef;
+}
+
+async function forEachFieldPage(collectionName, field, value, handler, pageSize = 450) {
+  let cursor = null;
+  let total = 0;
+  while (true) {
+    const snap = await fieldPageQuery(collectionName, field, value, cursor, pageSize).get();
+    if (snap.empty) break;
+    for (const docSnap of snap.docs) {
+      await handler(docSnap);
+      total += 1;
+    }
+    cursor = snap.docs[snap.docs.length - 1];
+    if (snap.size < pageSize) break;
+  }
+  return total;
+}
+
+async function updateInstitutionUsersInPages(institutionDane, buildPayload) {
+  let batch = db.batch();
+  let pending = 0;
+  let affected = 0;
+  await forEachFieldPage("users", "institutionDane", String(institutionDane), async userDoc => {
+    const payload = buildPayload(userDoc.data() || {});
+    if (!payload) return;
+    batch.set(userDoc.ref, payload, { merge: true });
+    pending += 1;
+    affected += 1;
+    if (pending >= 450) {
+      await batch.commit();
+      batch = db.batch();
+      pending = 0;
+    }
+  });
+  if (pending) await batch.commit();
+  return affected;
+}
+
 exports.syncAppMetrics = onDocumentWritten({
   region: "us-central1",
   document: "users/{uid}",
@@ -1731,14 +1776,10 @@ exports.wompiWebhook = onRequest({
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
       }, { merge: true });
 
-      const institutionUsersSnap = await db.collection("users").where("institutionDane", "==", String(intent.institutionDane)).get();
-      let accessBatch = db.batch();
-      let accessCount = 0;
-      for (const userDoc of institutionUsersSnap.docs) {
-        const user = userDoc.data() || {};
-        if (["removed", "blocked"].includes(String(user.institutionMemberStatus || ""))) continue;
+      await updateInstitutionUsersInPages(intent.institutionDane, user => {
+        if (["removed", "blocked"].includes(String(user.institutionMemberStatus || ""))) return null;
         const role = String(user.role || user.tipoCuenta || "").toLowerCase();
-        const payload = role === "institution"
+        return role === "institution"
           ? {
               subscriptionStatus: "active",
               subscriptionPremiumBlocked: false,
@@ -1755,14 +1796,7 @@ exports.wompiWebhook = onRequest({
               institutionAccessRevoked: false,
               updatedAt: admin.firestore.FieldValue.serverTimestamp()
             };
-        accessBatch.set(userDoc.ref, payload, { merge: true });
-        accessCount += 1;
-        if (accessCount % 450 === 0) {
-          await accessBatch.commit();
-          accessBatch = db.batch();
-        }
-      }
-      if (accessCount % 450 !== 0) await accessBatch.commit();
+      });
     }
     await db.collection("notifications").add({
       targetUid: intent.uid,
@@ -1867,28 +1901,26 @@ exports.processBillingRequest = onDocumentWritten({
   }
 });
 
-async function deleteQueryInChunks(querySnapshot, authUids = new Set()) {
-  const db = admin.firestore();
+async function deleteByField(collectionName, field, value, authUids) {
   let batch = db.batch();
-  let count = 0;
-  for (const docSnap of querySnapshot.docs) {
+  let pending = 0;
+  let deleted = 0;
+  await forEachFieldPage(collectionName, field, value, async docSnap => {
     const data = docSnap.data() || {};
+    if (collectionName === "users") authUids.add(docSnap.id);
     if (data.userUid) authUids.add(String(data.userUid));
     if (data.uid) authUids.add(String(data.uid));
     batch.delete(docSnap.ref);
-    count += 1;
-    if (count % 450 === 0) {
+    pending += 1;
+    deleted += 1;
+    if (pending >= 450) {
       await batch.commit();
       batch = db.batch();
+      pending = 0;
     }
-  }
-  if (count % 450 !== 0) await batch.commit();
-  return count;
-}
-
-async function deleteByField(collectionName, field, value, authUids) {
-  const snap = await admin.firestore().collection(collectionName).where(field, "==", value).get();
-  return deleteQueryInChunks(snap, authUids);
+  });
+  if (pending) await batch.commit();
+  return deleted;
 }
 
 async function deleteUserProfileAndAuth(uid) {
@@ -1933,8 +1965,6 @@ exports.deleteInstitutionDeep = onRequest({ region: "us-central1" }, async (req,
   }
 
   const authUids = new Set();
-  const usersSnap = await db.collection("users").where("institutionDane", "==", institutionDane).get();
-  usersSnap.docs.forEach(docSnap => authUids.add(docSnap.id));
 
   const deleted = {};
   const relatedCollections = [
@@ -1961,7 +1991,7 @@ exports.deleteInstitutionDeep = onRequest({ region: "us-central1" }, async (req,
     });
   }
 
-  await deleteQueryInChunks(usersSnap, authUids);
+  deleted.users = await deleteByField("users", "institutionDane", institutionDane, authUids);
   await institutionRef.delete();
 
   for (const uid of authUids) {
@@ -2021,13 +2051,9 @@ exports.blockInstitutionPremium = onRequest({ region: "us-central1" }, async (re
     updatedAt: admin.firestore.FieldValue.serverTimestamp()
   }, { merge: true });
 
-  const usersSnap = await db.collection("users").where("institutionDane", "==", institutionDane).get();
-  let batch = db.batch();
-  let count = 0;
-  for (const userDoc of usersSnap.docs) {
-    const user = userDoc.data() || {};
+  const count = await updateInstitutionUsersInPages(institutionDane, user => {
     const role = String(user.role || user.tipoCuenta || "").toLowerCase();
-    const payload = role === "institution"
+    return role === "institution"
       ? {
           subscriptionStatus: "blocked",
           subscriptionPremiumBlocked: true,
@@ -2042,14 +2068,7 @@ exports.blockInstitutionPremium = onRequest({ region: "us-central1" }, async (re
           subscriptionInherited: false,
           updatedAt: admin.firestore.FieldValue.serverTimestamp()
         };
-    batch.set(userDoc.ref, payload, { merge: true });
-    count += 1;
-    if (count % 450 === 0) {
-      await batch.commit();
-      batch = db.batch();
-    }
-  }
-  if (count % 450 !== 0) await batch.commit();
+  });
 
   await db.collection("billingEvents").add({
     type: "institution-premium-block",
