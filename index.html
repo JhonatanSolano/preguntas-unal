@@ -1530,6 +1530,28 @@
         <p class="bank-status" id="googleLinkStatus"></p>
       </details>
 
+      <details class="profile-panel phone-panel" id="phoneVerifyPanel">
+        <summary>Verificar número de teléfono</summary>
+        <img class="panel-logo" src="assets/icon-180.png" alt="Logo de Matemáticas En Tu Bolsillo" />
+        <h3>Teléfono verificado</h3>
+        <p>Ingresa el indicador del país y tu número. El código enviado por SMS vence en 2 minutos.</p>
+        <div class="profile-form-grid">
+          <select id="profilePhoneCode" class="admin-input" aria-label="Indicador del país"></select>
+          <input type="tel" id="profilePhone" class="admin-input" placeholder="Número de teléfono" />
+        </div>
+        <div class="profile-form-grid">
+          <button class="btn btn-secondary" id="btnSendPhoneCode" type="button">Enviar código</button>
+          <input type="text" id="profilePhoneCodeInput" class="admin-input" placeholder="Código SMS" inputmode="numeric" />
+        </div>
+        <div class="phone-code-row">
+          <span id="phoneCountdown" class="phone-countdown" hidden>02:00</span>
+          <span class="phone-help">Podrás solicitar un nuevo código cuando termine el contador.</span>
+        </div>
+        <button class="btn btn-primary" id="btnVerifyPhoneCode" type="button">Verificar teléfono</button>
+        <div id="phoneRecaptcha"></div>
+        <p class="bank-status" id="phoneStatus"></p>
+      </details>
+
       <details class="profile-panel accordion-card hidden" id="profileAccountPanel">
         <summary>Cuenta</summary>
         <div class="password-settings-grid password-settings-grid-single">
@@ -1574,28 +1596,6 @@
           <button class="btn btn-secondary" id="btnDeleteTeacherAccount" type="button">Eliminar mi cuenta de profesor</button>
           <p class="bank-status" id="teacherDeleteStatus"></p>
         </div>
-      </details>
-
-      <details class="profile-panel phone-panel" id="phoneVerifyPanel">
-        <summary>Verificar número de teléfono</summary>
-        <img class="panel-logo" src="assets/icon-180.png" alt="Logo de Matemáticas En Tu Bolsillo" />
-        <h3>Teléfono verificado</h3>
-        <p>Ingresa el indicador del país y tu número. El código enviado por SMS vence en 2 minutos.</p>
-        <div class="profile-form-grid">
-          <select id="profilePhoneCode" class="admin-input" aria-label="Indicador del país"></select>
-          <input type="tel" id="profilePhone" class="admin-input" placeholder="Número de teléfono" />
-        </div>
-        <div class="profile-form-grid">
-          <button class="btn btn-secondary" id="btnSendPhoneCode" type="button">Enviar código</button>
-          <input type="text" id="profilePhoneCodeInput" class="admin-input" placeholder="Código SMS" inputmode="numeric" />
-        </div>
-        <div class="phone-code-row">
-          <span id="phoneCountdown" class="phone-countdown" hidden>02:00</span>
-          <span class="phone-help">Podrás solicitar un nuevo código cuando termine el contador.</span>
-        </div>
-        <button class="btn btn-primary" id="btnVerifyPhoneCode" type="button">Verificar teléfono</button>
-        <div id="phoneRecaptcha"></div>
-        <p class="bank-status" id="phoneStatus"></p>
       </details>
 
     </div>
