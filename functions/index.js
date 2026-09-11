@@ -1,4 +1,7 @@
-const admin = require("firebase-admin");
+const { initializeApp } = require("firebase-admin/app");
+const { getAppCheck } = require("firebase-admin/app-check");
+const { getAuth } = require("firebase-admin/auth");
+const { FieldValue, Timestamp, getFirestore } = require("firebase-admin/firestore");
 const crypto = require("crypto");
 const { onRequest } = require("firebase-functions/v2/https");
 const { onDocumentWritten } = require("firebase-functions/v2/firestore");
@@ -19,7 +22,12 @@ const {
 } = require("./aiUsagePolicy");
 const { normalizeAiSessionData, buildAiSessionInstruction } = require("./aiSessionPolicy");
 
-admin.initializeApp();
+initializeApp();
+const admin = {
+  appCheck: getAppCheck,
+  auth: getAuth,
+  firestore: Object.assign(getFirestore, { FieldValue, Timestamp })
+};
 const db = admin.firestore();
 
 const geminiApiKey = defineSecret("GEMINI_API_KEY");
