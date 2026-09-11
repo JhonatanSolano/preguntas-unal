@@ -2226,6 +2226,9 @@ async function registrarIntentoOficial(clave, intento, attemptNumber = 1) {
   const classId = claseActiva || grupoActivo || perfilActual?.classId || perfilActual?.aulaId || "";
   if (!classId || !APP_CONFIG.examAttemptSubmitEndpoint) return null;
   const route = rutaPreguntasExamen(clave);
+  const routeBranch = LEARNING_CATALOG.find(item => item.id === route.branchId) || LEARNING_CATALOG[0];
+  const routeTopic = routeBranch?.topics?.find(item => item.id === route.topicId) || routeBranch?.topics?.[0];
+  const routeSubtopic = (routeTopic?.subtopics || []).find(item => item.id === route.subtopicId) || routeTopic?.subtopics?.[0];
   const payload = {
     classId,
     level: claveBaseResultado(clave),
@@ -2233,6 +2236,8 @@ async function registrarIntentoOficial(clave, intento, attemptNumber = 1) {
     branchId: route.branchId || "",
     topicId: route.topicId || "",
     subtopicId: route.subtopicId || "",
+    topicName: routeTopic?.title || "",
+    subtopicName: routeSubtopic?.title || routeTopic?.title || "",
     respuestas: intento.respuestas || [],
     restante: intento.restante || 0,
     attemptNumber,
@@ -14215,6 +14220,68 @@ function setReportStatus(message = "", type = "") {
   status.className = `bank-status${type ? ` ${type}` : ""}`;
 }
 
+function reportTopicValue(branchId, topicId) {
+  return `${branchId}::${topicId}`;
+}
+
+function reportTopicOptions() {
+  return LEARNING_CATALOG.flatMap(branch =>
+    (branch.topics || []).map(topic => ({ branch, topic }))
+  );
+}
+
+function getReportRouteSelection() {
+  const topicValue = document.getElementById("reportTopicSelect")?.value || "";
+  const [rawBranchId, rawTopicId] = String(topicValue).split("::");
+  const branch = LEARNING_CATALOG.find(item => item.id === rawBranchId) || LEARNING_CATALOG[0];
+  const topic = branch?.topics?.find(item => item.id === rawTopicId) || branch?.topics?.[0];
+  const subtopicValue = document.getElementById("reportSubtopicSelect")?.value || "";
+  const subtopic = (topic?.subtopics || []).find(item => item.id === subtopicValue) || topic?.subtopics?.[0];
+  const level = document.getElementById("reportExamSelect")?.value || "diagnostico";
+  return {
+    branchId: branch?.id || "",
+    topicId: topic?.id || "",
+    subtopicId: subtopic?.id || topic?.id || "",
+    topicName: topic?.title || "",
+    subtopicName: subtopic?.title || topic?.title || "",
+    level: ["diagnostico", "nivel1", "examen"].includes(level) ? level : "diagnostico"
+  };
+}
+
+function renderReportRouteSelectors() {
+  const topicSelect = document.getElementById("reportTopicSelect");
+  const subtopicSelect = document.getElementById("reportSubtopicSelect");
+  if (!topicSelect || !subtopicSelect) return;
+  const previousTopic = topicSelect.value;
+  const options = reportTopicOptions();
+  topicSelect.innerHTML = options.map(({ branch, topic }) => `
+    <option value="${escapeHtml(reportTopicValue(branch.id, topic.id))}">${escapeHtml(branch.title)} · ${escapeHtml(topic.title)}</option>
+  `).join("");
+  topicSelect.value = options.some(({ branch, topic }) => reportTopicValue(branch.id, topic.id) === previousTopic)
+    ? previousTopic
+    : (topicSelect.options[0]?.value || "");
+
+  const route = getReportRouteSelection();
+  const branch = LEARNING_CATALOG.find(item => item.id === route.branchId) || LEARNING_CATALOG[0];
+  const topic = branch?.topics?.find(item => item.id === route.topicId) || branch?.topics?.[0];
+  const previousSubtopic = subtopicSelect.value;
+  const subtopics = topic?.subtopics?.length ? topic.subtopics : [{ id: topic?.id || "", title: topic?.title || "Subtema" }];
+  subtopicSelect.innerHTML = subtopics.map(subtopic => `
+    <option value="${escapeHtml(subtopic.id)}">${escapeHtml(subtopic.title)}</option>
+  `).join("");
+  subtopicSelect.value = subtopics.some(subtopic => subtopic.id === previousSubtopic)
+    ? previousSubtopic
+    : (subtopicSelect.options[0]?.value || "");
+}
+
+function resetTeacherReportSelection() {
+  teacherReportRows = [];
+  teacherReportFiltered = [];
+  teacherReportPage = 1;
+  setReportStatus("");
+  renderReportTable();
+}
+
 function valorReporteComparable(row, key) {
   const value = row?.[key];
   if (typeof value === "number") return value;
@@ -14223,6 +14290,7 @@ function valorReporteComparable(row, key) {
 
 function renderTeacherReportsPanel() {
   renderClassSelectors();
+  renderReportRouteSelectors();
   renderReportTable();
 }
 
@@ -14235,6 +14303,8 @@ function filtrarOrdenarReporte() {
       row.email,
       row.className,
       row.classCode,
+      row.topicName,
+      row.subtopicName,
       row.examName
     ].some(value => String(value || "").toLowerCase().includes(search));
   }).sort((a, b) => {
@@ -14259,13 +14329,15 @@ function renderReportTable() {
   const start = (teacherReportPage - 1) * REPORT_PAGE_SIZE;
   const rows = teacherReportFiltered.slice(start, start + REPORT_PAGE_SIZE);
   if (!rows.length) {
-    body.innerHTML = `<tr><td colspan="10">No hay resultados para mostrar.</td></tr>`;
+    body.innerHTML = `<tr><td colspan="12">No hay resultados para mostrar.</td></tr>`;
   } else {
     body.innerHTML = rows.map(row => `
       <tr>
         <td>${escapeHtml(row.studentName || "Sin nombre")}</td>
         <td>${escapeHtml(row.email || "")}</td>
         <td>${escapeHtml(row.className || "")}<br><small>${escapeHtml(row.classCode || "")}</small></td>
+        <td>${escapeHtml(row.topicName || "")}</td>
+        <td>${escapeHtml(row.subtopicName || "")}</td>
         <td>${escapeHtml(row.examName || "")}</td>
         <td>${Number(row.correctas || 0)}</td>
         <td>${Number(row.incorrectas || 0)}</td>
@@ -14284,9 +14356,13 @@ function renderReportTable() {
 
 async function cargarReporteAcademico() {
   const classId = document.getElementById("reportClassSelect")?.value || adminClaseActiva || "";
-  const level = document.getElementById("reportExamSelect")?.value || "diagnostico";
+  const route = getReportRouteSelection();
   if (!classId) {
     setReportStatus("Primero crea o selecciona un aula.", "error");
+    return;
+  }
+  if (!route.topicId || !route.subtopicId || !route.level) {
+    setReportStatus("Selecciona tema, subtema y nivel para consultar el reporte.", "error");
     return;
   }
   setReportStatus("Consultando reporte oficial...", "");
@@ -14297,7 +14373,7 @@ async function cargarReporteAcademico() {
   try {
     const data = await postBackendAutenticado(APP_CONFIG.academicReportEndpoint, {
       classId,
-      level,
+      ...route,
       ...timezoneUsuarioPayload()
     });
     teacherReportRows = Array.isArray(data.rows) ? data.rows : [];
@@ -14305,7 +14381,7 @@ async function cargarReporteAcademico() {
     renderReportTable();
     setReportStatus(teacherReportRows.length
       ? `Reporte cargado: ${teacherReportRows.length} registro(s).`
-      : "No hay intentos registrados para esta aula y examen.", teacherReportRows.length ? "success" : "");
+      : "No hay intentos registrados para esta aula, tema, subtema y nivel.", teacherReportRows.length ? "success" : "");
   } catch (err) {
     console.error(err);
     setReportStatus(err.message || "No se pudo cargar el reporte.", "error");
@@ -14353,7 +14429,9 @@ async function exportTeacherReportXlsx() {
     "Correo electrónico": row.email || "",
     "Aula": row.className || "",
     "Código del aula": row.classCode || "",
-    "Tipo de examen": row.examName || "",
+    "Tema": row.topicName || "",
+    "Subtema": row.subtopicName || "",
+    "Nivel": row.examName || "",
     "Fecha de presentación": row.presentedDate || "",
     "Hora de presentación": row.presentedTime || "",
     "Número de preguntas": Number(row.totalQuestions || 0),
@@ -14365,15 +14443,15 @@ async function exportTeacherReportXlsx() {
   }));
   const worksheet = window.XLSX.utils.json_to_sheet(rows);
   worksheet["!cols"] = [
-    { wch: 28 }, { wch: 34 }, { wch: 24 }, { wch: 16 }, { wch: 18 },
-    { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 20 },
-    { wch: 28 }, { wch: 22 }, { wch: 16 }
+    { wch: 28 }, { wch: 34 }, { wch: 24 }, { wch: 16 }, { wch: 28 },
+    { wch: 30 }, { wch: 14 }, { wch: 18 }, { wch: 18 }, { wch: 18 },
+    { wch: 18 }, { wch: 20 }, { wch: 28 }, { wch: 22 }, { wch: 16 }
   ];
   const book = window.XLSX.utils.book_new();
   window.XLSX.utils.book_append_sheet(book, worksheet, "Reporte");
   const first = teacherReportRows[0] || {};
   const today = new Date().toISOString().slice(0, 10);
-  const fileName = `Reporte_${nombreArchivoSeguro(first.className)}_${nombreArchivoSeguro(first.examName)}_${today}.xlsx`;
+  const fileName = `Reporte_${nombreArchivoSeguro(first.className)}_${nombreArchivoSeguro(first.topicName)}_${nombreArchivoSeguro(first.subtopicName)}_${nombreArchivoSeguro(first.examName)}_${today}.xlsx`;
   window.XLSX.writeFile(book, fileName);
 }
 
@@ -14408,13 +14486,14 @@ document.getElementById("reportSearchInput")?.addEventListener("input", () => {
   renderReportTable();
 });
 
-["reportClassSelect", "reportExamSelect"].forEach(id => {
+document.getElementById("reportTopicSelect")?.addEventListener("change", () => {
+  renderReportRouteSelectors();
+  resetTeacherReportSelection();
+});
+
+["reportClassSelect", "reportSubtopicSelect", "reportExamSelect"].forEach(id => {
   document.getElementById(id)?.addEventListener("change", () => {
-    teacherReportRows = [];
-    teacherReportFiltered = [];
-    teacherReportPage = 1;
-    setReportStatus("");
-    renderReportTable();
+    resetTeacherReportSelection();
   });
 });
 

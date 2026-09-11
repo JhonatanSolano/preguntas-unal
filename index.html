@@ -1823,11 +1823,13 @@
     <div class="start-screen admin-panel report-panel">
       <span class="cs-icon">📋</span>
       <h2>Reportes académicos</h2>
-      <p>Consulta y descarga el rendimiento oficial de tus estudiantes por aula y tipo de examen.</p>
+      <p>Consulta y descarga el rendimiento oficial de tus estudiantes por aula, tema, subtema y nivel.</p>
       <section class="report-shell">
         <div class="bank-grid">
           <label>Aula<select id="reportClassSelect" class="admin-input"></select></label>
-          <label>Tipo de examen
+          <label>Tema<select id="reportTopicSelect" class="admin-input"></select></label>
+          <label>Subtema<select id="reportSubtopicSelect" class="admin-input"></select></label>
+          <label>Nivel
             <select id="reportExamSelect" class="admin-input">
               <option value="diagnostico">Fácil</option>
               <option value="nivel1">Medio</option>
@@ -1848,7 +1850,9 @@
                 <th data-report-sort="studentName">Estudiante</th>
                 <th data-report-sort="email">Correo</th>
                 <th data-report-sort="className">Aula</th>
-                <th data-report-sort="examName">Examen</th>
+                <th data-report-sort="topicName">Tema</th>
+                <th data-report-sort="subtopicName">Subtema</th>
+                <th data-report-sort="examName">Nivel</th>
                 <th data-report-sort="correctas">Correctas</th>
                 <th data-report-sort="incorrectas">Incorrectas</th>
                 <th data-report-sort="segundosPorPregunta">Seg/preg.</th>

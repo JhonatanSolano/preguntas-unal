@@ -27,6 +27,7 @@ const {
   emptyAppMetrics,
   metricDelta
 } = require("./appMetricsPolicy");
+const { normalizeAcademicReportFilter } = require("./academicReportPolicy");
 
 initializeApp();
 const admin = {
@@ -3054,10 +3055,15 @@ exports.submitExamAttempt = onRequest({ region: "us-central1" }, async (req, res
   const topicId = normalizeRoutePart(req.body?.topicId);
   const subtopicId = normalizeRoutePart(req.body?.subtopicId);
   const configKey = examAccessKey(level, { branchId, topicId, subtopicId });
+  const topicName = String(req.body?.topicName || "").trim().replace(/\s+/g, " ").slice(0, 120);
+  const subtopicName = String(req.body?.subtopicName || "").trim().replace(/\s+/g, " ").slice(0, 120);
   const respuestas = Array.isArray(req.body?.respuestas) ? req.body.respuestas.map(value => Number(value)) : [];
   const questionSnapshot = Array.isArray(req.body?.questionSnapshot) ? req.body.questionSnapshot : [];
   const restante = Math.max(0, Number(req.body?.restante || 0));
   if (!classId || !level) return res.status(400).json({ error: "Faltan aula o examen." });
+  if (!branchId || !topicId || !subtopicId) {
+    return res.status(400).json({ error: "Faltan tema o subtema del examen." });
+  }
   if (!questionSnapshot.length || respuestas.length !== questionSnapshot.length) {
     return res.status(400).json({ error: "El intento no contiene preguntas y respuestas válidas." });
   }
@@ -3190,6 +3196,8 @@ exports.submitExamAttempt = onRequest({ region: "us-central1" }, async (req, res
     branchId,
     topicId,
     subtopicId,
+    topicName,
+    subtopicName,
     examName: examLevelName(level),
     respuestas,
     gradedSnapshot,
@@ -3268,9 +3276,11 @@ exports.getAcademicReport = onRequest({ region: "us-central1" }, async (req, res
     return res.status(401).json({ error: "Debes iniciar sesión." });
   }
 
-  const classId = String(req.body?.classId || "").trim();
-  const level = normalizeExamLevel(req.body?.level);
-  if (!classId || !level) return res.status(400).json({ error: "Faltan aula o examen." });
+  const reportFilter = normalizeAcademicReportFilter(req.body || {});
+  const { classId, level, branchId, topicId, subtopicId } = reportFilter;
+  if (!reportFilter.valid) {
+    return res.status(400).json({ error: "Faltan aula, tema, subtema o nivel." });
+  }
 
   const db = admin.firestore();
   const [classSnap, userSnap] = await Promise.all([
@@ -3295,6 +3305,9 @@ exports.getAcademicReport = onRequest({ region: "us-central1" }, async (req, res
     db.collection("examAttempts")
       .where("classId", "==", classId)
       .where("level", "==", level)
+      .where("branchId", "==", branchId)
+      .where("topicId", "==", topicId)
+      .where("subtopicId", "==", subtopicId)
       .orderBy("presentedAtMs", "desc")
       .limit(reportLimit + 1)
       .get()
@@ -3328,6 +3341,11 @@ exports.getAcademicReport = onRequest({ region: "us-central1" }, async (req, res
       classCode: classData.code || attempt.classCode || "",
       examType: level,
       examName: attempt.examName || examLevelName(level),
+      branchId,
+      topicId,
+      subtopicId,
+      topicName: attempt.topicName || reportFilter.topicName || "",
+      subtopicName: attempt.subtopicName || reportFilter.subtopicName || "",
       attemptNumber: Number(attempt.attemptNumber || 1),
       presentedAt: presentedAtMs ? new Date(presentedAtMs).toISOString() : "",
       presentedAtMs,
@@ -3346,6 +3364,11 @@ exports.getAcademicReport = onRequest({ region: "us-central1" }, async (req, res
     classCode: classData.code || "",
     level,
     examName: examLevelName(level),
+    branchId,
+    topicId,
+    subtopicId,
+    topicName: reportFilter.topicName || "",
+    subtopicName: reportFilter.subtopicName || "",
     generatedAt: new Date().toISOString(),
     page: {
       limit: reportLimit,
