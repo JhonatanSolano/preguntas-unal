@@ -29,6 +29,11 @@ const {
 } = require("./appMetricsPolicy");
 const { normalizeAcademicReportFilter } = require("./academicReportPolicy");
 const { buildTeacherClassMetrics } = require("./teacherMetricsPolicy");
+const {
+  classMessageNotificationPayload,
+  normalizeClassMessageRecipient,
+  sanitizeClassMessagePayload
+} = require("./classMessagePolicy");
 
 initializeApp();
 const admin = {
@@ -151,6 +156,11 @@ const EMAIL_QUEUE = {
 const QUESTION_CACHE = {
   ttlMs: 2 * 60 * 1000,
   maxEntries: 200
+};
+const CLASS_MESSAGE_JOB = {
+  pageSize: 450,
+  scheduledJobsPerRun: 4,
+  emailChunkSize: 50
 };
 const CLASS_CODE_RESERVATION_ATTEMPTS = 30;
 const baseQuestionCache = new Map();
@@ -1033,6 +1043,133 @@ async function enqueueEmail({ to, subject, html, type = "generic", sourcePath = 
   return ref.id;
 }
 
+function classMessageEmailHtml(message = {}) {
+  const messageContent = message.bodyHtml || escapeHtml(message.body || "").replace(/\n/g, "<br>");
+  return `
+    <div style="font-family:Arial,sans-serif;line-height:1.6;color:#162838;max-width:640px;margin:auto;padding:24px">
+      <h1 style="color:#06345f">${escapeHtml(message.subject || "Nuevo mensaje")}</h1>
+      <p><strong>${escapeHtml(message.fromName || "Tu profesor")}</strong> envió un mensaje interno en <strong>${escapeHtml(message.className || "tu aula")}</strong>.</p>
+      <div>${messageContent}</div>
+      <p>Este correo es solo informativo. Para responder, entra a la app y abre la campana de notificaciones.</p>
+      <p style="font-size:12px;color:#66788a">© Todos los derechos reservados. Matemáticas En Tu Bolsillo.</p>
+    </div>`;
+}
+
+async function enqueueClassMessageEmailChunks(emails = [], message = {}) {
+  const unique = [...new Set(emails.map(normalizeEmail).filter(Boolean))];
+  if (!unique.length) return 0;
+  const enabled = [];
+  for (let i = 0; i < unique.length; i += 30) {
+    const chunk = unique.slice(i, i + 30);
+    const usersSnap = await db.collection("users").where("email", "in", chunk).get();
+    const enabledSet = new Set(
+      usersSnap.docs
+        .map(docSnap => docSnap.data() || {})
+        .filter(user => user.notificationsEnabled)
+        .map(user => normalizeEmail(user.email))
+    );
+    enabled.push(...chunk.filter(email => enabledSet.has(email)));
+  }
+  const html = classMessageEmailHtml(message);
+  for (let i = 0; i < enabled.length; i += CLASS_MESSAGE_JOB.emailChunkSize) {
+    await enqueueEmail({
+      to: enabled.slice(i, i + CLASS_MESSAGE_JOB.emailChunkSize),
+      subject: message.subject || "Nuevo mensaje interno",
+      html,
+      type: "class-message",
+      sourcePath: `classMessages/${message.id || ""}`,
+      metadata: { messageId: message.id || "", className: message.className || "" }
+    });
+  }
+  return enabled.length;
+}
+
+async function processClassMessageNotificationJobPage(jobRef, job = {}, options = {}) {
+  const pageSize = Math.max(1, Math.min(Number(options.pageSize || CLASS_MESSAGE_JOB.pageSize), 450));
+  const classId = String(job.classId || "").trim();
+  const messageId = String(job.messageId || jobRef.id || "").trim();
+  if (!classId || !messageId) {
+    await jobRef.set({
+      status: "failed",
+      error: "Job de mensaje sin aula o mensaje.",
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+    return { processed: 0, done: true };
+  }
+
+  const messageRef = db.collection("classMessages").doc(messageId);
+  const messageSnap = await messageRef.get();
+  if (!messageSnap.exists) {
+    await jobRef.set({
+      status: "failed",
+      error: "Mensaje no encontrado.",
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+    return { processed: 0, done: true };
+  }
+  const message = { id: messageId, ...(messageSnap.data() || {}) };
+
+  let recipientsQuery = db.collection("classStudents")
+    .where("classId", "==", classId)
+    .orderBy(admin.firestore.FieldPath.documentId())
+    .limit(pageSize);
+  if (job.lastDocId) recipientsQuery = recipientsQuery.startAfter(String(job.lastDocId));
+
+  const snap = await recipientsQuery.get();
+  if (snap.empty) {
+    await Promise.all([
+      jobRef.set({
+        status: "completed",
+        completedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true }),
+      messageRef.set({
+        notificationStatus: "completed",
+        notificationsCompletedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true })
+    ]);
+    return { processed: 0, done: true };
+  }
+
+  let batch = db.batch();
+  let pending = 0;
+  let processed = 0;
+  const emailCandidates = [];
+  const now = admin.firestore.FieldValue.serverTimestamp();
+  snap.docs.forEach(docSnap => {
+    const recipient = normalizeClassMessageRecipient(docSnap.data() || {});
+    if (!recipient) return;
+    const notificationRef = db.collection("notifications").doc();
+    batch.set(notificationRef, classMessageNotificationPayload({ recipient, message, now }));
+    pending += 1;
+    processed += 1;
+    emailCandidates.push(recipient.email);
+  });
+  if (pending) await batch.commit();
+  const emailed = await enqueueClassMessageEmailChunks(emailCandidates, message);
+  const lastDocId = snap.docs[snap.docs.length - 1]?.id || "";
+  const done = snap.size < pageSize;
+  await Promise.all([
+    jobRef.set({
+      status: done ? "completed" : "pending",
+      lastDocId,
+      processed: admin.firestore.FieldValue.increment(processed),
+      emailsQueued: admin.firestore.FieldValue.increment(emailed),
+      ...(done ? { completedAt: admin.firestore.FieldValue.serverTimestamp() } : {}),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true }),
+    messageRef.set({
+      recipientCount: admin.firestore.FieldValue.increment(processed),
+      emailQueuedCount: admin.firestore.FieldValue.increment(emailed),
+      notificationStatus: done ? "completed" : "pending",
+      ...(done ? { notificationsCompletedAt: admin.firestore.FieldValue.serverTimestamp() } : {}),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true })
+  ]);
+  return { processed, done };
+}
+
 async function enqueuePaymentReceiptEmail(transaction, options = {}) {
   if (!transaction.email) return null;
   return enqueueEmail({
@@ -1289,6 +1426,130 @@ exports.syncUserCustomClaims = onDocumentWritten({
     return;
   }
   await syncAuthClaimsForUser(uid, event.data.after.data() || {});
+});
+
+exports.sendClassMessageToClass = onRequest({ region: "us-central1", timeoutSeconds: 120, maxInstances: 10 }, async (req, res) => {
+  setCors(res);
+  if (req.method === "OPTIONS") return res.status(204).send("");
+  if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
+  if (!(await enforceAppCheck(req, res))) return;
+
+  let decoded;
+  try {
+    decoded = await requireAuth(req);
+  } catch {
+    return res.status(401).json({ error: "Debes iniciar sesión." });
+  }
+
+  const payload = sanitizeClassMessagePayload(req.body || {});
+  if (!payload.valid) return res.status(400).json({ error: "Selecciona aula, asunto y mensaje." });
+
+  try {
+    const [classSnap, userSnap] = await Promise.all([
+      db.collection("classes").doc(payload.classId).get(),
+      db.collection("users").doc(decoded.uid).get()
+    ]);
+    if (!classSnap.exists) return res.status(404).json({ error: "Aula no encontrada." });
+    const classData = classSnap.data() || {};
+    const callerEmail = normalizeEmail(decoded.email);
+    const isPlatformOwner = callerEmail === "solanojhonatan2000@gmail.com";
+    if (!isPlatformOwner && classData.ownerUid !== decoded.uid) {
+      return res.status(403).json({ error: "Solo el profesor dueño del aula puede enviar mensajes." });
+    }
+    if (!(await hasServerActiveSubscription(decoded))) {
+      return res.status(403).json({ error: "Activa tu suscripción para enviar mensajes al aula." });
+    }
+
+    const userData = userSnap.exists ? userSnap.data() || {} : {};
+    const messageRef = payload.messageId
+      ? db.collection("classMessages").doc(payload.messageId)
+      : db.collection("classMessages").doc();
+    const existing = await messageRef.get();
+    if (existing.exists) return res.status(409).json({ error: "Este mensaje ya fue enviado." });
+
+    const teacherName = userData.displayName || decoded.name || decoded.email || "Profesor";
+    const teacherPhoto = userData.photoData || userData.photoURL || userData.googlePhotoURL || decoded.picture || "";
+    const teacherFullPhoto = userData.photoFullURL || userData.googlePhotoURL || userData.photoURL || userData.photoData || decoded.picture || "";
+    const messageData = {
+      classId: payload.classId,
+      className: classData.name || classData.className || "Aula",
+      ownerUid: classData.ownerUid || decoded.uid,
+      teacherEmail: callerEmail,
+      fromUid: decoded.uid,
+      fromEmail: callerEmail,
+      fromName: teacherName,
+      fromPhoto: teacherPhoto,
+      fromFullPhoto: teacherFullPhoto,
+      audience: "class",
+      toEmails: [],
+      recipientCount: 0,
+      emailQueuedCount: 0,
+      subject: payload.subject,
+      body: payload.body,
+      bodyHtml: payload.bodyHtml,
+      attachments: payload.attachments,
+      institutionDane: classData.institutionDane || "",
+      notificationStatus: "pending",
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    };
+    const jobRef = db.collection("classMessageJobs").doc(messageRef.id);
+    await Promise.all([
+      messageRef.set(messageData),
+      jobRef.set({
+        messageId: messageRef.id,
+        classId: payload.classId,
+        ownerUid: classData.ownerUid || decoded.uid,
+        status: "pending",
+        processed: 0,
+        emailsQueued: 0,
+        lastDocId: "",
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      })
+    ]);
+    const firstPage = await processClassMessageNotificationJobPage(jobRef, {
+      messageId: messageRef.id,
+      classId: payload.classId,
+      lastDocId: "",
+      status: "pending"
+    });
+    return res.status(200).json({
+      ok: true,
+      messageId: messageRef.id,
+      processedNow: firstPage.processed,
+      notificationStatus: firstPage.done ? "completed" : "pending",
+      message: firstPage.done
+        ? `Mensaje enviado a ${firstPage.processed} estudiante(s).`
+        : "Mensaje enviado. Las notificaciones restantes se entregarán automáticamente."
+    });
+  } catch (err) {
+    console.error("sendClassMessageToClass error", err);
+    return res.status(500).json({ error: err?.message || "No fue posible enviar el mensaje." });
+  }
+});
+
+exports.processClassMessageNotificationJobs = onSchedule({
+  region: "us-central1",
+  schedule: "every 1 minutes",
+  timeZone: "America/Bogota",
+  timeoutSeconds: 300,
+  maxInstances: 1,
+  retryCount: 1
+}, async () => {
+  const snap = await db.collection("classMessageJobs")
+    .where("status", "==", "pending")
+    .orderBy("createdAt", "asc")
+    .limit(CLASS_MESSAGE_JOB.scheduledJobsPerRun)
+    .get();
+  for (const docSnap of snap.docs) {
+    await processClassMessageNotificationJobPage(docSnap.ref, docSnap.data() || {})
+      .catch(error => docSnap.ref.set({
+        status: "failed",
+        error: error?.message || "No se pudieron procesar las notificaciones.",
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true }));
+  }
 });
 
 exports.processEmailQueue = onSchedule({

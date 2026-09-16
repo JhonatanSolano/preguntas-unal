@@ -81,6 +81,7 @@ const APP_CONFIG = {
   videoPlaybackEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/trackVideoPlayback",
   ownerAppMetricsEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/getOwnerAppMetrics",
   teacherClassMetricsEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/getTeacherClassMetrics",
+  classMessageEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/sendClassMessageToClass",
   payments: {
     provider: "Wompi",
     checkoutReady: true,
@@ -6291,14 +6292,38 @@ function iniciarListenersComunicacion() {
     },
     err => console.warn("No se pudieron escuchar notificaciones.", err)
   );
-  const messageQuery = modoAdmin
-    ? query(collection(db, "classMessages"), where("ownerUid", "==", usuarioActual.uid), orderBy("createdAt", "desc"), limit(50))
-    : query(collection(db, "classMessages"), where("toEmails", "array-contains", email), orderBy("createdAt", "desc"), limit(50));
-  unsubscribeMessages = onSnapshot(messageQuery, snap => {
-    internalMessages = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-      .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-    renderMessagesPanel();
-  }, err => console.warn("No se pudieron escuchar mensajes.", err));
+  if (modoAdmin) {
+    const messageQuery = query(collection(db, "classMessages"), where("ownerUid", "==", usuarioActual.uid), orderBy("createdAt", "desc"), limit(50));
+    unsubscribeMessages = onSnapshot(messageQuery, snap => {
+      internalMessages = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+      renderMessagesPanel();
+    }, err => console.warn("No se pudieron escuchar mensajes.", err));
+  } else {
+    const classId = claseActiva || grupoActivo || perfilActual?.classId || perfilActual?.grupo || "";
+    let classMessages = [];
+    let legacyMessages = [];
+    const mergeStudentMessages = () => {
+      internalMessages = [...new Map([...classMessages, ...legacyMessages].map(message => [message.id, message])).values()]
+        .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))
+        .slice(0, 50);
+      renderMessagesPanel();
+    };
+    const unsubs = [];
+    if (classId) {
+      const classMessageQuery = query(collection(db, "classMessages"), where("classId", "==", classId), where("audience", "==", "class"), orderBy("createdAt", "desc"), limit(50));
+      unsubs.push(onSnapshot(classMessageQuery, snap => {
+        classMessages = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        mergeStudentMessages();
+      }, err => console.warn("No se pudieron escuchar mensajes por aula.", err)));
+    }
+    const legacyMessageQuery = query(collection(db, "classMessages"), where("toEmails", "array-contains", email), orderBy("createdAt", "desc"), limit(50));
+    unsubs.push(onSnapshot(legacyMessageQuery, snap => {
+      legacyMessages = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      mergeStudentMessages();
+    }, err => console.warn("No se pudieron escuchar mensajes anteriores.", err)));
+    unsubscribeMessages = () => unsubs.forEach(unsub => unsub());
+  }
   const repliesQuery = modoAdmin
     ? query(collection(db, "messageReplies"), where("ownerUid", "==", usuarioActual.uid), orderBy("createdAt", "desc"), limit(100))
     : query(collection(db, "messageReplies"), where("fromEmail", "==", email), orderBy("createdAt", "desc"), limit(100));
@@ -6955,56 +6980,24 @@ async function enviarMensajeAula() {
     if (status) status.textContent = "Selecciona aula, asunto y mensaje.";
     return;
   }
-  const students = await estudiantesActivosDeClase(classId);
-  if (!students.length) {
-    if (status) status.textContent = "Esta aula aún no tiene estudiantes activos.";
-    return;
-  }
   if (status) status.textContent = "Enviando mensaje...";
   try {
+    if (!APP_CONFIG.classMessageEndpoint) throw new Error("No hay endpoint de mensajería configurado.");
     const ref = doc(collection(db, "classMessages"));
-    const teacherName = perfilActual?.displayName || usuarioActual?.displayName || usuarioActual?.email || "Profesor";
-    const teacherPhoto = perfilActual?.photoData || perfilActual?.photoURL || perfilActual?.googlePhotoURL || usuarioActual?.photoURL || "";
-    const teacherFullPhoto = fotoPerfilAltaCalidad(perfilActual?.photoFullURL || perfilActual?.googlePhotoURL || perfilActual?.photoURL || usuarioActual?.photoURL || perfilActual?.photoData || "");
-    await setDoc(ref, {
+    const attachments = await subirAdjuntos(document.getElementById("messageAttachments")?.files, `classMessages/${ref.id}`);
+    const result = await postBackendAutenticado(APP_CONFIG.classMessageEndpoint, {
+      messageId: ref.id,
       classId,
-      className: clase.name,
-      ownerUid: usuarioActual.uid,
-      teacherEmail: usuarioActual.email,
-      fromUid: usuarioActual.uid,
-      fromEmail: usuarioActual.email,
-      fromName: teacherName,
-      fromPhoto: teacherPhoto,
-      fromFullPhoto: teacherFullPhoto,
-      toEmails: students.map(s => s.email.toLowerCase()),
       subject,
       body,
       bodyHtml,
-      attachments: [],
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
+      attachments
     });
-    const attachments = await subirAdjuntos(document.getElementById("messageAttachments")?.files, `classMessages/${ref.id}`);
-    if (attachments.length) {
-      await updateDoc(ref, {
-        attachments,
-        updatedAt: serverTimestamp()
-      });
-    }
-    await Promise.all(students.map(est => crearNotificacion({
-      targetEmail: est.email.toLowerCase(),
-      targetUid: est.userUid || "",
-      type: "class-message",
-      title: subject,
-      body: `Nuevo mensaje de ${teacherName} en ${clase.name}.`,
-      messageId: ref.id,
-      classId
-    })));
     document.getElementById("messageSubject").value = "";
     setRichMessageHtml("");
     document.getElementById("messageAttachments").value = "";
     limpiarPreviewAdjuntos("messageAttachmentPreview");
-    if (status) status.textContent = `Mensaje enviado a ${students.length} estudiante(s).`;
+    if (status) status.textContent = result.message || "Mensaje enviado al aula.";
   } catch (err) {
     console.error(err);
     if (status) status.textContent = err.message || "No se pudo enviar el mensaje.";
