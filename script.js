@@ -80,6 +80,7 @@ const APP_CONFIG = {
   academicReportEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/getAcademicReport",
   videoPlaybackEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/trackVideoPlayback",
   ownerAppMetricsEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/getOwnerAppMetrics",
+  teacherClassMetricsEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/getTeacherClassMetrics",
   payments: {
     provider: "Wompi",
     checkoutReady: true,
@@ -10008,12 +10009,7 @@ async function buscarClasePorCodigo(code) {
   if (snap.empty && codigoOriginal.toUpperCase() !== codigoOriginal) {
     snap = await getDocs(query(collection(db, "classes"), where("code", "==", codigoOriginal.toUpperCase())));
   }
-  if (snap.empty) {
-    const all = await getDocs(collection(db, "classes"));
-    const encontrado = all.docs.find(d => normalizarCodigoClase(d.data().code || d.data().codeKey) === codigo);
-    if (!encontrado) return null;
-    return { id: encontrado.id, ...encontrado.data() };
-  }
+  if (snap.empty) return null;
   const docSnap = snap.docs[0];
   return { id: docSnap.id, ...docSnap.data() };
 }
@@ -14133,44 +14129,22 @@ async function renderAdminStats() {
   cont.innerHTML = `<div class="stats-card"><h3>Métricas</h3><p>Cargando datos...</p></div>`;
   renderClassSelectors();
   const metricsSelection = document.getElementById("adminMetricsClassSelect")?.value || "best";
-  const snaps = await getDocs(collection(db, "studentState"));
-  const acumulado = {};
-  adminClases.forEach(aula => acumulado[aula.id] = { aula, estudiantes: new Set(), intentos: 0, correctas: 0, incorrectas: 0, nota: 0, tiempo: 0 });
-  snaps.forEach(snap => {
-    const data = snap.data();
-    const grupo = data.aulaId || data.claseId || data.grupo;
-    if (!acumulado[grupo]) return;
-    const bucket = acumulado[grupo];
-    bucket.estudiantes.add(data.uid || snap.id);
-    const resultados = data.resultados || {};
-    Object.entries(resultados).forEach(([clave, value]) => {
-      if (!String(clave).includes("::") && resultados[`principal::${clave}`]) return;
-      (value.intentos || []).forEach(intento => {
-        const m = metricasIntento(clave, intento);
-        bucket.intentos++;
-        bucket.correctas += m.correctas;
-        bucket.incorrectas += m.incorrectas;
-        bucket.nota += Number(m.nota);
-        bucket.tiempo += m.tiempoEmpleado;
-      });
-    });
-  });
+  let metricClasses = [];
+  try {
+    const response = await postBackendAutenticado(APP_CONFIG.teacherClassMetricsEndpoint, timezoneUsuarioPayload());
+    metricClasses = Array.isArray(response.metrics?.classes) ? response.metrics.classes : [];
+  } catch (error) {
+    console.error("No se pudieron cargar métricas del profesor.", error);
+    cont.innerHTML = `<div class="stats-card"><h3>Métricas</h3><p>No se pudieron cargar las métricas. Intenta nuevamente.</p></div>`;
+    return;
+  }
   cont.innerHTML = "";
   if (!adminClases.length) {
     cont.innerHTML = `<div class="stats-card"><h3>Sin aulas</h3><p>Crea un aula para consultar métricas.</p></div>`;
     return;
   }
-  const ranking = Object.entries(acumulado)
-    .filter(([, data]) => data.intentos > 0)
-    .map(([grupo, data]) => ({
-      grupo,
-      data,
-      promedioNota: data.nota / data.intentos,
-      promedioCorrectas: data.correctas / data.intentos,
-      promedioIncorrectas: data.incorrectas / data.intentos,
-      promedioTiempo: data.tiempo / data.intentos
-    }))
-    .sort((a, b) => b.promedioNota - a.promedioNota || b.promedioCorrectas - a.promedioCorrectas || a.promedioTiempo - b.promedioTiempo);
+  const metricsByClass = new Map(metricClasses.map(item => [item.id, item]));
+  const ranking = metricClasses.filter(item => Number(item.intentos || 0) > 0);
 
   if (metricsSelection === "best") {
     if (!ranking.length) {
@@ -14181,34 +14155,33 @@ async function renderAdminStats() {
     const bestCard = document.createElement("div");
     bestCard.className = "stats-card";
     bestCard.innerHTML = `
-      <h3>Mejor aula: ${mejor.data.aula?.name || "Aula"}</h3>
-      <p><strong>Estudiantes:</strong> ${mejor.data.estudiantes.size}</p>
-      <p><strong>Intentos:</strong> ${mejor.data.intentos}</p>
-      <p><strong>Promedio nota:</strong> ${mejor.promedioNota.toFixed(1)}</p>
-      <p><strong>Promedio correctas:</strong> ${mejor.promedioCorrectas.toFixed(1)}</p>
-      <p><strong>Promedio incorrectas:</strong> ${mejor.promedioIncorrectas.toFixed(1)}</p>
-      <p><strong>Promedio tiempo:</strong> ${formatTiempo(Math.round(mejor.promedioTiempo))}</p>
+      <h3>Mejor aula: ${escapeHtml(mejor.name || "Aula")}</h3>
+      <p><strong>Estudiantes:</strong> ${Number(mejor.students || 0)}</p>
+      <p><strong>Intentos:</strong> ${Number(mejor.intentos || 0)}</p>
+      <p><strong>Promedio nota:</strong> ${Number(mejor.promedioNota || 0).toFixed(1)}</p>
+      <p><strong>Promedio correctas:</strong> ${Number(mejor.promedioCorrectas || 0).toFixed(1)}</p>
+      <p><strong>Promedio incorrectas:</strong> ${Number(mejor.promedioIncorrectas || 0).toFixed(1)}</p>
+      <p><strong>Promedio tiempo:</strong> ${formatTiempo(Math.round(Number(mejor.promedioTiempo || 0)))}</p>
     `;
     cont.appendChild(bestCard);
     return;
   }
 
-  const data = acumulado[metricsSelection];
+  const data = metricsByClass.get(metricsSelection);
   if (!data) {
     cont.innerHTML = `<div class="stats-card"><h3>Aula no disponible</h3><p>Selecciona un aula creada.</p></div>`;
     return;
   }
   const card = document.createElement("div");
   card.className = "stats-card";
-  const n = data.intentos || 1;
   card.innerHTML = `
-    <h3>${data.aula?.name || "Aula"}</h3>
-    <p><strong>Estudiantes:</strong> ${data.estudiantes.size}</p>
-    <p><strong>Intentos:</strong> ${data.intentos}</p>
-    <p><strong>Promedio nota:</strong> ${(data.nota / n).toFixed(1)}</p>
-    <p><strong>Promedio correctas:</strong> ${(data.correctas / n).toFixed(1)}</p>
-    <p><strong>Promedio incorrectas:</strong> ${(data.incorrectas / n).toFixed(1)}</p>
-    <p><strong>Promedio tiempo:</strong> ${formatTiempo(Math.round(data.tiempo / n))}</p>
+    <h3>${escapeHtml(data.name || "Aula")}</h3>
+    <p><strong>Estudiantes:</strong> ${Number(data.students || 0)}</p>
+    <p><strong>Intentos:</strong> ${Number(data.intentos || 0)}</p>
+    <p><strong>Promedio nota:</strong> ${Number(data.promedioNota || 0).toFixed(1)}</p>
+    <p><strong>Promedio correctas:</strong> ${Number(data.promedioCorrectas || 0).toFixed(1)}</p>
+    <p><strong>Promedio incorrectas:</strong> ${Number(data.promedioIncorrectas || 0).toFixed(1)}</p>
+    <p><strong>Promedio tiempo:</strong> ${formatTiempo(Math.round(Number(data.promedioTiempo || 0)))}</p>
   `;
   cont.appendChild(card);
 }

@@ -28,6 +28,7 @@ const {
   metricDelta
 } = require("./appMetricsPolicy");
 const { normalizeAcademicReportFilter } = require("./academicReportPolicy");
+const { buildTeacherClassMetrics } = require("./teacherMetricsPolicy");
 
 initializeApp();
 const admin = {
@@ -1237,6 +1238,44 @@ exports.getOwnerAppMetrics = onRequest({ region: "us-central1", timeoutSeconds: 
   if (metricsSnap.exists) return res.status(200).json({ ok: true, metrics: metricsSnap.data(), rebuilt: false });
   const metrics = await rebuildAppMetrics();
   return res.status(200).json({ ok: true, metrics, rebuilt: true });
+});
+
+async function getStudentStatesForClassIds(classIds = []) {
+  const ids = [...new Set(classIds.filter(Boolean))];
+  if (!ids.length) return [];
+  const stateMap = new Map();
+  const fields = ["aulaId", "claseId", "grupo"];
+  for (const field of fields) {
+    for (let i = 0; i < ids.length; i += 10) {
+      const chunk = ids.slice(i, i + 10);
+      const snap = await db.collection("studentState").where(field, "in", chunk).get();
+      snap.docs.forEach(docSnap => {
+        if (!stateMap.has(docSnap.id)) {
+          stateMap.set(docSnap.id, { id: docSnap.id, ...(docSnap.data() || {}) });
+        }
+      });
+    }
+  }
+  return [...stateMap.values()];
+}
+
+exports.getTeacherClassMetrics = onRequest({ region: "us-central1", timeoutSeconds: 120, maxInstances: 10 }, async (req, res) => {
+  setCors(res);
+  if (req.method === "OPTIONS") return res.status(204).send("");
+  if (req.method !== "GET" && req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
+  if (!(await enforceAppCheck(req, res))) return;
+  let decoded;
+  try {
+    decoded = await requireAuth(req);
+  } catch {
+    return res.status(401).json({ error: "Debes iniciar sesión." });
+  }
+
+  const classSnap = await db.collection("classes").where("ownerUid", "==", decoded.uid).get();
+  const classes = classSnap.docs.map(docSnap => ({ id: docSnap.id, ...(docSnap.data() || {}) }));
+  const states = await getStudentStatesForClassIds(classes.map(item => item.id));
+  const metrics = buildTeacherClassMetrics({ classes, states });
+  return res.status(200).json({ ok: true, metrics });
 });
 
 exports.syncUserCustomClaims = onDocumentWritten({
@@ -3300,9 +3339,7 @@ exports.getAcademicReport = onRequest({ region: "us-central1" }, async (req, res
   const timezoneConfig = timezoneConfigFromProfile(userData, req.body || {});
   const requestedLimit = Number(req.body?.limit || 500);
   const reportLimit = Math.min(Math.max(Number.isFinite(requestedLimit) ? requestedLimit : 500, 1), 1000);
-  const [membersSnap, officialAttemptsSnap] = await Promise.all([
-    db.collection("classStudents").where("classId", "==", classId).get(),
-    db.collection("examAttempts")
+  const officialAttemptsSnap = await db.collection("examAttempts")
       .where("classId", "==", classId)
       .where("level", "==", level)
       .where("branchId", "==", branchId)
@@ -3310,15 +3347,7 @@ exports.getAcademicReport = onRequest({ region: "us-central1" }, async (req, res
       .where("subtopicId", "==", subtopicId)
       .orderBy("presentedAtMs", "desc")
       .limit(reportLimit + 1)
-      .get()
-  ]);
-
-  const members = new Map();
-  membersSnap.docs.forEach(docSnap => {
-    const data = docSnap.data() || {};
-    const key = data.userUid || data.uid || data.email || docSnap.id;
-    members.set(String(key), { id: docSnap.id, ...data });
-  });
+      .get();
 
   const rows = [];
   const attemptDocs = officialAttemptsSnap.docs.slice(0, reportLimit);
@@ -3327,15 +3356,12 @@ exports.getAcademicReport = onRequest({ region: "us-central1" }, async (req, res
     const attempt = docSnap.data() || {};
     const studentUid = attempt.studentUid || "";
     const studentEmail = attempt.studentEmail || "";
-    const member = members.get(studentUid) ||
-      [...members.values()].find(item => item.email && studentEmail && normalizeEmail(item.email) === normalizeEmail(studentEmail)) ||
-      {};
     const presentedAtMs = Number(attempt.presentedAtMs || attemptPresentedMillis(attempt) || 0);
     const parts = formatReportDateParts(presentedAtMs, timezoneConfig);
     rows.push({
       studentUid,
-      studentName: member.name || attempt.studentName || "Sin nombre",
-      email: member.email || studentEmail,
+      studentName: attempt.studentName || "Sin nombre",
+      email: studentEmail,
       classId,
       className: classData.name || classData.className || attempt.className || "Aula",
       classCode: classData.code || attempt.classCode || "",
