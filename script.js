@@ -82,6 +82,7 @@ const APP_CONFIG = {
   ownerAppMetricsEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/getOwnerAppMetrics",
   teacherClassMetricsEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/getTeacherClassMetrics",
   classMessageEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/sendClassMessageToClass",
+  classReplyNotificationEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/notifyClassMessageReply",
   payments: {
     provider: "Wompi",
     checkoutReady: true,
@@ -6892,6 +6893,7 @@ function setReplyFormEnabled(enabled, message = "") {
 async function destinatariosActivosMensaje(msg) {
   if (!msg?.classId) return [];
   const activos = await estudiantesActivosDeClase(msg.classId);
+  if (msg.audience === "class") return activos;
   const permitidos = new Set((msg.toEmails || []).map(email => String(email || "").toLowerCase()));
   return activos.filter(est => permitidos.has(String(est.email || "").toLowerCase()));
 }
@@ -7051,7 +7053,13 @@ async function responderMensaje(e) {
     if (attachments.length) {
       await updateDoc(ref, { attachments });
     }
-    if (modoAdmin) {
+    if (modoAdmin && msg.audience === "class") {
+      if (!APP_CONFIG.classReplyNotificationEndpoint) throw new Error("No hay endpoint de respuestas configurado.");
+      await postBackendAutenticado(APP_CONFIG.classReplyNotificationEndpoint, {
+        messageId: msg.id,
+        replyId: ref.id
+      });
+    } else if (modoAdmin) {
       await Promise.all(estudiantesDestino.map(est => crearNotificacion({
         targetEmail: est.email.toLowerCase(),
         targetUid: est.userUid || "",

@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const {
   classMessageNotificationPayload,
+  classReplyNotificationPayload,
   normalizeClassMessageRecipient,
   sanitizeClassMessagePayload,
   sanitizeMessageHtml
@@ -63,4 +64,18 @@ test("builds notification payload without trusting client fields", () => {
   assert.equal(payload.body, "Nuevo mensaje de Profe en Aula.");
   assert.equal(payload.fromUid, "t1");
   assert.equal(payload.createdAt, "SERVER_TIME");
+});
+
+test("builds class reply notification payload for bulk backend delivery", () => {
+  const payload = classReplyNotificationPayload({
+    recipient: { email: "a@mail.com", uid: "u1" },
+    message: { id: "m1", classId: "c1", subject: "Tarea", ownerUid: "t1" },
+    reply: { fromName: "Profe", fromUid: "t1", fromEmail: "t@mail.com" },
+    now: "SERVER_TIME"
+  });
+
+  assert.equal(payload.type, "message-reply");
+  assert.equal(payload.title, "Respuesta a: Tarea");
+  assert.equal(payload.bulkEmailManaged, true);
+  assert.equal(payload.targetUid, "u1");
 });

@@ -80,8 +80,26 @@ function classMessageNotificationPayload({ recipient = {}, message = {}, now }) 
   };
 }
 
+function classReplyNotificationPayload({ recipient = {}, message = {}, reply = {}, now }) {
+  return {
+    targetEmail: recipient.email,
+    targetUid: recipient.uid || "",
+    type: "message-reply",
+    title: `Respuesta a: ${message.subject || "mensaje"}`,
+    body: `${reply.fromName || "Tu profesor"} respondió en el hilo del aula.`,
+    messageId: message.id || "",
+    classId: message.classId || "",
+    fromUid: reply.fromUid || message.ownerUid || "",
+    fromEmail: reply.fromEmail || message.teacherEmail || "",
+    read: false,
+    bulkEmailManaged: true,
+    createdAt: now
+  };
+}
+
 module.exports = {
   classMessageNotificationPayload,
+  classReplyNotificationPayload,
   normalizeClassMessageRecipient,
   sanitizeClassMessageId,
   sanitizeClassMessagePayload,

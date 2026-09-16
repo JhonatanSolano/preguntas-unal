@@ -75,6 +75,20 @@
       ]
     },
     {
+      "collectionGroup": "classReplyJobs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "messageReplies",
       "queryScope": "COLLECTION",
       "fields": [
