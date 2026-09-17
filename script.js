@@ -6489,9 +6489,17 @@ async function subirAdjuntos(files, folder) {
   return attachments;
 }
 
-async function estudiantesActivosDeClase(classId) {
-  const snap = await getDocs(query(collection(db, "classStudents"), where("classId", "==", classId)));
-  return snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(est => (est.status || "activo") === "activo" && est.email);
+async function estudiantesActivosPorEmails(classId, emails = []) {
+  const unique = [...new Set((emails || []).map(email => String(email || "").trim().toLowerCase()).filter(Boolean))];
+  if (!classId || !unique.length) return [];
+  const chunks = [];
+  for (let i = 0; i < unique.length; i += 10) chunks.push(unique.slice(i, i + 10));
+  const snaps = await Promise.all(chunks.map(chunk =>
+    getDocs(query(collection(db, "classStudents"), where("classId", "==", classId), where("email", "in", chunk)))
+  ));
+  return snaps
+    .flatMap(snap => snap.docs.map(d => ({ id: d.id, ...d.data() })))
+    .filter(est => (est.status || "activo") === "activo" && est.email);
 }
 
 async function crearNotificacion(payload) {
@@ -6969,16 +6977,18 @@ function setReplyFormEnabled(enabled, message = "") {
 
 async function destinatariosActivosMensaje(msg) {
   if (!msg?.classId) return [];
-  const activos = await estudiantesActivosDeClase(msg.classId);
-  if (msg.audience === "class") return activos;
-  const permitidos = new Set((msg.toEmails || []).map(email => String(email || "").toLowerCase()));
-  return activos.filter(est => permitidos.has(String(est.email || "").toLowerCase()));
+  if (msg.audience === "class") return null;
+  return estudiantesActivosPorEmails(msg.classId, msg.toEmails || []);
 }
 
 async function actualizarEstadoRespuestaMensaje(messageId) {
   const msg = internalMessages.find(m => m.id === messageId);
   if (!msg || activeMessageId !== messageId) return;
   if (modoAdmin) {
+    if (msg.audience === "class") {
+      setReplyFormEnabled(true, "");
+      return;
+    }
     const activos = await destinatariosActivosMensaje(msg).catch(() => []);
     if (activeMessageId !== messageId) return;
     setReplyFormEnabled(
@@ -7095,8 +7105,8 @@ async function responderMensaje(e) {
   }
   let estudiantesDestino = [];
   if (modoAdmin) {
-    estudiantesDestino = await destinatariosActivosMensaje(msg);
-    if (!estudiantesDestino.length) {
+    estudiantesDestino = msg.audience === "class" ? null : await destinatariosActivosMensaje(msg);
+    if (msg.audience !== "class" && !estudiantesDestino.length) {
       setReplyFormEnabled(false, "No puedes responder: ya no hay estudiantes activos de esta aula en este hilo.");
       return;
     }
@@ -7132,10 +7142,15 @@ async function responderMensaje(e) {
     }
     if (modoAdmin && msg.audience === "class") {
       if (!APP_CONFIG.classReplyNotificationEndpoint) throw new Error("No hay endpoint de respuestas configurado.");
-      await postBackendAutenticado(APP_CONFIG.classReplyNotificationEndpoint, {
-        messageId: msg.id,
-        replyId: ref.id
-      });
+      try {
+        await postBackendAutenticado(APP_CONFIG.classReplyNotificationEndpoint, {
+          messageId: msg.id,
+          replyId: ref.id
+        });
+      } catch (error) {
+        await deleteDoc(ref).catch(() => {});
+        throw error;
+      }
     } else if (modoAdmin) {
       await Promise.all(estudiantesDestino.map(est => crearNotificacion({
         targetEmail: est.email.toLowerCase(),

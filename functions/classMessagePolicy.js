@@ -64,6 +64,10 @@ function normalizeClassMessageRecipient(data = {}) {
   };
 }
 
+function hasAnyActiveClassMessageRecipient(records = []) {
+  return (Array.isArray(records) ? records : []).some(item => !!normalizeClassMessageRecipient(item));
+}
+
 function classMessageNotificationPayload({ recipient = {}, message = {}, now }) {
   return {
     targetEmail: recipient.email,
@@ -100,6 +104,7 @@ function classReplyNotificationPayload({ recipient = {}, message = {}, reply = {
 module.exports = {
   classMessageNotificationPayload,
   classReplyNotificationPayload,
+  hasAnyActiveClassMessageRecipient,
   normalizeClassMessageRecipient,
   sanitizeClassMessageId,
   sanitizeClassMessagePayload,

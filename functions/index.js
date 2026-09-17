@@ -33,6 +33,7 @@ const { buildTeacherClassMetrics } = require("./teacherMetricsPolicy");
 const {
   classMessageNotificationPayload,
   classReplyNotificationPayload,
+  hasAnyActiveClassMessageRecipient,
   normalizeClassMessageRecipient,
   sanitizeClassMessagePayload
 } = require("./classMessagePolicy");
@@ -1300,6 +1301,23 @@ async function processClassReplyNotificationJobPage(jobRef, job = {}, options = 
   return { processed, done };
 }
 
+async function classHasActiveMessageRecipients(classId = "") {
+  const normalizedClassId = String(classId || "").trim();
+  if (!normalizedClassId) return false;
+  const activeSnap = await db.collection("classStudents")
+    .where("classId", "==", normalizedClassId)
+    .where("status", "==", "activo")
+    .limit(1)
+    .get();
+  if (!activeSnap.empty) return true;
+  const sampleSnap = await db.collection("classStudents")
+    .where("classId", "==", normalizedClassId)
+    .orderBy(admin.firestore.FieldPath.documentId())
+    .limit(25)
+    .get();
+  return hasAnyActiveClassMessageRecipient(sampleSnap.docs.map(docSnap => docSnap.data() || {}));
+}
+
 async function enqueuePaymentReceiptEmail(transaction, options = {}) {
   if (!transaction.email) return null;
   return enqueueEmail({
@@ -1717,6 +1735,9 @@ exports.notifyClassMessageReply = onRequest({ region: "us-central1", timeoutSeco
       return res.status(403).json({ error: "Activa tu suscripción para responder mensajes." });
     }
     const classId = String(message.classId || reply.classId || "").trim();
+    if (!(await classHasActiveMessageRecipients(classId))) {
+      return res.status(409).json({ error: "No puedes responder: ya no hay estudiantes activos de esta aula en este hilo." });
+    }
     const jobRef = db.collection("classReplyJobs").doc(replyId);
     const existing = await jobRef.get();
     if (existing.exists) return res.status(200).json({ ok: true, notificationStatus: existing.data()?.status || "pending" });

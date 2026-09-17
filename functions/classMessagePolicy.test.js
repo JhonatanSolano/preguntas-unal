@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const {
   classMessageNotificationPayload,
   classReplyNotificationPayload,
+  hasAnyActiveClassMessageRecipient,
   normalizeClassMessageRecipient,
   sanitizeClassMessagePayload,
   sanitizeMessageHtml
@@ -35,6 +36,17 @@ test("rejects inactive or email-less class message recipients", () => {
   });
   assert.equal(normalizeClassMessageRecipient({ email: "bloqueado@mail.com", status: "bloqueado" }), null);
   assert.equal(normalizeClassMessageRecipient({ status: "activo" }), null);
+});
+
+test("detects when a reply has at least one active class recipient", () => {
+  assert.equal(hasAnyActiveClassMessageRecipient([
+    { email: "bloqueado@mail.com", status: "bloqueado" },
+    { email: "activo@mail.com", status: "activo", userUid: "u2" }
+  ]), true);
+  assert.equal(hasAnyActiveClassMessageRecipient([
+    { email: "sin-activo@mail.com", status: "retirado" },
+    { status: "activo" }
+  ]), false);
 });
 
 test("strips executable html from class messages", () => {
