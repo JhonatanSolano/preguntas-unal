@@ -308,9 +308,13 @@ const PROFILE_PHOTO_FULL_MAX_SIDE = 1800;
 const PROFILE_PHOTO_FULL_QUALITY = 0.92;
 const REPORT_PAGE_SIZE = 10;
 const LEARNING_STORAGE_KEY = "matematicasBolsilloLearningProgress";
+const LEARNING_BRANCH_DONE_SUFFIX = "__branch-complete";
 const LEARNING_LAST_KEY = "matematicasBolsilloLearningLast";
 const EXAM_SELECTOR_KEY = "matematicasBolsilloExamSelection";
 const TEACHER_EXAM_ROUTE_KEY = "matematicasBolsilloTeacherExamRoute";
+const INACTIVITY_LOGOUT_MS = 30 * 60 * 1000;
+const INACTIVITY_LAST_ACTIVITY_KEY = "matematicasBolsilloLastActivityAt";
+const INACTIVITY_LOGOUT_BROADCAST_KEY = "matematicasBolsilloInactivityLogoutAt";
 const LEARNING_RESOURCE_COLLECTION = "learningResources";
 const LEARNING_RESOURCE_MAX_PDF_MB = 25;
 const LEARNING_RESOURCE_MAX_VIDEO_MB = 180;
@@ -576,7 +580,7 @@ const BADGE_CATALOG = [
   { id: "rutina-semanal", icon: "📅", title: "Rutina semanal", description: "Cumple tu meta semanal de 3 sesiones de estudio.", target: 3, type: "weekly" },
   { id: "racha-3", icon: "🔥", title: "Racha de 3 días", description: "Estudia durante 3 días consecutivos.", target: 3, type: "streak" },
   { id: "explorador", icon: "🧭", title: "Explorador de temas", description: "Completa 5 subtemas distintos.", target: 5, type: "completed" },
-  { id: "dominio", icon: "🏅", title: "Dominio inicial", description: "Completa 12 niveles de aprendizaje.", target: 12, type: "completed" },
+  { id: "dominio", icon: "🏅", title: "Dominio inicial", description: "Completa 12 subtemas de aprendizaje.", target: 12, type: "completed" },
   { id: "constancia", icon: "💎", title: "Constancia matemática", description: "Alcanza una racha de 7 días de estudio.", target: 7, type: "streak" }
 ];
 const PHONE_CODES = [
@@ -4024,6 +4028,30 @@ function learningProgressId(branchId, topicId, subtopicId, level) {
   return `${branchId}__${topicId}__${subtopicId || topicId}__${level}`;
 }
 
+function learningSubtopicProgressId(branchId, topicId, subtopicId) {
+  return `${branchId}__${topicId}__${subtopicId || topicId}`;
+}
+
+function learningBranchProgressId(branchId) {
+  return `${branchId}${LEARNING_BRANCH_DONE_SUFFIX}`;
+}
+
+function learningSubtopicCompleted(progress, branchId, topicId, subtopicId) {
+  if (progress[learningSubtopicProgressId(branchId, topicId, subtopicId)]?.completed) return true;
+  return Object.keys(LEVEL_LABELS).some(level => progress[learningProgressId(branchId, topicId, subtopicId, level)]?.completed);
+}
+
+function learningBranchCompletion(branchId, progress = learningProgressAll()) {
+  const branch = LEARNING_CATALOG.find(item => item.id === branchId) || LEARNING_CATALOG[0];
+  const keys = [];
+  branch.topics.forEach(topic => {
+    const subtopics = topic.subtopics?.length ? topic.subtopics : [makeLearningSubtopic(branch.title, topic.title, topic.title, topic.summary)];
+    subtopics.forEach(subtopic => keys.push({ topicId: topic.id, subtopicId: subtopic.id }));
+  });
+  const completed = keys.filter(item => learningSubtopicCompleted(progress, branch.id, item.topicId, item.subtopicId)).length;
+  return { branch, total: keys.length, completed, pct: keys.length ? Math.round((completed / keys.length) * 100) : 0, done: keys.length > 0 && completed === keys.length };
+}
+
 async function cargarLearningProgressRemoto(force = false) {
   if (!usuarioActual?.uid) return;
   if (!force && learningProgressRemoteLoadedFor === usuarioActual.uid) return;
@@ -4044,7 +4072,18 @@ async function guardarLearningProgressRemoto(key, selection, payload) {
     branchId: selection.branchId,
     topicId: selection.topicId,
     subtopicId: selection.subtopicId || selection.topicId,
-    level: selection.level,
+    level: "general",
+    completed: true,
+    completedAt: payload.completedAt,
+    updatedAt: serverTimestamp()
+  }, { merge: true });
+}
+
+async function guardarLearningBranchProgressRemoto(branchId, payload) {
+  if (!usuarioActual?.uid || !branchId) return;
+  await setDoc(doc(db, "users", usuarioActual.uid, "learningProgress", learningBranchProgressId(branchId)), {
+    branchId,
+    scope: "branch",
     completed: true,
     completedAt: payload.completedAt,
     updatedAt: serverTimestamp()
@@ -4531,7 +4570,8 @@ function aprendizajeExamenCompletado(selection = resolveLearningSelection()) {
   if (modoAdmin) return true;
   const normalized = resolveLearningSelection(selection);
   const progress = learningProgressAll();
-  return !!progress[learningProgressId(normalized.branchId, normalized.topicId, normalized.subtopicId, normalized.level)]?.completed;
+  if (progress[learningBranchProgressId(normalized.branchId)]?.completed) return true;
+  return learningBranchCompletion(normalized.branchId, progress).done;
 }
 
 function crearAvisoAprendizajePendiente() {
@@ -4576,29 +4616,31 @@ function crearAvisoAprendizajePendiente() {
 function mostrarAvisoAprendizajePendiente(selection = resolveLearningSelection(), options = {}) {
   const normalized = resolveLearningSelection(selection);
   const ctx = contextoExamenSeleccionado(LEVEL_TO_EXAM[normalized.level] || "diagnostico", normalized);
+  const branchStatus = learningBranchCompletion(ctx.branchId);
   const overlay = crearAvisoAprendizajePendiente();
   overlay.dataset.selection = JSON.stringify({
     branchId: ctx.branchId,
     topicId: ctx.topicId,
     subtopicId: ctx.subtopicId,
-    level: ctx.level
+    level: "facil"
   });
+  overlay.classList.add("danger");
+  clearTimeout(overlay._autoHideTimer);
   const text = document.getElementById("learningRequiredText");
   const summary = document.getElementById("learningRequiredSummary");
   const go = document.getElementById("btnLearningRequiredGo");
   if (text) {
-    text.textContent = options.fromLearning
-      ? "Estás en el contenido correcto. Para abrir el examen, primero marca como completado este aprendizaje."
-      : "Para presentar este examen primero debes completar el aprendizaje ligado a este tema, subtema y nivel.";
+    text.textContent = "TE HACE FALTA COMPLETAR TEMAS O SUBTEMAS DE ESA RAMA ANTES DE IR A EXAMENES.";
   }
   if (summary) {
     summary.innerHTML = `
-      <strong>${escapeHtml(ctx.levelLabel)} · ${escapeHtml(ctx.topic.title)}</strong>
-      <span>${escapeHtml(ctx.subtopic.title)}</span>
+      <strong>${escapeHtml(ctx.branch.title)}</strong>
+      <span>${branchStatus.completed} de ${branchStatus.total} subtemas completados</span>
     `;
   }
   if (go) go.hidden = options.fromLearning === true;
   overlay.classList.remove("hidden");
+  overlay._autoHideTimer = setTimeout(() => overlay.classList.add("hidden"), 10000);
 }
 
 function validarAprendizajeAntesExamen(examKey = "diagnostico", options = {}) {
@@ -4607,6 +4649,26 @@ function validarAprendizajeAntesExamen(examKey = "diagnostico", options = {}) {
   if (aprendizajeExamenCompletado(selection)) return true;
   mostrarAvisoAprendizajePendiente(selection, options);
   return false;
+}
+
+async function asegurarLearningBranchCompletada(selection = resolveLearningSelection()) {
+  if (!usuarioActual?.uid || modoAdmin) return true;
+  const normalized = resolveLearningSelection(selection);
+  const progress = learningProgressAll();
+  const branchKey = learningBranchProgressId(normalized.branchId);
+  if (progress[branchKey]?.completed) return true;
+  const status = learningBranchCompletion(normalized.branchId, progress);
+  if (!status.done) return false;
+  const payload = { completed: true, completedAt: new Date().toISOString(), branchId: normalized.branchId, scope: "branch" };
+  progress[branchKey] = payload;
+  learningProgressRemote[branchKey] = payload;
+  saveLearningProgressAll(progress);
+  try {
+    await guardarLearningBranchProgressRemoto(normalized.branchId, payload);
+  } catch (error) {
+    console.warn("No fue posible guardar la rama completa de aprendizaje", error);
+  }
+  return true;
 }
 
 function actualizarTitulosExamenActivo(examKey = "diagnostico", selection = null) {
@@ -4637,27 +4699,39 @@ function learningProgressSummary() {
   LEARNING_CATALOG.forEach(branch => {
     branch.topics.forEach(topic => {
       (topic.subtopics || []).forEach(subtopic => {
-        Object.keys(LEVEL_LABELS).forEach(level => {
-          validKeys.add(learningProgressId(branch.id, topic.id, subtopic.id, level));
-        });
+        validKeys.add(learningSubtopicProgressId(branch.id, topic.id, subtopic.id));
       });
     });
   });
   const total = validKeys.size;
-  const completed = Object.entries(progress).filter(([key, item]) => validKeys.has(key) && item?.completed).length;
+  let completed = 0;
+  LEARNING_CATALOG.forEach(branch => {
+    branch.topics.forEach(topic => {
+      (topic.subtopics || []).forEach(subtopic => {
+        if (learningSubtopicCompleted(progress, branch.id, topic.id, subtopic.id)) completed += 1;
+      });
+    });
+  });
   return { total, completed, pct: total ? Math.round((completed / total) * 100) : 0 };
 }
 
 async function setLearningCompleted(selection) {
   const progress = learningProgressAll();
-  const key = learningProgressId(selection.branchId, selection.topicId, selection.subtopicId, selection.level);
+  const key = learningSubtopicProgressId(selection.branchId, selection.topicId, selection.subtopicId);
   const alreadyCompleted = !!progress[key]?.completed;
   const unlockedBefore = new Set(unlockedLearningBadgesFromProgress(progress).map(badge => badge.id));
   progress[key] = { completed: true, completedAt: new Date().toISOString() };
   learningProgressRemote[key] = progress[key];
+  const branchStatus = learningBranchCompletion(selection.branchId, progress);
+  if (branchStatus.done) {
+    const branchKey = learningBranchProgressId(selection.branchId);
+    progress[branchKey] = { completed: true, completedAt: progress[key].completedAt, branchId: selection.branchId, scope: "branch" };
+    learningProgressRemote[branchKey] = progress[branchKey];
+  }
   saveLearningProgressAll(progress);
   try {
     await guardarLearningProgressRemoto(key, selection, progress[key]);
+    if (branchStatus.done) await guardarLearningBranchProgressRemoto(selection.branchId, progress[learningBranchProgressId(selection.branchId)]);
   } catch (error) {
     console.warn("No fue posible guardar el progreso de aprendizaje", error);
   }
@@ -4685,14 +4759,14 @@ function renderLearningPanel() {
   const subtopic = (topic.subtopics || []).find(item => item.id === selection.subtopicId) || topic.subtopics?.[0] || makeLearningSubtopic(branch.title, topic.title, topic.title, topic.summary);
   const canTrackLearning = esEstudianteCuenta();
   const summary = learningProgressSummary();
-  renderLearningMobilePicker(branch, topic, subtopic, selection.level);
+  renderLearningMobilePicker(branch, topic, subtopic);
   document.getElementById("learningProgressCard")?.classList.toggle("hidden", !canTrackLearning);
 
   const progressPctEl = document.getElementById("learningProgressPct");
   const progressTextEl = document.getElementById("learningProgressText");
   const progressBarEl = document.getElementById("learningProgressBar");
   if (progressPctEl) progressPctEl.textContent = `${summary.pct}%`;
-  if (progressTextEl) progressTextEl.textContent = `${summary.completed} de ${summary.total} niveles completados.`;
+  if (progressTextEl) progressTextEl.textContent = `${summary.completed} de ${summary.total} subtemas completados.`;
   if (progressBarEl) progressBarEl.style.width = `${summary.pct}%`;
   document.getElementById("learningBranchTitle").textContent = branch.title;
 
@@ -4705,27 +4779,26 @@ function renderLearningPanel() {
     </button>
   `).join("");
 
-  levelsEl.innerHTML = Object.entries(LEVEL_LABELS).map(([level, label]) => `
-    <button class="${level === selection.level ? "active" : ""}" type="button" data-learning-level="${escapeHtml(level)}">${escapeHtml(label)}</button>
-  `).join("");
+  levelsEl.innerHTML = "";
+  levelsEl.hidden = true;
 
   const progress = canTrackLearning ? learningProgressAll() : {};
   topicsEl.innerHTML = branch.topics.map(item => {
     const subtopicCount = item.subtopics?.length || 0;
-    const completedCount = canTrackLearning ? (item.subtopics || []).filter(st => progress[learningProgressId(branch.id, item.id, st.id, selection.level)]?.completed).length : 0;
+    const completedCount = canTrackLearning ? (item.subtopics || []).filter(st => learningSubtopicCompleted(progress, branch.id, item.id, st.id)).length : 0;
     return `
       <button class="learning-topic ${item.id === topic.id ? "active" : ""}" type="button" data-learning-topic="${escapeHtml(item.id)}">
         <span>${canTrackLearning && completedCount ? "✓" : "○"}</span>
         <strong>${escapeHtml(item.title)}</strong>
         <small>${escapeHtml(item.summary)}</small>
-        <em>${canTrackLearning ? `${completedCount}/${subtopicCount} subtemas en ${escapeHtml(LEVEL_LABELS[selection.level])}` : `${subtopicCount} subtemas disponibles`}</em>
+        <em>${canTrackLearning ? `${completedCount}/${subtopicCount} subtemas completados` : `${subtopicCount} subtemas disponibles`}</em>
       </button>
     `;
   }).join("");
 
   if (subtopicsEl) {
     subtopicsEl.innerHTML = (topic.subtopics || []).map(item => {
-      const completed = progress[learningProgressId(branch.id, topic.id, item.id, selection.level)]?.completed;
+      const completed = learningSubtopicCompleted(progress, branch.id, topic.id, item.id);
       return `
         <button class="learning-subtopic ${item.id === subtopic.id ? "active" : ""}" type="button" data-learning-subtopic="${escapeHtml(item.id)}">
           <span>${canTrackLearning && completed ? "✓" : "○"}</span>
@@ -4740,12 +4813,12 @@ function renderLearningPanel() {
   renderLearningManager(selection);
 }
 
-function renderLearningMobilePicker(branch, topic, subtopic, level) {
+function renderLearningMobilePicker(branch, topic, subtopic) {
   const branchSelect = document.getElementById("learningBranchSelect");
   const topicSelect = document.getElementById("learningTopicSelect");
   const subtopicSelect = document.getElementById("learningSubtopicSelect");
   const levelSelect = document.getElementById("learningLevelSelect");
-  if (!branchSelect || !topicSelect || !subtopicSelect || !levelSelect) return;
+  if (!branchSelect || !topicSelect || !subtopicSelect) return;
   const visibleCatalog = visibleLearningCatalog();
   branchSelect.innerHTML = visibleCatalog.map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.title)}</option>`).join("");
   branchSelect.value = branch.id;
@@ -4753,8 +4826,10 @@ function renderLearningMobilePicker(branch, topic, subtopic, level) {
   topicSelect.value = topic.id;
   subtopicSelect.innerHTML = (topic.subtopics || []).map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.title)}</option>`).join("");
   subtopicSelect.value = subtopic.id;
-  levelSelect.innerHTML = Object.entries(LEVEL_LABELS).map(([key, label]) => `<option value="${escapeHtml(key)}">${escapeHtml(label)}</option>`).join("");
-  levelSelect.value = level;
+  if (levelSelect) {
+    levelSelect.innerHTML = `<option value="facil">Aprendizaje</option>`;
+    levelSelect.value = "facil";
+  }
 }
 
 function learningReportMailto(context = "contenido de aprendizaje") {
@@ -4772,7 +4847,6 @@ function learningReportMailto(context = "contenido de aprendizaje") {
     `Rama: ${branch.title}`,
     `Tema: ${topic.title}`,
     `Subtema: ${subtopic?.title || "No seleccionado"}`,
-    `Nivel: ${LEVEL_LABELS[selection.level] || selection.level}`,
     `Usuario: ${usuarioActual?.email || "Sin correo activo"}`,
     "",
     "Descripción del problema:"
@@ -4783,15 +4857,17 @@ function learningReportMailto(context = "contenido de aprendizaje") {
 function renderLearningUnit(branch, topic, subtopic, level) {
   const unit = document.getElementById("learningUnit");
   if (!unit) return;
-  const data = subtopic.levels?.[level] || subtopic.levels?.facil || makeLearningLevels(branch.title, topic.title, subtopic.title)[level];
+  const studyLevel = "facil";
+  const data = subtopic.levels?.[studyLevel] || subtopic.levels?.facil || makeLearningLevels(branch.title, topic.title, subtopic.title)[studyLevel];
   const canTrackLearning = esEstudianteCuenta();
   const progress = canTrackLearning ? learningProgressAll() : {};
-  const completed = canTrackLearning && progress[learningProgressId(branch.id, topic.id, subtopic.id, level)]?.completed;
-  const examActionText = esProfesor() ? "Ver examen" : "Ir al examen";
+  const completed = canTrackLearning && learningSubtopicCompleted(progress, branch.id, topic.id, subtopic.id);
+  const examActionText = esProfesor() ? "Ver exámenes" : "Ir a exámenes";
+  const branchStatus = learningBranchCompletion(branch.id, progress);
   unit.innerHTML = `
     <header class="learning-unit-head">
       <div>
-        <span class="section-kicker">${escapeHtml(branch.title)} · ${escapeHtml(topic.title)} · ${escapeHtml(LEVEL_LABELS[level])}</span>
+        <span class="section-kicker">${escapeHtml(branch.title)} · ${escapeHtml(topic.title)}</span>
         <h3>${escapeHtml(subtopic.title)}</h3>
         <p>${escapeHtml(subtopic.summary || topic.summary)}</p>
       </div>
@@ -4831,22 +4907,22 @@ function renderLearningUnit(branch, topic, subtopic, level) {
 
     <div class="learning-practice" data-learning-practice>
       <span class="section-kicker">Práctica</span>
-      <h4>Cuando termines este subtema, continúa con el examen ${escapeHtml(LEVEL_LABELS[level])}.</h4>
-      <p>La práctica evaluable usa el flujo oficial de exámenes, intentos, tiempos, disponibilidad y retroalimentación que ya tiene tu aula.</p>
+      <h4>Cuando completes la rama, continúa con exámenes.</h4>
+      <p>Debes tener el 100% de la rama estudiada para entrar al examen. Al abrirlo desde aquí quedará seleccionado el nivel Fácil y podrás cambiarlo si lo necesitas.</p>
       <div id="learningPracticeTeacherSlot" class="learning-practice-teacher-slot"></div>
-      <p class="bank-status" data-learning-status></p>
+      <p class="bank-status" data-learning-status>${canTrackLearning ? `${branchStatus.completed} de ${branchStatus.total} subtemas de esta rama completados.` : ""}</p>
     </div>
 
     <div class="learning-actions">
       ${canTrackLearning ? `<button class="btn btn-outline ${completed ? "learning-complete-done" : ""}" type="button" id="btnLearningComplete" ${completed ? "disabled" : ""}>${completed ? "Completado" : "Marcar como estudiado"}</button>` : ""}
-      <button class="btn btn-primary" type="button" id="btnLearningExam">${examActionText} ${escapeHtml(LEVEL_LABELS[level])} · ${etiquetaDuracionNivel(level)}</button>
+      <button class="btn btn-primary" type="button" id="btnLearningExam">${examActionText}</button>
       ${canTrackLearning ? `<button class="btn btn-outline learning-next-btn" type="button" id="btnLearningNext">Siguiente subtema</button>` : ""}
       ${puedeGestionarContenidoAprendizaje() ? `<button class="btn btn-outline" type="button" data-learning-edit-resource>Editar contenido</button>` : ""}
       <a class="learning-report-link" href="${learningReportMailto("contenido de aprendizaje")}">Reportar un problema</a>
     </div>
   `;
   if (window.renderMathInElement) renderMathInElement(unit, { delimiters: MATH_DELIMITERS, throwOnError: false });
-  renderLearningResourceForSelection({ branchId: branch.id, topicId: topic.id, subtopicId: subtopic.id, level });
+  renderLearningResourceForSelection({ branchId: branch.id, topicId: topic.id, subtopicId: subtopic.id, level: studyLevel });
 }
 function renderLearningManager(selection = resolveLearningSelection()) {
   const manager = document.getElementById("learningTeacherManager");
@@ -5201,13 +5277,17 @@ document.getElementById("sectionAprendizaje")?.addEventListener("click", async e
   }
   if (event.target.closest("#btnLearningExam")) {
     const selection = resolveLearningSelection();
-    const examKey = LEVEL_TO_EXAM[selection.level] || "diagnostico";
-    if (!validarAprendizajeAntesExamen(examKey, { selection, fromLearning: true })) return;
+    const examSelection = { ...selection, level: "facil" };
+    if (!validarAprendizajeAntesExamen("diagnostico", { selection: examSelection, fromLearning: true })) return;
+    await asegurarLearningBranchCompletada(examSelection);
     if (esProfesor()) {
-      enfocarExamenProfesorDesdeAprendizaje(examKey);
+      guardarTeacherExamRoute(examSelection);
+      activarNav("examenes");
+      renderExamenesHub();
     } else {
-      guardarExamSelector(selection);
-      navegarAExamen(examKey);
+      guardarExamSelector(examSelection);
+      activarNav("examenes");
+      renderExamenesHub();
     }
   }
   if (event.target.closest("#btnLearningNext")) {
@@ -5280,11 +5360,7 @@ document.getElementById("sectionAprendizaje")?.addEventListener("change", event 
     renderLearningPanel();
     return;
   }
-  if (event.target.matches("#learningLevelSelect")) {
-    setLearningLast({ ...resolveLearningSelection(), level: event.target.value });
-    renderLearningPanel();
-    return;
-  }
+  if (event.target.matches("#learningLevelSelect")) return;
   if (!event.target.closest("#learningTeacherManager")) return;
   if (event.target.matches("#learningManagerBranch")) {
     const selection = getLearningManagerSelection();
@@ -5367,16 +5443,17 @@ document.getElementById("sectionExamenes")?.addEventListener("change", event => 
   }
 });
 
-document.getElementById("btnStartSelectedExam")?.addEventListener("click", event => {
+document.getElementById("btnStartSelectedExam")?.addEventListener("click", async event => {
   const selection = resolveExamSelectorSelection();
   const examKey = event.currentTarget.dataset.examKey || LEVEL_TO_EXAM[selection.level] || "diagnostico";
   if (!validarAprendizajeAntesExamen(examKey, { selection })) return;
+  await asegurarLearningBranchCompletada(selection);
   navegarAExamen(examKey);
 });
 
 
 function learningCompletedEntriesFromProgress(progress = learningProgressAll()) {
-  return Object.values(progress || {}).filter(item => item?.completed && item?.completedAt);
+  return Object.values(progress || {}).filter(item => item?.completed && item?.completedAt && item?.scope !== "branch");
 }
 
 function learningCompletedEntries() {
@@ -7386,6 +7463,7 @@ document.getElementById("btnIniciarDiag").addEventListener("click", async () => 
     return;
   }
   if (!validarAprendizajeAntesExamen("diagnostico")) return;
+  await asegurarLearningBranchCompletada(contextoExamenSeleccionado("diagnostico"));
   if (!(await validarDisponibilidadExamen("diagnostico"))) return;
   await prepararPreguntasActivas("diagnostico");
   iniciarIntentoActivo("diag", "diagnostico", PREGUNTAS.length);
@@ -9024,6 +9102,7 @@ document.getElementById("btnIniciarNivel").addEventListener("click", async () =>
     return;
   }
   if (!validarAprendizajeAntesExamen(nivelActual)) return;
+  await asegurarLearningBranchCompletada(contextoExamenSeleccionado(nivelActual));
   if (!(await validarDisponibilidadExamen(nivelActual))) return;
   await prepararPreguntasActivas("nivel1");
   iniciarIntentoActivo("nivel", nivelActual, PREGUNTAS_NIVELES[nivelActual].length);
@@ -11539,6 +11618,7 @@ function renderStudentExamSelector(sinAula = !aulaActualValida()) {
   const estado = estadoExamenDesdeConfig(config);
   const bloqueadoGratis = !examenGratisIndependienteHabilitado(examKey);
   const learningDone = aprendizajeExamenCompletado(selection);
+  const branchStatus = learningBranchCompletion(selection.branchId);
   const noDisponible = !bloqueadoGratis && !sinAula && estado !== "available";
   const disabled = sinAula || bloqueadoGratis || noDisponible;
   if (title) title.textContent = `${LEVEL_LABELS[selection.level]} · ${topic.title}`;
@@ -11547,7 +11627,7 @@ function renderStudentExamSelector(sinAula = !aulaActualValida()) {
       ? (sinAula ? "Tu aula debe estar activa para presentar exámenes." : bloqueadoGratis ? "Este examen requiere Plan Premium." : estadoExamenTexto(estado))
       : learningDone
         ? `${subtopic.title} · ${etiquetaDuracionNivel(selection.level)}`
-        : `${subtopic.title} · completa primero el aprendizaje`;
+        : `${subtopic.title} · completa la rama (${branchStatus.completed}/${branchStatus.total})`;
   }
   startBtn.disabled = disabled;
   startBtn.textContent = disabled ? "No disponible" : learningDone ? `Hacer examen ${LEVEL_LABELS[selection.level]}` : "Completar aprendizaje";
@@ -13682,6 +13762,79 @@ document.querySelectorAll("[data-notification-toggle]").forEach(toggle => {
   toggle.addEventListener("change", cambiarNotificaciones);
 });
 
+let inactivityLogoutTimer = null;
+let inactivityActivityListenersReady = false;
+let inactivitySigningOut = false;
+
+function detenerTemporizadorInactividad() {
+  clearTimeout(inactivityLogoutTimer);
+  inactivityLogoutTimer = null;
+  inactivitySigningOut = false;
+}
+
+function ultimaActividadSesion() {
+  const value = Number(localStorage.getItem(INACTIVITY_LAST_ACTIVITY_KEY) || 0);
+  return Number.isFinite(value) && value > 0 ? value : Date.now();
+}
+
+function programarCierrePorInactividad() {
+  clearTimeout(inactivityLogoutTimer);
+  if (!usuarioActual) return;
+  const restante = Math.max(0, INACTIVITY_LOGOUT_MS - (Date.now() - ultimaActividadSesion()));
+  inactivityLogoutTimer = setTimeout(() => cerrarSesionPorInactividad(), restante);
+}
+
+async function cerrarSesionPorInactividad({ broadcast = true } = {}) {
+  if (!usuarioActual || inactivitySigningOut) return;
+  inactivitySigningOut = true;
+  if (broadcast) localStorage.setItem(INACTIVITY_LOGOUT_BROADCAST_KEY, String(Date.now()));
+  try {
+    await signOut(auth);
+    setStatusTemporal("loginStatus", "Tu sesión se cerró por 30 minutos de inactividad.", "info", 10000);
+  } catch (error) {
+    console.warn("No fue posible cerrar la sesión por inactividad", error);
+  } finally {
+    detenerTemporizadorInactividad();
+  }
+}
+
+function registrarActividadSesion() {
+  if (!usuarioActual) return;
+  localStorage.setItem(INACTIVITY_LAST_ACTIVITY_KEY, String(Date.now()));
+  programarCierrePorInactividad();
+}
+
+function evaluarInactividadAlVolver() {
+  if (!usuarioActual) return;
+  if (Date.now() - ultimaActividadSesion() >= INACTIVITY_LOGOUT_MS) {
+    cerrarSesionPorInactividad();
+  } else {
+    programarCierrePorInactividad();
+  }
+}
+
+function prepararControlInactividad() {
+  if (inactivityActivityListenersReady) return;
+  inactivityActivityListenersReady = true;
+  ["pointerdown", "keydown", "touchstart", "scroll"].forEach(eventName => {
+    window.addEventListener(eventName, registrarActividadSesion, { passive: true });
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) evaluarInactividadAlVolver();
+  });
+  window.addEventListener("storage", event => {
+    if (event.key === INACTIVITY_LAST_ACTIVITY_KEY) programarCierrePorInactividad();
+    if (event.key === INACTIVITY_LOGOUT_BROADCAST_KEY && usuarioActual) cerrarSesionPorInactividad({ broadcast: false });
+  });
+}
+
+function iniciarControlInactividadSesion() {
+  prepararControlInactividad();
+  localStorage.setItem(INACTIVITY_LAST_ACTIVITY_KEY, String(Date.now()));
+  inactivitySigningOut = false;
+  programarCierrePorInactividad();
+}
+
 window.addEventListener("beforeunload", e => {
   if (usuarioActual) {
     if (seccionActual) localStorage.setItem(STORAGE_SECCION_ACTIVA, seccionActual);
@@ -13750,6 +13903,7 @@ onAuthStateChanged(auth, async user => {
     return;
   }
   if (!user) {
+    detenerTemporizadorInactividad();
     ocultarReloadSesion();
     document.body.classList.remove("auth-transitioning");
     document.body.classList.remove("auth-booting");
@@ -13830,6 +13984,7 @@ onAuthStateChanged(auth, async user => {
   escucharHistorialFacturacion();
   try {
     await prepararSesionAutenticada();
+    iniciarControlInactividadSesion();
   } finally {
     ocultarReloadSesion();
     document.body.classList.remove("auth-transitioning");
@@ -14683,6 +14838,7 @@ document.getElementById("btnIniciarExamen").addEventListener("click", async () =
     return;
   }
   if (!validarAprendizajeAntesExamen("examen")) return;
+  await asegurarLearningBranchCompletada(contextoExamenSeleccionado("examen"));
   if (!(await validarDisponibilidadExamen("examen"))) return;
   await prepararPreguntasActivas("examen");
   iniciarIntentoActivo("examen", "examen", PREGUNTAS_EXAMEN.length);

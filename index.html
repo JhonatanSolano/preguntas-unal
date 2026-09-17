@@ -33,7 +33,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="style.css?v=20260911-01" />
+  <link rel="stylesheet" href="style.css?v=20260916-04" />
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -794,16 +794,14 @@
             <label>Subtema
               <select id="learningSubtopicSelect"></select>
             </label>
-            <label>Nivel
-              <select id="learningLevelSelect"></select>
-            </label>
+            <select id="learningLevelSelect" hidden aria-hidden="true"></select>
           </div>
           <div class="learning-toolbar">
             <div>
               <span class="section-kicker">Temas</span>
               <h3 id="learningBranchTitle">Selecciona una rama</h3>
             </div>
-            <div class="learning-level-tabs" id="learningLevelTabs" aria-label="Nivel de estudio"></div>
+            <div class="learning-level-tabs" id="learningLevelTabs" hidden aria-hidden="true"></div>
           </div>
           <div id="learningTopics" class="learning-topic-grid"></div>
           <div id="learningSubtopics" class="learning-subtopic-grid"></div>
@@ -2199,6 +2197,6 @@
       ]
     });"></script>
 
-  <script type="module" src="script.js?v=20260916-03"></script>
+  <script type="module" src="script.js?v=20260916-04"></script>
 </body>
 </html>

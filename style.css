@@ -5509,6 +5509,12 @@ body.public-modal-open {
   animation: modalIn .22s ease both;
 }
 
+.learning-required-overlay.danger .learning-required-card {
+  border-color: rgba(190, 18, 60, .32);
+  background: linear-gradient(135deg, rgba(255, 255, 255, .98), rgba(255, 241, 242, .98));
+  box-shadow: 0 28px 60px rgba(190, 18, 60, .22);
+}
+
 .learning-required-kicker {
   display: inline-flex;
   border-radius: 999px;
@@ -5521,10 +5527,19 @@ body.public-modal-open {
   text-transform: uppercase;
 }
 
+.learning-required-overlay.danger .learning-required-kicker {
+  background: rgba(239, 68, 68, .12);
+  color: #b91c1c;
+}
+
 .learning-required-card h3 {
   margin: .85rem 2rem .55rem 0;
   font-size: clamp(1.55rem, 5vw, 2.3rem);
   line-height: 1.08;
+}
+
+.learning-required-overlay.danger .learning-required-card h3 {
+  color: #991b1b;
 }
 
 .learning-required-card p {
@@ -5532,6 +5547,11 @@ body.public-modal-open {
   font-size: clamp(1rem, 3vw, 1.12rem);
   line-height: 1.55;
   margin: 0;
+}
+
+.learning-required-overlay.danger .learning-required-card p {
+  color: #7f1d1d;
+  font-weight: 800;
 }
 
 .learning-required-summary {
@@ -5552,6 +5572,14 @@ body.public-modal-open {
 .learning-required-summary span {
   color: #087a83;
   font-weight: 800;
+}
+
+.learning-required-overlay.danger .learning-required-summary {
+  border-color: rgba(239, 68, 68, .22);
+}
+
+.learning-required-overlay.danger .learning-required-summary span {
+  color: #b91c1c;
 }
 
 .learning-required-actions {

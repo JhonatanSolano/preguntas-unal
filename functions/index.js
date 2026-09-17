@@ -28,6 +28,7 @@ const {
   metricDelta
 } = require("./appMetricsPolicy");
 const { normalizeAcademicReportFilter } = require("./academicReportPolicy");
+const { learningProgressIdForBranch } = require("./learningProgressPolicy");
 const { buildTeacherClassMetrics } = require("./teacherMetricsPolicy");
 const {
   classMessageNotificationPayload,
@@ -3343,20 +3344,6 @@ function examDurationSeconds(level = "") {
   return 15 * 60;
 }
 
-function learningLevelFromExamLevel(level = "") {
-  if (level === "nivel1") return "medio";
-  if (level === "examen") return "dificil";
-  return "facil";
-}
-
-function learningProgressIdForExam(level = "", source = {}) {
-  const branchId = normalizeRoutePart(source.branchId);
-  const topicId = normalizeRoutePart(source.topicId);
-  const subtopicId = normalizeRoutePart(source.subtopicId) || topicId;
-  if (!branchId || !topicId || !subtopicId) return "";
-  return `${branchId}__${topicId}__${subtopicId}__${learningLevelFromExamLevel(level)}`;
-}
-
 function normalizeExamBank(bank = "") {
   return String(bank || "principal").trim() || "principal";
 }
@@ -3597,14 +3584,14 @@ exports.submitExamAttempt = onRequest({ region: "us-central1" }, async (req, res
   if (!isPlatformOwner && !isStudentInClass) {
     return res.status(403).json({ error: "No tienes acceso a esta aula." });
   }
-  const learningProgressId = learningProgressIdForExam(level, { branchId, topicId, subtopicId });
+  const learningProgressId = learningProgressIdForBranch({ branchId });
   if (!isPlatformOwner) {
     if (!learningProgressId) {
-      return res.status(400).json({ error: "Falta el tema y subtema del examen." });
+      return res.status(400).json({ error: "Falta la rama de aprendizaje del examen." });
     }
     const progressSnap = await db.collection("users").doc(decoded.uid).collection("learningProgress").doc(learningProgressId).get();
     if (!progressSnap.exists || progressSnap.data()?.completed !== true) {
-      return res.status(403).json({ error: "Primero debes completar el aprendizaje de este tema, subtema y nivel." });
+      return res.status(403).json({ error: "Primero debes completar el 100% de la rama de aprendizaje antes de presentar el examen." });
     }
   }
 
