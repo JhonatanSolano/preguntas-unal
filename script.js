@@ -290,6 +290,7 @@ let teacherReportRows = [];
 let teacherReportFiltered = [];
 let teacherReportPage = 1;
 let teacherReportSort = { key: "studentName", dir: "asc" };
+let reportStatusTimer = null;
 const attachmentPreviewUrls = new Map();
 const EMOJIS_MENSAJE = [
   ["😀", "feliz sonrisa alegre"], ["😃", "sonrisa feliz"], ["😄", "risa feliz"], ["😁", "sonrisa grande"], ["😆", "risa"], ["😅", "risa sudor"], ["😂", "llorando risa fuerte"], ["🤣", "carcajada llorando fuerte"], ["😭", "cara llorando fuerte"], ["😉", "guiño"], ["😘", "beso"], ["😗", "beso"], ["😙", "beso feliz"], ["😚", "beso tierno"], ["🥰", "amor cariño"], ["😍", "enamorado corazones"], ["🤩", "estrella emoción"], ["🥳", "celebración fiesta"], ["🤔", "pensando duda"], ["🙄", "ojos arriba"], ["🙂", "sonrisa suave"], ["🥲", "sonrisa lágrima"], ["🥺", "tierno triste"], ["😊", "feliz amable"], ["😌", "tranquilo"], ["😔", "triste"], ["😇", "ángel"], ["😈", "diablo"], ["⭐", "estrella"], ["👍", "bien pulgar"], ["❤️", "corazón amor"]
@@ -14362,8 +14363,19 @@ async function renderAdminStats() {
 function setReportStatus(message = "", type = "") {
   const status = document.getElementById("reportStatus");
   if (!status) return;
+  if (reportStatusTimer) {
+    clearTimeout(reportStatusTimer);
+    reportStatusTimer = null;
+  }
   status.textContent = message;
   status.className = `bank-status${type ? ` ${type}` : ""}`;
+  if (message) {
+    reportStatusTimer = setTimeout(() => {
+      status.textContent = "";
+      status.className = "bank-status";
+      reportStatusTimer = null;
+    }, 5000);
+  }
 }
 
 function reportTopicValue(branchId, topicId) {
@@ -14511,7 +14523,7 @@ async function cargarReporteAcademico() {
     setReportStatus("Selecciona tema, subtema y nivel para consultar el reporte.", "error");
     return;
   }
-  setReportStatus("Consultando reporte oficial...", "");
+  setReportStatus("Consultando reporte oficial...", "error");
   teacherReportRows = [];
   teacherReportFiltered = [];
   teacherReportPage = 1;
@@ -14527,7 +14539,7 @@ async function cargarReporteAcademico() {
     renderReportTable();
     setReportStatus(teacherReportRows.length
       ? `Reporte cargado: ${teacherReportRows.length} registro(s).`
-      : "No hay intentos registrados para esta aula, tema, subtema y nivel.", teacherReportRows.length ? "success" : "");
+      : "No hay intentos registrados para esta aula, tema, subtema y nivel.", teacherReportRows.length ? "success" : "error");
   } catch (err) {
     console.error(err);
     setReportStatus(err.message || "No se pudo cargar el reporte.", "error");
@@ -14564,6 +14576,7 @@ async function exportTeacherReportXlsx() {
     setReportStatus("Primero consulta un reporte con datos.", "error");
     return;
   }
+  setReportStatus("Descargando reporte...", "success");
   try {
     await ensureXlsxLoaded();
   } catch (err) {
@@ -14599,6 +14612,7 @@ async function exportTeacherReportXlsx() {
   const today = new Date().toISOString().slice(0, 10);
   const fileName = `Reporte_${nombreArchivoSeguro(first.className)}_${nombreArchivoSeguro(first.topicName)}_${nombreArchivoSeguro(first.subtopicName)}_${nombreArchivoSeguro(first.examName)}_${today}.xlsx`;
   window.XLSX.writeFile(book, fileName);
+  setReportStatus("Reporte descargado.", "success");
 }
 
 document.getElementById("adminGrupoSelect")?.addEventListener("change", (e) => {
