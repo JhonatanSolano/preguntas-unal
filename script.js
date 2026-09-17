@@ -5837,11 +5837,11 @@ async function renderInstitutionPanel() {
         const items = members.filter(item => (item.grade || "Sin curso") === grade && item.status !== "removed");
         if (!items.length) return "";
         return `<details class="class-student-group">
-          <summary>${grade} · ${items.length} integrante(s)</summary>
+          <summary>${escapeHtml(grade)} · ${items.length} integrante(s)</summary>
           <div class="student-row-list">
             ${items.map(item => `<article class="student-row">
-              <div><strong>${item.name || item.displayName || "Sin nombre"}</strong><span>${item.email}</span><small>${item.role === "teacher" ? "Profesor" : "Estudiante"} · ${item.className || "Sin aula"} · ${estadoVisibleMiembroInstitucion(item, acceptedInviteKeys)}</small></div>
-              <button class="btn btn-outline danger" type="button" data-delete-institution-member="${item.id}">Eliminar</button>
+              <div><strong>${escapeHtml(item.name || item.displayName || "Sin nombre")}</strong><span>${escapeHtml(item.email || "Sin correo")}</span><small>${item.role === "teacher" ? "Profesor" : "Estudiante"} · ${escapeHtml(item.className || "Sin aula")} · ${escapeHtml(estadoVisibleMiembroInstitucion(item, acceptedInviteKeys))}</small></div>
+              <button class="btn btn-outline danger" type="button" data-delete-institution-member="${escapeHtml(item.id)}">Eliminar</button>
             </article>`).join("")}
           </div>
         </details>`;
@@ -6194,23 +6194,25 @@ async function renderOwnerAppMetrics(options = {}) {
 async function renderOwnerInstitutions() {
   const cont = document.getElementById("ownerInstitutionsList");
   if (!cont || !esPropietarioPlataforma()) return;
-  const snap = await getDocs(collection(db, "institutions")).catch(() => null);
+  const ownerInstitutionLimit = 100;
+  const snap = await getDocs(query(collection(db, "institutions"), orderBy(documentId()), limit(ownerInstitutionLimit))).catch(() => null);
   if (!snap || snap.empty) {
     cont.innerHTML = `<p class="mini-help">No hay instituciones registradas.</p>`;
     return;
   }
-  cont.innerHTML = snap.docs.map(item => {
+  const rows = snap.docs.map(item => {
     const data = item.data();
     const blocked = data.subscriptionStatus === "blocked" || data.subscriptionPremiumBlocked === true;
     const status = blocked
       ? `<small class="danger-text">Premium bloqueado hasta nuevo pago.</small>`
-      : `<small>${data.institutionDepartmentName || ""} ${data.institutionMunicipalityName || ""}</small>`;
+      : `<small>${escapeHtml(data.institutionDepartmentName || "")} ${escapeHtml(data.institutionMunicipalityName || "")}</small>`;
     return `<article class="student-row owner-institution-row ${blocked ? "student-blocked" : ""}">
-      <div><strong>${data.institutionName || item.id}</strong><span>DANE ${data.institutionDane || item.id}</span>${status}</div>
-      <button class="btn ${blocked ? "btn-primary" : "btn-outline"}" type="button" data-owner-block-institution="${item.id}" ${blocked ? "disabled" : ""}>${blocked ? "Bloqueada" : "Bloquear institución"}</button>
-      <button class="btn btn-outline danger" type="button" data-owner-delete-institution="${item.id}">Eliminar institución</button>
+      <div><strong>${escapeHtml(data.institutionName || item.id)}</strong><span>DANE ${escapeHtml(data.institutionDane || item.id)}</span>${status}</div>
+      <button class="btn ${blocked ? "btn-primary" : "btn-outline"}" type="button" data-owner-block-institution="${escapeHtml(item.id)}" ${blocked ? "disabled" : ""}>${blocked ? "Bloqueada" : "Bloquear institución"}</button>
+      <button class="btn btn-outline danger" type="button" data-owner-delete-institution="${escapeHtml(item.id)}">Eliminar institución</button>
     </article>`;
   }).join("");
+  cont.innerHTML = `${snap.size >= ownerInstitutionLimit ? `<p class="mini-help">Mostrando las primeras ${ownerInstitutionLimit} instituciones registradas.</p>` : ""}${rows}`;
 }
 
 async function bloquearInstitucionPremium(dane) {
