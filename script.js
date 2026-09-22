@@ -375,17 +375,17 @@ function makeLearningLevels(branchTitle, topicTitle, subtopicTitle) {
   const clean = subtopicTitle || topicTitle;
   return {
     facil: {
-      theory: `En este nivel reconoces la idea central de ${clean}. La meta es identificar sus elementos, leer ejemplos simples y conectar el concepto con problemas cotidianos.`,
+      theory: `En esta unidad reconoces la idea central de ${clean}. La meta es identificar sus elementos, leer ejemplos simples y conectar el concepto con problemas cotidianos.`,
       example: [`Observa el concepto de ${clean}.`, `Identifica los datos principales.`, `Relaciona la pregunta con una operación o representación básica.`],
       practice: { question: `¿Cuál es el primer paso para estudiar ${clean}?`, options: ["Identificar datos y objetivo", "Memorizar sin comprender", "Saltar directo al resultado"], answer: 0 }
     },
     medio: {
-      theory: `En este nivel aplicas ${clean} en ejercicios con varios pasos. La atención está en justificar el procedimiento y elegir una estrategia adecuada.`,
+      theory: `En esta unidad aplicas ${clean} en ejercicios con varios pasos. La atención está en justificar el procedimiento y elegir una estrategia adecuada.`,
       example: [`Lee el enunciado y separa la información relevante.`, `Selecciona una representación: tabla, gráfica, ecuación o diagrama.`, `Resuelve paso a paso y verifica la coherencia del resultado.`],
       practice: { question: `Para resolver un ejercicio medio de ${clean}, conviene`, options: ["Organizar datos antes de operar", "Responder por intuición", "Ignorar las unidades"], answer: 0 }
     },
     dificil: {
-      theory: `En este nivel conectas ${clean} con otras ramas de matemáticas. Se trabajan argumentos, modelación y problemas tipo examen con mayor carga conceptual.`,
+      theory: `En esta unidad conectas ${clean} con otras ramas de matemáticas. Se trabajan argumentos, modelación y problemas tipo examen con mayor carga conceptual.`,
       example: [`Modela la situación usando herramientas de ${topicTitle}.`, `Compara métodos y escoge el más eficiente.`, `Interpreta el resultado dentro del contexto del problema.`],
       practice: { question: `Un buen cierre difícil en ${clean} debe incluir`, options: ["Resultado, interpretación y verificación", "Solo la respuesta final", "Un procedimiento incompleto"], answer: 0 }
     }
@@ -396,7 +396,7 @@ function makeLearningSubtopic(branchTitle, topicTitle, title, summary = "") {
   return {
     id: slugifyLearningId(title),
     title,
-    summary: summary || `Estudia ${title} con teoría, ejemplos, recursos y práctica por niveles.`,
+    summary: summary || `Estudia ${title} con teoría, ejemplos, recursos y práctica guiada.`,
     keyConcepts: ["Definición", "Representación", "Aplicación", "Verificación"],
     levels: makeLearningLevels(branchTitle, topicTitle, title)
   };
@@ -580,8 +580,194 @@ const LEARNING_CATALOG = [
   }
 ];
 
+const ARITMETICA_NUMEROS_OPERACIONES_CONTENT = {
+  "numeros-naturales": {
+    summary: "Comprende los números usados para contar, ordenar y describir cantidades discretas.",
+    keyConcepts: ["Conjunto \\(\\mathbb{N}\\)", "Valor posicional", "Orden y comparación", "Operaciones básicas", "Propiedades de las operaciones", "Múltiplos, divisores y patrones"],
+    theory: "Los números naturales forman el primer sistema numérico que aparece al contar objetos: \\(1,2,3,4,\\ldots\\), y en muchos contextos también se incluye el \\(0\\). Sirven para enumerar, ordenar, medir cantidades discretas y construir operaciones como suma, resta, multiplicación y división. En aritmética académica es fundamental distinguir entre el número como cantidad, su escritura en el sistema decimal y las propiedades que permiten operar con seguridad: conmutativa, asociativa, distributiva y elemento neutro. Dominar los naturales permite reconocer patrones, resolver problemas de conteo, estimar resultados y justificar procedimientos sin depender solo de la calculadora.",
+    example: [
+      "Para comparar \\(4\\,580\\) y \\(4\\,508\\), revisa primero las unidades de mil: ambas son \\(4\\).",
+      "Compara centenas: ambas son \\(5\\). Luego compara decenas: \\(8>0\\), por tanto \\(4\\,580>4\\,508\\).",
+      "Si debes calcular \\(27\\times 14\\), usa la distributiva: \\(27\\times(10+4)=270+108=378\\).",
+      "Verifica el resultado con estimación: \\(27\\times 14\\) está cerca de \\(30\\times 14=420\\), así que \\(378\\) es razonable."
+    ],
+    practice: {
+      question: "¿Qué propiedad justifica transformar \\(36\\times 25\\) en \\((9\\times4)\\times25=9\\times100\\)?",
+      options: ["Asociativa de la multiplicación", "Propiedad del opuesto", "Clausura de la resta"],
+      answer: 0
+    }
+  },
+  "numeros-enteros": {
+    summary: "Estudia cantidades positivas, negativas y cero para representar cambios, deudas y posiciones.",
+    keyConcepts: ["Conjunto \\(\\mathbb{Z}\\)", "Signo y valor absoluto", "Recta numérica", "Opuesto aditivo", "Suma y resta con signos", "Producto y cociente de enteros"],
+    theory: "Los números enteros amplían los naturales al incluir el cero y los negativos: \\(\\mathbb{Z}=\\{\\ldots,-3,-2,-1,0,1,2,3,\\ldots\\}\\). Son indispensables para modelar temperaturas bajo cero, deudas, desplazamientos, pisos subterráneos y variaciones. La recta numérica permite interpretar orden y distancia: un número es mayor si está más a la derecha, mientras que el valor absoluto \\(|a|\\) mide distancia al cero sin considerar dirección. Operar con enteros exige separar magnitud y signo: sumar enteros de igual signo acumula magnitudes; con signos distintos se resta la menor magnitud de la mayor y se conserva el signo dominante.",
+    example: [
+      "Representa la situación: tienes una deuda de \\(12\\) y pagas \\(7\\). Se escribe \\(-12+7\\).",
+      "Como los signos son distintos, resta magnitudes: \\(12-7=5\\).",
+      "Conserva el signo de la magnitud mayor, que era \\(12\\) negativo: resultado \\(-5\\).",
+      "Interpreta: después del pago sigues debiendo \\(5\\)."
+    ],
+    practice: {
+      question: "Si una temperatura pasa de \\(-3\\,^\\circ\\text{C}\\) a \\(5\\,^\\circ\\text{C}\\), ¿cuál fue el cambio?",
+      options: ["Aumentó \\(8\\,^\\circ\\text{C}\\)", "Disminuyó \\(2\\,^\\circ\\text{C}\\)", "Aumentó \\(5\\,^\\circ\\text{C}\\)"],
+      answer: 0
+    }
+  },
+  "numeros-racionales": {
+    summary: "Analiza números que pueden escribirse como cociente de enteros y sus representaciones equivalentes.",
+    keyConcepts: ["Conjunto \\(\\mathbb{Q}\\)", "Fracción como razón", "Decimal exacto o periódico", "Equivalencia", "Simplificación", "Orden en la recta numérica"],
+    theory: "Un número racional es todo número que puede expresarse como \\(\\frac{a}{b}\\), donde \\(a\\) y \\(b\\) son enteros y \\(b\\ne0\\). Esta definición incluye enteros, fracciones, decimales exactos y decimales periódicos. La idea central es la equivalencia: \\(\\frac{2}{3}\\), \\(\\frac{4}{6}\\) y \\(0,\\overline{6}\\) representan la misma cantidad. En problemas académicos conviene reconocer qué representación es más útil: fracción para conservar exactitud, decimal para comparar medidas y razón para interpretar proporciones. Ordenar racionales implica llevarlos a denominador común, convertir a decimal con cuidado o ubicarlos en la recta numérica.",
+    example: [
+      "Para comparar \\(\\frac{5}{8}\\) y \\(\\frac{2}{3}\\), usa productos cruzados positivos.",
+      "Calcula \\(5\\times3=15\\) y \\(2\\times8=16\\).",
+      "Como \\(15<16\\), se concluye que \\(\\frac{5}{8}<\\frac{2}{3}\\).",
+      "Verifica con decimales: \\(\\frac{5}{8}=0,625\\) y \\(\\frac{2}{3}=0,\\overline{6}\\)."
+    ],
+    practice: {
+      question: "¿Cuál de estos números es racional?",
+      options: ["\\(0,\\overline{27}\\)", "\\(\\sqrt{2}\\)", "\\(\\pi\\)"],
+      answer: 0
+    }
+  },
+  "numeros-irracionales": {
+    summary: "Reconoce números no expresables como fracción de enteros y aprende a aproximarlos.",
+    keyConcepts: ["No son cociente de enteros", "Decimal infinito no periódico", "Raíces no exactas", "Constantes como \\(\\pi\\)", "Aproximación", "Ubicación en la recta real"],
+    theory: "Los números irracionales no pueden escribirse como \\(\\frac{a}{b}\\) con \\(a,b\\in\\mathbb{Z}\\) y \\(b\\ne0\\). Su expansión decimal es infinita y no periódica; por eso no se repite un bloque fijo de cifras. Ejemplos fundamentales son \\(\\sqrt{2}\\), \\(\\sqrt{5}\\), \\(\\pi\\) y \\(e\\). Aunque no se escriben de forma exacta como fracción, sí pueden aproximarse y compararse. En la práctica académica se trabaja con desigualdades, estimaciones y ubicación en intervalos: por ejemplo, como \\(1^2<2<2^2\\), entonces \\(1<\\sqrt{2}<2\\).",
+    example: [
+      "Para aproximar \\(\\sqrt{20}\\), busca cuadrados perfectos cercanos: \\(4^2=16\\) y \\(5^2=25\\).",
+      "Como \\(16<20<25\\), se tiene \\(4<\\sqrt{20}<5\\).",
+      "Prueba con decimal: \\(4,4^2=19,36\\) y \\(4,5^2=20,25\\).",
+      "Entonces \\(\\sqrt{20}\\) está entre \\(4,4\\) y \\(4,5\\), aproximadamente \\(4,47\\)."
+    ],
+    practice: {
+      question: "¿Cuál característica identifica a un decimal irracional?",
+      options: ["Es infinito y no periódico", "Termina después de pocas cifras", "Repite siempre el mismo bloque"],
+      answer: 0
+    }
+  },
+  "numeros-reales": {
+    summary: "Integra racionales e irracionales en la recta real para modelar medidas continuas.",
+    keyConcepts: ["Conjunto \\(\\mathbb{R}\\)", "Racionales e irracionales", "Recta real", "Intervalos", "Orden total", "Aproximación y exactitud"],
+    theory: "Los números reales reúnen todos los racionales y todos los irracionales. Permiten describir cantidades continuas como longitudes, áreas, tiempos, masas y coordenadas. La recta real es una representación esencial: a cada punto le corresponde un número real y a cada número real le corresponde un punto. Esta relación permite interpretar desigualdades, intervalos y distancias. En contextos de examen conviene diferenciar entre un valor exacto, como \\(\\sqrt{3}\\), y una aproximación decimal, como \\(1,732\\); ambas son útiles, pero no significan exactamente lo mismo.",
+    example: [
+      "Clasifica \\(-4\\), \\(\\frac{7}{5}\\), \\(\\sqrt{9}\\), \\(\\sqrt{7}\\) y \\(\\pi\\).",
+      "\\(-4\\), \\(\\frac{7}{5}\\) y \\(\\sqrt{9}=3\\) son racionales.",
+      "\\(\\sqrt{7}\\) y \\(\\pi\\) son irracionales.",
+      "Todos pertenecen a \\(\\mathbb{R}\\), porque racionales e irracionales son números reales."
+    ],
+    practice: {
+      question: "¿Cuál afirmación es correcta?",
+      options: ["Todo racional es real", "Todo real es racional", "Ningún irracional es real"],
+      answer: 0
+    }
+  },
+  "operaciones-con-fracciones": {
+    summary: "Domina suma, resta, multiplicación y división de fracciones con interpretación y simplificación.",
+    keyConcepts: ["Fracciones equivalentes", "Mínimo común múltiplo", "Simplificación", "Producto de fracciones", "Inverso multiplicativo", "Interpretación de resultados"],
+    theory: "Operar con fracciones exige comprender que una fracción representa partes de una unidad, una razón o una división indicada. Para sumar o restar se necesita una unidad común, por eso se usan denominadores iguales o el mínimo común múltiplo. Para multiplicar se multiplican numeradores y denominadores, interpretando la operación como parte de una parte. Para dividir por una fracción se multiplica por su inversa, porque dividir entre \\(\\frac{a}{b}\\) equivale a preguntar cuántos grupos de tamaño \\(\\frac{a}{b}\\) caben en la cantidad dada. La simplificación final ayuda a comunicar el resultado de forma clara.",
+    example: [
+      "Calcula \\(\\frac{3}{4}+\\frac{5}{6}\\). El mínimo común denominador entre \\(4\\) y \\(6\\) es \\(12\\).",
+      "Convierte: \\(\\frac{3}{4}=\\frac{9}{12}\\) y \\(\\frac{5}{6}=\\frac{10}{12}\\).",
+      "Suma numeradores: \\(\\frac{9}{12}+\\frac{10}{12}=\\frac{19}{12}\\).",
+      "Interpreta o simplifica como número mixto: \\(\\frac{19}{12}=1\\frac{7}{12}\\)."
+    ],
+    practice: {
+      question: "¿Cuál es el resultado de \\(\\frac{2}{3}\\div\\frac{4}{5}\\)?",
+      options: ["\\(\\frac{5}{6}\\)", "\\(\\frac{8}{15}\\)", "\\(\\frac{6}{5}\\)"],
+      answer: 0
+    }
+  },
+  "decimales": {
+    summary: "Trabaja con escritura decimal, valor posicional, comparación, redondeo y operaciones.",
+    keyConcepts: ["Valor posicional decimal", "Décimas, centésimas y milésimas", "Decimal exacto", "Decimal periódico", "Redondeo", "Estimación"],
+    theory: "Los decimales expresan partes de la unidad usando el sistema posicional de base diez. Cada cifra a la derecha de la coma representa décimas, centésimas, milésimas y así sucesivamente. Los decimales son especialmente útiles en mediciones, dinero, porcentajes y aproximaciones. Para compararlos, no basta mirar cuántas cifras tienen: se comparan las partes enteras y luego cada posición decimal. Para operar, se conservan alineadas las comas en suma y resta, y se controla el número total de cifras decimales en multiplicación. El redondeo debe hacerse según el contexto y sin perder de vista el error aproximado.",
+    example: [
+      "Compara \\(3,45\\) y \\(3,405\\). Las partes enteras son iguales: \\(3\\).",
+      "Compara décimas: ambas tienen \\(4\\). Compara centésimas: \\(5>0\\).",
+      "Por tanto \\(3,45>3,405\\).",
+      "Si escribes \\(3,45=3,450\\), la comparación se ve más clara: \\(3,450>3,405\\)."
+    ],
+    practice: {
+      question: "¿Cuál número es mayor?",
+      options: ["\\(0,7\\)", "\\(0,68\\)", "\\(0,607\\)"],
+      answer: 0
+    }
+  },
+  "potencias": {
+    summary: "Estudia la multiplicación repetida, sus propiedades y su uso en magnitudes grandes o pequeñas.",
+    keyConcepts: ["Base y exponente", "Potencia como producto repetido", "Producto de potencias", "Cociente de potencias", "Potencia de una potencia", "Exponentes cero y negativos"],
+    theory: "Una potencia \\(a^n\\) representa una multiplicación repetida de la base \\(a\\) por sí misma \\(n\\) veces, cuando \\(n\\) es natural. Las propiedades de las potencias permiten simplificar expresiones y evitar cálculos largos: si las bases son iguales, al multiplicar se suman exponentes y al dividir se restan; además, \\((a^m)^n=a^{mn}\\). El exponente cero expresa el cociente de una cantidad no nula consigo misma: \\(a^0=1\\), con \\(a\\ne0\\). Los exponentes negativos se relacionan con recíprocos: \\(a^{-n}=\\frac{1}{a^n}\\).",
+    example: [
+      "Simplifica \\(2^3\\cdot2^5\\). Las bases son iguales.",
+      "Suma exponentes: \\(2^{3+5}=2^8\\).",
+      "Calcula si es necesario: \\(2^8=256\\).",
+      "Verifica: \\(2^3=8\\) y \\(2^5=32\\); \\(8\\cdot32=256\\)."
+    ],
+    practice: {
+      question: "¿Cuál expresión equivale a \\(x^4\\cdot x^3\\), con \\(x\\ne0\\)?",
+      options: ["\\(x^7\\)", "\\(x^{12}\\)", "\\(2x^7\\)"],
+      answer: 0
+    }
+  },
+  "raices": {
+    summary: "Interpreta raíces como operaciones inversas de potencias y aprende a simplificarlas.",
+    keyConcepts: ["Radicando e índice", "Raíz cuadrada", "Raíz cúbica", "Cuadrados perfectos", "Simplificación de radicales", "Aproximación"],
+    theory: "La raíz es una operación inversa de la potenciación. Decir \\(\\sqrt{a}=b\\) significa que \\(b^2=a\\), cuando se trabaja con la raíz cuadrada principal. Las raíces permiten resolver problemas de áreas, longitudes, escalas y ecuaciones. Algunas raíces son exactas, como \\(\\sqrt{49}=7\\); otras no lo son y se dejan como radical o se aproximan, como \\(\\sqrt{10}\\). Simplificar radicales consiste en extraer factores que sean potencias perfectas: \\(\\sqrt{72}=\\sqrt{36\\cdot2}=6\\sqrt{2}\\).",
+    example: [
+      "Simplifica \\(\\sqrt{50}\\). Busca un factor cuadrado perfecto dentro de \\(50\\).",
+      "Escribe \\(50=25\\cdot2\\).",
+      "Separa: \\(\\sqrt{50}=\\sqrt{25\\cdot2}=\\sqrt{25}\\sqrt{2}\\).",
+      "Concluye: \\(\\sqrt{50}=5\\sqrt{2}\\)."
+    ],
+    practice: {
+      question: "¿Cuál es la forma simplificada de \\(\\sqrt{48}\\)?",
+      options: ["\\(4\\sqrt{3}\\)", "\\(3\\sqrt{4}\\)", "\\(16\\sqrt{3}\\)"],
+      answer: 0
+    }
+  },
+  "notacion-cientifica": {
+    summary: "Representa cantidades muy grandes o muy pequeñas mediante potencias de diez.",
+    keyConcepts: ["Coeficiente entre 1 y 10", "Potencias de diez", "Orden de magnitud", "Conversión decimal", "Operaciones con notación científica", "Interpretación de unidades"],
+    theory: "La notación científica escribe números en la forma \\(a\\times10^n\\), donde \\(1\\le a<10\\) y \\(n\\) es un entero. Es una herramienta central para expresar distancias astronómicas, tamaños microscópicos, población, masa, velocidad y datos científicos sin cadenas largas de ceros. Si el punto decimal se mueve hacia la izquierda, el exponente es positivo; si se mueve hacia la derecha para números menores que uno, el exponente es negativo. Además de abreviar, la notación científica facilita estimar órdenes de magnitud y operar usando propiedades de potencias.",
+    example: [
+      "Convierte \\(0,000\,045\\) a notación científica.",
+      "Mueve la coma hasta obtener un número entre \\(1\\) y \\(10\\): \\(4,5\\).",
+      "La coma se movió \\(5\\) lugares hacia la derecha, por eso el exponente es \\(-5\\).",
+      "Resultado: \\(0,000\,045=4,5\\times10^{-5}\\)."
+    ],
+    practice: {
+      question: "¿Cuál es la notación científica de \\(3\\,200\\,000\\)?",
+      options: ["\\(3,2\\times10^6\\)", "\\(32\\times10^5\\)", "\\(0,32\\times10^7\\)"],
+      answer: 0
+    }
+  }
+};
+
+function aplicarContenidoAritmeticaNumerosOperaciones() {
+  const branch = LEARNING_CATALOG.find(item => item.id === "aritmetica");
+  const topic = branch?.topics?.find(item => item.id === "numeros-operaciones");
+  if (!topic) return;
+  (topic.subtopics || []).forEach(subtopic => {
+    const content = ARITMETICA_NUMEROS_OPERACIONES_CONTENT[subtopic.id];
+    if (!content) return;
+    subtopic.summary = content.summary;
+    subtopic.keyConcepts = content.keyConcepts;
+    subtopic.levels = {
+      ...subtopic.levels,
+      facil: {
+        ...(subtopic.levels?.facil || {}),
+        theory: content.theory,
+        example: content.example,
+        practice: content.practice
+      }
+    };
+  });
+}
+
+aplicarContenidoAritmeticaNumerosOperaciones();
+
 const BADGE_CATALOG = [
-  { id: "primer-paso", icon: "🌱", title: "Primer paso", description: "Completa tu primer subtema en cualquier nivel.", target: 1, type: "completed" },
+  { id: "primer-paso", icon: "🌱", title: "Primer paso", description: "Completa tu primer subtema de aprendizaje.", target: 1, type: "completed" },
   { id: "rutina-semanal", icon: "📅", title: "Rutina semanal", description: "Cumple tu meta semanal de 3 sesiones de estudio.", target: 3, type: "weekly" },
   { id: "racha-3", icon: "🔥", title: "Racha de 3 días", description: "Estudia durante 3 días consecutivos.", target: 3, type: "streak" },
   { id: "explorador", icon: "🧭", title: "Explorador de temas", description: "Completa 5 subtemas distintos.", target: 5, type: "completed" },
@@ -3314,6 +3500,7 @@ function avanzarSeccionSiguiente() {
 
 function seccionRestaurable() {
   const fallback = seccionInicioActual();
+  if (sessionStorage.getItem(STORAGE_RELOAD_SESION) !== "1") return fallback;
   const guardada = localStorage.getItem(STORAGE_SECCION_ACTIVA) || "";
   const permitidas = seccionesPermitidasActuales();
   if (!permitidas.has(guardada)) return fallback;
@@ -3365,7 +3552,7 @@ function actualizarBienvenida() {
   }
   if (texto) {
     texto.textContent = tienePruebaDiagnosticoGratis()
-      ? "Tienes activa la versión gratuita: en Aprendizaje solo puedes estudiar Aritmética y presentar sus exámenes por nivel. Para los demás temas, mensajes, Asesor IA y beneficios debes activar Premium."
+      ? "Tienes activa la versión gratuita: en Aprendizaje puedes estudiar Aritmética y presentar sus exámenes disponibles. Para los demás temas, mensajes, Asesor IA y beneficios debes activar Premium."
       : !suscripcionActiva()
       ? "Tu cuenta está activa, pero las herramientas académicas están limitadas hasta que actives una suscripción o ingreses mediante una institución con plan vigente. Puedes completar tu perfil, revisar Suscripción y Facturación, y contactar soporte si necesitas ayuda."
       : aulaActualValida()
@@ -4405,7 +4592,7 @@ function renderLearningResourceSlots(resource) {
       prepareLearningVideoPlayback({ slot: videoSlot, resource, rawUrl, embedUrl, isUploadedVideo, canEdit });
     } else {
       stopLearningVideoPlayback("stop");
-      videoSlot.innerHTML = `<p>Espacio listo para insertar videos propios por tema y nivel.</p><button class="btn btn-outline" type="button" disabled>Video próximamente</button>`;
+      videoSlot.innerHTML = `<p>Espacio listo para insertar videos propios por tema.</p><button class="btn btn-outline" type="button" disabled>Video próximamente</button>`;
     }
   }
   if (linksSlot) {
@@ -4958,7 +5145,7 @@ function renderLearningUnit(branch, topic, subtopic, level) {
       <article class="learning-wide learning-video-card">
         <h4>Video del profesor</h4>
         <div id="learningVideoSlot">
-          <p>Espacio listo para insertar videos propios por tema y nivel.</p>
+          <p>Espacio listo para insertar videos propios por tema.</p>
           <button class="btn btn-outline" type="button" disabled>Video próximamente</button>
         </div>
       </article>
@@ -4975,7 +5162,7 @@ function renderLearningUnit(branch, topic, subtopic, level) {
     <div class="learning-practice" data-learning-practice>
       <span class="section-kicker">Práctica</span>
       <h4>Cuando completes la rama, continúa con exámenes.</h4>
-      <p>Debes tener el 100% de la rama estudiada para entrar al examen. Al abrirlo desde aquí quedará seleccionado el nivel Fácil y podrás cambiarlo si lo necesitas.</p>
+      <p>Debes tener el 100% de la rama estudiada para entrar al examen. Al abrirlo desde aquí quedará seleccionada la opción Fácil y podrás cambiarla si lo necesitas.</p>
       <div id="learningPracticeTeacherSlot" class="learning-practice-teacher-slot"></div>
       <p class="bank-status" data-learning-status>${canTrackLearning ? `${branchStatus.completed} de ${branchStatus.total} subtemas de esta rama completados.` : ""}</p>
     </div>
