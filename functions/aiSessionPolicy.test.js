@@ -116,7 +116,7 @@ test("keeps a sanitized app map for internal guidance", () => {
 
   assert.equal(data.appMap.appSections.length, 2);
   assert.equal(data.appMap.learningCatalog[0].topics[0].subtopics[2], "bEscala/b");
-  assert.equal(data.appMap.learningResources[0].url, "assets/learning/aritmetica/proporcionalidad/razones.pdf");
+  assert.equal(Object.hasOwn(data.appMap.learningResources[0], "url"), false);
 });
 
 test("builds app-aware recommendations from the internal app map", () => {
@@ -154,6 +154,7 @@ test("builds app-aware recommendations from the internal app map", () => {
   assert.match(instruction, /Aritmética > Proporcionalidad > Razones/);
   assert.match(instruction, /Guía PDF: Razones/);
   assert.match(instruction, /No recomiendes recursos externos/);
+  assert.doesNotMatch(instruction, /assets\/learning|\.pdf/i);
 });
 
 test("preserves nested app paths so advisor does not invent menu entries", () => {

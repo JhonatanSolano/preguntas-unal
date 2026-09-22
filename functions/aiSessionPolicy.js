@@ -15,13 +15,6 @@ function cleanLongText(value = "", max = 220) {
   return String(value || "").replace(/[<>]/g, "").slice(0, max).trim();
 }
 
-function cleanRelativeUrl(value = "") {
-  const text = String(value || "").trim().replace(/[<>]/g, "");
-  if (!text || text.length > 220) return "";
-  if (/^(https?:|javascript:|data:|vbscript:)/i.test(text)) return "";
-  return text.replace(/^\/+/, "");
-}
-
 function normalizeAppMap(value = {}) {
   const source = value && typeof value === "object" ? value : {};
   const appSections = Array.isArray(source.appSections)
@@ -52,8 +45,7 @@ function normalizeAppMap(value = {}) {
       topic: cleanLabel(resource?.topic),
       subtopic: cleanLabel(resource?.subtopic),
       type: cleanLabel(resource?.type || "Recurso"),
-      title: cleanLabel(resource?.title),
-      url: cleanRelativeUrl(resource?.url)
+      title: cleanLabel(resource?.title)
     })).filter(resource => resource.branch && resource.topic && resource.subtopic && resource.title)
     : [];
 
@@ -102,7 +94,7 @@ function buildAppMapInstruction(appMap = {}) {
     });
   });
   const resourceLines = resources.map(resource =>
-    `- ${resource.type}: ${resource.title} en ${resource.branch} > ${resource.topic} > ${resource.subtopic}${resource.url ? ` (${resource.url})` : ""}`
+    `- ${resource.type}: ${resource.title} en Aprendizaje / ${resource.branch} / ${resource.topic} / ${resource.subtopic}`
   );
   const current = appMap.currentLearningPath || {};
   const currentLine = current.branch || current.topic || current.subtopic
@@ -113,6 +105,7 @@ function buildAppMapInstruction(appMap = {}) {
   return [
     "Mapa interno de la app para orientar al usuario. Usa solo este mapa como referencia de secciones, rutas academicas y recursos internos disponibles.",
     "Cuando el usuario pregunte donde estudiar algo, recomienda una ruta concreta en formato: Aprendizaje > Rama > Tema > Subtema. Si existe PDF o video interno relacionado, mencionalo como recurso de la app.",
+    "Por seguridad, nunca muestres rutas tecnicas, rutas de archivos, nombres de carpetas ni URLs internas. Para PDFs o videos, menciona solo la seccion y la ruta academica dentro de la app.",
     "Para dudas tecnicas de la app, orienta hacia la seccion adecuada: Inicio, Perfil, Aprendizaje, Examenes, Estadisticas, Mensajes, Asesor IA, Suscripcion, Facturacion, Configuracion o Soporte, segun corresponda. Si una funcion esta dentro de otra seccion, responde con la ruta completa indicada por el mapa interno y no la presentes como boton independiente del menu principal.",
     "No recomiendes recursos externos, videos externos, pagos externos ni enlaces fuera de la app a menos que el usuario lo pida explicitamente.",
     currentLine,

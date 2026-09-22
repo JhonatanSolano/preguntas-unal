@@ -12366,8 +12366,7 @@ function learningResourcesForAdvisor() {
       topic: topic?.title || topicId,
       subtopic: subtopic?.title || subtopicId,
       type: "PDF",
-      title: resource.title || "Guia PDF",
-      url: resource.pdfUrl || ""
+      title: resource.title || "Guia PDF"
     };
   });
 }
