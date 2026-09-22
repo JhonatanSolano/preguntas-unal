@@ -1,4 +1,4 @@
-const CACHE_NAME = "matematicas-en-tu-bolsillo-pwa-v13";
+const CACHE_NAME = "matematicas-en-tu-bolsillo-pwa-v14";
 const APP_SHELL = [
   "./",
   "./index.html",

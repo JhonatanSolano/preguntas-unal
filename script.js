@@ -83,6 +83,7 @@ const APP_CONFIG = {
   teacherClassMetricsEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/getTeacherClassMetrics",
   classMessageEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/sendClassMessageToClass",
   classReplyNotificationEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/notifyClassMessageReply",
+  userSessionEndpoint: "https://us-central1-preguntas-tipo-examen.cloudfunctions.net/syncUserSession",
   payments: {
     provider: "Wompi",
     checkoutReady: true,
@@ -316,6 +317,9 @@ const TEACHER_EXAM_ROUTE_KEY = "matematicasBolsilloTeacherExamRoute";
 const INACTIVITY_LOGOUT_MS = 30 * 60 * 1000;
 const INACTIVITY_LAST_ACTIVITY_KEY = "matematicasBolsilloLastActivityAt";
 const INACTIVITY_LOGOUT_BROADCAST_KEY = "matematicasBolsilloInactivityLogoutAt";
+const USER_SESSION_ID_KEY = "matematicasBolsilloDeviceSessionId";
+const USER_SESSION_LOGOUT_BROADCAST_KEY = "matematicasBolsilloDeviceLimitLogoutAt";
+const USER_SESSION_DEFAULT_HEARTBEAT_MS = 60 * 1000;
 const LEARNING_RESOURCE_COLLECTION = "learningResources";
 const LEARNING_RESOURCE_MAX_PDF_MB = 25;
 const LEARNING_RESOURCE_MAX_VIDEO_MB = 180;
@@ -12947,6 +12951,8 @@ document.getElementById("claseCodigo")?.addEventListener("keydown", (e) => {
 
 async function salirApp() {
   if (!confirmarCambioSeccion("salir")) return;
+  await avisarFinSesionDispositivo();
+  detenerControlSesionDispositivo();
   localStorage.removeItem(STORAGE_GRUPO);
   localStorage.removeItem(STORAGE_BANCO_ACTIVO);
   localStorage.removeItem(STORAGE_CLASE_ACTIVA);
@@ -13783,6 +13789,130 @@ document.querySelectorAll("[data-notification-toggle]").forEach(toggle => {
 let inactivityLogoutTimer = null;
 let inactivityActivityListenersReady = false;
 let inactivitySigningOut = false;
+let userSessionHeartbeatTimer = null;
+let userSessionAcceptedAtMs = 0;
+let userSessionClosingForLimit = false;
+let unsubscribeUserSessionRevocation = null;
+
+function crearIdSesionDispositivo() {
+  if (window.crypto?.randomUUID) return window.crypto.randomUUID();
+  return `sess_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 12)}`;
+}
+
+function idSesionDispositivo() {
+  let sessionId = localStorage.getItem(USER_SESSION_ID_KEY);
+  if (!sessionId) {
+    sessionId = crearIdSesionDispositivo();
+    localStorage.setItem(USER_SESSION_ID_KEY, sessionId);
+  }
+  return sessionId;
+}
+
+function etiquetaDispositivoSesion() {
+  const ua = navigator.userAgent || "";
+  const tipo = /ipad|tablet/i.test(ua) ? "Tablet" : (/mobi|android|iphone|ipod/i.test(ua) ? "Móvil" : "PC");
+  const navegador = /edg/i.test(ua) ? "Edge" : (/chrome|crios/i.test(ua) ? "Chrome" : (/firefox|fxios/i.test(ua) ? "Firefox" : (/safari/i.test(ua) ? "Safari" : "Navegador")));
+  return `${tipo} · ${navegador}`;
+}
+
+function detenerControlSesionDispositivo() {
+  clearTimeout(userSessionHeartbeatTimer);
+  userSessionHeartbeatTimer = null;
+  userSessionAcceptedAtMs = 0;
+  userSessionClosingForLimit = false;
+  if (unsubscribeUserSessionRevocation) unsubscribeUserSessionRevocation();
+  unsubscribeUserSessionRevocation = null;
+}
+
+async function avisarFinSesionDispositivo() {
+  if (!usuarioActual) return;
+  try {
+    await postBackendAutenticado(APP_CONFIG.userSessionEndpoint, {
+      action: "stop",
+      sessionId: idSesionDispositivo(),
+      deviceLabel: etiquetaDispositivoSesion()
+    });
+  } catch (error) {
+    console.warn("No se pudo cerrar el registro de sesión del dispositivo.", error);
+  }
+}
+
+async function cerrarSesionPorLimiteDispositivos(message = "") {
+  if (!usuarioActual || userSessionClosingForLimit) return;
+  userSessionClosingForLimit = true;
+  clearTimeout(userSessionHeartbeatTimer);
+  userSessionHeartbeatTimer = null;
+  if (unsubscribeUserSessionRevocation) unsubscribeUserSessionRevocation();
+  unsubscribeUserSessionRevocation = null;
+  loginRejectMessagePending = message || "Tu cuenta estaba abierta en más de dos dispositivos. Por seguridad cerramos todas las sesiones; vuelve a ingresar en el dispositivo que quieras usar.";
+  localStorage.setItem(USER_SESSION_LOGOUT_BROADCAST_KEY, String(Date.now()));
+  try {
+    await signOut(auth);
+  } catch (error) {
+    console.warn("No fue posible cerrar la sesión por límite de dispositivos.", error);
+  } finally {
+    detenerControlInactividad();
+    userSessionClosingForLimit = false;
+  }
+}
+
+async function sincronizarSesionDispositivo(action = "heartbeat") {
+  if (!usuarioActual) return null;
+  const response = await authedFetch(APP_CONFIG.userSessionEndpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action,
+      sessionId: idSesionDispositivo(),
+      deviceLabel: etiquetaDispositivoSesion()
+    })
+  });
+  const data = await response.json().catch(() => ({}));
+  if (response.status === 409 || data.forceLogout) {
+    await cerrarSesionPorLimiteDispositivos(data.error);
+    throw new Error(data.error || "Límite de dispositivos superado.");
+  }
+  if (!response.ok) throw new Error(data.error || "No se pudo validar la sesión del dispositivo.");
+  return data;
+}
+
+function programarLatidoSesionDispositivo(delayMs = USER_SESSION_DEFAULT_HEARTBEAT_MS) {
+  clearTimeout(userSessionHeartbeatTimer);
+  if (!usuarioActual) return;
+  userSessionHeartbeatTimer = setTimeout(async () => {
+    try {
+      const data = await sincronizarSesionDispositivo("heartbeat");
+      programarLatidoSesionDispositivo(Number(data?.heartbeatMs || USER_SESSION_DEFAULT_HEARTBEAT_MS));
+    } catch (error) {
+      if (!userSessionClosingForLimit) {
+        console.warn("No se pudo renovar la sesión del dispositivo.", error);
+        programarLatidoSesionDispositivo(USER_SESSION_DEFAULT_HEARTBEAT_MS);
+      }
+    }
+  }, Math.max(15000, Number(delayMs || USER_SESSION_DEFAULT_HEARTBEAT_MS)));
+}
+
+function escucharRevocacionSesionDispositivo() {
+  if (unsubscribeUserSessionRevocation) unsubscribeUserSessionRevocation();
+  unsubscribeUserSessionRevocation = onSnapshot(refPerfilUsuario(), snap => {
+    const data = snap.exists() ? snap.data() || {} : {};
+    const revokedMs = Number(data.sessionRevokedAtMs || data.sessionRevokedAt?.toMillis?.() || 0);
+    if (userSessionAcceptedAtMs && revokedMs > userSessionAcceptedAtMs) {
+      cerrarSesionPorLimiteDispositivos("Tu cuenta se abrió en más de dos dispositivos. Cerramos todas las sesiones por seguridad; vuelve a ingresar en el dispositivo que quieras usar.");
+    }
+  }, error => {
+    console.warn("No se pudo escuchar el estado de seguridad de la sesión.", error);
+  });
+}
+
+async function iniciarControlSesionDispositivo() {
+  detenerControlSesionDispositivo();
+  userSessionClosingForLimit = false;
+  const data = await sincronizarSesionDispositivo("start");
+  userSessionAcceptedAtMs = Number(data?.sessionAcceptedAtMs || Date.now());
+  escucharRevocacionSesionDispositivo();
+  programarLatidoSesionDispositivo(Number(data?.heartbeatMs || USER_SESSION_DEFAULT_HEARTBEAT_MS));
+}
 
 function detenerTemporizadorInactividad() {
   clearTimeout(inactivityLogoutTimer);
@@ -13807,6 +13937,7 @@ async function cerrarSesionPorInactividad({ broadcast = true } = {}) {
   inactivitySigningOut = true;
   if (broadcast) localStorage.setItem(INACTIVITY_LOGOUT_BROADCAST_KEY, String(Date.now()));
   try {
+    await avisarFinSesionDispositivo();
     await signOut(auth);
     setStatusTemporal("loginStatus", "Tu sesión se cerró por 30 minutos de inactividad.", "info", 10000);
   } catch (error) {
@@ -13838,11 +13969,15 @@ function prepararControlInactividad() {
     window.addEventListener(eventName, registrarActividadSesion, { passive: true });
   });
   document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) evaluarInactividadAlVolver();
+    if (!document.hidden) {
+      evaluarInactividadAlVolver();
+      if (usuarioActual) sincronizarSesionDispositivo("heartbeat").catch(error => console.warn("No se pudo renovar la sesión al volver.", error));
+    }
   });
   window.addEventListener("storage", event => {
     if (event.key === INACTIVITY_LAST_ACTIVITY_KEY) programarCierrePorInactividad();
     if (event.key === INACTIVITY_LOGOUT_BROADCAST_KEY && usuarioActual) cerrarSesionPorInactividad({ broadcast: false });
+    if (event.key === USER_SESSION_LOGOUT_BROADCAST_KEY && usuarioActual) cerrarSesionPorLimiteDispositivos();
   });
 }
 
@@ -13922,6 +14057,7 @@ onAuthStateChanged(auth, async user => {
   }
   if (!user) {
     detenerTemporizadorInactividad();
+    detenerControlSesionDispositivo();
     ocultarReloadSesion();
     document.body.classList.remove("auth-transitioning");
     document.body.classList.remove("auth-booting");
@@ -13998,6 +14134,15 @@ onAuthStateChanged(auth, async user => {
   }
   if (user.providerData?.some(provider => provider.providerId === "google.com") && perfilPermiteLoginGoogle(perfilLogin, user)) {
     await guardarDatosGoogleIniciales(user);
+  }
+  try {
+    await iniciarControlSesionDispositivo();
+  } catch (error) {
+    loginRejectMessagePending = error.message || "No se pudo validar la sesión del dispositivo. Intenta nuevamente.";
+    await signOut(auth).catch(() => {});
+    ocultarReloadSesion();
+    document.body.classList.add("group-locked");
+    return;
   }
   escucharHistorialFacturacion();
   try {

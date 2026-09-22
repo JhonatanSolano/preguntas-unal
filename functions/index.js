@@ -37,6 +37,11 @@ const {
   normalizeClassMessageRecipient,
   sanitizeClassMessagePayload
 } = require("./classMessagePolicy");
+const {
+  USER_SESSION_POLICY,
+  evaluateUserSessionLimit,
+  safeUserSessionId
+} = require("./userSessionPolicy");
 
 initializeApp();
 const admin = {
@@ -370,6 +375,13 @@ function safeEmailId(email = "") {
   return normalizeEmail(email).replace(/[^a-z0-9_-]+/g, "_");
 }
 
+function sessionDeviceLabel(value = "") {
+  return String(value || "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .slice(0, 80);
+}
+
 function normalizeDane(value) {
   return String(value || "").replace(/\D/g, "");
 }
@@ -458,6 +470,117 @@ async function generateWithGemini(apiKey, modelName, contents) {
     usageMetadata: data.usageMetadata || null
   };
 }
+
+exports.syncUserSession = onRequest({ region: "us-central1", timeoutSeconds: 30, maxInstances: 20 }, async (req, res) => {
+  setCors(res);
+  if (req.method === "OPTIONS") return res.status(204).send("");
+  if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
+
+  if (!(await enforceAppCheck(req, res))) return;
+  let decoded;
+  try {
+    decoded = await requireAuth(req);
+  } catch {
+    return res.status(401).json({ error: "Debes iniciar sesión." });
+  }
+
+  const body = req.body || {};
+  const action = ["start", "heartbeat", "stop"].includes(String(body.action || "")) ? String(body.action) : "heartbeat";
+  const sessionId = safeUserSessionId(body.sessionId || "");
+  if (!sessionId) return res.status(400).json({ error: "No se pudo identificar este dispositivo." });
+
+  const sessionKey = sha256(`${decoded.uid}:${sessionId}`).slice(0, 48);
+  const userRef = db.collection("users").doc(decoded.uid);
+  const sessionRef = userRef.collection("activeSessions").doc(sessionKey);
+  const nowMs = Date.now();
+  const nowTimestamp = admin.firestore.Timestamp.fromMillis(nowMs);
+
+  try {
+    if (action === "stop") {
+      await sessionRef.delete().catch(() => {});
+      return res.status(200).json({ ok: true, action: "stop" });
+    }
+
+    const result = await db.runTransaction(async tx => {
+      const cutoff = admin.firestore.Timestamp.fromMillis(nowMs - USER_SESSION_POLICY.activeSessionTtlMs);
+      const activeQuery = userRef.collection("activeSessions").where("lastSeenAt", ">=", cutoff);
+      const [activeSnap, currentSnap] = await Promise.all([
+        tx.get(activeQuery),
+        tx.get(sessionRef)
+      ]);
+      const sessions = activeSnap.docs.map(item => {
+        const data = item.data() || {};
+        return {
+          sessionId: data.sessionId || item.id,
+          lastSeenAt: data.lastSeenAt,
+          lastSeenMs: data.lastSeenAtMs
+        };
+      });
+      const decision = evaluateUserSessionLimit({ sessions, sessionId: sessionKey, nowMs });
+
+      if (decision.shouldRevokeAll) {
+        activeSnap.docs.forEach(item => tx.delete(item.ref));
+        tx.delete(sessionRef);
+        tx.set(userRef, {
+          sessionRevokedAt: nowTimestamp,
+          sessionRevokedAtMs: nowMs,
+          sessionRevokedReason: "too-many-devices",
+          sessionRevokedActiveCount: decision.activeCount,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+        return {
+          ok: false,
+          forceLogout: true,
+          reason: decision.reason,
+          activeCount: decision.activeCount,
+          sessionRevokedAtMs: nowMs
+        };
+      }
+
+      const currentData = currentSnap.exists ? currentSnap.data() || {} : {};
+      tx.set(sessionRef, {
+        uid: decoded.uid,
+        email: normalizeEmail(decoded.email),
+        sessionId: sessionKey,
+        deviceLabel: sessionDeviceLabel(body.deviceLabel || ""),
+        firstSeenAt: currentData.firstSeenAt || nowTimestamp,
+        firstSeenAtMs: Number(currentData.firstSeenAtMs || nowMs),
+        lastSeenAt: nowTimestamp,
+        lastSeenAtMs: nowMs,
+        lastAction: action,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+      tx.set(userRef, {
+        lastSessionSeenAt: nowTimestamp,
+        lastSessionSeenAtMs: nowMs,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+      return {
+        ok: true,
+        allowed: true,
+        activeCount: decision.activeCount,
+        sessionAcceptedAtMs: nowMs,
+        heartbeatMs: USER_SESSION_POLICY.heartbeatMs,
+        maxActiveSessions: USER_SESSION_POLICY.maxActiveSessions
+      };
+    });
+
+    if (result.forceLogout) {
+      await admin.auth().revokeRefreshTokens(decoded.uid).catch(error => {
+        console.warn("No se pudieron revocar refresh tokens al superar limite de dispositivos.", error);
+      });
+      return res.status(409).json({
+        ...result,
+        error: "Tu cuenta estaba abierta en más de dos dispositivos. Por seguridad cerramos todas las sesiones; vuelve a ingresar en el dispositivo que quieras usar."
+      });
+    }
+
+    return res.status(200).json(result);
+  } catch (error) {
+    console.error("User session sync error", error);
+    return res.status(500).json({ error: "No se pudo validar la sesión del dispositivo." });
+  }
+});
 
 exports.trackVideoPlayback = onRequest({ region: "us-central1" }, async (req, res) => {
   setCors(res);
