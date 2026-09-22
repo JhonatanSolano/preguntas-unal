@@ -1533,6 +1533,8 @@ const PREGUNTAS_MAESTRAS_CODIGO = [
 
 const BASE_QUESTION_CACHE = {};
 const ASESOR_QUICK_REPLIES = [
+  ["Dónde estudiar", "¿En qué parte de Aprendizaje encuentro este tema dentro de la app?"],
+  ["Ayuda de la app", "Necesito ayuda para encontrar soporte, pagos, perfil o exámenes dentro de la app"],
   ["Resolver pregunta", "Resolver una pregunta"],
   ["Ejercicios tipo examen", "Generar ejercicios tipo examen"],
   ["Practicar por tema", "Practicar por tema"],
@@ -1569,12 +1571,12 @@ const ASESOR_MODE_PROMPTS = {
 const ASESOR_INITIAL_MESSAGE = {
   id: "initial-advisor-message",
   sender: "bot",
-  text: "Hola. Soy tu Asesor IA de matemáticas. Trabajo como cuaderno académico: puedo resolver preguntas, practicar por tema, revisar errores, crear planes de estudio y ayudarte a leer o corregir LaTeX."
+  text: "Hola. Soy tu Asesor IA de matemáticas. Trabajo como cuaderno académico: puedo resolver preguntas, practicar por tema, revisar errores, crear planes de estudio, ayudarte a leer o corregir LaTeX y orientarte dentro de Aprendizaje, Exámenes, Perfil, Pagos y Soporte de la app."
 };
 const ASESOR_TEACHER_INITIAL_MESSAGE = {
   id: "initial-advisor-teacher-message",
   sender: "bot",
-  text: "Hola, profe. Soy tu Asesor IA. Puedo ayudarte a planear clases, crear exámenes, diseñar actividades, redactar correos, preparar retroalimentaciones y revisar material matemático con LaTeX."
+  text: "Hola, profe. Soy tu Asesor IA. Puedo ayudarte a planear clases, crear exámenes, diseñar actividades, redactar correos, preparar retroalimentaciones, revisar material matemático con LaTeX y ubicar contenido dentro de la app."
 };
 let intentoActivo = cargarIntentoActivo();
 setExamHeaderActivo(!!intentoActivo);
@@ -12314,6 +12316,87 @@ function renderAsesorMessages() {
   guardarEstadoAsesor();
 }
 
+function appSectionsForAdvisor() {
+  const common = [
+    ["inicio", "Inicio", "Panel principal para ubicarse, ver estado de la cuenta y navegar a las funciones principales."],
+    ["perfil", "Perfil", "Datos de cuenta, verificacion de telefono, cambio de contrasena y configuracion personal."],
+    ["aprendizaje", "Aprendizaje", "Ramas, temas, subtemas, teoria, ejemplos, videos del profesor cuando esten cargados y guias PDF internas."],
+    ["examenes", "Examenes", "Seleccion de tema, subtema y nivel Facil, Medio o Dificil para presentar examenes habilitados."],
+    ["estadisticas", "Estadisticas", "Metricas personales de rendimiento, intentos, avance y resultados."],
+    ["asesorIA", "Asesor IA", "Chat academico para resolver dudas, practicar, revisar errores, leer LaTeX y recibir orientacion dentro de la app."],
+    ["soporte", "Soporte", "Ayuda oficial de la app y contacto de soporte por WhatsApp."],
+    ["suscripcion", "Suscripcion", "Pago, activacion y revision del acceso Premium."],
+    ["facturacion", "Facturacion", "Informacion relacionada con pagos y comprobantes cuando aplique."],
+    ["configuracion", "Configuracion", "Preferencias y ajustes disponibles de la cuenta."]
+  ];
+  if (!modoAdmin) return common;
+  return [
+    ...common,
+    ["adminClases", "Aulas", "Gestion de aulas, estudiantes, codigos, disponibilidad y configuraciones academicas."],
+    ["adminPreguntas", "Banco de preguntas", "Creacion y edicion de preguntas por tema, subtema y nivel de examen."],
+    ["adminMetricas", "Metricas de profesor", "Reportes y seguimiento de aulas, temas, subtemas y resultados."],
+    ["mensajes", "Mensajes", "Comunicacion academica con estudiantes y aulas."]
+  ];
+}
+
+function learningCatalogForAdvisor() {
+  return LEARNING_CATALOG.map(branch => ({
+    branch: branch.title,
+    topics: (branch.topics || []).map(topic => ({
+      title: topic.title,
+      subtopics: (topic.subtopics?.length
+        ? topic.subtopics
+        : [makeLearningSubtopic(branch.title, topic.title, topic.title, topic.summary)]
+      ).map(subtopic => subtopic.title)
+    }))
+  }));
+}
+
+function learningResourcesForAdvisor() {
+  return Object.entries(STATIC_LEARNING_PDFS).map(([key, resource]) => {
+    const [branchId, topicId, subtopicId] = key.split("__");
+    const branch = LEARNING_CATALOG.find(item => item.id === branchId);
+    const topic = branch?.topics?.find(item => item.id === topicId);
+    const subtopic = topic?.subtopics?.find(item => item.id === subtopicId);
+    return {
+      branch: branch?.title || branchId,
+      topic: topic?.title || topicId,
+      subtopic: subtopic?.title || subtopicId,
+      type: "PDF",
+      title: resource.title || "Guia PDF",
+      url: resource.pdfUrl || ""
+    };
+  });
+}
+
+function currentLearningPathForAdvisor() {
+  const selection = resolveLearningSelection();
+  const branch = LEARNING_CATALOG.find(item => item.id === selection.branchId) || LEARNING_CATALOG[0];
+  const topic = branch?.topics?.find(item => item.id === selection.topicId) || branch?.topics?.[0];
+  const subtopic = topic?.subtopics?.find(item => item.id === selection.subtopicId) || topic?.subtopics?.[0];
+  return {
+    branch: branch?.title || "",
+    topic: topic?.title || "",
+    subtopic: subtopic?.title || "",
+    examDefaultLevel: "Facil"
+  };
+}
+
+function appMapAsesor() {
+  return {
+    appSections: appSectionsForAdvisor().map(([id, title, purpose]) => ({ id, title, purpose })),
+    learningCatalog: learningCatalogForAdvisor(),
+    learningResources: learningResourcesForAdvisor(),
+    currentLearningPath: currentLearningPathForAdvisor(),
+    accessNotes: [
+      "La rama Aritmetica tambien esta visible para estudiantes gratis.",
+      "Las demas ramas, mensajes, estadisticas completas y Asesor IA requieren Premium cuando aplique.",
+      "En Aprendizaje ya no hay niveles; los niveles Facil, Medio y Dificil pertenecen a Examenes.",
+      "Los videos se consultan dentro del bloque Video del profesor de cada subtema cuando esten cargados en la app."
+    ]
+  };
+}
+
 function contextoAsesor(mode = advisorMode) {
   return {
     app: APP_CONFIG.name,
@@ -12322,6 +12405,7 @@ function contextoAsesor(mode = advisorMode) {
     bank: NOMBRES_BANCOS[bancoActivo] || bancoActivo,
     mode: mode || "menu",
     modeLabel: mode ? ASESOR_MODE_LABELS[mode] : "Menú",
+    appMap: appMapAsesor(),
     instruction: modoAdmin
       ? "El usuario es profesor. Ayúdale a planear clases, crear exámenes, redactar correos a estudiantes, diseñar actividades, preparar rúbricas, retroalimentaciones y materiales matemáticos."
       : (mode ? ASESOR_MODE_PROMPTS[mode] : "Ayuda al estudiante a escoger entre resolver pregunta, generar ejercicios, practicar por tema, revisar error o crear plan de estudio.")

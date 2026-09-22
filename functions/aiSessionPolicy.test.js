@@ -70,7 +70,88 @@ test("normalizes client advisor context and drops custom instructions", () => {
     className: "",
     bank: "Principal",
     mode: "solve",
-    modeLabel: ""
+    modeLabel: "",
+    appMap: {
+      appSections: [],
+      learningCatalog: [],
+      learningResources: [],
+      currentLearningPath: {},
+      accessNotes: []
+    }
   });
   assert.equal(Object.hasOwn(data, "instruction"), false);
+});
+
+test("keeps a sanitized app map for internal guidance", () => {
+  const data = normalizeAiSessionData({
+    role: "student",
+    appMap: {
+      appSections: [
+        { id: "aprendizaje", title: "Aprendizaje<script>", purpose: "Estudiar por ramas" },
+        { id: "soporte", title: "Soporte", purpose: "Ayuda por WhatsApp" }
+      ],
+      learningCatalog: [
+        {
+          branch: "Aritmética",
+          topics: [
+            {
+              title: "Proporcionalidad",
+              subtopics: ["Razones", "Porcentajes", "<b>Escala</b>"]
+            }
+          ]
+        }
+      ],
+      learningResources: [
+        {
+          branch: "Aritmética",
+          topic: "Proporcionalidad",
+          subtopic: "Razones",
+          type: "PDF",
+          title: "Guía PDF: Razones",
+          url: "assets/learning/aritmetica/proporcionalidad/razones.pdf"
+        }
+      ]
+    }
+  });
+
+  assert.equal(data.appMap.appSections.length, 2);
+  assert.equal(data.appMap.learningCatalog[0].topics[0].subtopics[2], "bEscala/b");
+  assert.equal(data.appMap.learningResources[0].url, "assets/learning/aritmetica/proporcionalidad/razones.pdf");
+});
+
+test("builds app-aware recommendations from the internal app map", () => {
+  const instruction = buildAiSessionInstruction({
+    role: "student",
+    mode: "practice",
+    appMap: {
+      appSections: [
+        { id: "aprendizaje", title: "Aprendizaje", purpose: "Estudiar ramas, temas, subtemas, videos y PDFs" },
+        { id: "suscripcion", title: "Suscripción", purpose: "Pagar o revisar Premium" }
+      ],
+      learningCatalog: [
+        {
+          branch: "Aritmética",
+          topics: [
+            { title: "Proporcionalidad", subtopics: ["Razones", "Proporciones", "Regla de tres"] }
+          ]
+        }
+      ],
+      learningResources: [
+        {
+          branch: "Aritmética",
+          topic: "Proporcionalidad",
+          subtopic: "Razones",
+          type: "PDF",
+          title: "Guía PDF: Razones",
+          url: "assets/learning/aritmetica/proporcionalidad/razones.pdf"
+        }
+      ]
+    }
+  });
+
+  assert.match(instruction, /Mapa interno de la app/);
+  assert.match(instruction, /Aprendizaje/);
+  assert.match(instruction, /Aritmética > Proporcionalidad > Razones/);
+  assert.match(instruction, /Guía PDF: Razones/);
+  assert.match(instruction, /No recomiendes recursos externos/);
 });
