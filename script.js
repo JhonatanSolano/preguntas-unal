@@ -423,7 +423,7 @@ const LEARNING_CATALOG = [
     description: "Números, operaciones, razones y proporcionalidad.",
     topics: [
       makeLearningTopic("Aritmética", "numeros-operaciones", "Números y operaciones", "Construye sentido numérico y fluidez operativa.", ["Números naturales", "Números enteros", "Números racionales", "Números irracionales", "Números reales", "Operaciones con fracciones", "Decimales", "Potencias", "Raíces", "Notación científica"]),
-      makeLearningTopic("Aritmética", "proporcionalidad", "Proporcionalidad", "Relaciona cantidades y compara magnitudes.", ["Razones", "Proporciones", "Regla de tres", "Porcentajes", "Escalas", "Variación directa", "Variación inversa"])
+      makeLearningTopic("Aritmética", "proporcionalidad", "Proporcionalidad", "Relaciona cantidades y compara magnitudes.", ["Razones", "Proporciones", "Regla de tres", "Porcentajes", "Escala", "Variación directa", "Variación inversa"])
     ]
   },
   {
@@ -743,6 +743,121 @@ const ARITMETICA_NUMEROS_OPERACIONES_CONTENT = {
   }
 };
 
+const ARITMETICA_PROPORCIONALIDAD_CONTENT = {
+  "razones": {
+    summary: "Comprende la comparación multiplicativa entre dos cantidades y su interpretación en contextos reales.",
+    keyConcepts: ["Razón", "Antecedente y consecuente", "Comparación multiplicativa", "Unidades", "Razones equivalentes", "Interpretación contextual"],
+    theory: "Una razón compara dos magnitudes mediante un cociente. Si se escribe \\(a:b\\) o \\(\\frac{a}{b}\\), no se está sumando ni restando: se está indicando cuántas veces una cantidad se relaciona con otra. Las razones aparecen en velocidades, densidades, recetas, escalas, porcentajes, tasas y comparaciones estadísticas. Para interpretarlas bien es esencial conservar el orden de las cantidades, revisar las unidades y distinguir entre comparación parte-parte y parte-todo. Dos razones son equivalentes cuando representan la misma relación multiplicativa, aunque usen números diferentes.",
+    example: [
+      "En una mezcla hay \\(3\\) vasos de jugo por cada \\(2\\) vasos de agua. La razón jugo:agua es \\(3:2\\).",
+      "Si duplicas la mezcla, tendrás \\(6\\) vasos de jugo y \\(4\\) de agua; la razón \\(6:4\\) es equivalente a \\(3:2\\).",
+      "La razón no dice que hay \\(5\\) vasos en total solamente; también describe la proporción interna de la mezcla.",
+      "Si necesitas \\(10\\) vasos de agua, multiplicas la razón por \\(5\\): se requieren \\(15\\) vasos de jugo."
+    ],
+    practice: {
+      question: "En un curso hay \\(18\\) estudiantes y \\(6\\) computadores. ¿Cuál es la razón estudiantes:computadores simplificada?",
+      options: ["\\(3:1\\)", "\\(1:3\\)", "\\(24:6\\)"],
+      answer: 0
+    }
+  },
+  "proporciones": {
+    summary: "Estudia la igualdad entre razones y aprende a justificar relaciones equivalentes.",
+    keyConcepts: ["Igualdad de razones", "Proporción", "Producto cruzado", "Términos extremos y medios", "Equivalencia", "Unidad común"],
+    theory: "Una proporción es una igualdad entre dos razones, por ejemplo \\(\\frac{a}{b}=\\frac{c}{d}\\), con \\(b\\ne0\\) y \\(d\\ne0\\). Esta estructura permite resolver problemas donde una relación se conserva: recetas, mapas, precios unitarios, porcentajes, semejanza de figuras y escalas. El producto cruzado es una herramienta útil porque, si dos razones son proporcionales, entonces \\(a\\cdot d=b\\cdot c\\). Sin embargo, antes de operar conviene verificar que las magnitudes comparadas tengan sentido y que las unidades estén organizadas en el mismo orden.",
+    example: [
+      "Verifica si \\(\\frac{4}{7}\\) y \\(\\frac{12}{21}\\) forman una proporción.",
+      "Calcula productos cruzados: \\(4\\cdot21=84\\) y \\(7\\cdot12=84\\).",
+      "Como los productos son iguales, las razones son equivalentes.",
+      "Entonces \\(\\frac{4}{7}=\\frac{12}{21}\\), y sí forman una proporción."
+    ],
+    practice: {
+      question: "Si \\(\\frac{5}{8}=\\frac{x}{24}\\), ¿cuánto vale \\(x\\)?",
+      options: ["\\(15\\)", "\\(12\\)", "\\(30\\)"],
+      answer: 0
+    }
+  },
+  "regla-de-tres": {
+    summary: "Aplica proporciones para encontrar un dato desconocido cuando la relación entre magnitudes se conserva.",
+    keyConcepts: ["Dato desconocido", "Magnitudes relacionadas", "Proporcionalidad directa", "Proporcionalidad inversa", "Orden de unidades", "Verificación"],
+    theory: "La regla de tres es un procedimiento basado en proporciones que permite hallar un valor desconocido a partir de tres datos conocidos. Su uso académico exige identificar primero si la relación es directa o inversa. En una relación directa, si una magnitud aumenta, la otra también aumenta en la misma proporción; en una inversa, si una aumenta, la otra disminuye proporcionalmente. El error más común es aplicar una multiplicación mecánica sin analizar el sentido del problema. Por eso siempre debe verificarse si el resultado crece o decrece de manera coherente.",
+    example: [
+      "Si \\(4\\) cuadernos cuestan \\(12\\,000\\), ¿cuánto cuestan \\(7\\) cuadernos al mismo precio unitario?",
+      "La relación es directa: más cuadernos cuestan más dinero.",
+      "Plantea \\(\\frac{4}{12000}=\\frac{7}{x}\\). Entonces \\(4x=84000\\).",
+      "Despeja \\(x=21000\\). Siete cuadernos cuestan \\(21\\,000\\)."
+    ],
+    practice: {
+      question: "Si \\(6\\) metros de tela cuestan \\(48\\,000\\), ¿cuánto cuestan \\(10\\) metros?",
+      options: ["\\(80\\,000\\)", "\\(58\\,000\\)", "\\(28\\,800\\)"],
+      answer: 0
+    }
+  },
+  "porcentajes": {
+    summary: "Interpreta el porcentaje como razón con base cien y úsalo en aumentos, descuentos y comparaciones.",
+    keyConcepts: ["Por ciento", "Base 100", "Fracción porcentual", "Decimal equivalente", "Aumento y descuento", "Porcentaje de cambio"],
+    theory: "Un porcentaje expresa una razón respecto a cien: \\(p\\% = \\frac{p}{100}\\). Esta forma permite comparar partes de un total aun cuando los totales sean diferentes. Los porcentajes se usan en descuentos, impuestos, intereses, estadísticas, resultados académicos y variaciones. Para resolver con precisión conviene identificar tres elementos: el total o base, el porcentaje y la parte correspondiente. También es importante diferenciar entre puntos porcentuales y porcentaje de cambio, porque no significan lo mismo en análisis de datos.",
+    example: [
+      "Calcula el \\(15\\%\\) de \\(80\\,000\\).",
+      "Convierte \\(15\\%\\) en decimal: \\(0,15\\).",
+      "Multiplica: \\(0,15\\times80\\,000=12\\,000\\).",
+      "Si es un descuento, el precio final sería \\(80\\,000-12\\,000=68\\,000\\)."
+    ],
+    practice: {
+      question: "Un artículo de \\(50\\,000\\) sube un \\(20\\%\\). ¿Cuál es el nuevo precio?",
+      options: ["\\(60\\,000\\)", "\\(55\\,000\\)", "\\(70\\,000\\)"],
+      answer: 0
+    }
+  },
+  "escala": {
+    summary: "Relaciona medidas de un dibujo, mapa o modelo con las medidas reales que representa.",
+    keyConcepts: ["Escala", "Modelo y realidad", "Reducción", "Ampliación", "Unidades homogéneas", "Factor de escala"],
+    theory: "La escala es una razón que conecta una medida representada con su medida real. En mapas, planos, maquetas y diagramas, permite trabajar con objetos demasiado grandes o pequeños para dibujarlos a tamaño real. Una escala \\(1:100\\) significa que una unidad en el dibujo representa \\(100\\) unidades reales, siempre en la misma unidad de medida. El análisis correcto exige convertir unidades antes de operar y distinguir si la escala reduce o amplía. Además, en figuras semejantes, las longitudes cambian con el factor de escala, mientras que las áreas cambian con el cuadrado de ese factor.",
+    example: [
+      "Un plano tiene escala \\(1:200\\). Una pared mide \\(4\\) cm en el plano.",
+      "La medida real es \\(4\\times200=800\\) cm.",
+      "Convierte a metros: \\(800\\) cm \\(=8\\) m.",
+      "La pared real mide \\(8\\) metros."
+    ],
+    practice: {
+      question: "En una escala \\(1:50\\), \\(6\\) cm en el dibujo representan",
+      options: ["\\(300\\) cm reales", "\\(56\\) cm reales", "\\(3\\) cm reales"],
+      answer: 0
+    }
+  },
+  "variacion-directa": {
+    summary: "Modela situaciones donde dos magnitudes aumentan o disminuyen manteniendo una razón constante.",
+    keyConcepts: ["Proporcionalidad directa", "Constante de proporcionalidad", "Modelo \\(y=kx\\)", "Tabla de valores", "Gráfica lineal", "Razón constante"],
+    theory: "Dos magnitudes presentan variación directa cuando una es igual a una constante multiplicada por la otra: \\(y=kx\\). Esto significa que el cociente \\(\\frac{y}{x}\\) permanece constante para todos los pares de valores con \\(x\\ne0\\). La gráfica de una variación directa es una recta que pasa por el origen, y su pendiente coincide con la constante de proporcionalidad. Este modelo aparece en costos con precio unitario fijo, distancia recorrida a velocidad constante, conversiones de unidades y producción uniforme.",
+    example: [
+      "Un taxi cobra \\(3\\,000\\) por kilómetro. Si \\(x\\) es la distancia y \\(y\\) el costo, entonces \\(y=3000x\\).",
+      "Para \\(5\\) km: \\(y=3000\\times5=15000\\).",
+      "Para \\(8\\) km: \\(y=3000\\times8=24000\\).",
+      "El cociente \\(\\frac{y}{x}\\) siempre es \\(3000\\), por eso hay variación directa."
+    ],
+    practice: {
+      question: "Si \\(y\\) varía directamente con \\(x\\) y \\(y=18\\) cuando \\(x=6\\), ¿cuál es la constante \\(k\\)?",
+      options: ["\\(3\\)", "\\(12\\)", "\\(108\\)"],
+      answer: 0
+    }
+  },
+  "variacion-inversa": {
+    summary: "Analiza situaciones donde una magnitud aumenta mientras la otra disminuye conservando un producto constante.",
+    keyConcepts: ["Proporcionalidad inversa", "Producto constante", "Modelo \\(y=\\frac{k}{x}\\)", "Magnitudes inversas", "Hipérbola", "Interpretación contextual"],
+    theory: "Dos magnitudes presentan variación inversa cuando su producto permanece constante: \\(xy=k\\), o de forma equivalente \\(y=\\frac{k}{x}\\). Si una magnitud se multiplica por un factor, la otra se divide por ese mismo factor para conservar el producto. Este comportamiento aparece en problemas de trabajo compartido, velocidad y tiempo para una distancia fija, número de personas y tiempo de ejecución, o concentración y volumen bajo ciertas condiciones. La clave es verificar que el resultado tenga sentido: más velocidad implica menos tiempo; más trabajadores, menos duración, si todos trabajan al mismo ritmo.",
+    example: [
+      "Un recorrido fijo tarda \\(6\\) horas a \\(40\\) km/h. La distancia es \\(40\\times6=240\\) km.",
+      "Si la velocidad sube a \\(60\\) km/h, el tiempo es \\(\\frac{240}{60}=4\\) horas.",
+      "La velocidad aumentó, el tiempo disminuyó y el producto se conservó.",
+      "Por eso la relación entre velocidad y tiempo, con distancia fija, es inversa."
+    ],
+    practice: {
+      question: "Si \\(y\\) varía inversamente con \\(x\\) y \\(xy=36\\), ¿cuánto vale \\(y\\) cuando \\(x=9\\)?",
+      options: ["\\(4\\)", "\\(27\\)", "\\(45\\)"],
+      answer: 0
+    }
+  }
+};
+
 function aplicarContenidoAritmeticaNumerosOperaciones() {
   const branch = LEARNING_CATALOG.find(item => item.id === "aritmetica");
   const topic = branch?.topics?.find(item => item.id === "numeros-operaciones");
@@ -765,6 +880,29 @@ function aplicarContenidoAritmeticaNumerosOperaciones() {
 }
 
 aplicarContenidoAritmeticaNumerosOperaciones();
+
+function aplicarContenidoAritmeticaProporcionalidad() {
+  const branch = LEARNING_CATALOG.find(item => item.id === "aritmetica");
+  const topic = branch?.topics?.find(item => item.id === "proporcionalidad");
+  if (!topic) return;
+  (topic.subtopics || []).forEach(subtopic => {
+    const content = ARITMETICA_PROPORCIONALIDAD_CONTENT[subtopic.id];
+    if (!content) return;
+    subtopic.summary = content.summary;
+    subtopic.keyConcepts = content.keyConcepts;
+    subtopic.levels = {
+      ...subtopic.levels,
+      facil: {
+        ...(subtopic.levels?.facil || {}),
+        theory: content.theory,
+        example: content.example,
+        practice: content.practice
+      }
+    };
+  });
+}
+
+aplicarContenidoAritmeticaProporcionalidad();
 
 const BADGE_CATALOG = [
   { id: "primer-paso", icon: "🌱", title: "Primer paso", description: "Completa tu primer subtema de aprendizaje.", target: 1, type: "completed" },
@@ -814,6 +952,34 @@ const STATIC_LEARNING_PDFS = {
   "aritmetica__numeros-operaciones__notacion-cientifica": {
     title: "Guía PDF: Notación científica",
     pdfUrl: "assets/learning/aritmetica/numeros-operaciones/notacion_cientifica.pdf"
+  },
+  "aritmetica__proporcionalidad__razones": {
+    title: "Guía PDF: Razones",
+    pdfUrl: "assets/learning/aritmetica/proporcionalidad/razones.pdf"
+  },
+  "aritmetica__proporcionalidad__proporciones": {
+    title: "Guía PDF: Proporciones",
+    pdfUrl: "assets/learning/aritmetica/proporcionalidad/proporciones.pdf"
+  },
+  "aritmetica__proporcionalidad__regla-de-tres": {
+    title: "Guía PDF: Regla de tres",
+    pdfUrl: "assets/learning/aritmetica/proporcionalidad/regla_de_tres.pdf"
+  },
+  "aritmetica__proporcionalidad__porcentajes": {
+    title: "Guía PDF: Porcentajes",
+    pdfUrl: "assets/learning/aritmetica/proporcionalidad/porcentajes.pdf"
+  },
+  "aritmetica__proporcionalidad__escala": {
+    title: "Guía PDF: Escala",
+    pdfUrl: "assets/learning/aritmetica/proporcionalidad/escala.pdf"
+  },
+  "aritmetica__proporcionalidad__variacion-directa": {
+    title: "Guía PDF: Variación directa",
+    pdfUrl: "assets/learning/aritmetica/proporcionalidad/variacion_directa.pdf"
+  },
+  "aritmetica__proporcionalidad__variacion-inversa": {
+    title: "Guía PDF: Variación inversa",
+    pdfUrl: "assets/learning/aritmetica/proporcionalidad/variacion_inversa.pdf"
   }
 };
 const PHONE_CODES = [
