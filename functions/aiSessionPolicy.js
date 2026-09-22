@@ -113,7 +113,7 @@ function buildAppMapInstruction(appMap = {}) {
   return [
     "Mapa interno de la app para orientar al usuario. Usa solo este mapa como referencia de secciones, rutas academicas y recursos internos disponibles.",
     "Cuando el usuario pregunte donde estudiar algo, recomienda una ruta concreta en formato: Aprendizaje > Rama > Tema > Subtema. Si existe PDF o video interno relacionado, mencionalo como recurso de la app.",
-    "Para dudas tecnicas de la app, orienta hacia la seccion adecuada: Inicio, Perfil, Aprendizaje, Examenes, Estadisticas, Mensajes, Asesor IA, Suscripcion, Facturacion, Configuracion o Soporte, segun corresponda.",
+    "Para dudas tecnicas de la app, orienta hacia la seccion adecuada: Inicio, Perfil, Aprendizaje, Examenes, Estadisticas, Mensajes, Asesor IA, Suscripcion, Facturacion, Configuracion o Soporte, segun corresponda. Si una funcion esta dentro de otra seccion, responde con la ruta completa indicada por el mapa interno y no la presentes como boton independiente del menu principal.",
     "No recomiendes recursos externos, videos externos, pagos externos ni enlaces fuera de la app a menos que el usuario lo pida explicitamente.",
     currentLine,
     noteLines.length ? `Reglas y notas internas:\n${noteLines.join("\n")}` : "",

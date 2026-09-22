@@ -12332,10 +12332,13 @@ function appSectionsForAdvisor() {
   if (!modoAdmin) return common;
   return [
     ...common,
-    ["adminClases", "Aulas", "Gestion de aulas, estudiantes, codigos, disponibilidad y configuraciones academicas."],
-    ["adminPreguntas", "Banco de preguntas", "Creacion y edicion de preguntas por tema, subtema y nivel de examen."],
-    ["adminMetricas", "Metricas de profesor", "Reportes y seguimiento de aulas, temas, subtemas y resultados."],
-    ["mensajes", "Mensajes", "Comunicacion academica con estudiantes y aulas."]
+    ["configuracion-aulas", "Configuracion / Aulas", "Ruta real para crear aulas, escoger aula activa, ver codigos y eliminar aulas. No aparece como boton Aulas en el menu principal."],
+    ["configuracion-estudiantes", "Configuracion / Cambiar estudiante de aula", "Ruta real para buscar un estudiante por correo y asignarlo a otra aula."],
+    ["configuracion-disponibilidad", "Configuracion / Disponibilidad y retroalimentacion", "Ruta real para programar examenes por aula, tema, subtema y nivel, y publicar retroalimentacion."],
+    ["configuracion-registrar-estudiantes", "Configuracion / Registrar estudiantes", "Ruta real para agregar correos de estudiantes a un aula."],
+    ["reportes", "Reportes", "Boton visible del menu principal para consultar y exportar reportes por aula, tema, subtema y nivel."],
+    ["adminMetricas", "Metricas y estadisticas", "Boton visible del menu principal para revisar seguimiento y rendimiento de aulas."],
+    ["mensajes", "Mensajes", "Boton visible del menu principal para comunicacion academica con estudiantes y aulas."]
   ];
 }
 

@@ -155,3 +155,27 @@ test("builds app-aware recommendations from the internal app map", () => {
   assert.match(instruction, /Guía PDF: Razones/);
   assert.match(instruction, /No recomiendes recursos externos/);
 });
+
+test("preserves nested app paths so advisor does not invent menu entries", () => {
+  const instruction = buildAiSessionInstruction({
+    role: "teacher",
+    appMap: {
+      appSections: [
+        {
+          id: "configuracion-aulas",
+          title: "Configuracion / Aulas",
+          purpose: "Crear aulas y revisar codigos. No aparece como Aulas en el menu principal."
+        },
+        {
+          id: "reportes",
+          title: "Reportes",
+          purpose: "Seccion visible del menu principal para exportar resultados."
+        }
+      ]
+    }
+  });
+
+  assert.match(instruction, /Configuracion \/ Aulas/);
+  assert.match(instruction, /No aparece como Aulas en el menu principal/);
+  assert.match(instruction, /ruta completa/);
+});
