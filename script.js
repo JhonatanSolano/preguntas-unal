@@ -422,7 +422,7 @@ const LEARNING_CATALOG = [
     icon: "🔢",
     description: "Números, operaciones, razones y proporcionalidad.",
     topics: [
-      makeLearningTopic("Aritmética", "numeros-operaciones", "Números y operaciones", "Construye sentido numérico y fluidez operativa.", ["Números naturales", "Números enteros", "Números racionales", "Fracciones", "Decimales", "Potencias", "Raíces", "Notación científica"]),
+      makeLearningTopic("Aritmética", "numeros-operaciones", "Números y operaciones", "Construye sentido numérico y fluidez operativa.", ["Números naturales", "Números enteros", "Números racionales", "Números irracionales", "Números reales", "Operaciones con fracciones", "Decimales", "Potencias", "Raíces", "Notación científica"]),
       makeLearningTopic("Aritmética", "proporcionalidad", "Proporcionalidad", "Relaciona cantidades y compara magnitudes.", ["Razones", "Proporciones", "Regla de tres", "Porcentajes", "Escalas", "Variación directa", "Variación inversa"])
     ]
   },
@@ -588,6 +588,48 @@ const BADGE_CATALOG = [
   { id: "dominio", icon: "🏅", title: "Dominio inicial", description: "Completa 12 subtemas de aprendizaje.", target: 12, type: "completed" },
   { id: "constancia", icon: "💎", title: "Constancia matemática", description: "Alcanza una racha de 7 días de estudio.", target: 7, type: "streak" }
 ];
+const STATIC_LEARNING_PDFS = {
+  "aritmetica__numeros-operaciones__numeros-naturales": {
+    title: "Guía PDF: Números naturales",
+    pdfUrl: "assets/learning/aritmetica/numeros-operaciones/numeros_naturales.pdf"
+  },
+  "aritmetica__numeros-operaciones__numeros-enteros": {
+    title: "Guía PDF: Números enteros",
+    pdfUrl: "assets/learning/aritmetica/numeros-operaciones/numeros_enteros.pdf"
+  },
+  "aritmetica__numeros-operaciones__numeros-racionales": {
+    title: "Guía PDF: Números racionales",
+    pdfUrl: "assets/learning/aritmetica/numeros-operaciones/numeros_racionales.pdf"
+  },
+  "aritmetica__numeros-operaciones__numeros-irracionales": {
+    title: "Guía PDF: Números irracionales",
+    pdfUrl: "assets/learning/aritmetica/numeros-operaciones/numeros_irracionales.pdf"
+  },
+  "aritmetica__numeros-operaciones__numeros-reales": {
+    title: "Guía PDF: Números reales",
+    pdfUrl: "assets/learning/aritmetica/numeros-operaciones/numeros_reales.pdf"
+  },
+  "aritmetica__numeros-operaciones__operaciones-con-fracciones": {
+    title: "Guía PDF: Operaciones con fracciones",
+    pdfUrl: "assets/learning/aritmetica/numeros-operaciones/operaciones_con_fracciones.pdf"
+  },
+  "aritmetica__numeros-operaciones__decimales": {
+    title: "Guía PDF: Decimales",
+    pdfUrl: "assets/learning/aritmetica/numeros-operaciones/decimales.pdf"
+  },
+  "aritmetica__numeros-operaciones__potencias": {
+    title: "Guía PDF: Potencias",
+    pdfUrl: "assets/learning/aritmetica/numeros-operaciones/potencias.pdf"
+  },
+  "aritmetica__numeros-operaciones__raices": {
+    title: "Guía PDF: Raíces",
+    pdfUrl: "assets/learning/aritmetica/numeros-operaciones/raices.pdf"
+  },
+  "aritmetica__numeros-operaciones__notacion-cientifica": {
+    title: "Guía PDF: Notación científica",
+    pdfUrl: "assets/learning/aritmetica/numeros-operaciones/notacion_cientifica.pdf"
+  }
+};
 const PHONE_CODES = [
   { code: "+57", label: "Colombia (+57)", flag: "", country: "Colombia" },
   { code: "+58", label: "Venezuela (+58)", flag: "", country: "Venezuela" }
@@ -4170,6 +4212,25 @@ function learningStudyLinksFromResource(resource = {}) {
   return normalizarLearningStudyLinks(resource.studyLinks || resource.resourceLinks || resource.links || []);
 }
 
+function staticLearningResourceForSelection(selection = {}) {
+  const key = `${selection.branchId}__${selection.topicId}__${selection.subtopicId || selection.topicId}`;
+  const resource = STATIC_LEARNING_PDFS[key];
+  if (!resource) return null;
+  return {
+    id: `static__${key}`,
+    ownerUid: "",
+    scope: "global",
+    branchId: selection.branchId,
+    topicId: selection.topicId,
+    subtopicId: selection.subtopicId || selection.topicId,
+    level: "facil",
+    title: resource.title,
+    pdfUrl: resource.pdfUrl,
+    pdfPath: "",
+    studyLinks: []
+  };
+}
+
 function parseCloudflareStreamVideo(value = "") {
   const raw = String(value || "").trim();
   if (!raw) return { videoUrl: "", videoId: "", videoProvider: "" };
@@ -4421,10 +4482,11 @@ function populateLearningManagerResource(resource) {
 }
 async function renderLearningResourceForSelection(selection) {
   try {
-    const resource = await cargarLearningResource(selection);
+    const resource = await cargarLearningResource(selection) || staticLearningResourceForSelection(selection);
     renderLearningResourceSlots(resource);
   } catch (error) {
     console.warn("No fue posible cargar recursos de aprendizaje", error);
+    renderLearningResourceSlots(staticLearningResourceForSelection(selection));
   }
 }
 
